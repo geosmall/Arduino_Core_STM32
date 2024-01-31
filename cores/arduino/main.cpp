@@ -47,16 +47,11 @@ __attribute__((constructor(101))) void premain()
  */
 int main(void)
 {
-  initVariant();
 
   setup();
 
   for (;;) {
-#if defined(CORE_CALLBACK)
-    CoreCallback();
-#endif
     loop();
-    serialEventRun();
   }
 
   return 0;
