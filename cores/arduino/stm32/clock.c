@@ -1,6 +1,6 @@
 #include "clock.h"
-#include "stm32yyxx_ll_cortex.h"
-#include "stm32yyxx_ll_rcc.h"
+// #include "stm32yyxx_ll_cortex.h"
+// #include "stm32yyxx_ll_rcc.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,9 +36,7 @@ uint32_t getCurrentMillis(void)
   return HAL_GetTick();
 }
 
-void noOsSystickHandler()
-{
-}
+void noOsSystickHandler() { }
 
 void osSystickHandler() __attribute__((weak, alias("noOsSystickHandler")));
 /**
@@ -49,20 +47,7 @@ void osSystickHandler() __attribute__((weak, alias("noOsSystickHandler")));
 void SysTick_Handler(void)
 {
   HAL_IncTick();
-  HAL_SYSTICK_IRQHandler();
   osSystickHandler();
-}
-
-void configHSECapacitorTuning(void)
-{
-#if defined(OTP_AREA_BASE) && defined(STM32WBxx)
-  OTP_BT_t *p_otp;
-  /* Read HSE_Tuning from OTP with index 0 */
-  p_otp = (OTP_BT_t *) OTP_Read(0);
-  if ((p_otp) && (!LL_RCC_HSE_IsReady())) {
-    LL_RCC_HSE_SetCapacitorTuning(p_otp->hse_tuning);
-  }
-#endif
 }
 
 /**

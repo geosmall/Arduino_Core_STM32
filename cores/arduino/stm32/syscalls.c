@@ -1,5 +1,5 @@
 /**
-  * \file syscalls_stm32.c
+  * \file stm32_syscalls.c
   *
   * Implementation of newlib syscall.
   *
