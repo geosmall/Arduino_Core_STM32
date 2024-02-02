@@ -1,4 +1,5 @@
 #include "hw_config.h"
+#include "dwt.h"
 
 #ifdef __cplusplus
 extern "C" {

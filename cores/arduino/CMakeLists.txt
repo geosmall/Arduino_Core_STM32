@@ -19,24 +19,19 @@ target_link_libraries(core INTERFACE core_usage)
 
 
 add_library(core_bin STATIC EXCLUDE_FROM_ALL
-  abi.cpp
-  avr/dtostrf.c
   board.c
   core_debug.c
-  HardwareSerial.cpp
-  hooks.c
-  IPAddress.cpp
-  itoa.c
   main.cpp
-  pins_arduino.c
-  Print.cpp
-  RingBuffer.cpp
+  stm32/clock.c
+  stm32/dwt.c
+  stm32/hw_config.c
   stm32/startup_stm32yyxx.S
+  stm32/stm32_def.c
+  stm32/syscalls.c
+  stm32/system_stm32yyxx.c
   stm32/usb/cdc/cdc_queue.c
   stm32/usb/cdc/usbd_cdc.c
   stm32/usb/cdc/usbd_cdc_if.c
-  stm32/usb/hid/usbd_hid_composite.c
-  stm32/usb/hid/usbd_hid_composite_if.c
   stm32/usb/usb_device_core.c
   stm32/usb/usb_device_ctlreq.c
   stm32/usb/usb_device_ioreq.c
@@ -44,19 +39,28 @@ add_library(core_bin STATIC EXCLUDE_FROM_ALL
   stm32/usb/usbd_desc.c
   stm32/usb/usbd_ep_conf.c
   stm32/usb/usbd_if.c
-  Stream.cpp
-  Tone.cpp
-  USBSerial.cpp
-  VirtIOSerial.cpp
-  WInterrupts.cpp
-  wiring_analog.c
-  wiring_digital.c
-  wiring_pulse.cpp
-  wiring_shift.c
-  wiring_time.c
-  WMath.cpp
-  WSerial.cpp
-  WString.cpp
+  stm32/HAL/stm32yyxx_hal.c
+  stm32/HAL/stm32yyxx_hal_cortex.c
+  stm32/HAL/stm32yyxx_hal_pcd.c
+  stm32/HAL/stm32yyxx_hal_pcd_ex.c
+  stm32/HAL/stm32yyxx_hal_pwr.c
+  stm32/HAL/stm32yyxx_hal_rcc.c
+  stm32/LL/stm32yyxx_ll_adc.c
+  stm32/LL/stm32yyxx_ll_crc.c
+  stm32/LL/stm32yyxx_ll_dma.c
+  stm32/LL/stm32yyxx_ll_exti.c
+  stm32/LL/stm32yyxx_ll_gpio.c
+  stm32/LL/stm32yyxx_ll_hrtim.c
+  stm32/LL/stm32yyxx_ll_i2c.c
+  stm32/LL/stm32yyxx_ll_pwr.c
+  stm32/LL/stm32yyxx_ll_rcc.c
+  stm32/LL/stm32yyxx_ll_rtc.c
+  stm32/LL/stm32yyxx_ll_sdmmc.c
+  stm32/LL/stm32yyxx_ll_spi.c
+  stm32/LL/stm32yyxx_ll_tim.c
+  stm32/LL/stm32yyxx_ll_usart.c
+  stm32/LL/stm32yyxx_ll_usb.c
+  stm32/LL/stm32yyxx_ll_utils.c
 )
 target_link_libraries(core_bin PUBLIC core_usage)
 
