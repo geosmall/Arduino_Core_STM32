@@ -20,13 +20,11 @@ target_link_libraries(core INTERFACE core_usage)
 
 add_library(core_bin STATIC EXCLUDE_FROM_ALL
   board.c
-  core_debug.c
   main.cpp
   stm32/clock.c
   stm32/dwt.c
   stm32/hw_config.c
   stm32/startup_stm32yyxx.S
-  stm32/stm32_def.c
   stm32/syscalls.c
   stm32/system_stm32yyxx.c
   stm32/usb/cdc/cdc_queue.c
