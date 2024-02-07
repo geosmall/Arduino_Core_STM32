@@ -38,6 +38,9 @@ function(build_sketch)
     target_link_libraries(${SKBD_TARGET} PRIVATE ${SKBD_DEPENDS})
   endif()
 
+  # link in OBJECT library vaiant
+  target_link_libraries(${SKBD_TARGET} PRIVATE variant_bin)
+     
   get_target_property(OUTDIR ${SKBD_TARGET} BINARY_DIR)
   set(MAPFILE ${OUTDIR}/${SKBD_TARGET}.map)
 

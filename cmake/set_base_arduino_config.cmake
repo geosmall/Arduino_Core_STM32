@@ -71,5 +71,4 @@ target_link_libraries(stm32_runtime INTERFACE
   base_config
 
   core
-  $<TARGET_NAME_IF_EXISTS:variant>
 )
