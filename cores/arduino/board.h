@@ -5,13 +5,11 @@
  * Core and peripherals registers definitions
 */
 
-#include "hw_config.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
 
-void init(void) ;
+void init(void);
 
 #ifdef __cplusplus
 }

@@ -22,8 +22,6 @@ add_library(core_bin STATIC EXCLUDE_FROM_ALL
   board.c
   main.cpp
   stm32/clock.c
-  stm32/dwt.c
-  stm32/hw_config.c
   stm32/startup_stm32yyxx.S
   stm32/syscalls.c
   stm32/system_stm32yyxx.c

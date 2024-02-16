@@ -1,4 +1,5 @@
 #include "board.h"
+#include "stm32_def.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -8,8 +9,11 @@ void __libc_init_array(void);
 
 WEAK void init(void)
 {
-  hw_config_init();
-}
+  /* Initialize the HAL */
+  HAL_Init();
+
+  /* Configure the system clock */
+  SystemClock_Config();}
 
 #ifdef __cplusplus
 }
