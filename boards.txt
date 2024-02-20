@@ -54,6 +54,59 @@ Flight_ctrl.menu.upload_method.dfuMethod.upload.protocol=2
 Flight_ctrl.menu.upload_method.dfuMethod.upload.options=-g
 Flight_ctrl.menu.upload_method.dfuMethod.upload.tool=stm32CubeProg
 
+Flight_ctrl.menu.upload_method.clipboard=Clipboard (Copy Path)
+Flight_ctrl.menu.upload_method.clipboard.upload.protocol=0
+Flight_ctrl.menu.upload_method.clipboard.upload.options=-g
+Flight_ctrl.menu.upload_method.clipboard.upload.tool=clipboard_upload
+
+################################################################################
+# Dev boards
+
+Dev_boards.name=Development Boards
+
+Dev_boards.build.core=arduino
+Dev_boards.build.board=Dev_boards
+Dev_boards.build.variant_h=variant_{build.board}.h
+Dev_boards.build.st_extra_flags=-D{build.product_line} {build.enable_usb} {build.xSerial}
+Dev_boards.upload.maximum_size=0
+Dev_boards.upload.maximum_data_size=0
+
+# BlackPill F401CC
+Dev_boards.menu.pnum.BLACKPILL_F401CC=BlackPill F401CC
+Dev_boards.menu.pnum.BLACKPILL_F401CC.node="NODE_F401CC,BlkPill"
+Dev_boards.menu.pnum.BLACKPILL_F401CC.upload.maximum_size=262144
+Dev_boards.menu.pnum.BLACKPILL_F401CC.upload.maximum_data_size=65536
+Dev_boards.menu.pnum.BLACKPILL_F401CC.build.mcu=cortex-m4
+Dev_boards.menu.pnum.BLACKPILL_F401CC.build.fpu=-mfpu=fpv4-sp-d16
+Dev_boards.menu.pnum.BLACKPILL_F401CC.build.float-abi=-mfloat-abi=hard
+Dev_boards.menu.pnum.BLACKPILL_F401CC.build.board=BLACKPILL_F401CC
+Dev_boards.menu.pnum.BLACKPILL_F401CC.build.series=STM32F4xx
+Dev_boards.menu.pnum.BLACKPILL_F401CC.build.product_line=STM32F401xC
+Dev_boards.menu.pnum.BLACKPILL_F401CC.build.variant=STM32F4xx/Dev_Blackpill_F401CC
+Dev_boards.menu.pnum.BLACKPILL_F401CC.build.variant_h=variant_BLACKPILL_F401Cx.h
+Dev_boards.menu.pnum.BLACKPILL_F401CC.build.cmsis_lib_gcc=arm_cortexM4lf_math
+
+# Upload menu
+Dev_boards.menu.upload_method.swdMethod=STM32CubeProgrammer (SWD)
+Dev_boards.menu.upload_method.swdMethod.upload.protocol=0
+Dev_boards.menu.upload_method.swdMethod.upload.options=-g
+Dev_boards.menu.upload_method.swdMethod.upload.tool=stm32CubeProg
+
+Dev_boards.menu.upload_method.serialMethod=STM32CubeProgrammer (Serial)
+Dev_boards.menu.upload_method.serialMethod.upload.protocol=1
+Dev_boards.menu.upload_method.serialMethod.upload.options={serial.port.file} -s
+Dev_boards.menu.upload_method.serialMethod.upload.tool=stm32CubeProg
+
+Dev_boards.menu.upload_method.dfuMethod=STM32CubeProgrammer (DFU)
+Dev_boards.menu.upload_method.dfuMethod.upload.protocol=2
+Dev_boards.menu.upload_method.dfuMethod.upload.options=-g
+Dev_boards.menu.upload_method.dfuMethod.upload.tool=stm32CubeProg
+
+Dev_boards.menu.upload_method.clipboard=Clipboard (Copy Path)
+Dev_boards.menu.upload_method.clipboard.upload.protocol=0
+Dev_boards.menu.upload_method.clipboard.upload.options=-g
+Dev_boards.menu.upload_method.clipboard.upload.tool=clipboard_upload
+
 ################################################################################
 # Nucleo 64 boards
 
@@ -257,6 +310,12 @@ Flight_ctrl.menu.xserial.none.build.xSerial=-DHAL_UART_MODULE_ENABLED -DHWSERIAL
 Flight_ctrl.menu.xserial.disabled=Disabled (No Serial support)
 Flight_ctrl.menu.xserial.disabled.build.xSerial=
 
+Dev_boards.menu.xserial.generic=Enabled (generic 'Serial')
+Dev_boards.menu.xserial.none=Enabled (no generic 'Serial')
+Dev_boards.menu.xserial.none.build.xSerial=-DHAL_UART_MODULE_ENABLED -DHWSERIAL_NONE
+Dev_boards.menu.xserial.disabled=Disabled (No Serial support)
+Dev_boards.menu.xserial.disabled.build.xSerial=
+
 Nucleo_64.menu.xserial.generic=Enabled (generic 'Serial')
 Nucleo_64.menu.xserial.none=Enabled (no generic 'Serial')
 Nucleo_64.menu.xserial.none.build.xSerial=-DHAL_UART_MODULE_ENABLED -DHWSERIAL_NONE
@@ -281,21 +340,28 @@ Flight_ctrl.menu.usb.CDCgen=CDC (generic 'Serial' supersede U(S)ART)
 Flight_ctrl.menu.usb.CDCgen.build.enable_usb={build.usb_flags} -DUSBD_USE_CDC
 Flight_ctrl.menu.usb.CDC=CDC (no generic 'Serial')
 Flight_ctrl.menu.usb.CDC.build.enable_usb={build.usb_flags} -DUSBD_USE_CDC -DDISABLE_GENERIC_SERIALUSB
-Flight_ctrl.menu.usb.HID=HID (keyboard and mouse)
-Flight_ctrl.menu.usb.HID.build.enable_usb={build.usb_flags} -DUSBD_USE_HID_COMPOSITE
 Flight_ctrl.menu.xusb.FS=Low/Full Speed
 Flight_ctrl.menu.xusb.HS=High Speed
 Flight_ctrl.menu.xusb.HS.build.usb_speed=-DUSE_USB_HS
 Flight_ctrl.menu.xusb.HSFS=High Speed in Full Speed mode
 Flight_ctrl.menu.xusb.HSFS.build.usb_speed=-DUSE_USB_HS -DUSE_USB_HS_IN_FS
 
+Dev_boards.menu.usb.none=None
+Dev_boards.menu.usb.CDCgen=CDC (generic 'Serial' supersede U(S)ART)
+Dev_boards.menu.usb.CDCgen.build.enable_usb={build.usb_flags} -DUSBD_USE_CDC
+Dev_boards.menu.usb.CDC=CDC (no generic 'Serial')
+Dev_boards.menu.usb.CDC.build.enable_usb={build.usb_flags} -DUSBD_USE_CDC -DDISABLE_GENERIC_SERIALUSB
+Dev_boards.menu.xusb.FS=Low/Full Speed
+Dev_boards.menu.xusb.HS=High Speed
+Dev_boards.menu.xusb.HS.build.usb_speed=-DUSE_USB_HS
+Dev_boards.menu.xusb.HSFS=High Speed in Full Speed mode
+Dev_boards.menu.xusb.HSFS.build.usb_speed=-DUSE_USB_HS -DUSE_USB_HS_IN_FS
+
 Nucleo_64.menu.usb.none=None
 Nucleo_64.menu.usb.CDCgen=CDC (generic 'Serial' supersede U(S)ART)
 Nucleo_64.menu.usb.CDCgen.build.enable_usb={build.usb_flags} -DUSBD_USE_CDC
 Nucleo_64.menu.usb.CDC=CDC (no generic 'Serial')
 Nucleo_64.menu.usb.CDC.build.enable_usb={build.usb_flags} -DUSBD_USE_CDC -DDISABLE_GENERIC_SERIALUSB
-Nucleo_64.menu.usb.HID=HID (keyboard and mouse)
-Nucleo_64.menu.usb.HID.build.enable_usb={build.usb_flags} -DUSBD_USE_HID_COMPOSITE
 Nucleo_64.menu.xusb.FS=Low/Full Speed
 Nucleo_64.menu.xusb.HS=High Speed
 Nucleo_64.menu.xusb.HS.build.usb_speed=-DUSE_USB_HS
@@ -307,8 +373,6 @@ Disco.menu.usb.CDCgen=CDC (generic 'Serial' supersede U(S)ART)
 Disco.menu.usb.CDCgen.build.enable_usb={build.usb_flags} -DUSBD_USE_CDC
 Disco.menu.usb.CDC=CDC (no generic 'Serial')
 Disco.menu.usb.CDC.build.enable_usb={build.usb_flags} -DUSBD_USE_CDC -DDISABLE_GENERIC_SERIALUSB
-Disco.menu.usb.HID=HID (keyboard and mouse)
-Disco.menu.usb.HID.build.enable_usb={build.usb_flags} -DUSBD_USE_HID_COMPOSITE
 Disco.menu.xusb.FS=Low/Full Speed
 Disco.menu.xusb.HS=High Speed
 Disco.menu.xusb.HS.build.usb_speed=-DUSE_USB_HS
@@ -335,6 +399,26 @@ Flight_ctrl.menu.opt.o3lto=Fastest (-O3) with LTO
 Flight_ctrl.menu.opt.o3lto.build.flags.optimize=-O3 -flto
 Flight_ctrl.menu.opt.o0std=No Optimization (-O0)
 Flight_ctrl.menu.opt.o0std.build.flags.optimize=-O0
+
+Dev_boards.menu.opt.ogstd=Debug (-Og)
+Dev_boards.menu.opt.ogstd.build.flags.optimize=-Og
+Dev_boards.menu.opt.osstd=Smallest (-Os default)
+Dev_boards.menu.opt.oslto=Smallest (-Os) with LTO
+Dev_boards.menu.opt.oslto.build.flags.optimize=-Os -flto
+Dev_boards.menu.opt.o1std=Fast (-O1)
+Dev_boards.menu.opt.o1std.build.flags.optimize=-O1
+Dev_boards.menu.opt.o1lto=Fast (-O1) with LTO
+Dev_boards.menu.opt.o1lto.build.flags.optimize=-O1 -flto
+Dev_boards.menu.opt.o2std=Faster (-O2)
+Dev_boards.menu.opt.o2std.build.flags.optimize=-O2
+Dev_boards.menu.opt.o2lto=Faster (-O2) with LTO
+Dev_boards.menu.opt.o2lto.build.flags.optimize=-O2 -flto
+Dev_boards.menu.opt.o3std=Fastest (-O3)
+Dev_boards.menu.opt.o3std.build.flags.optimize=-O3
+Dev_boards.menu.opt.o3lto=Fastest (-O3) with LTO
+Dev_boards.menu.opt.o3lto.build.flags.optimize=-O3 -flto
+Dev_boards.menu.opt.o0std=No Optimization (-O0)
+Dev_boards.menu.opt.o0std.build.flags.optimize=-O0
 
 Nucleo_64.menu.opt.ogstd=Debug (-Og)
 Nucleo_64.menu.opt.ogstd.build.flags.optimize=-Og
@@ -385,6 +469,14 @@ Flight_ctrl.menu.dbg.enable_sym.build.flags.debug=-g -DNDEBUG
 Flight_ctrl.menu.dbg.enable_log=Core logs Enabled
 Flight_ctrl.menu.dbg.enable_log.build.flags.debug=
 
+Dev_boards.menu.dbg.enable_all=Core Logs and Symbols Enabled (-g)
+Dev_boards.menu.dbg.enable_all.build.flags.debug=-g
+Dev_boards.menu.dbg.none=None
+Dev_boards.menu.dbg.enable_sym=Symbols Enabled (-g)
+Dev_boards.menu.dbg.enable_sym.build.flags.debug=-g -DNDEBUG
+Dev_boards.menu.dbg.enable_log=Core logs Enabled
+Dev_boards.menu.dbg.enable_log.build.flags.debug=
+
 Nucleo_64.menu.dbg.enable_all=Core Logs and Symbols Enabled (-g)
 Nucleo_64.menu.dbg.enable_all.build.flags.debug=-g
 Nucleo_64.menu.dbg.none=None
@@ -411,6 +503,16 @@ Flight_ctrl.menu.rtlib.nanofps=Newlib Nano + Float Printf/Scanf
 Flight_ctrl.menu.rtlib.nanofps.build.flags.ldspecs=--specs=nano.specs -u _printf_float -u _scanf_float
 Flight_ctrl.menu.rtlib.full=Newlib Standard
 Flight_ctrl.menu.rtlib.full.build.flags.ldspecs=
+
+Dev_boards.menu.rtlib.nano=Newlib Nano (default)
+Dev_boards.menu.rtlib.nanofp=Newlib Nano + Float Printf
+Dev_boards.menu.rtlib.nanofp.build.flags.ldspecs=--specs=nano.specs -u _printf_float
+Dev_boards.menu.rtlib.nanofs=Newlib Nano + Float Scanf
+Dev_boards.menu.rtlib.nanofs.build.flags.ldspecs=--specs=nano.specs -u _scanf_float
+Dev_boards.menu.rtlib.nanofps=Newlib Nano + Float Printf/Scanf
+Dev_boards.menu.rtlib.nanofps.build.flags.ldspecs=--specs=nano.specs -u _printf_float -u _scanf_float
+Dev_boards.menu.rtlib.full=Newlib Standard
+Dev_boards.menu.rtlib.full.build.flags.ldspecs=
 
 Nucleo_64.menu.rtlib.nano=Newlib Nano (default)
 Nucleo_64.menu.rtlib.nanofp=Newlib Nano + Float Printf
