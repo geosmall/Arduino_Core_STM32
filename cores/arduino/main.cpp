@@ -39,7 +39,7 @@ __attribute__((constructor(101))) void premain()
 #endif
 #endif
 
-  init();
+  board_init();
 }
 
 /*

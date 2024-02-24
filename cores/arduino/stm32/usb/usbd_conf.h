@@ -30,8 +30,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "stm32f4xx.h"
-#include "stm32f4xx_hal.h"
+#include "stm32_def.h"
 
 /* USER CODE BEGIN INCLUDE */
 

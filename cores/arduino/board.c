@@ -5,9 +5,9 @@
 extern "C" {
 #endif
 
-void __libc_init_array(void);
+// void __libc_init_array(void);
 
-WEAK void init(void)
+WEAK void board_init(void)
 {
   configIPClock();
 

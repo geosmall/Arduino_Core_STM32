@@ -9,7 +9,7 @@
 extern "C" {
 #endif /* __cplusplus */
 
-void init(void);
+void board_init(void);
 
 #ifdef __cplusplus
 }

@@ -86,6 +86,22 @@ Dev_boards.menu.pnum.BLACKPILL_F401CC.build.variant=STM32F4xx/Dev_Blackpill_F401
 Dev_boards.menu.pnum.BLACKPILL_F401CC.build.variant_h=variant_BLACKPILL_F401Cx.h
 Dev_boards.menu.pnum.BLACKPILL_F401CC.build.cmsis_lib_gcc=arm_cortexM4lf_math
 
+# DevEBoxH743VITX
+Dev_boards.menu.pnum.DevEBoxH743VITX=DevEBox H743VITX
+Dev_boards.menu.pnum.DevEBoxH743VITX.node="NODE_H743VI,DevEBox"
+Dev_boards.menu.pnum.DevEBoxH743VITX.upload.maximum_size=2097152
+Dev_boards.menu.pnum.DevEBoxH743VITX.upload.maximum_data_size=524288
+Dev_boards.menu.pnum.DevEBoxH743VITX.build.mcu=cortex-m7
+Dev_boards.menu.pnum.DevEBoxH743VITX.build.fpu=-mfpu=fpv4-sp-d16
+Dev_boards.menu.pnum.DevEBoxH743VITX.build.float-abi=-mfloat-abi=hard
+Dev_boards.menu.pnum.DevEBoxH743VITX.build.board=DevEBoxH743VITX
+Dev_boards.menu.pnum.DevEBoxH743VITX.build.series=STM32H7xx
+Dev_boards.menu.pnum.DevEBoxH743VITX.build.product_line=STM32H743xx
+Dev_boards.menu.pnum.DevEBoxH743VITX.build.variant=STM32H7xx/H742V(G-I)(H-T)_H743V(G-I)(H-T)_H750VBT_H753VI(H-T)
+Dev_boards.menu.pnum.DevEBoxH743VITX.build.variant_h=variant_DevEBoxH7xx.h
+Dev_boards.menu.pnum.DevEBoxH743VITX.build.cmsis_lib_gcc=arm_cortexM7lfsp_math
+Dev_boards.menu.pnum.DevEBoxH743VITX.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial}
+
 # Upload menu
 Dev_boards.menu.upload_method.swdMethod=STM32CubeProgrammer (SWD)
 Dev_boards.menu.upload_method.swdMethod.upload.protocol=0
