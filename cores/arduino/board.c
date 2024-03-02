@@ -1,5 +1,8 @@
 #include "board.h"
 #include "stm32_def.h"
+#if defined(USBCON) && defined(USBD_USE_CDC)
+  #include "usb_device.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -18,7 +21,7 @@ WEAK void board_init(void)
   SystemClock_Config();
 
 #if defined(USBCON) && defined(USBD_USE_CDC)
-  MX_USB_DEVICE_Init();
+  USB_DEVICE_Init();
 #endif
 }
 

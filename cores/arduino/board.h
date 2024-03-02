@@ -4,6 +4,9 @@
 /*
  * Core and peripherals registers definitions
 */
+#include "variant.h"
+
+#include "clock.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -11,11 +11,11 @@ version=2.5.0
 # ----------------------
 # compiler.stm.extra_include="-I{build.source.path}" "-I{build.core.path}/stm32" "-I{build.core.path}/stm32/LL" "-I{build.core.path}/stm32/usb" "-I{build.core.path}/stm32/usb/hid" "-I{build.core.path}/stm32/usb/cdc" "-I{build.system.path}/Drivers/{build.series}_HAL_Driver/Inc" "-I{build.system.path}/Drivers/{build.series}_HAL_Driver/Src" "-I{build.system.path}/{build.series}" "-I{build.system.path}/Middlewares/ST/STM32_USB_Device_Library/Core/Inc" "-I{build.system.path}/Middlewares/ST/STM32_USB_Device_Library/Core/Src"
 
-compiler.stm.extra_include="-I{build.source.path}" "-I{build.core.path}/stm32" "-I{build.core.path}/stm32/LL" "-I{build.core.path}/stm32/usb" "-I{build.core.path}/stm32/usb/cdc" "-I{build.system.path}/Drivers/{build.series}_HAL_Driver/Inc" "-I{build.system.path}/Drivers/{build.series}_HAL_Driver/Src" "-I{build.system.path}/{build.series}" "-I{build.system.path}/Middlewares/ST/STM32_USB_Device_Library/Core/Inc" "-I{build.system.path}/Middlewares/ST/STM32_USB_Device_Library/Core/Src" "-I{build.system.path}/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc" "-I{build.system.path}/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src"
+compiler.stm.extra_include="-I{build.source.path}" "-I{build.core.path}/stm32" "-I{build.core.path}/stm32/LL" "-I{build.core.path}/stm32/usb" "-I{build.system.path}/Drivers/{build.series}_HAL_Driver/Inc" "-I{build.system.path}/Drivers/{build.series}_HAL_Driver/Src" "-I{build.system.path}/{build.series}" "-I{build.system.path}/Middlewares/ST/STM32_USB_Device_Library/Core/Inc" "-I{build.system.path}/Middlewares/ST/STM32_USB_Device_Library/Core/Src" "-I{build.system.path}/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc" "-I{build.system.path}/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src"
 
 compiler.warning_flags=-w
 compiler.warning_flags.none=-w
-compiler.warning_flags.default=
+compiler.warning_flags.default=-Wall
 compiler.warning_flags.more=-Wall
 compiler.warning_flags.all=-Wall -Wextra
 

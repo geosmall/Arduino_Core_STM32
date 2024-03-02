@@ -97,7 +97,7 @@ Dev_boards.menu.pnum.DevEBoxH743VITX.build.float-abi=-mfloat-abi=hard
 Dev_boards.menu.pnum.DevEBoxH743VITX.build.board=DevEBoxH743VITX
 Dev_boards.menu.pnum.DevEBoxH743VITX.build.series=STM32H7xx
 Dev_boards.menu.pnum.DevEBoxH743VITX.build.product_line=STM32H743xx
-Dev_boards.menu.pnum.DevEBoxH743VITX.build.variant=STM32H7xx/H742V(G-I)(H-T)_H743V(G-I)(H-T)_H750VBT_H753VI(H-T)
+Dev_boards.menu.pnum.DevEBoxH743VITX.build.variant=STM32H7xx/Dev_DevEBoxH7xx
 Dev_boards.menu.pnum.DevEBoxH743VITX.build.variant_h=variant_DevEBoxH7xx.h
 Dev_boards.menu.pnum.DevEBoxH743VITX.build.cmsis_lib_gcc=arm_cortexM7lfsp_math
 Dev_boards.menu.pnum.DevEBoxH743VITX.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial}
@@ -230,95 +230,6 @@ Disco.menu.upload_method.MassStorage.upload.protocol=
 Disco.menu.upload_method.MassStorage.upload.tool=massStorageCopy
 
 ################################################################################
-# Generic F4
-
-GenF4.name=Generic STM32F4 series
-
-GenF4.build.core=arduino
-GenF4.build.board=GenF4
-GenF4.build.st_extra_flags=-D{build.product_line} {build.enable_usb} {build.xSerial} {build.bootloader_flags}
-GenF4.build.mcu=cortex-m4
-GenF4.build.fpu=-mfpu=fpv4-sp-d16
-GenF4.build.float-abi=-mfloat-abi=hard
-GenF4.build.series=STM32F4xx
-GenF4.build.cmsis_lib_gcc=arm_cortexM4lf_math
-GenF4.upload.maximum_size=0
-GenF4.upload.maximum_data_size=0
-
-# BlackPill F401CC
-GenF4.menu.pnum.BLACKPILL_F401CC=BlackPill F401CC
-GenF4.menu.pnum.BLACKPILL_F401CC.upload.maximum_size=262144
-GenF4.menu.pnum.BLACKPILL_F401CC.upload.maximum_data_size=65536
-GenF4.menu.pnum.BLACKPILL_F401CC.build.board=BLACKPILL_F401CC
-GenF4.menu.pnum.BLACKPILL_F401CC.build.product_line=STM32F401xC
-GenF4.menu.pnum.BLACKPILL_F401CC.build.variant=STM32F4xx/F401CC(F-U-Y)_F401C(B-D-E)(U-Y)
-GenF4.menu.pnum.BLACKPILL_F401CC.build.variant_h=variant_BLACKPILL_F401Cx.h
-GenF4.menu.pnum.BLACKPILL_F401CC.build.peripheral_pins=-DCUSTOM_PERIPHERAL_PINS
-
-# BlackPill F401CE
-GenF4.menu.pnum.BLACKPILL_F401CE=BlackPill F401CE
-GenF4.menu.pnum.BLACKPILL_F401CE.upload.maximum_size=524288
-GenF4.menu.pnum.BLACKPILL_F401CE.upload.maximum_data_size=98304
-GenF4.menu.pnum.BLACKPILL_F401CE.build.board=BLACKPILL_F401CE
-GenF4.menu.pnum.BLACKPILL_F401CE.build.product_line=STM32F401xE
-GenF4.menu.pnum.BLACKPILL_F401CE.build.variant=STM32F4xx/F401CC(F-U-Y)_F401C(B-D-E)(U-Y)
-GenF4.menu.pnum.BLACKPILL_F401CE.build.variant_h=variant_BLACKPILL_F401Cx.h
-GenF4.menu.pnum.BLACKPILL_F401CE.build.peripheral_pins=-DCUSTOM_PERIPHERAL_PINS
-
-# BlackPill F411CE
-# https://github.com/mcauser/WEACT_F411CEU6
-GenF4.menu.pnum.BLACKPILL_F411CE=BlackPill F411CE
-GenF4.menu.pnum.BLACKPILL_F411CE.upload.maximum_size=524288
-GenF4.menu.pnum.BLACKPILL_F411CE.upload.maximum_data_size=131072
-GenF4.menu.pnum.BLACKPILL_F411CE.build.board=BLACKPILL_F411CE
-GenF4.menu.pnum.BLACKPILL_F411CE.build.product_line=STM32F411xE
-GenF4.menu.pnum.BLACKPILL_F411CE.build.variant=STM32F4xx/F411C(C-E)(U-Y)
-GenF4.menu.pnum.BLACKPILL_F411CE.build.variant_h=variant_{build.board}.h
-GenF4.menu.pnum.BLACKPILL_F411CE.build.peripheral_pins=-DCUSTOM_PERIPHERAL_PINS
-
-# Generic F401RETx
-GenF4.menu.pnum.GENERIC_F401RETX=Generic F401RETx
-GenF4.menu.pnum.GENERIC_F401RETX.upload.maximum_size=524288
-GenF4.menu.pnum.GENERIC_F401RETX.upload.maximum_data_size=98304
-GenF4.menu.pnum.GENERIC_F401RETX.build.board=GENERIC_F401RETX
-GenF4.menu.pnum.GENERIC_F401RETX.build.product_line=STM32F401xE
-GenF4.menu.pnum.GENERIC_F401RETX.build.variant=STM32F4xx/F401R(B-C-D-E)T
-
-# Generic F411RETx
-GenF4.menu.pnum.GENERIC_F411RETX=Generic F411RETx
-GenF4.menu.pnum.GENERIC_F411RETX.upload.maximum_size=524288
-GenF4.menu.pnum.GENERIC_F411RETX.upload.maximum_data_size=131072
-GenF4.menu.pnum.GENERIC_F411RETX.build.board=GENERIC_F411RETX
-GenF4.menu.pnum.GENERIC_F411RETX.build.product_line=STM32F411xE
-GenF4.menu.pnum.GENERIC_F411RETX.build.variant=STM32F4xx/F411R(C-E)T
-
-# Upload menu
-GenF4.menu.upload_method.swdMethod=STM32CubeProgrammer (SWD)
-GenF4.menu.upload_method.swdMethod.upload.protocol=0
-GenF4.menu.upload_method.swdMethod.upload.options=-g
-GenF4.menu.upload_method.swdMethod.upload.tool=stm32CubeProg
-
-GenF4.menu.upload_method.serialMethod=STM32CubeProgrammer (Serial)
-GenF4.menu.upload_method.serialMethod.upload.protocol=1
-GenF4.menu.upload_method.serialMethod.upload.options={serial.port.file} -s
-GenF4.menu.upload_method.serialMethod.upload.tool=stm32CubeProg
-
-GenF4.menu.upload_method.dfuMethod=STM32CubeProgrammer (DFU)
-GenF4.menu.upload_method.dfuMethod.upload.protocol=2
-GenF4.menu.upload_method.dfuMethod.upload.options=-g
-GenF4.menu.upload_method.dfuMethod.upload.tool=stm32CubeProg
-
-GenF4.menu.upload_method.bmpMethod=BMP (Black Magic Probe)
-GenF4.menu.upload_method.bmpMethod.upload.protocol=gdb_bmp
-GenF4.menu.upload_method.bmpMethod.upload.tool=bmp_upload
-
-GenF4.menu.upload_method.hidMethod=HID Bootloader 2.2
-GenF4.menu.upload_method.hidMethod.upload.protocol=hid22
-GenF4.menu.upload_method.hidMethod.upload.tool=hid_upload
-GenF4.menu.upload_method.hidMethod.build.flash_offset=0x4000
-GenF4.menu.upload_method.hidMethod.build.bootloader_flags=-DBL_HID -DVECT_TAB_OFFSET={build.flash_offset}
-
-################################################################################
 # Serialx activation
 Flight_ctrl.menu.xserial.generic=Enabled (generic 'Serial')
 Flight_ctrl.menu.xserial.none=Enabled (no generic 'Serial')
@@ -343,12 +254,6 @@ Disco.menu.xserial.none=Enabled (no generic 'Serial')
 Disco.menu.xserial.none.build.xSerial=-DHAL_UART_MODULE_ENABLED -DHWSERIAL_NONE
 Disco.menu.xserial.disabled=Disabled (no Serial support)
 Disco.menu.xserial.disabled.build.xSerial=
-
-GenF4.menu.xserial.generic=Enabled (generic 'Serial')
-GenF4.menu.xserial.none=Enabled (no generic 'Serial')
-GenF4.menu.xserial.none.build.xSerial=-DHAL_UART_MODULE_ENABLED -DHWSERIAL_NONE
-GenF4.menu.xserial.disabled=Disabled (no Serial support)
-GenF4.menu.xserial.disabled.build.xSerial=
 
 # USB connectivity
 Flight_ctrl.menu.usb.none=None

@@ -25,22 +25,21 @@ add_library(core_bin STATIC EXCLUDE_FROM_ALL
   stm32/startup_stm32yyxx.S
   stm32/syscalls.c
   stm32/system_stm32yyxx.c
-  stm32/usb/cdc/cdc_queue.c
-  stm32/usb/cdc/usbd_cdc.c
-  stm32/usb/cdc/usbd_cdc_if.c
+  stm32/usb/usb_device.c
+  stm32/usb/usb_device_cdc.c
   stm32/usb/usb_device_core.c
   stm32/usb/usb_device_ctlreq.c
   stm32/usb/usb_device_ioreq.c
-  stm32/usb/usbd_conf.c
+  stm32/usb/usbd_cdc_if.c
   stm32/usb/usbd_desc.c
-  stm32/usb/usbd_ep_conf.c
-  stm32/usb/usbd_if.c
   stm32/HAL/stm32yyxx_hal.c
   stm32/HAL/stm32yyxx_hal_cortex.c
   stm32/HAL/stm32yyxx_hal_pcd.c
   stm32/HAL/stm32yyxx_hal_pcd_ex.c
   stm32/HAL/stm32yyxx_hal_pwr.c
+  stm32/HAL/stm32yyxx_hal_pwr_ex.c
   stm32/HAL/stm32yyxx_hal_rcc.c
+  stm32/HAL/stm32yyxx_hal_rcc_ex.c
   stm32/LL/stm32yyxx_ll_adc.c
   stm32/LL/stm32yyxx_ll_crc.c
   stm32/LL/stm32yyxx_ll_dma.c

@@ -64,13 +64,22 @@
   * @{
   */
 
-#define USBD_VID     1155
-#define USBD_LANGID_STRING     1033
-#define USBD_MANUFACTURER_STRING     "STMicroelectronics"
-#define USBD_PID_FS     22336
-#define USBD_PRODUCT_STRING_FS     "STM32 Virtual ComPort"
-#define USBD_CONFIGURATION_STRING_FS     "CDC Config"
-#define USBD_INTERFACE_STRING_FS     "CDC Interface"
+/* USB VID and PID: Either both or neither must be specified. If not
+ * specified, default to the ST VID, with PID assigned to CDC device. */
+#if !USBD_PID && !USBD_VID
+  // Undef the default zero values
+  #undef USBD_VID
+  #undef USBD_PID
+  #define USBD_VID 0x0483
+  #define USBD_PID 0x5740
+#endif /* !USBD_PID && !USBD_VID */
+
+
+#define USBD_LANGID_STRING 1033
+#define USBD_MANUFACTURER_STRING   "STMicroelectronics"
+#define USBD_PRODUCT_STRING        "STM32 Virtual ComPort"
+#define USBD_CONFIGURATION_STRING  "CDC Config"
+#define USBD_INTERFACE_STRING      "CDC Interface"
 
 #define USB_SIZ_BOS_DESC            0x0C
 
@@ -172,8 +181,8 @@ __ALIGN_BEGIN uint8_t USBD_FS_DeviceDesc[USB_LEN_DEV_DESC] __ALIGN_END =
   USB_MAX_EP0_SIZE,           /*bMaxPacketSize*/
   LOBYTE(USBD_VID),           /*idVendor*/
   HIBYTE(USBD_VID),           /*idVendor*/
-  LOBYTE(USBD_PID_FS),        /*idProduct*/
-  HIBYTE(USBD_PID_FS),        /*idProduct*/
+  LOBYTE(USBD_PID),        /*idProduct*/
+  HIBYTE(USBD_PID),        /*idProduct*/
   0x00,                       /*bcdDevice rel. 2.00*/
   0x02,
   USBD_IDX_MFC_STR,           /*Index of manufacturer  string*/
@@ -287,11 +296,11 @@ uint8_t * USBD_FS_ProductStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length
 {
   if(speed == 0)
   {
-    USBD_GetString((uint8_t *)USBD_PRODUCT_STRING_FS, USBD_StrDesc, length);
+    USBD_GetString((uint8_t *)USBD_PRODUCT_STRING, USBD_StrDesc, length);
   }
   else
   {
-    USBD_GetString((uint8_t *)USBD_PRODUCT_STRING_FS, USBD_StrDesc, length);
+    USBD_GetString((uint8_t *)USBD_PRODUCT_STRING, USBD_StrDesc, length);
   }
   return USBD_StrDesc;
 }
@@ -339,11 +348,11 @@ uint8_t * USBD_FS_ConfigStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
 {
   if(speed == USBD_SPEED_HIGH)
   {
-    USBD_GetString((uint8_t *)USBD_CONFIGURATION_STRING_FS, USBD_StrDesc, length);
+    USBD_GetString((uint8_t *)USBD_CONFIGURATION_STRING, USBD_StrDesc, length);
   }
   else
   {
-    USBD_GetString((uint8_t *)USBD_CONFIGURATION_STRING_FS, USBD_StrDesc, length);
+    USBD_GetString((uint8_t *)USBD_CONFIGURATION_STRING, USBD_StrDesc, length);
   }
   return USBD_StrDesc;
 }
@@ -358,11 +367,11 @@ uint8_t * USBD_FS_InterfaceStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *leng
 {
   if(speed == 0)
   {
-    USBD_GetString((uint8_t *)USBD_INTERFACE_STRING_FS, USBD_StrDesc, length);
+    USBD_GetString((uint8_t *)USBD_INTERFACE_STRING, USBD_StrDesc, length);
   }
   else
   {
-    USBD_GetString((uint8_t *)USBD_INTERFACE_STRING_FS, USBD_StrDesc, length);
+    USBD_GetString((uint8_t *)USBD_INTERFACE_STRING, USBD_StrDesc, length);
   }
   return USBD_StrDesc;
 }

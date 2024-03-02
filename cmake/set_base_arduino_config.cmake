@@ -52,14 +52,13 @@ target_link_directories(base_config INTERFACE
 
 target_include_directories(base_config INTERFACE
 	"${BUILD_CORE_PATH}"
-	"${BUILD_CORE_PATH}/avr"
 	"${BUILD_CORE_PATH}/stm32"
 	"${BUILD_CORE_PATH}/stm32/LL"
 	"${BUILD_CORE_PATH}/stm32/usb"
-	"${BUILD_CORE_PATH}/stm32/usb/hid"
-	"${BUILD_CORE_PATH}/stm32/usb/cdc"
 	"${BUILD_SYSTEM_PATH}/Middlewares/ST/STM32_USB_Device_Library/Core/Inc"
 	"${BUILD_SYSTEM_PATH}/Middlewares/ST/STM32_USB_Device_Library/Core/Src"
+	"${BUILD_SYSTEM_PATH}/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc"
+	"${BUILD_SYSTEM_PATH}/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src"
 	"${CMSIS5_PATH}/CMSIS/DSP/Include"
 	"${CMSIS5_PATH}/CMSIS/DSP/PrivateInclude"
 	"${CMSIS5_PATH}/CMSIS/Core/Include/"

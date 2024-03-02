@@ -19,9 +19,8 @@ target_link_libraries(variant INTERFACE variant_usage)
 
 
 add_library(variant_bin OBJECT EXCLUDE_FROM_ALL
-  generic_clock.c
-  variant_generic.cpp
-  variant_BLACKPILL_F401Cx.cpp
+  usbd_conf.c
+  variant_DevEBoxH7xx.cpp
 )
 
 target_link_libraries(variant_bin PUBLIC variant_usage)
