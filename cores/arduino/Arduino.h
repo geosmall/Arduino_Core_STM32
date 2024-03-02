@@ -20,7 +20,7 @@
 #ifndef Arduino_h
 #define Arduino_h
 
-#include <board.h>
+#include "board.h"
 
 #ifdef __cplusplus
 extern "C" {

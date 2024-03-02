@@ -1,6 +1,4 @@
 #include "clock.h"
-// #include "stm32yyxx_ll_cortex.h"
-// #include "stm32yyxx_ll_rcc.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -78,7 +76,7 @@ void configIPClock(void)
 #elif defined(__HAL_RCC_CRC_CLK_ENABLE)
   __HAL_RCC_CRC_CLK_ENABLE();
 #endif
-#endif
+#endif /* defined(HAL_CRC_MODULE_ENABLED) */
 }
 
 #ifdef __cplusplus

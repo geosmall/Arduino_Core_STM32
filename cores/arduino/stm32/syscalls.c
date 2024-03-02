@@ -1,11 +1,5 @@
-/**
-  * \file stm32_syscalls.c
-  *
-  * Implementation of newlib syscall.
-  *
-  */
-
 #include "stm32_def.h"
+
 #if defined (  __GNUC__  ) /* GCC CS3 */
   #include <sys/stat.h>
 #endif

@@ -6,8 +6,6 @@
 */
 #include "variant.h"
 
-#include "clock.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */

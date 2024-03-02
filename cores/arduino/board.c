@@ -1,5 +1,6 @@
-#include "board.h"
 #include "stm32_def.h"
+#include "board.h"
+#include "clock.h"
 #if defined(USBCON) && defined(USBD_USE_CDC)
   #include "usb_device.h"
 #endif

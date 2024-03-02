@@ -186,7 +186,8 @@ tools.clipboard_upload.busybox.windows={path}/win/busybox.exe
 tools.clipboard_upload.cmd=clipboard.sh
 tools.clipboard_upload.upload.params.verbose=
 tools.clipboard_upload.upload.params.quiet=
-tools.clipboard_upload.upload.pattern="{busybox}" sh "{path}/{cmd}" "{build.path}/{build.project_name}"
+# tools.clipboard_upload.upload.pattern="{busybox}" sh "{path}/{cmd}" "{build.path}/{build.project_name}"
+tools.clipboard_upload.upload.pattern="{busybox}" sh "{runtime.platform.path}/system/extras/{cmd}" "{build.path}/{build.project_name}"
 
 # Debugger configuration (general options)
 # ----------------------------------------
