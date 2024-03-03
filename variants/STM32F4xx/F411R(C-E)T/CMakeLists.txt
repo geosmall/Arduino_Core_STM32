@@ -24,8 +24,7 @@ target_link_libraries(variant_usage INTERFACE
 # the object library. The 'EXCLUDE_FROM_ALL' argument means that this library
 # won't be built unless another target depends on it.
 add_library(variant_bin OBJECT EXCLUDE_FROM_ALL
-  generic_clock.c
-  variant_generic.cpp
+  usbd_conf.c
   variant_NUCLEO_F411RE.cpp
 )
 

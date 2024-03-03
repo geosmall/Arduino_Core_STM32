@@ -196,7 +196,7 @@ Disco.upload.maximum_size=0
 Disco.upload.maximum_data_size=0
 
 # DISCO_F407VG board
-Disco.menu.pnum.DISCO_F407VG=STM32F407G-DISC1
+Disco.menu.pnum.DISCO_F407VG=STM32F407G-DISCO
 Disco.menu.pnum.DISCO_F407VG.node=DIS_F407VG
 Disco.menu.pnum.DISCO_F407VG.upload.maximum_size=1048576
 Disco.menu.pnum.DISCO_F407VG.upload.maximum_data_size=131072
@@ -225,9 +225,10 @@ Disco.menu.upload_method.dfuMethod.upload.protocol=2
 Disco.menu.upload_method.dfuMethod.upload.options=-g
 Disco.menu.upload_method.dfuMethod.upload.tool=stm32CubeProg
 
-Disco.menu.upload_method.MassStorage=Mass Storage
-Disco.menu.upload_method.MassStorage.upload.protocol=
-Disco.menu.upload_method.MassStorage.upload.tool=massStorageCopy
+Disco.menu.upload_method.clipboard=Clipboard (Copy Path)
+Disco.menu.upload_method.clipboard.upload.protocol=0
+Disco.menu.upload_method.clipboard.upload.options=-g
+Disco.menu.upload_method.clipboard.upload.tool=clipboard_upload
 
 ################################################################################
 # Serialx activation
