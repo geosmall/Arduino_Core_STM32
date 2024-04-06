@@ -6,12 +6,13 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2017 STMicroelectronics.
-  * All rights reserved.
+  * <h2><center>&copy; Copyright (c) 2017 STMicroelectronics.
+  * All rights reserved.</center></h2>
   *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
+  * This software component is licensed by ST under BSD 3-Clause license,
+  * the "License"; You may not use this file except in compliance with the
+  * License. You may obtain a copy of the License at:
+  *                        opensource.org/licenses/BSD-3-Clause
   *
   ******************************************************************************
   */
@@ -62,7 +63,6 @@ extern "C" {
   * @}
   */
 
-
 /** @defgroup HSEM_LL_EC_GET_FLAG Get Flags Defines
   * @brief    Flags defines which can be used with LL_HSEM_ReadReg function
   * @{
@@ -84,9 +84,6 @@ extern "C" {
 #define LL_HSEM_SEMAPHORE_13               HSEM_C1IER_ISE13
 #define LL_HSEM_SEMAPHORE_14               HSEM_C1IER_ISE14
 #define LL_HSEM_SEMAPHORE_15               HSEM_C1IER_ISE15
-#if (HSEM_SEMID_MAX == 15)
-#define LL_HSEM_SEMAPHORE_ALL              0x0000FFFFU
-#else /* HSEM_SEMID_MAX == 31 */
 #define LL_HSEM_SEMAPHORE_16               HSEM_C1IER_ISE16
 #define LL_HSEM_SEMAPHORE_17               HSEM_C1IER_ISE17
 #define LL_HSEM_SEMAPHORE_18               HSEM_C1IER_ISE18
@@ -104,7 +101,6 @@ extern "C" {
 #define LL_HSEM_SEMAPHORE_30               HSEM_C1IER_ISE30
 #define LL_HSEM_SEMAPHORE_31               HSEM_C1IER_ISE31
 #define LL_HSEM_SEMAPHORE_ALL              0xFFFFFFFFU
-#endif /* HSEM_SEMID_MAX == 15 */
 /**
   * @}
   */
@@ -238,7 +234,7 @@ __STATIC_INLINE uint32_t LL_HSEM_2StepLock(HSEM_TypeDef *HSEMx, uint32_t Semapho
   */
 __STATIC_INLINE uint32_t LL_HSEM_1StepLock(HSEM_TypeDef *HSEMx, uint32_t Semaphore)
 {
-  return ((HSEMx->RLR[Semaphore] != (HSEM_RLR_LOCK | LL_HSEM_COREID)) ? 1UL : 0UL);
+  return ((HSEMx->RLR[Semaphore] != (HSEM_R_LOCK | LL_HSEM_COREID)) ? 1UL : 0UL);
 }
 
 /**
@@ -292,8 +288,6 @@ __STATIC_INLINE uint32_t LL_HSEM_GetKey(HSEM_TypeDef *HSEMx)
 /**
   * @brief  Release all semaphore with the same core id.
   * @rmtoll CR           KEY           LL_HSEM_ResetAllLock
-  * @rmtoll CR           SEC           LL_HSEM_ResetAllLock
-  * @rmtoll CR           PRIV          LL_HSEM_ResetAllLock
   * @param  HSEMx HSEM Instance.
   * @param  key Key value.
   * @param  core This parameter can be one of the following values:
@@ -352,8 +346,6 @@ __STATIC_INLINE void LL_HSEM_ResetAllLock(HSEM_TypeDef *HSEMx, uint32_t key, uin
   *         @arg @ref LL_HSEM_SEMAPHORE_30
   *         @arg @ref LL_HSEM_SEMAPHORE_31
   *         @arg @ref LL_HSEM_SEMAPHORE_ALL
-  * @note   Availability of flags LL_HSEM_SEMAPHORE_16 to LL_HSEM_SEMAPHORE_31
-  *         depends on devices.
   * @retval None
   */
 __STATIC_INLINE void LL_HSEM_EnableIT_C1IER(HSEM_TypeDef *HSEMx, uint32_t SemaphoreMask)
@@ -399,8 +391,6 @@ __STATIC_INLINE void LL_HSEM_EnableIT_C1IER(HSEM_TypeDef *HSEMx, uint32_t Semaph
   *         @arg @ref LL_HSEM_SEMAPHORE_30
   *         @arg @ref LL_HSEM_SEMAPHORE_31
   *         @arg @ref LL_HSEM_SEMAPHORE_ALL
-  * @note   Availability of flags LL_HSEM_SEMAPHORE_16 to LL_HSEM_SEMAPHORE_31
-  *         depends on devices.
   * @retval None
   */
 __STATIC_INLINE void LL_HSEM_DisableIT_C1IER(HSEM_TypeDef *HSEMx, uint32_t SemaphoreMask)
@@ -446,8 +436,6 @@ __STATIC_INLINE void LL_HSEM_DisableIT_C1IER(HSEM_TypeDef *HSEMx, uint32_t Semap
   *         @arg @ref LL_HSEM_SEMAPHORE_30
   *         @arg @ref LL_HSEM_SEMAPHORE_31
   *         @arg @ref LL_HSEM_SEMAPHORE_ALL
-  * @note   Availability of flags LL_HSEM_SEMAPHORE_16 to LL_HSEM_SEMAPHORE_31
-  *         depends on devices.
   * @retval State of bit (1 or 0).
   */
 __STATIC_INLINE uint32_t LL_HSEM_IsEnabledIT_C1IER(HSEM_TypeDef *HSEMx, uint32_t SemaphoreMask)
@@ -591,7 +579,6 @@ __STATIC_INLINE uint32_t LL_HSEM_IsEnabledIT_C2IER(HSEM_TypeDef *HSEMx, uint32_t
   return ((READ_BIT(HSEMx->C2IER, SemaphoreMask) == (SemaphoreMask)) ? 1UL : 0UL);
 }
 #endif /* DUAL_CORE */
-
 /**
   * @}
   */
@@ -638,8 +625,6 @@ __STATIC_INLINE uint32_t LL_HSEM_IsEnabledIT_C2IER(HSEM_TypeDef *HSEMx, uint32_t
   *         @arg @ref LL_HSEM_SEMAPHORE_30
   *         @arg @ref LL_HSEM_SEMAPHORE_31
   *         @arg @ref LL_HSEM_SEMAPHORE_ALL
-  * @note   Availability of flags LL_HSEM_SEMAPHORE_16 to LL_HSEM_SEMAPHORE_31
-  *         depends on devices.
   * @retval None
   */
 __STATIC_INLINE void LL_HSEM_ClearFlag_C1ICR(HSEM_TypeDef *HSEMx, uint32_t SemaphoreMask)
@@ -685,8 +670,6 @@ __STATIC_INLINE void LL_HSEM_ClearFlag_C1ICR(HSEM_TypeDef *HSEMx, uint32_t Semap
   *         @arg @ref LL_HSEM_SEMAPHORE_30
   *         @arg @ref LL_HSEM_SEMAPHORE_31
   *         @arg @ref LL_HSEM_SEMAPHORE_ALL
-  * @note   Availability of flags LL_HSEM_SEMAPHORE_16 to LL_HSEM_SEMAPHORE_31
-  *         depends on devices.
   * @retval State of bit (1 or 0).
   */
 __STATIC_INLINE uint32_t LL_HSEM_IsActiveFlag_C1ISR(HSEM_TypeDef *HSEMx, uint32_t SemaphoreMask)
@@ -732,8 +715,6 @@ __STATIC_INLINE uint32_t LL_HSEM_IsActiveFlag_C1ISR(HSEM_TypeDef *HSEMx, uint32_
   *         @arg @ref LL_HSEM_SEMAPHORE_30
   *         @arg @ref LL_HSEM_SEMAPHORE_31
   *         @arg @ref LL_HSEM_SEMAPHORE_ALL
-  * @note   Availability of flags LL_HSEM_SEMAPHORE_16 to LL_HSEM_SEMAPHORE_31
-  *         depends on devices.
   * @retval State of bit (1 or 0).
   */
 __STATIC_INLINE uint32_t LL_HSEM_IsActiveFlag_C1MISR(HSEM_TypeDef *HSEMx, uint32_t SemaphoreMask)
@@ -900,3 +881,5 @@ __STATIC_INLINE uint32_t LL_HSEM_IsActiveFlag_C2MISR(HSEM_TypeDef *HSEMx, uint32
 #endif
 
 #endif /* __STM32H7xx_LL_HSEM_H */
+
+/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

@@ -1,4 +1,4 @@
-#include "stm32_def.h"
+#include "stm32yyxx.h"
 
 #if defined (  __GNUC__  ) /* GCC CS3 */
   #include <sys/stat.h>

@@ -86,13 +86,31 @@ Dev_boards.menu.pnum.BLACKPILL_F401CC.build.variant=STM32F4xx/Dev_Blackpill_F401
 Dev_boards.menu.pnum.BLACKPILL_F401CC.build.variant_h=variant_BLACKPILL_F401Cx.h
 Dev_boards.menu.pnum.BLACKPILL_F401CC.build.cmsis_lib_gcc=arm_cortexM4lf_math
 
+# DAISY_SEED
+Dev_boards.menu.pnum.DAISY_SEED=Daisy Seed H750IB 
+Dev_boards.menu.pnum.DAISY_SEED.node="NODE_H750IB,DaisySeed"
+Dev_boards.menu.pnum.DAISY_SEED.upload.maximum_size=131072
+Dev_boards.menu.pnum.DAISY_SEED.upload.maximum_data_size=524288
+Dev_boards.menu.pnum.DAISY_SEED.build.mcu=cortex-m7
+Dev_boards.menu.pnum.DAISY_SEED.build.fpu=-mfpu=fpv5-d16
+Dev_boards.menu.pnum.DAISY_SEED.build.float-abi=-mfloat-abi=hard
+Dev_boards.menu.pnum.DAISY_SEED.build.board=DAISY_SEED
+Dev_boards.menu.pnum.DAISY_SEED.build.series=STM32H7xx
+Dev_boards.menu.pnum.DAISY_SEED.build.product_line=STM32H750xx
+Dev_boards.menu.pnum.DAISY_SEED.build.variant=STM32H7xx/Daisy_Seed
+Dev_boards.menu.pnum.DAISY_SEED.build.variant_h=variant_Daisy_Seed.h
+Dev_boards.menu.pnum.DAISY_SEED.build.cmsis_lib_gcc=arm_cortexM7lfsp_math
+Dev_boards.menu.pnum.DAISY_SEED.build.ldscript=STM32H750IB_flash.lds
+Dev_boards.menu.pnum.DAISY_SEED.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial}
+
+
 # DevEBoxH743VITX
 Dev_boards.menu.pnum.DevEBoxH743VITX=DevEBox H743VITX
 Dev_boards.menu.pnum.DevEBoxH743VITX.node="NODE_H743VI,DevEBox"
 Dev_boards.menu.pnum.DevEBoxH743VITX.upload.maximum_size=2097152
 Dev_boards.menu.pnum.DevEBoxH743VITX.upload.maximum_data_size=524288
 Dev_boards.menu.pnum.DevEBoxH743VITX.build.mcu=cortex-m7
-Dev_boards.menu.pnum.DevEBoxH743VITX.build.fpu=-mfpu=fpv4-sp-d16
+Dev_boards.menu.pnum.DevEBoxH743VITX.build.fpu=-mfpu=fpv5-d16
 Dev_boards.menu.pnum.DevEBoxH743VITX.build.float-abi=-mfloat-abi=hard
 Dev_boards.menu.pnum.DevEBoxH743VITX.build.board=DevEBoxH743VITX
 Dev_boards.menu.pnum.DevEBoxH743VITX.build.series=STM32H7xx

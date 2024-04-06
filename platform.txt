@@ -9,13 +9,12 @@ version=2.5.0
 
 # STM compile variables
 # ----------------------
-# compiler.stm.extra_include="-I{build.source.path}" "-I{build.core.path}/stm32" "-I{build.core.path}/stm32/LL" "-I{build.core.path}/stm32/usb" "-I{build.core.path}/stm32/usb/hid" "-I{build.core.path}/stm32/usb/cdc" "-I{build.system.path}/Drivers/{build.series}_HAL_Driver/Inc" "-I{build.system.path}/Drivers/{build.series}_HAL_Driver/Src" "-I{build.system.path}/{build.series}" "-I{build.system.path}/Middlewares/ST/STM32_USB_Device_Library/Core/Inc" "-I{build.system.path}/Middlewares/ST/STM32_USB_Device_Library/Core/Src"
-
-compiler.stm.extra_include="-I{build.source.path}" "-I{build.core.path}/stm32" "-I{build.core.path}/stm32/LL" "-I{build.core.path}/stm32/usb" "-I{build.system.path}/Drivers/{build.series}_HAL_Driver/Inc" "-I{build.system.path}/Drivers/{build.series}_HAL_Driver/Src" "-I{build.system.path}/{build.series}" "-I{build.system.path}/Middlewares/ST/STM32_USB_Device_Library/Core/Inc" "-I{build.system.path}/Middlewares/ST/STM32_USB_Device_Library/Core/Src" "-I{build.system.path}/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc" "-I{build.system.path}/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src"
+compiler.stm.extra_include="-I{build.source.path}" "-I{build.core.path}/sys" "-I{build.core.path}/stm32" "-I{build.core.path}/stm32/LL" "-I{build.core.path}/usbd" "-I{build.core.path}/usbh" "-I{build.system.path}/Drivers/{build.series}_HAL_Driver/Inc" "-I{build.system.path}/Drivers/{build.series}_HAL_Driver/Src" "-I{build.system.path}/{build.series}" "-I{build.system.path}/Middlewares/ST/STM32_USB_Device_Library/Core/Inc" "-I{build.system.path}/Middlewares/ST/STM32_USB_Device_Library/Core/Src" "-I{build.system.path}/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc" "-I{build.system.path}/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src"
 
 compiler.warning_flags=-w
 compiler.warning_flags.none=-w
-compiler.warning_flags.default=-Wall
+compiler.warning_flags.default=-Wall -Wno-attributes -Wno-strict-aliasing -Wno-maybe-uninitialized -Wno-missing-attributes -Wno-stringop-overflow
+
 compiler.warning_flags.more=-Wall
 compiler.warning_flags.all=-Wall -Wextra
 
@@ -61,10 +60,10 @@ build.variant_h=variant_generic.h
 # These can be overridden in platform.local.txt
 compiler.c.st_extra_flags={build.peripheral_pins}
 compiler.c.extra_flags=
-compiler.c.std=gnu17
+compiler.c.std=gnu11
 compiler.c.elf.extra_flags=
 compiler.cpp.extra_flags=
-compiler.cpp.std=gnu++17
+compiler.cpp.std=gnu++14
 compiler.S.st_extra_flags={build.startup_file}
 compiler.S.extra_flags=
 compiler.ar.extra_flags=
