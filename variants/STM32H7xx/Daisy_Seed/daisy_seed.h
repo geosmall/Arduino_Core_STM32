@@ -116,7 +116,7 @@ class DaisySeed
      */
     void SetTestPoint(bool state);
 
-#if 0 // gls
+#if 1 // gls
 
     /** Print formatted debug log message
      */
@@ -151,7 +151,7 @@ class DaisySeed
     // AudioHandle        audio_handle; /**< & */
     // AdcHandle          adc;          /**< & */
     // DacHandle          dac;
-    // UsbHandle          usb_handle; /**< & */
+    UsbHandle          usb_handle; /**< & */
     dsy_gpio           led, testpoint;
     System             system;
 
@@ -183,7 +183,7 @@ class DaisySeed
   private:
     /** Local shorthand for debug log destination
     */
-    // using Log = Logger<LOGGER_INTERNAL>;
+    using Log = Logger<LOGGER_INTERNAL>;
 
     void ConfigureQspi();
     // void ConfigureAudio();

@@ -1,0 +1,62 @@
+"C:\\Users\\geoma\\AppData\\Local\\Arduino15\\packages\\STMicroelectronics\\tools\\xpack-arm-none-eabi-gcc\\12.2.1-1.2/bin/arm-none-eabi-gcc"
+-mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb
+-Og -g
+--specs=nano.specs
+-Wl,--defsym=LD_FLASH_OFFSET=0
+-Wl,--defsym=LD_MAX_SIZE=131072
+-Wl,--defsym=LD_MAX_DATA_SIZE=524288
+-Wl,--cref -Wl,--check-sections
+-Wl,--gc-sections
+-Wl,--entry=Reset_Handler
+-Wl,--unresolved-symbols=report-all
+-Wl,--warn-common
+"-Wl,--default-script=C:\\Users\\geoma\\AppData\\Local\\Arduino15\\packages\\STMicroelectronics\\hardware\\stm32\\2.5.0\\variants\\STM32H7xx\\Daisy_Seed/STM32H750IB_flash.lds"
+"-Wl,--script=C:\\Users\\geoma\\AppData\\Local\\Arduino15\\packages\\STMicroelectronics\\hardware\\stm32\\2.5.0\\system/ldscript.ld"
+"-Wl,-Map,C:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_228920/USB_CDC.ino.map"
+-Wl,--no-warn-rwx-segments
+"-LC:\\Users\\geoma\\AppData\\Local\\Arduino15\\packages\\STMicroelectronics\\tools\\CMSIS\\5.7.0/CMSIS/DSP/Lib/GCC/" -larm_cortexM7lfsp_math
+-o "C:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_228920/USB_CDC.ino.elf"
+"-LC:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_228920"
+-Wl,--start-group "C:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_228920\\sketch\\USB_CDC.ino.cpp.o" "C:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_228920\\core\\daisy_seed.cpp.o" "C:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_228920\\core\\core.a" -lc -Wl,--end-group
+-lm
+-lgcc
+-lstdc++
+
+arm-none-eabi-g++ -c
+-mcpu=cortex-m7 -mthumb -mfpu=fpv5-d16 -mfloat-abi=hard
+-DUSE_HAL_DRIVER -DSTM32H750xx -DHSE_VALUE=16000000  -DCORE_CM7 -DSTM32H750IB -DARM_MATH_CM7 -DUSE_FULL_LL_DRIVER
+-include stm32h7xx.h -I../../libDaisy -I../../libDaisy/src/ -I../../libDaisy/src/sys -I../../libDaisy/src/usbd -I../../libDaisy/src/usbh -I../../libDaisy/Drivers/CMSIS/Include/ -I../../libDaisy/Drivers/CMSIS/DSP/Include -I../../libDaisy/Drivers/CMSIS/Device/ST/STM32H7xx/Include -I../../libDaisy/Drivers/STM32H7xx_HAL_Driver/Inc/ -I../../libDaisy/Middlewares/ST/STM32_USB_Device_Library/Core/Inc -I../../libDaisy/Middlewares/ST/STM32_USB_Host_Library/Core/Inc -I../../libDaisy/Middlewares/ST/STM32_USB_Host_Library/Class/MSC/Inc -I../../libDaisy/core/ -I../../DaisySP/Source -I../../libDaisy/Middlewares/Third_Party/FatFs/src
+-O2
+-Wall -Wno-missing-attributes -fasm -fdata-sections -ffunction-sections -Wno-stringop-overflow
+-g -ggdb
+-MMD -MP -MF"build/USB_CDC.d"
+-fno-exceptions -fasm -finline -finline-functions-called-once -fshort-enums -fno-move-loop-invariants -fno-unwind-tables -fno-rtti -Wno-register
+-std=gnu++14
+-Wa,-a,-ad,-alms=build/USB_CDC.lst USB_CDC.cpp
+-o build/USB_CDC.o
+
+arm-none-eabi-g++
+build/startup_stm32h750xx.o
+build/USB_CDC.o
+-mcpu=cortex-m7 -mthumb -mfpu=fpv5-d16 -mfloat-abi=hard
+--specs=nano.specs
+--specs=nosys.specs
+-T../../libDaisy/core/STM32H750IB_flash.lds
+-L../../libDaisy/build
+-L ../../DaisySP/build
+-ldaisy -lc -lm -lnosys -ldaisysp
+-Wl,-Map=build/USB_CDC.map,--cref -Wl,--gc-sections -Wl,--print-memory-usage -o build/USB_CDC.elf
+
+"C:\\Users\\geoma\\AppData\\Local\\Arduino15\\packages\\STMicroelectronics\\tools\\xpack-arm-none-eabi-gcc\\12.2.1-1.2/bin/arm-none-eabi-gcc" -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -Og -g --specs=nano.specs --specs=nosys.specs -Wl,--defsym=LD_FLASH_OFFSET=0 -Wl,--defsym=LD_MAX_SIZE=131072 -Wl,--defsym=LD_MAX_DATA_SIZE=524288 -Wl,--cref -Wl,--check-sections -Wl,--gc-sections -Wl,--entry=Reset_Handler -Wl,--unresolved-symbols=report-all -Wl,--warn-common "-Wl,--default-script=C:\\Users\\geoma\\AppData\\Local\\Arduino15\\packages\\STMicroelectronics\\hardware\\stm32\\2.5.0\\variants\\STM32H7xx\\Daisy_Seed/STM32H750IB_flash.lds" "-Wl,--script=C:\\Users\\geoma\\AppData\\Local\\Arduino15\\packages\\STMicroelectronics\\hardware\\stm32\\2.5.0\\system/ldscript.ld" "-Wl,-Map,C:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_11490/USB_CDC.ino.map" -Wl,--no-warn-rwx-segments "-LC:\\Users\\geoma\\AppData\\Local\\Arduino15\\packages\\STMicroelectronics\\tools\\CMSIS\\5.7.0/CMSIS/DSP/Lib/GCC/" -larm_cortexM7lfsp_math -o "C:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_11490/USB_CDC.ino.elf" "-LC:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_11490" -Wl,--start-group "C:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_11490\\sketch\\USB_CDC.ino.cpp.o" "C:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_11490\\core\\daisy_seed.cpp.o" "C:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_11490\\core\\core.a" -lc -Wl,--end-group -lm -lgcc -lstdc++
+
+arm-none-eabi-g++ build/startup_stm32h750xx.o build/USB_CDC.o   -mcpu=cortex-m7 -mthumb -mfpu=fpv5-d16 -mfloat-abi=hard --specs=nano.specs --specs=nosys.specs -T../../libDaisy/core/STM32H750IB_flash.lds -L../../libDaisy/build -L ../../DaisySP/build -ldaisy -lc -lm -lnosys -ldaisysp -Wl,-Map=build/USB_CDC.map,--cref -Wl,--gc-sections -Wl,--print-memory-usage -o build/USB_CDC.elf
+
+These works:
+
+C:\Users\geoma\AppData\Local\Temp\arduino_build_11490>arm-none-eabi-g++ "C:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_11490\\sketch\\USB_CDC.ino.cpp.o" "C:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_11490\\core\\daisy_seed.cpp.o" "C:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_11490\\core\\core.a" -mcpu=cortex-m7 -mthumb -mfpu=fpv5-d16 -mfloat-abi=hard --specs=nano.specs --specs=nosys.specs -TC:\\Users\\geoma\\AppData\\Local\\Arduino15\\packages\\STMicroelectronics\\hardware\\stm32\\2.5.0\\variants\\STM32H7xx\\Daisy_Seed/STM32H750IB_flash.lds -lc -lm -lnosys "-Wl,-Map,C:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_11490/USB_CDC.ino.map,--cref" -Wl,--gc-sections -Wl,--print-memory-usage -o "C:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_11490/USB_CDC.ino.elf"
+
+arm-none-eabi-gcc "C:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_11490\\sketch\\USB_CDC.ino.cpp.o" "C:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_11490\\core\\daisy_seed.cpp.o" "C:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_11490\\core\\core.a" -mcpu=cortex-m7 -mthumb -mfpu=fpv5-d16 -mfloat-abi=hard --specs=nano.specs --specs=nosys.specs -TC:\\Users\\geoma\\AppData\\Local\\Arduino15\\packages\\STMicroelectronics\\hardware\\stm32\\2.5.0\\variants\\STM32H7xx\\Daisy_Seed/STM32H750IB_flash.lds -lc -lm -lnosys "-Wl,-Map,C:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_11490/USB_CDC.ino.map,--cref" -Wl,--gc-sections -Wl,--print-memory-usage -o "C:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_11490/USB_CDC.ino.elf"
+
+arm-none-eabi-gcc -mcpu=cortex-m7 -mthumb -mfpu=fpv5-d16 -mfloat-abi=hard --specs=nano.specs --specs=nosys.specs -TC:\\Users\\geoma\\AppData\\Local\\Arduino15\\packages\\STMicroelectronics\\hardware\\stm32\\2.5.0\\variants\\STM32H7xx\\Daisy_Seed/STM32H750IB_flash.lds -Wl,--start-group "C:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_11490\\sketch\\USB_CDC.ino.cpp.o" "C:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_11490\\core\\daisy_seed.cpp.o" "C:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_11490\\core\\core.a" -lc -Wl,--end-group -lm -lnosys "-Wl,-Map,C:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_11490/USB_CDC.ino.map,--cref" -Wl,--gc-sections -Wl,--print-memory-usage -o "C:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_11490/USB_CDC.ino.elf"
+
+"C:\\Users\\geoma\\AppData\\Local\\Arduino15\\packages\\STMicroelectronics\\tools\\xpack-arm-none-eabi-gcc\\12.2.1-1.2/bin/arm-none-eabi-gcc" -mcpu=cortex-m7 -mthumb -mfpu=fpv5-d16 -mfloat-abi=hard --specs=nano.specs --specs=nosys.specs -TC:\\Users\\geoma\\AppData\\Local\\Arduino15\\packages\\STMicroelectronics\\hardware\\stm32\\2.5.0\\variants\\STM32H7xx\\Daisy_Seed/STM32H750IB_flash.lds -Wl,--start-group "C:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_11490\\sketch\\USB_CDC.ino.cpp.o" "C:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_11490\\core\\daisy_seed.cpp.o" "C:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_11490\\core\\core.a" -lc -Wl,--end-group -lm -lnosys "-Wl,-Map,C:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_11490/USB_CDC.ino.map,--cref" -Wl,--gc-sections -Wl,--print-memory-usage -o "C:\\Users\\geoma\\AppData\\Local\\Temp\\arduino_build_11490/USB_CDC.ino.elf"

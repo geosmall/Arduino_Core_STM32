@@ -101,8 +101,7 @@ Dev_boards.menu.pnum.DAISY_SEED.build.variant=STM32H7xx/Daisy_Seed
 Dev_boards.menu.pnum.DAISY_SEED.build.variant_h=variant_Daisy_Seed.h
 Dev_boards.menu.pnum.DAISY_SEED.build.cmsis_lib_gcc=arm_cortexM7lfsp_math
 Dev_boards.menu.pnum.DAISY_SEED.build.ldscript=STM32H750IB_flash.lds
-Dev_boards.menu.pnum.DAISY_SEED.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial}
-
+Dev_boards.menu.pnum.DAISY_SEED.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial} -DSTM32H750IB -DARM_MATH_CM7 -Dflash_layout -DHSE_VALUE=16000000 -DUSE_HAL_DRIVER -DUSE_FULL_LL_DRIVER -DDATA_IN_D2_SRAM -DNDEBUG=1 -DRELEASE=1
 
 # DevEBoxH743VITX
 Dev_boards.menu.pnum.DevEBoxH743VITX=DevEBox H743VITX
@@ -445,6 +444,7 @@ Flight_ctrl.menu.rtlib.full=Newlib Standard
 Flight_ctrl.menu.rtlib.full.build.flags.ldspecs=
 
 Dev_boards.menu.rtlib.nano=Newlib Nano (default)
+Dev_boards.menu.rtlib.nano.build.flags.ldspecs=--specs=nano.specs --specs=nosys.specs
 Dev_boards.menu.rtlib.nanofp=Newlib Nano + Float Printf
 Dev_boards.menu.rtlib.nanofp.build.flags.ldspecs=--specs=nano.specs -u _printf_float
 Dev_boards.menu.rtlib.nanofs=Newlib Nano + Float Scanf
