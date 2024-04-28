@@ -1,6 +1,6 @@
 #ifndef UNIT_TEST // for unit tests, a dummy implementation is provided below
 #include <stm32h7xx_hal.h>
-#include <stm32h750xx.h>
+#include <stm32yyxx.h>
 #include "sys/system.h"
 #include "sys/dma.h"
 #include "per/gpio.h"
@@ -93,37 +93,33 @@ extern "C"
         HAL_SYSTICK_IRQHandler();
     }
 
-#if 0 // gls
-
     /** USB IRQ Handlers since they are shared resources for multiple classes */
     extern HCD_HandleTypeDef hhcd_USB_OTG_HS;
     extern PCD_HandleTypeDef hpcd_USB_OTG_HS;
 
     void OTG_HS_EP1_OUT_IRQHandler(void)
     {
-        if(hhcd_USB_OTG_HS.Instance)
-            HAL_HCD_IRQHandler(&hhcd_USB_OTG_HS);
+        // if(hhcd_USB_OTG_HS.Instance)
+        //     HAL_HCD_IRQHandler(&hhcd_USB_OTG_HS);
         if(hpcd_USB_OTG_HS.Instance)
             HAL_PCD_IRQHandler(&hpcd_USB_OTG_HS);
     }
 
     void OTG_HS_EP1_IN_IRQHandler(void)
     {
-        if(hhcd_USB_OTG_HS.Instance)
-            HAL_HCD_IRQHandler(&hhcd_USB_OTG_HS);
+        // if(hhcd_USB_OTG_HS.Instance)
+        //     HAL_HCD_IRQHandler(&hhcd_USB_OTG_HS);
         if(hpcd_USB_OTG_HS.Instance)
             HAL_PCD_IRQHandler(&hpcd_USB_OTG_HS);
     }
 
     void OTG_HS_IRQHandler(void)
     {
-        if(hhcd_USB_OTG_HS.Instance)
-            HAL_HCD_IRQHandler(&hhcd_USB_OTG_HS);
+        // if(hhcd_USB_OTG_HS.Instance)
+        //     HAL_HCD_IRQHandler(&hhcd_USB_OTG_HS);
         if(hpcd_USB_OTG_HS.Instance)
             HAL_PCD_IRQHandler(&hpcd_USB_OTG_HS);
     }
-
-#endif // gls
 
     // TODO: Add some real handling to the HardFaultHandler
     void HardFault_Handler()
@@ -386,6 +382,15 @@ System::BootInfo::Version System::GetBootloaderVersion()
 
 void System::ConfigureClocks()
 {
+
+#if !defined(HSE_VALUE)
+#error "HSE_VALUE not defined in system.cpp"
+#endif
+
+#if (HSE_VALUE != 16000000) && (HSE_VALUE != 25000000)
+#error "Unsupported HSE_VALUE"
+#endif
+
     RCC_OscInitTypeDef       RCC_OscInitStruct   = {0};
     RCC_ClkInitTypeDef       RCC_ClkInitStruct   = {0};
     RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
@@ -401,20 +406,22 @@ void System::ConfigureClocks()
      ** and table for flash latency.
      */
 
-    uint32_t plln_val, flash_latency;
-    switch(cfg_.cpu_freq)
-    {
-        case Config::SysClkFreq::FREQ_480MHZ:
-            __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE0);
-            plln_val      = 240;
-            flash_latency = FLASH_LATENCY_4;
-            break;
-        case Config::SysClkFreq::FREQ_400MHZ:
-        default:
-            __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
-            plln_val      = 200;
-            flash_latency = FLASH_LATENCY_2;
-            break;
+    uint32_t pllm_val, plln_val, flash_latency;
+
+    if ( HSE_VALUE == 16000000 ) {
+        pllm_val = 4; // gives 4MHz into PLLN
+        plln_val = ( cfg_.cpu_freq == Config::SysClkFreq::FREQ_480MHZ ) ? 240 : 200;
+    } else if ( HSE_VALUE == 25000000 ) {
+        pllm_val = 5; // gives 5MHz into PLLN
+        plln_val = ( cfg_.cpu_freq == Config::SysClkFreq::FREQ_480MHZ ) ? 192 : 160;
+    }
+
+    if ( cfg_.cpu_freq == Config::SysClkFreq::FREQ_480MHZ ) {
+        __HAL_PWR_VOLTAGESCALING_CONFIG( PWR_REGULATOR_VOLTAGE_SCALE0 );
+        flash_latency = FLASH_LATENCY_4;
+    } else {
+        __HAL_PWR_VOLTAGESCALING_CONFIG( PWR_REGULATOR_VOLTAGE_SCALE1 );
+        flash_latency = FLASH_LATENCY_2;
     }
 
     while(!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {}
@@ -429,8 +436,8 @@ void System::ConfigureClocks()
     RCC_OscInitStruct.HSI48State    = RCC_HSI48_ON;
     RCC_OscInitStruct.PLL.PLLState  = RCC_PLL_ON;
     RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-    RCC_OscInitStruct.PLL.PLLM      = 4;
     //
+    RCC_OscInitStruct.PLL.PLLM      = pllm_val;
     RCC_OscInitStruct.PLL.PLLN      = plln_val;
     RCC_OscInitStruct.PLL.PLLP      = 2;
     RCC_OscInitStruct.PLL.PLLQ      = 5; // was 4 in cube
@@ -520,6 +527,42 @@ void System::ConfigureClocks()
 
     /** Enable USB Voltage detector */
     HAL_PWREx_EnableUSBVoltageDetector();
+}
+
+void PeriphCommonClock_25MHz_Config(void)
+{
+  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
+
+  /** Initializes the peripherals clock
+  */
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_FMC|RCC_PERIPHCLK_ADC
+                              |RCC_PERIPHCLK_SDMMC|RCC_PERIPHCLK_SAI1
+                              |RCC_PERIPHCLK_SAI2;
+  PeriphClkInitStruct.PLL2.PLL2M = 5;
+  PeriphClkInitStruct.PLL2.PLL2N = 100;
+  PeriphClkInitStruct.PLL2.PLL2P = 10;
+  PeriphClkInitStruct.PLL2.PLL2Q = 5;
+  PeriphClkInitStruct.PLL2.PLL2R = 5;
+  PeriphClkInitStruct.PLL2.PLL2RGE = RCC_PLL2VCIRANGE_2;
+  PeriphClkInitStruct.PLL2.PLL2VCOSEL = RCC_PLL2VCOWIDE;
+  PeriphClkInitStruct.PLL2.PLL2FRACN = 0;
+  PeriphClkInitStruct.PLL3.PLL3M = 5;
+  PeriphClkInitStruct.PLL3.PLL3N = 39;
+  PeriphClkInitStruct.PLL3.PLL3P = 4;
+  PeriphClkInitStruct.PLL3.PLL3Q = 8;
+  PeriphClkInitStruct.PLL3.PLL3R = 16;
+  PeriphClkInitStruct.PLL3.PLL3RGE = RCC_PLL3VCIRANGE_2;
+  PeriphClkInitStruct.PLL3.PLL3VCOSEL = RCC_PLL3VCOWIDE;
+  PeriphClkInitStruct.PLL3.PLL3FRACN = 2637;
+  PeriphClkInitStruct.FmcClockSelection = RCC_FMCCLKSOURCE_PLL2;
+  PeriphClkInitStruct.SdmmcClockSelection = RCC_SDMMCCLKSOURCE_PLL2;
+  PeriphClkInitStruct.Sai1ClockSelection = RCC_SAI1CLKSOURCE_PLL3;
+  PeriphClkInitStruct.Sai23ClockSelection = RCC_SAI23CLKSOURCE_PLL3;
+  PeriphClkInitStruct.AdcClockSelection = RCC_ADCCLKSOURCE_PLL3;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
 }
 
 void System::ConfigureMpu()

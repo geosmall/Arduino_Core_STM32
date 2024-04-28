@@ -103,21 +103,39 @@ Dev_boards.menu.pnum.DAISY_SEED.build.cmsis_lib_gcc=arm_cortexM7lfsp_math
 Dev_boards.menu.pnum.DAISY_SEED.build.ldscript=STM32H750IB_flash.lds
 Dev_boards.menu.pnum.DAISY_SEED.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial} -DSTM32H750IB -DARM_MATH_CM7 -Dflash_layout -DHSE_VALUE=16000000 -DUSE_HAL_DRIVER -DUSE_FULL_LL_DRIVER -DDATA_IN_D2_SRAM -DNDEBUG=1 -DRELEASE=1
 
-# DevEBoxH743VITX
-Dev_boards.menu.pnum.DevEBoxH743VITX=DevEBox H743VITX
-Dev_boards.menu.pnum.DevEBoxH743VITX.node="NODE_H743VI,DevEBox"
-Dev_boards.menu.pnum.DevEBoxH743VITX.upload.maximum_size=2097152
-Dev_boards.menu.pnum.DevEBoxH743VITX.upload.maximum_data_size=524288
-Dev_boards.menu.pnum.DevEBoxH743VITX.build.mcu=cortex-m7
-Dev_boards.menu.pnum.DevEBoxH743VITX.build.fpu=-mfpu=fpv5-d16
-Dev_boards.menu.pnum.DevEBoxH743VITX.build.float-abi=-mfloat-abi=hard
-Dev_boards.menu.pnum.DevEBoxH743VITX.build.board=DevEBoxH743VITX
-Dev_boards.menu.pnum.DevEBoxH743VITX.build.series=STM32H7xx
-Dev_boards.menu.pnum.DevEBoxH743VITX.build.product_line=STM32H743xx
-Dev_boards.menu.pnum.DevEBoxH743VITX.build.variant=STM32H7xx/Dev_DevEBoxH7xx
-Dev_boards.menu.pnum.DevEBoxH743VITX.build.variant_h=variant_DevEBoxH7xx.h
-Dev_boards.menu.pnum.DevEBoxH743VITX.build.cmsis_lib_gcc=arm_cortexM7lfsp_math
-Dev_boards.menu.pnum.DevEBoxH743VITX.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial}
+# DevEBoxH750VB
+Dev_boards.menu.pnum.DevEBoxH750VB=DevEBox H750VB
+Dev_boards.menu.pnum.DevEBoxH750VB.node="NODE_H750VB,DevEBox"
+Dev_boards.menu.pnum.DevEBoxH750VB.upload.maximum_size=131072
+Dev_boards.menu.pnum.DevEBoxH750VB.upload.maximum_data_size=524288
+Dev_boards.menu.pnum.DevEBoxH750VB.build.mcu=cortex-m7
+Dev_boards.menu.pnum.DevEBoxH750VB.build.fpu=-mfpu=fpv5-d16
+Dev_boards.menu.pnum.DevEBoxH750VB.build.float-abi=-mfloat-abi=hard
+Dev_boards.menu.pnum.DevEBoxH750VB.build.board=DevEBoxH750VB
+Dev_boards.menu.pnum.DevEBoxH750VB.build.series=STM32H7xx
+Dev_boards.menu.pnum.DevEBoxH750VB.build.product_line=STM32H750xx
+Dev_boards.menu.pnum.DevEBoxH750VB.build.variant=STM32H7xx/Dev_DevEBoxH750VB
+Dev_boards.menu.pnum.DevEBoxH750VB.build.variant_h=variant_DevEBoxH750vb.h
+Dev_boards.menu.pnum.DevEBoxH750VB.build.cmsis_lib_gcc=arm_cortexM7lfsp_math
+Dev_boards.menu.pnum.DevEBoxH750VB.build.ldscript=STM32H750VB_flash.lds
+Dev_boards.menu.pnum.DevEBoxH750VB.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial} -DSTM32H750VB -DARM_MATH_CM7 -Dflash_layout -DHSE_VALUE=25000000 -DUSE_HAL_DRIVER -DUSE_FULL_LL_DRIVER -DDATA_IN_D2_SRAM -DNDEBUG=1 -DRELEASE=1
+
+# DevEBoxH743VI
+Dev_boards.menu.pnum.DevEBoxH743VI=DevEBox H743VI
+Dev_boards.menu.pnum.DevEBoxH743VI.node="NODE_H743VI,DevEBox"
+Dev_boards.menu.pnum.DevEBoxH743VI.upload.maximum_size=2097152
+Dev_boards.menu.pnum.DevEBoxH743VI.upload.maximum_data_size=524288
+Dev_boards.menu.pnum.DevEBoxH743VI.build.mcu=cortex-m7
+Dev_boards.menu.pnum.DevEBoxH743VI.build.fpu=-mfpu=fpv5-d16
+Dev_boards.menu.pnum.DevEBoxH743VI.build.float-abi=-mfloat-abi=hard
+Dev_boards.menu.pnum.DevEBoxH743VI.build.board=DevEBoxH743VI
+Dev_boards.menu.pnum.DevEBoxH743VI.build.series=STM32H7xx
+Dev_boards.menu.pnum.DevEBoxH743VI.build.product_line=STM32H743xx
+Dev_boards.menu.pnum.DevEBoxH743VI.build.variant=STM32H7xx/Dev_DevEBoxH743VI
+Dev_boards.menu.pnum.DevEBoxH743VI.build.variant_h=variant_DevEBoxH7xx.h
+Dev_boards.menu.pnum.DevEBoxH743VI.build.cmsis_lib_gcc=arm_cortexM7lfsp_math
+Dev_boards.menu.pnum.DevEBoxH743VI.build.ldscript=STM32H743VI_flash.lds
+Dev_boards.menu.pnum.DevEBoxH743VI.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial} -DSTM32H743VI -DARM_MATH_CM7 -Dflash_layout -DHSE_VALUE=25000000 -DUSE_HAL_DRIVER -DUSE_FULL_LL_DRIVER -DDATA_IN_D2_SRAM -DNDEBUG=1 -DRELEASE=1
 
 # Upload menu
 Dev_boards.menu.upload_method.swdMethod=STM32CubeProgrammer (SWD)
