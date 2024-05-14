@@ -1,15 +1,15 @@
 #ifndef UNIT_TEST // for unit tests, a dummy implementation is provided below
 #include <stm32h7xx_hal.h>
-#include <stm32yyxx.h>
+#include <stm32h750xx.h>
 #include "sys/system.h"
 #include "sys/dma.h"
 #include "per/gpio.h"
 #include "per/rng.h"
 
 // global init functions for peripheral drivers.
+// These don't really need to be extern "C" anymore..
 extern "C"
 {
-    extern void SystemClock_Config(uint32_t FLatency); // in Variant folder 
     extern void dsy_i2c_global_init();
     extern void dsy_spi_global_init();
     extern void dsy_uart_global_init();
@@ -79,6 +79,11 @@ __attribute__((always_inline)) static inline void __JUMPTOQSPI()
 
 typedef void (*EntryPoint)(void);
 
+// Static Function Declaration
+//static void SystemClock_Config();
+//static void MPU_Config();
+static void Error_Handler(void);
+
 // System Level C functions and IRQ Handlers
 extern "C"
 {
@@ -94,24 +99,24 @@ extern "C"
 
     void OTG_HS_EP1_OUT_IRQHandler(void)
     {
-        // if(hhcd_USB_OTG_HS.Instance)
-        //     HAL_HCD_IRQHandler(&hhcd_USB_OTG_HS);
+        if(hhcd_USB_OTG_HS.Instance)
+            HAL_HCD_IRQHandler(&hhcd_USB_OTG_HS);
         if(hpcd_USB_OTG_HS.Instance)
             HAL_PCD_IRQHandler(&hpcd_USB_OTG_HS);
     }
 
     void OTG_HS_EP1_IN_IRQHandler(void)
     {
-        // if(hhcd_USB_OTG_HS.Instance)
-        //     HAL_HCD_IRQHandler(&hhcd_USB_OTG_HS);
+        if(hhcd_USB_OTG_HS.Instance)
+            HAL_HCD_IRQHandler(&hhcd_USB_OTG_HS);
         if(hpcd_USB_OTG_HS.Instance)
             HAL_PCD_IRQHandler(&hpcd_USB_OTG_HS);
     }
 
     void OTG_HS_IRQHandler(void)
     {
-        // if(hhcd_USB_OTG_HS.Instance)
-        //     HAL_HCD_IRQHandler(&hhcd_USB_OTG_HS);
+        if(hhcd_USB_OTG_HS.Instance)
+            HAL_HCD_IRQHandler(&hhcd_USB_OTG_HS);
         if(hpcd_USB_OTG_HS.Instance)
             HAL_PCD_IRQHandler(&hpcd_USB_OTG_HS);
     }
@@ -375,25 +380,8 @@ System::BootInfo::Version System::GetBootloaderVersion()
     return (BootInfo::Version)((int)BootInfo::Version::LAST - 1);
 }
 
-#if 1 // gls
-
-static void Error_Handler()
-{
-    // Insert code to handle errors here.
-    while(1) {}
-}
-
 void System::ConfigureClocks()
 {
-
-#if !defined(HSE_VALUE)
-#error "HSE_VALUE not defined in system.cpp"
-#endif
-
-#if (HSE_VALUE != 16000000) && (HSE_VALUE != 25000000)
-#error "Unsupported HSE_VALUE"
-#endif
-
     RCC_OscInitTypeDef       RCC_OscInitStruct   = {0};
     RCC_ClkInitTypeDef       RCC_ClkInitStruct   = {0};
     RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
@@ -475,27 +463,12 @@ void System::ConfigureClocks()
           | RCC_PERIPHCLK_ADC | RCC_PERIPHCLK_I2C1 | RCC_PERIPHCLK_USB
           | RCC_PERIPHCLK_QSPI | RCC_PERIPHCLK_FMC;
     // PLL 2
-    //  PeriphClkInitStruct.PLL2.PLL2N = 115; // Max Freq @ 3v3
-    //PeriphClkInitStruct.PLL2.PLL2N      = 84; // Max Freq @ 1V9
-    /** Old Timing  */
-    /*
-    PeriphClkInitStruct.PLL2.PLL2N      = 100; // Max supported freq of FMC;
-    PeriphClkInitStruct.PLL2.PLL2M      = 4;
-    PeriphClkInitStruct.PLL2.PLL2P      = 8;  // 57.5
-    PeriphClkInitStruct.PLL2.PLL2Q      = 10; // 46
-    PeriphClkInitStruct.PLL2.PLL2R      = 2;  // 115Mhz
-    PeriphClkInitStruct.PLL2.PLL2FRACN  = 0;
-    */
-
-    // New Timing
     PeriphClkInitStruct.PLL2.PLL2N     = 12; // Max supported freq of FMC;
     PeriphClkInitStruct.PLL2.PLL2M     = 1;
     PeriphClkInitStruct.PLL2.PLL2P     = 8; // 25MHz
     PeriphClkInitStruct.PLL2.PLL2Q     = 2; // 100MHz
     PeriphClkInitStruct.PLL2.PLL2R     = 1; // 200MHz
     PeriphClkInitStruct.PLL2.PLL2FRACN = 4096;
-
-
     PeriphClkInitStruct.PLL2.PLL2RGE    = RCC_PLL2VCIRANGE_2;
     PeriphClkInitStruct.PLL2.PLL2VCOSEL = RCC_PLL2VCOWIDE;
     // PLL 3
@@ -529,166 +502,6 @@ void System::ConfigureClocks()
     /** Enable USB Voltage detector */
     HAL_PWREx_EnableUSBVoltageDetector();
 }
-
-#else // gls
-
-void System::ConfigureClocks()
-{
-    // RCC_OscInitTypeDef RCC_OscInitStruct = {};
-    // RCC_ClkInitTypeDef RCC_ClkInitStruct = {};
-    // RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {};
-    uint32_t plln_val, flash_latency;
-
-    /** Supply configuration update enable
-    */
-    HAL_PWREx_ConfigSupply( PWR_LDO_SUPPLY );
-
-    /** Configure the flash latency and main internal regulator output voltage
-     *  per intended run mode (VOS0 to VOS3)
-     *  VOS0: boosted performance (max frequency 480 MHz)
-     *  VOS1: high performance (max frequency 400 MHz)
-     *  VOS2: medium performance (max frequency 300 MHz)
-     *  VOS3: low-power (max frequency 200 MHz)
-    */
-    if ( cfg_.cpu_freq == Config::SysClkFreq::FREQ_480MHZ ) {
-        flash_latency = FLASH_LATENCY_4;
-        __HAL_PWR_VOLTAGESCALING_CONFIG( PWR_REGULATOR_VOLTAGE_SCALE0 );
-    } else {
-        flash_latency = FLASH_LATENCY_2;
-        __HAL_PWR_VOLTAGESCALING_CONFIG( PWR_REGULATOR_VOLTAGE_SCALE1 );
-    }
-
-    while ( !__HAL_PWR_GET_FLAG( PWR_FLAG_VOSRDY ) ) {}
-
-#if 1 // gls
-
-   SystemClock_Config( flash_latency );
-
-#else // gls
-
-    /** Initializes the RCC Oscillators according to the specified parameters
-    * in the RCC_OscInitTypeDef structure.
-    */
-    /* PLL1 pclk is sysclk 480 Mhz */
-    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-    RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-    RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-    // 480 Mhz
-    RCC_OscInitStruct.PLL.PLLM = 5; // M div 5
-    RCC_OscInitStruct.PLL.PLLN = 96; // N mul 96
-    RCC_OscInitStruct.PLL.PLLP = 1; // P div 1
-    RCC_OscInitStruct.PLL.PLLQ = 10; // Q div 10 - USB 48 Mhz
-    RCC_OscInitStruct.PLL.PLLR = 10; // R unused
-    // 360 Mhz
-    /*
-    RCC_OscInitStruct.PLL.PLLM = 5; // M div 10
-    RCC_OscInitStruct.PLL.PLLN = 144; // N mul 144 (add 1 to N)
-    RCC_OscInitStruct.PLL.PLLP = 2; // P div 2 (add 1 to PLLP) must be even
-    RCC_OscInitStruct.PLL.PLLQ = 15; // Q div 10 (add 1 to PLLQ) - USB 48 Mhz
-    RCC_OscInitStruct.PLL.PLLR = 15; // R unused
-    */
-
-    /*
-     * RCC_PLL1VCIRANGE_0  Clock range frequency between 1 and 2 MHz
-     * RCC_PLL1VCIRANGE_1  Clock range frequency between 2 and 4 MHz
-     * RCC_PLL1VCIRANGE_2  Clock range frequency between 4 and 8 MHz
-     * RCC_PLL1VCIRANGE_3  Clock range frequency between 8 and 16 MHz */
-    /* PLLRGE: RCC_PLL1VCIRANGE_2 Clock range frequency between 4 and 8 MHz  */
-    RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_2;
-    /* VCOSEL PLL1VCOWIDE 2-16 Mhz */
-    RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
-    RCC_OscInitStruct.PLL.PLLFRACN = 0;
-    if ( HAL_RCC_OscConfig( &RCC_OscInitStruct ) != HAL_OK )
-    {
-        Error_Handler();
-    }
-    /** Initializes the CPU, AHB and APB buses clocks
-    */
-    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
-                                  | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2
-                                  | RCC_CLOCKTYPE_D3PCLK1 | RCC_CLOCKTYPE_D1PCLK1;
-    RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-    RCC_ClkInitStruct.SYSCLKDivider = RCC_SYSCLK_DIV1;
-    RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV2;
-    RCC_ClkInitStruct.APB3CLKDivider = RCC_APB3_DIV2;
-    RCC_ClkInitStruct.APB1CLKDivider = RCC_APB1_DIV2;
-    RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV2;
-    RCC_ClkInitStruct.APB4CLKDivider = RCC_APB4_DIV2;
-    if ( HAL_RCC_ClockConfig( &RCC_ClkInitStruct, FLASH_LATENCY_4 ) != HAL_OK )
-    {
-        Error_Handler();
-    }
-
-    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USB | RCC_PERIPHCLK_QSPI
-            | RCC_PERIPHCLK_SDMMC | RCC_PERIPHCLK_ADC
-            | RCC_PERIPHCLK_LPUART1 | RCC_PERIPHCLK_USART16
-            | RCC_PERIPHCLK_USART234578 | RCC_PERIPHCLK_I2C123
-            | RCC_PERIPHCLK_I2C4 | RCC_PERIPHCLK_SPI123
-            | RCC_PERIPHCLK_SPI45 | RCC_PERIPHCLK_SPI6;
-
-    /* PLL1 qclk used for USB 48 Mhz */
-    /* PLL1 qclk also used for FMC, QUADSPI, SDMMC, RNG, SAI */
-    /* PLL2 pclk is needed for adc max 80 Mhz (p,q,r same) */
-    /* PLL2 pclk also used for LP timers 2,3,4,5, SPI 1,2,3 */
-    /* PLL2 qclk is needed for uart, can, spi4,5,6 80 Mhz */
-    /* PLL3 r clk is needed for i2c 80 Mhz (p,q,r same) */
-    PeriphClkInitStruct.PLL2.PLL2M = 15; // M DIV 15 vco 25 / 15 ~ 1.667 Mhz
-    PeriphClkInitStruct.PLL2.PLL2N = 96; // N MUL 96
-    PeriphClkInitStruct.PLL2.PLL2P = 2;  // P div 2
-    PeriphClkInitStruct.PLL2.PLL2Q = 2;  // Q div 2
-    PeriphClkInitStruct.PLL2.PLL2R = 2;  // R div 2
-    // RCC_PLL1VCIRANGE_0  Clock range frequency between 1 and 2 MHz
-    PeriphClkInitStruct.PLL2.PLL2RGE = RCC_PLL2VCIRANGE_0;
-    PeriphClkInitStruct.PLL2.PLL2VCOSEL = RCC_PLL2VCOMEDIUM;
-    PeriphClkInitStruct.PLL2.PLL2FRACN = 0;
-    PeriphClkInitStruct.PLL3.PLL3M = 15; // M DIV 15 vco 25 / 15 ~ 1.667 Mhz
-    PeriphClkInitStruct.PLL3.PLL3N = 96; // N MUL 96
-    PeriphClkInitStruct.PLL3.PLL3P = 2;  // P div 2
-    PeriphClkInitStruct.PLL3.PLL3Q = 2;  // Q div 2
-    PeriphClkInitStruct.PLL3.PLL3R = 2;  // R div 2
-    // RCC_PLL1VCIRANGE_0  Clock range frequency between 1 and 2 MHz
-    PeriphClkInitStruct.PLL3.PLL3RGE = RCC_PLL3VCIRANGE_0;
-    PeriphClkInitStruct.PLL3.PLL3VCOSEL = RCC_PLL3VCOMEDIUM;
-    PeriphClkInitStruct.PLL3.PLL3FRACN = 0;
-    // ADC from PLL2 pclk
-    PeriphClkInitStruct.AdcClockSelection = RCC_ADCCLKSOURCE_PLL2;
-    // USB from PLL1 qclk
-    PeriphClkInitStruct.UsbClockSelection = RCC_USBCLKSOURCE_PLL;
-    // QSPI from PLL1 qclk
-    PeriphClkInitStruct.QspiClockSelection = RCC_QSPICLKSOURCE_PLL;
-    // SDMMC from PLL1 qclk
-    PeriphClkInitStruct.SdmmcClockSelection = RCC_SDMMCCLKSOURCE_PLL;
-    // LPUART from PLL2 qclk
-    PeriphClkInitStruct.Lpuart1ClockSelection = RCC_LPUART1CLKSOURCE_PLL2;
-    // USART from PLL2 qclk
-    PeriphClkInitStruct.Usart16ClockSelection = RCC_USART16CLKSOURCE_PLL2;
-    // USART from PLL2 qclk
-    PeriphClkInitStruct.Usart234578ClockSelection = RCC_USART234578CLKSOURCE_PLL2;
-    // I2C123 from PLL3 rclk
-    PeriphClkInitStruct.I2c123ClockSelection = RCC_I2C123CLKSOURCE_PLL3;
-    // I2C4 from PLL3 rclk
-    PeriphClkInitStruct.I2c4ClockSelection = RCC_I2C4CLKSOURCE_PLL3;
-    // SPI123 from PLL2 pclk
-    PeriphClkInitStruct.Spi123ClockSelection = RCC_SPI123CLKSOURCE_PLL2;
-    // SPI45 from PLL2 qclk
-    PeriphClkInitStruct.Spi45ClockSelection = RCC_SPI45CLKSOURCE_PLL2;
-    // SPI6 from PLL2 qclk
-    PeriphClkInitStruct.Spi6ClockSelection = RCC_SPI6CLKSOURCE_PLL2;
-
-
-    if ( HAL_RCCEx_PeriphCLKConfig( &PeriphClkInitStruct ) != HAL_OK )
-    {
-        Error_Handler();
-    }
-
-#endif // gls
-
-    /** Enable USB Voltage detector */
-    HAL_PWREx_EnableUSBVoltageDetector();
-}
-
-#endif // gls
 
 void System::ConfigureMpu()
 {
@@ -785,6 +598,12 @@ System::MemoryRegion System::GetMemoryRegion(uint32_t addr)
 
 
 } // namespace daisy
+
+static void Error_Handler()
+{
+    // Insert code to handle errors here.
+    while(1) {}
+}
 
 //////////////////////////////////////////////////
 // Old C-Style API
