@@ -19,15 +19,16 @@ static void Error_Handler()
   * 10: The PLLx input (refx_ck) clock range frequency is between 4 and 8 MHz
   * 11: The PLLx input (refx_ck) clock range frequency is between 8 and 16 MHz
   */
-void SystemClock_Config(uint32_t FLatency)
+void SystemClock_Config(uint32_t plln_val, uint32_t FLatency)
 {
     RCC_OscInitTypeDef RCC_OscInitStruct = {};
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {};
     RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {};
 
-    /** Initializes the RCC Oscillators according to the specified parameters
-    * in the RCC_OscInitTypeDef structure.
+    /** Macro to configure the PLL clock source
     */
+    __HAL_RCC_PLL_PLLSOURCE_CONFIG(RCC_PLLSOURCE_HSE);
+
     /* PLL1 pclk is sysclk 480 Mhz */
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
     RCC_OscInitStruct.HSEState = RCC_HSE_ON;
@@ -35,10 +36,10 @@ void SystemClock_Config(uint32_t FLatency)
     RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
     // 480 Mhz
     RCC_OscInitStruct.PLL.PLLM = 5; // M div 5
-    RCC_OscInitStruct.PLL.PLLN = 96; // N mul 96
-    RCC_OscInitStruct.PLL.PLLP = 1; // P div 1
-    RCC_OscInitStruct.PLL.PLLQ = 10; // Q div 10 - USB 48 Mhz
-    RCC_OscInitStruct.PLL.PLLR = 10; // R unused
+    RCC_OscInitStruct.PLL.PLLN = 192; // N mul 96
+    RCC_OscInitStruct.PLL.PLLP = 2; // P div 1
+    RCC_OscInitStruct.PLL.PLLQ = 20; // Q div 10 - USB 48 Mhz
+    RCC_OscInitStruct.PLL.PLLR = 20; // R unused
     // 360 Mhz
     /*
     RCC_OscInitStruct.PLL.PLLM = 5; // M div 10

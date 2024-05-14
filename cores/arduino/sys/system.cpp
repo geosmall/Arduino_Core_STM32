@@ -9,7 +9,7 @@
 // global init functions for peripheral drivers.
 extern "C"
 {
-    extern void SystemClock_Config(uint32_t FLatency); // in Variant folder 
+    extern void SystemClock_Config(uint32_t plln_val, uint32_t FLatency); // in Variant folder 
     extern void dsy_i2c_global_init();
     extern void dsy_spi_global_init();
     extern void dsy_uart_global_init();
@@ -375,7 +375,7 @@ System::BootInfo::Version System::GetBootloaderVersion()
     return (BootInfo::Version)((int)BootInfo::Version::LAST - 1);
 }
 
-#if 1 // gls
+#if 0 // gls
 
 static void Error_Handler()
 {
@@ -534,6 +534,15 @@ void System::ConfigureClocks()
 
 void System::ConfigureClocks()
 {
+
+#if !defined(HSE_VALUE)
+#error "HSE_VALUE not defined in system.cpp"
+#endif
+
+#if (HSE_VALUE != 16000000) && (HSE_VALUE != 25000000)
+#error "Unsupported HSE_VALUE"
+#endif
+
     // RCC_OscInitTypeDef RCC_OscInitStruct = {};
     // RCC_ClkInitTypeDef RCC_ClkInitStruct = {};
     // RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {};
@@ -551,9 +560,11 @@ void System::ConfigureClocks()
      *  VOS3: low-power (max frequency 200 MHz)
     */
     if ( cfg_.cpu_freq == Config::SysClkFreq::FREQ_480MHZ ) {
+        plln_val = ( HSE_VALUE == 25000000 ) ? 240 : 192;
         flash_latency = FLASH_LATENCY_4;
         __HAL_PWR_VOLTAGESCALING_CONFIG( PWR_REGULATOR_VOLTAGE_SCALE0 );
     } else {
+        plln_val = ( HSE_VALUE == 25000000 ) ? 200 : 160;
         flash_latency = FLASH_LATENCY_2;
         __HAL_PWR_VOLTAGESCALING_CONFIG( PWR_REGULATOR_VOLTAGE_SCALE1 );
     }
@@ -562,7 +573,7 @@ void System::ConfigureClocks()
 
 #if 1 // gls
 
-   SystemClock_Config( flash_latency );
+   SystemClock_Config( plln_val, flash_latency );
 
 #else // gls
 
