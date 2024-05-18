@@ -21,8 +21,8 @@ int main(void)
     // Create an LED
     GPIO my_led;
 
-    // Initialize it to pin D1 as an OUTPUT
-    my_led.Init(D1, GPIO::Mode::OUTPUT);
+    // Initialize it to pin D24 (PA1) as an OUTPUT
+    my_led.Init(D24, GPIO::Mode::OUTPUT);
 
     // In an infinite loop, we'll continuously turn the LED on/off.
     while(1)
