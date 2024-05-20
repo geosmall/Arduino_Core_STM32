@@ -1,5 +1,5 @@
 #include "daisy_seed.h"
-#include "per/icm20948.h"
+#include "dev/icm20948.h"
 
 // Use the daisy namespace to prevent having to type
 // daisy:: before all libdaisy functions

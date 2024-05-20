@@ -1,5 +1,5 @@
 #include "daisy_seed.h"
-#include "per/icm42688p.h"
+#include "dev/icm42688p.h"
 
 // Use the daisy namespace to prevent having to type
 // daisy:: before all libdaisy functions
@@ -9,7 +9,7 @@ using namespace daisy;
 DaisySeed hardware;
 
 Icm42688p<Icm42688pSpiTransport> imu;
-Icm20948<Icm20948SpiTransport>::Config imu_cfg;
+Icm42688p<Icm42688pSpiTransport>::Config imu_cfg;
 
 int main(void)
 {
