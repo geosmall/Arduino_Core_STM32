@@ -1,5 +1,9 @@
 #pragma once
 
+#include "icm42688p_regs.h"
+
+using namespace ICM42688reg;
+
 // Misc configuration macros
 #define I2C_MASTER_RESETS_BEFORE_FAIL \
     5 ///< The number of times to try resetting a stuck I2C master before giving up
@@ -73,123 +77,6 @@ namespace daisy
 /** @addtogroup external 
     @{ 
 */
-
-/** I2C Transport for Icm42688p */
-class Icm42688pI2CTransport
-{
-  public:
-    Icm42688pI2CTransport() {}
-    ~Icm42688pI2CTransport() {}
-
-    struct Config
-    {
-        I2CHandle::Config::Peripheral periph;
-        I2CHandle::Config::Speed      speed;
-        Pin                           scl;
-        Pin                           sda;
-
-        uint8_t address;
-
-        Config()
-        {
-            address = ICM42688p_I2CADDR_DEFAULT;
-
-            periph = I2CHandle::Config::Peripheral::I2C_1;
-            speed  = I2CHandle::Config::Speed::I2C_400KHZ;
-
-            scl = Pin(PORTB, 8);
-            sda = Pin(PORTB, 9);
-        }
-    };
-
-    inline void Init(Config config)
-    {
-        config_ = config;
-
-        I2CHandle::Config i2c_config;
-        i2c_config.mode   = I2CHandle::Config::Mode::I2C_MASTER;
-        i2c_config.periph = config.periph;
-        i2c_config.speed  = config.speed;
-
-        i2c_config.pin_config.scl = config.scl;
-        i2c_config.pin_config.sda = config.sda;
-
-        i2c_.Init(i2c_config);
-    }
-
-    void Write(uint8_t *data, uint16_t size)
-    {
-        error_ |= I2CHandle::Result::OK
-                  != i2c_.TransmitBlocking(config_.address, data, size, 10);
-    }
-
-    void Read(uint8_t *data, uint16_t size)
-    {
-        error_ |= I2CHandle::Result::OK
-                  != i2c_.ReceiveBlocking(config_.address, data, size, 10);
-    }
-
-    /**  Writes an 8 bit value
-        \param reg the register address to write to
-        \param value the value to write to the register
-    */
-    void Write8(uint8_t reg, uint8_t value)
-    {
-        uint8_t buffer[2];
-
-        buffer[0] = reg;
-        buffer[1] = value;
-
-        Write(buffer, 2);
-    }
-
-    /**  Writes a 16 bit value MSB first
-        \param reg the register address to write to
-        \param value the value to write to the register
-    */
-    void Write16(uint8_t reg, uint16_t value)
-    {
-        uint8_t buffer[3];
-
-        buffer[0] = reg;
-        buffer[1] = value >> 8;
-        buffer[1] = value & 0xFF;
-
-        Write(buffer, 2);
-    }
-
-    /** Read from a reg address a defined number of bytes */
-    void ReadReg(uint8_t reg, uint8_t *buff, uint8_t size)
-    {
-        Write(&reg, 1);
-        Read(buff, size);
-    }
-
-    /**  Reads an 8 bit value
-        \param reg the register address to read from
-        \return the 16 bit data value read from the device
-    */
-    uint8_t Read8(uint8_t reg)
-    {
-        uint8_t buffer;
-        ReadReg(reg, &buffer, 1);
-        return buffer;
-    }
-
-    bool GetError()
-    {
-        bool tmp = error_;
-        error_   = false;
-        return tmp;
-    }
-
-  private:
-    I2CHandle i2c_;
-    Config    config_;
-
-    // true if error has occured since last check
-    bool error_;
-};
 
 /** SPI Transport for Icm42688p */
 class Icm42688pSpiTransport
@@ -362,6 +249,42 @@ class Icm42688p
         AK09916_MAG_DATARATE_100_HZ = 0x8, ///< updates at 100Hz
     };
 
+    enum GyroFS : uint8_t {
+        dps2000 = 0x00,
+        dps1000 = 0x01,
+        dps500 = 0x02,
+        dps250 = 0x03,
+        dps125 = 0x04,
+        dps62_5 = 0x05,
+        dps31_25 = 0x06,
+        dps15_625 = 0x07
+    };
+
+    enum AccelFS : uint8_t {
+        gpm16 = 0x00,
+        gpm8 = 0x01,
+        gpm4 = 0x02,
+        gpm2 = 0x03
+    };
+
+    enum ODR : uint8_t {
+        odr32k = 0x01, // LN mode only
+        odr16k = 0x02, // LN mode only
+        odr8k = 0x03, // LN mode only
+        odr4k = 0x04, // LN mode only
+        odr2k = 0x05, // LN mode only
+        odr1k = 0x06, // LN mode only
+        odr200 = 0x07,
+        odr100 = 0x08,
+        odr50 = 0x09,
+        odr25 = 0x0A,
+        odr12_5 = 0x0B,
+        odr6a25 = 0x0C, // LP mode only (accel only)
+        odr3a125 = 0x0D, // LP mode only (accel only)
+        odr1a5625 = 0x0E, // LP mode only (accel only)
+        odr500 = 0x0F,
+    };
+
     enum Result
     {
         OK = 0,
@@ -377,34 +300,20 @@ class Icm42688p
 
         transport_.Init(config_.transport_config);
 
-        SetBank(0);
+        setBank(0);
 
-        uint8_t chip_id = Read8(ICM20X_B0_WHOAMI);
+        // reset the ICM42688
+        reset();
 
-        if(chip_id != ICM42688p_CHIP_ID)
-        {
+        // check the WHO AM I byte
+        if(whoAmI() != WHO_AM_I) {
             return ERR;
         }
 
-        _sensorid_accel = 0;
-        _sensorid_gyro  = 1;
-        _sensorid_mag   = 2;
-        _sensorid_temp  = 3;
-
-        Reset();
-
-        // take out of default sleep state
-        WriteBits(ICM20X_B0_PWR_MGMT_1, 0, 1, 6);
-
-        // 3 will be the largest range for either sensor
-        WriteGyroRange(3);
-        WriteAccelRange(3);
-
-        // 1100Hz/(1+10) = 100Hz
-        SetGyroRateDivisor(10);
-
-        // # 1125Hz/(1+20) = 53.57Hz
-        SetAccelRateDivisor(20);
+        // turn on accel and gyro in Low Noise (LN) Mode
+        if(writeRegister(UB0_REG_PWR_MGMT0, 0x0F) < 0) {
+            return ERR;
+        }
 
         System::Delay(20);
 
@@ -425,77 +334,6 @@ class Icm42688p
         };
 
         System::Delay(50);
-    }
-
-    uint8_t GetMagId()
-    {
-        // verify the magnetometer id
-        return ReadExternalRegister(0x8C, 0x01);
-    }
-
-    Result SetupMag()
-    {
-        uint8_t buffer[2];
-
-        SetI2CBypass(false);
-
-        ConfigureI2CMaster();
-
-        EnableI2CMaster(true);
-
-        if(AuxI2CBusSetupFailed() == ERR)
-        {
-            return ERR;
-        }
-
-        // set mag data rate
-        if(!SetMagDataRate(AK09916_MAG_DATARATE_100_HZ))
-        {
-            // Serial.println("Error setting magnetometer data rate on external bus");
-            return ERR;
-        }
-
-        // TODO: extract method
-        // Set up Slave0 to proxy Mag readings
-        SetBank(3);
-
-        // set up slave0 to proxy reads to mag
-        Write8(ICM20X_B3_I2C_SLV0_ADDR, 0x8C);
-        if(GetTransportError() != OK)
-        {
-            return ERR;
-        }
-
-        Write8(ICM20X_B3_I2C_SLV0_REG, 0x10);
-        if(GetTransportError() != OK)
-        {
-            return ERR;
-        }
-
-        // enable, read 9 bytes
-        Write8(ICM20X_B3_I2C_SLV0_CTRL, 0x89);
-        if(GetTransportError() != OK)
-        {
-            return ERR;
-        }
-
-        return OK;
-    }
-
-    /**
-        \param slv_addr
-        \param mag_reg_addr
-        \param num_finished_checks
-        \return uint8_t
-    */
-    uint8_t ReadMagRegister(uint8_t mag_reg_addr)
-    {
-        return ReadExternalRegister(0x8C, mag_reg_addr);
-    }
-
-    bool WriteMagRegister(uint8_t mag_reg_addr, uint8_t value)
-    {
-        return WriteExternalRegister(0x0C, mag_reg_addr, value);
     }
 
     void ScaleValues()
@@ -637,133 +475,12 @@ class Icm42688p
         return range;
     }
 
-
-    /** Get the current magnetometer measurement rate
-        \return ak09916_data_rate_t the current rate
-    */
-    ak09916_data_rate_t GetMagDataRate()
-    {
-        uint8_t raw_mag_rate = ReadMagRegister(AK09916_CNTL2);
-        return (ak09916_data_rate_t)(raw_mag_rate);
-    }
-
-    /** Set the magnetometer measurement rate
-        \param rate The rate to set.
-        \return true: success false: failure
-    */
-    bool SetMagDataRate(ak09916_data_rate_t rate)
-    {
-        /* Following the datasheet, the sensor will be set to
-        * AK09916_MAG_DATARATE_SHUTDOWN followed by a 100ms delay, followed by
-        * setting the new data rate.
-        *
-        * See page 9 of https://www.y-ic.es/datasheet/78/SMDSW.020-2OZ.pdf */
-
-        // don't need to read/mask because there's nothing else in the register and
-        // it's right justified
-        bool success
-            = WriteMagRegister(AK09916_CNTL2, AK09916_MAG_DATARATE_SHUTDOWN);
-        System::Delay(1);
-        return WriteMagRegister(AK09916_CNTL2, rate) && success;
-    }
-
     /** Sets register bank.
         \param bank_number The bank to set to active
     */
     void SetBank(uint8_t bank_number)
     {
         Write8(ICM20X_B0_REG_BANK_SEL, (bank_number & 0b11) << 4);
-    }
-
-
-    /** Read a single byte from a given register address for an I2C slave device on the auxiliary I2C bus
-        \param slv_addr the 7-bit I2C address of the slave device
-        \param reg_addr the register address to read from
-        \return the requested register value
-    */
-    uint8_t ReadExternalRegister(uint8_t slv_addr, uint8_t reg_addr)
-    {
-        return AuxillaryRegisterTransaction(true, slv_addr, reg_addr);
-    }
-
-    /** Write a single byte to a given register address for an I2C slave device on the auxiliary I2C bus
-        \param slv_addr the 7-bit I2C address of the slave device
-        \param reg_addr the register address to write to
-        \param value the value to write
-        \return true
-        \return false
-    */
-    bool
-    WriteExternalRegister(uint8_t slv_addr, uint8_t reg_addr, uint8_t value)
-    {
-        return (bool)AuxillaryRegisterTransaction(
-            false, slv_addr, reg_addr, value);
-    }
-
-    /** Read / Write a single byte to a given register address for an I2C slave device on the auxiliary I2C bus
-        \param slv_addr the 7-bit I2C address of the slave device
-        \param reg_addr the register address to write to
-        \param value the value to write
-        \return Read value ( if it's a read operation ), else true or false
-    */
-    uint8_t AuxillaryRegisterTransaction(bool    read,
-                                         uint8_t slv_addr,
-                                         uint8_t reg_addr,
-                                         uint8_t value)
-    {
-        SetBank(3);
-
-        if(read)
-        {
-            // set high bit for read, presumably for multi-byte reads
-            slv_addr |= 0x80;
-        }
-        else
-        {
-            Write8(ICM20X_B3_I2C_SLV4_DO, value);
-            if(GetTransportError() == ERR)
-            {
-                return (uint8_t) false;
-            }
-        }
-
-        Write8(ICM20X_B3_I2C_SLV4_ADDR, slv_addr);
-        if(GetTransportError() == ERR)
-        {
-            return (uint8_t) false;
-        }
-
-        Write8(ICM20X_B3_I2C_SLV4_REG, reg_addr);
-        if(GetTransportError() == ERR)
-        {
-            return (uint8_t) false;
-        }
-
-        Write8(ICM20X_B3_I2C_SLV4_CTRL, 0x80);
-        if(GetTransportError() == ERR)
-        {
-            return (uint8_t) false;
-        }
-
-        SetBank(0);
-        uint8_t tries = 0;
-        // wait until the operation is finished
-        while(ReadBits(ICM20X_B0_I2C_MST_STATUS, 1, 6) != true)
-        {
-            tries++;
-            if(tries >= NUM_FINISHED_CHECKS)
-            {
-                return (uint8_t) false;
-            }
-        }
-
-        if(read)
-        {
-            SetBank(3);
-            return Read8(ICM20X_B3_I2C_SLV4_DI);
-        }
-
-        return (uint8_t) true;
     }
 
     /** Updates the measurement data for all sensors simultaneously */
@@ -814,16 +531,6 @@ class Icm42688p
         vect.x = gyroX * SENSORS_DPS_TO_RADS;
         vect.y = gyroY * SENSORS_DPS_TO_RADS;
         vect.z = gyroZ * SENSORS_DPS_TO_RADS;
-
-        return vect;
-    }
-
-    Icm42688pVect GetMagVect()
-    {
-        Icm42688pVect vect;
-        vect.x = magX;
-        vect.y = magY;
-        vect.z = magZ;
 
         return vect;
     }
@@ -882,69 +589,58 @@ class Icm42688p
         Write8(reg, val);
     }
 
-    /** Sets the bypass status of the I2C master bus support.
-        \param bypass_i2c Set to true to bypass the internal I2C master circuitry,
-        connecting the external I2C bus to the main I2C bus. Set to false to
-        re-connect
-    */
-    void SetI2CBypass(bool bypass_i2c)
-    {
-        SetBank(0);
-        WriteBits(ICM20X_B0_REG_INT_PIN_CFG, bypass_i2c, 1, 1);
-    }
+    /* Write a byte to ICM42688 register given a register address and data,
+       verify the the value of the register was correctly written */
+    int writeRegister(uint8_t reg, uint8_t data) {
+        Write8(reg, data);
 
-    /** Enable or disable the I2C mastercontroller
-        \param enable_i2c_master true: enable false: disable
-        \return true: success false: error
-    */
-    Result EnableI2CMaster(bool enable_i2c_master)
-    {
-        SetBank(0);
-        WriteBits(ICM20X_B0_USER_CTRL, enable_i2c_master, 1, 5);
-        return GetTransportError();
-    }
+        System::Delay(10);
 
-    /** Set the I2C clock rate for the auxillary I2C bus to 345.60kHz and disable repeated start
-        \return true: success false: failure
-    */
-    Result ConfigureI2CMaster(void)
-    {
-        SetBank(3);
-        Write8(ICM20X_B3_I2C_MST_CTRL, 0x17);
-        return GetTransportError();
-    }
-
-    /** Reset the I2C master */
-    void ResetI2CMaster(void)
-    {
-        SetBank(0);
-
-        WriteBits(ICM20X_B0_USER_CTRL, true, 1, 1);
-        while(ReadBits(ICM20X_B0_USER_CTRL, 1, 1))
-        {
-            System::Delay(10);
+        /* read back the register */
+        ReadReg(reg, _buffer, 1);
+        /* check the read back register against the data value */
+        if(_buffer[0] == data) {
+            return 1;
+        } else {
+            return -1;
         }
-        System::Delay(100);
     }
 
-    // A million thanks to the SparkFun folks for their library that I pillaged to
-    // write this method! See their Arduino library here:
-    // https://github.com/sparkfun/SparkFun_ICM-42688p_ArduinoLibrary
-    Result AuxI2CBusSetupFailed(void)
-    {
-        // check aux I2C bus connection by reading the magnetometer chip ID
-        for(int i = 0; i < I2C_MASTER_RESETS_BEFORE_FAIL; i++)
-        {
-            if(GetMagId() != ICM42688p_MAG_ID)
-            {
-                ResetI2CMaster();
-            }
-            else
-            {
-                return ERR;
-            }
+    /* Read registers from ICM42688P given a starting register address,
+       number of bytes, and a pointer to store data */
+    int readRegisters(uint8_t reg, uint8_t count, uint8_t* dest) {
+        ReadReg(reg, dest, count);
+        return 1;
+    }
+
+    int setBank(uint8_t bank) {
+        // if we are already on this bank, return
+        if (_bank == bank) return 1;
+
+        _bank = bank;
+
+        return writeRegister(REG_BANK_SEL, bank);
+    }
+
+    void reset() {
+        setBank(0);
+
+        writeRegister(UB0_REG_DEVICE_CONFIG, 0x01);
+
+        // wait for ICM42688 to come back up
+        System::Delay(10);
+    }
+
+    /* gets the ICM42688 WHO_AM_I register value */
+    uint8_t whoAmI() {
+        setBank(0);
+
+        // read the WHO AM I register
+        if (readRegisters(UB0_REG_WHO_AM_I, 1, _buffer) < 0) {
+            return -1;
         }
-        return OK;
+        // return the register value
+        return _buffer[0];
     }
 
     /** Get and reset the transport error flag
@@ -955,6 +651,21 @@ class Icm42688p
   private:
     Config    config_;
     Transport transport_;
+
+    ///\brief Constants
+    static constexpr uint8_t WHO_AM_I = 0x47; ///< expected value in UB0_REG_WHO_AM_I reg
+    static constexpr int NUM_CALIB_SAMPLES = 1000; ///< for gyro/accel bias calib
+
+    ///\brief Conversion formula to get temperature in Celsius (Sec 4.13)
+    static constexpr float TEMP_DATA_REG_SCALE = 132.48f;
+    static constexpr float TEMP_OFFSET = 25.0f;
+
+    uint8_t _bank = 0;        ///< current user bank
+    uint8_t _buffer[15] = {}; ///< buffer for reading from sensor
+
+
+// -------------------------------------------------------------------------
+
 
     uint16_t _sensorid_accel, ///< ID number for accelerometer
         _sensorid_gyro,       ///< ID number for gyro
@@ -989,6 +700,6 @@ class Icm42688p
 
 /** @} */
 
-using Icm42688pI2C = Icm42688p<Icm42688pI2CTransport>;
 using Icm42688pSpi = Icm42688p<Icm42688pSpiTransport>;
+
 } // namespace daisy
