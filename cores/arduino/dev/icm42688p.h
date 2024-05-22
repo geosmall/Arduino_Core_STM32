@@ -103,16 +103,19 @@ class Icm42688pSpiTransport
         }
     };
 
-    inline void Init(Config config)
+    inline void Init(Config config, bool use_hs_SPI)
     {
         SpiHandle::Config spi_conf;
         spi_conf.mode           = SpiHandle::Config::Mode::MASTER;
         spi_conf.direction      = SpiHandle::Config::Direction::TWO_LINES;
         spi_conf.clock_polarity = SpiHandle::Config::ClockPolarity::LOW;
         spi_conf.clock_phase    = SpiHandle::Config::ClockPhase::ONE_EDGE;
-        spi_conf.baud_prescaler = SpiHandle::Config::BaudPrescaler::PS_2;
         spi_conf.nss            = SpiHandle::Config::NSS::SOFT;
-
+        if (use_hs_SPI) {
+            spi_conf.baud_prescaler = SpiHandle::Config::BaudPrescaler::PS_4;
+        } else {
+            spi_conf.baud_prescaler = SpiHandle::Config::BaudPrescaler::PS_32;
+        }
         spi_conf.periph          = config.periph;
         spi_conf.pin_config.sclk = config.sclk;
         spi_conf.pin_config.miso = config.miso;
@@ -298,7 +301,8 @@ class Icm42688p
     {
         config_ = config;
 
-        transport_.Init(config_.transport_config);
+        // initialize transport_ for low speed (use_hs_SPI = false)
+        transport_.Init(config_.transport_config, false);
 
         setBank(0);
 
@@ -314,6 +318,21 @@ class Icm42688p
         if(writeRegister(UB0_REG_PWR_MGMT0, 0x0F) < 0) {
             return ERR;
         }
+
+        // 16G is default -- do this to set up accel resolution scaling
+        if(setAccelFS(gpm16) < 0) {
+            return ERR;
+        }
+
+        // 2000DPS is default -- do this to set up gyro resolution scaling
+        if(setGyroFS(dps2000) < 0) { 
+            return ERR;
+        }
+
+        System::Delay(20);
+
+        // initialize transport_ for high speed (use_hs_SPI = true)
+        transport_.Init(config_.transport_config, true);
 
         System::Delay(20);
 
@@ -613,6 +632,139 @@ class Icm42688p
         return 1;
     }
 
+    /* sets the accelerometer full scale range to values other than default */
+    int setAccelFS(AccelFS fssel) {
+        uint8_t reg;
+
+        setBank(0);
+
+        // read current register value
+        if (readRegisters(UB0_REG_ACCEL_CONFIG0, 1, &reg) < 0) return -1;
+
+        // only change FS_SEL in reg
+        reg = (fssel << 5) | (reg & 0x1F);
+
+        if (writeRegister(UB0_REG_ACCEL_CONFIG0, reg) < 0) return -2;
+
+        _accelScale = static_cast<float>(1 << (4 - fssel)) / 32768.0f;
+        _accelFS = fssel;
+
+        return 1;
+    }
+
+    /* sets the gyro full scale range to values other than default */
+    int setGyroFS(GyroFS fssel) {
+        uint8_t reg;
+
+        setBank(0);
+
+        // read current register value
+        if (readRegisters(UB0_REG_GYRO_CONFIG0, 1, &reg) < 0) return -1;
+
+        // only change FS_SEL in reg
+        reg = (fssel << 5) | (reg & 0x1F);
+
+        if (writeRegister(UB0_REG_GYRO_CONFIG0, reg) < 0) return -2;
+
+        _gyroScale = (2000.0f / static_cast<float>(1 << fssel)) / 32768.0f;
+        _gyroFS = fssel;
+
+        return 1;
+    }
+
+    int setAccelODR(ODR odr) {
+        uint8_t reg;
+
+        setBank(0);
+
+        // read current register value
+        if (readRegisters(UB0_REG_ACCEL_CONFIG0, 1, &reg) < 0) return -1;
+
+        // only change ODR in reg
+        reg = odr | (reg & 0xF0);
+
+        if (writeRegister(UB0_REG_ACCEL_CONFIG0, reg) < 0) return -2;
+
+        return 1;
+    }
+
+    int setGyroODR(ODR odr) {
+        uint8_t reg;
+
+        setBank(0);
+
+        // read current register value
+        if (readRegisters(UB0_REG_GYRO_CONFIG0, 1, &reg) < 0) return -1;
+
+        // only change ODR in reg
+        reg = odr | (reg & 0xF0);
+
+        if (writeRegister(UB0_REG_GYRO_CONFIG0, reg) < 0) return -2;
+
+        return 1;
+    }
+
+    int setFilters(bool gyroFilters, bool accFilters) {
+        if (setBank(1) < 0) return -1;
+
+        if (gyroFilters == true) {
+            if (writeRegister(UB1_REG_GYRO_CONFIG_STATIC2, GYRO_NF_ENABLE | GYRO_AAF_ENABLE) < 0) {
+                return -2;
+            }
+        } else {
+            if (writeRegister(UB1_REG_GYRO_CONFIG_STATIC2, GYRO_NF_DISABLE | GYRO_AAF_DISABLE) < 0) {
+                return -3;
+            }
+        }
+
+        if (setBank(2) < 0) return -4;
+
+        if (accFilters == true) {
+            if (writeRegister(UB2_REG_ACCEL_CONFIG_STATIC2, ACCEL_AAF_ENABLE) < 0) {
+                return -5;
+            }
+        } else {
+            if (writeRegister(UB2_REG_ACCEL_CONFIG_STATIC2, ACCEL_AAF_DISABLE) < 0) {
+                return -6;
+            }
+        }
+        if (setBank(0) < 0) return -7;
+
+        return 1;
+    }
+
+    int enableDataReadyInterrupt() {
+        uint8_t reg;
+
+        // push-pull, pulsed, active HIGH interrupts
+        if (writeRegister(UB0_REG_INT_CONFIG, 0x18 | 0x03) < 0) return -1;
+
+        // need to clear bit 4 to allow proper INT1 and INT2 operation
+        if (readRegisters(UB0_REG_INT_CONFIG1, 1, &reg) < 0) return -2;
+        reg &= ~0x10;
+        if (writeRegister(UB0_REG_INT_CONFIG1, reg) < 0) return -3;
+
+        // route UI data ready interrupt to INT1
+        if (writeRegister(UB0_REG_INT_SOURCE0, 0x18) < 0) return -4;
+
+        return 1;
+    }
+
+    int disableDataReadyInterrupt() {
+        uint8_t reg;
+
+        // set pin 4 to return to reset value
+        if (readRegisters(UB0_REG_INT_CONFIG1, 1, &reg) < 0) return -1;
+        reg |= 0x10;
+        if (writeRegister(UB0_REG_INT_CONFIG1, reg) < 0) return -2;
+
+        // return reg to reset value
+        if (writeRegister(UB0_REG_INT_SOURCE0, 0x10) < 0) return -3;
+
+        return 1;
+    }
+
+
     int setBank(uint8_t bank) {
         // if we are already on this bank, return
         if (_bank == bank) return 1;
@@ -660,9 +812,35 @@ class Icm42688p
     static constexpr float TEMP_DATA_REG_SCALE = 132.48f;
     static constexpr float TEMP_OFFSET = 25.0f;
 
+    const uint8_t FIFO_EN = 0x23;
+    const uint8_t FIFO_TEMP_EN = 0x04;
+    const uint8_t FIFO_GYRO = 0x02;
+    const uint8_t FIFO_ACCEL = 0x01;
+    // const uint8_t FIFO_COUNT = 0x2E;
+    // const uint8_t FIFO_DATA = 0x30;
+
+    // BANK 1
+    // const uint8_t GYRO_CONFIG_STATIC2 = 0x0B;
+    const uint8_t GYRO_NF_ENABLE = 0x00;
+    const uint8_t GYRO_NF_DISABLE = 0x01;
+    const uint8_t GYRO_AAF_ENABLE = 0x00;
+    const uint8_t GYRO_AAF_DISABLE = 0x02;
+
+    // BANK 2
+    // const uint8_t ACCEL_CONFIG_STATIC2 = 0x03;
+    const uint8_t ACCEL_AAF_ENABLE = 0x00;
+    const uint8_t ACCEL_AAF_DISABLE = 0x01;
+
     uint8_t _bank = 0;        ///< current user bank
     uint8_t _buffer[15] = {}; ///< buffer for reading from sensor
 
+    ///\brief Full scale resolution factors
+    float _accelScale = 0.0f;
+    float _gyroScale = 0.0f;
+
+    ///\brief Full scale selections
+    AccelFS _accelFS;
+    GyroFS _gyroFS;
 
 // -------------------------------------------------------------------------
 
