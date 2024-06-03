@@ -1,6 +1,13 @@
 #include "daisy_seed.h"
 #include "dev/icm42688p.h"
 
+/*
+resource SPI_SCK 1 A05
+resource SPI_MISO 1 A06
+resource SPI_MOSI 1 D07
+resource GYRO_CS 1 C15
+*/
+
 // Use the daisy namespace to prevent having to type
 // daisy:: before all libdaisy functions
 using namespace daisy;
@@ -25,10 +32,10 @@ int main(void)
 
     // Configure the ICM-42688P IMU SPI interface
     imu_cfg.transport_config.periph = SpiHandle::Config::Peripheral::SPI_1;
-    imu_cfg.transport_config.sclk   = Pin(PORTG, 11);
-    imu_cfg.transport_config.miso   = Pin(PORTB, 4);
-    imu_cfg.transport_config.mosi   = Pin(PORTB, 5);
-    imu_cfg.transport_config.nss    = Pin(PORTG, 10);
+    imu_cfg.transport_config.nss    = Pin(PORTA, 4);
+    imu_cfg.transport_config.sclk   = Pin(PORTA, 5);
+    imu_cfg.transport_config.miso   = Pin(PORTA, 6);
+    imu_cfg.transport_config.mosi   = Pin(PORTA, 7);
 
     // Initialize the ICM-42688P IMU
     imu.Init(imu_cfg);

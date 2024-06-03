@@ -4,6 +4,8 @@
 
 using namespace ICM42688reg;
 
+#if 0 // gls
+
 // Misc configuration macros
 #define I2C_MASTER_RESETS_BEFORE_FAIL \
     5 ///< The number of times to try resetting a stuck I2C master before giving up
@@ -72,6 +74,8 @@ using namespace ICM42688reg;
 #define SENSORS_GRAVITY_EARTH (9.80665F)
 #define SENSORS_DPS_TO_RADS (0.017453293F)
 
+#endif // gls
+
 namespace daisy
 {
 /** @addtogroup external 
@@ -96,10 +100,10 @@ class Icm42688pSpiTransport
         Config()
         {
             periph = SpiHandle::Config::Peripheral::SPI_1;
-            sclk   = Pin(PORTG, 11);
-            miso   = Pin(PORTB, 4);
-            mosi   = Pin(PORTB, 5);
-            nss    = Pin(PORTG, 10);
+            sclk   = Pin(PORTA, 5);
+            miso   = Pin(PORTA, 6);
+            mosi   = Pin(PORTA, 7);
+            nss    = Pin(PORTA, 4);
         }
     };
 
@@ -221,6 +225,8 @@ class Icm42688p
         float z;
     };
 
+#if 0 // gls
+
     /** The accelerometer data range */
     enum icm42688p_accel_range_t
     {
@@ -251,6 +257,8 @@ class Icm42688p
         AK09916_MAG_DATARATE_50_HZ  = 0x6, ///< updates at 50Hz
         AK09916_MAG_DATARATE_100_HZ = 0x8, ///< updates at 100Hz
     };
+
+#endif // gls
 
     enum GyroFS : uint8_t {
         dps2000 = 0x00,
@@ -338,6 +346,8 @@ class Icm42688p
 
         return GetTransportError();
     }
+
+#if 0 // gls
 
     /** Reset the internal registers and restores the default settings */
     void Reset()
@@ -556,11 +566,15 @@ class Icm42688p
 
     float GetTemp() { return (temperature / 333.87) + 21.0; }
 
+#endif // gls
+
     /**  Reads an 8 bit value
         \param reg the register address to read from
         \return the data uint8_t read from the device
     */
-    uint8_t Read8(uint8_t reg) { return transport_.Read8(reg); }
+    uint8_t Read8(uint8_t reg) {
+        return transport_.Read8(reg);
+    }
 
     /**  Writes an 8 bit value
         \param reg the register address to write to
@@ -608,15 +622,19 @@ class Icm42688p
         Write8(reg, val);
     }
 
+// -------------------------------------------------------------------------
+
     /* Write a byte to ICM42688 register given a register address and data,
        verify the the value of the register was correctly written */
     int writeRegister(uint8_t reg, uint8_t data) {
-        Write8(reg, data);
+        // Write8(reg, data);
+        transport_.Write8(reg, data);
 
         System::Delay(10);
 
         /* read back the register */
-        ReadReg(reg, _buffer, 1);
+        // ReadReg(reg, _buffer, 1);
+        transport_.ReadReg(reg, _buffer, 1);
         /* check the read back register against the data value */
         if(_buffer[0] == data) {
             return 1;
@@ -627,8 +645,9 @@ class Icm42688p
 
     /* Read registers from ICM42688P given a starting register address,
        number of bytes, and a pointer to store data */
-    int readRegisters(uint8_t reg, uint8_t count, uint8_t* dest) {
-        ReadReg(reg, dest, count);
+    int readRegisters(uint8_t reg, uint8_t count, uint8_t *dest) {
+        // ReadReg(reg, dest, count);
+        transport_.ReadReg(reg, dest, count);
         return 1;
     }
 
@@ -764,6 +783,136 @@ class Icm42688p
         return 1;
     }
 
+    /**
+     * @brief      Get accelerometer data, per axis
+     * @return     Acceleration in g's
+     */
+    float accX() const { return _acc[0]; }
+    float accY() const { return _acc[1]; }
+    float accZ() const { return _acc[2]; }
+
+    /**
+     * @brief      Get gyro data, per axis
+     * @return     Angular velocity in dps
+     */
+    float gyrX() const { return _gyr[0]; }
+    float gyrY() const { return _gyr[1]; }
+    float gyrZ() const { return _gyr[2]; }
+
+    /**
+     * @brief      Get temperature of gyro die
+     * @return     Temperature in Celsius
+     */
+    float temp() const { return _t; }
+
+    /* reads the most current data from ICM42688 and stores in buffer */
+    int getAGT() {
+
+        if (readRegisters(UB0_REG_TEMP_DATA1, 14, _buffer) < 0) return -1;
+
+        // combine bytes into 16 bit values
+        int16_t rawMeas[7]; // temp, accel xyz, gyro xyz
+        for (size_t i=0; i<7; i++) {
+            rawMeas[i] = ((int16_t)_buffer[i*2] << 8) | _buffer[i*2+1];
+        }
+
+        _t = (static_cast<float>(rawMeas[0]) / TEMP_DATA_REG_SCALE) + TEMP_OFFSET;
+
+        _acc[0] = ((rawMeas[1] * _accelScale) - _accB[0]) * _accS[0];
+        _acc[1] = ((rawMeas[2] * _accelScale) - _accB[1]) * _accS[1];
+        _acc[2] = ((rawMeas[3] * _accelScale) - _accB[2]) * _accS[2];
+
+        _gyr[0] = (rawMeas[4] * _gyroScale) - _gyrB[0];
+        _gyr[1] = (rawMeas[5] * _gyroScale) - _gyrB[1];
+        _gyr[2] = (rawMeas[6] * _gyroScale) - _gyrB[2];
+
+        return 1;
+    }
+
+    /* estimates the gyro biases */
+    int calibrateGyro() {
+        // set at a lower range (more resolution) since IMU not moving
+        const GyroFS current_fssel = _gyroFS;
+        if (setGyroFS(dps250) < 0) return -1;
+
+        // take samples and find bias
+        _gyroBD[0] = 0;
+        _gyroBD[1] = 0;
+        _gyroBD[2] = 0;
+        for (size_t i=0; i < NUM_CALIB_SAMPLES; i++) {
+            getAGT();
+            _gyroBD[0] += (gyrX() + _gyrB[0]) / NUM_CALIB_SAMPLES;
+            _gyroBD[1] += (gyrY() + _gyrB[1]) / NUM_CALIB_SAMPLES;
+            _gyroBD[2] += (gyrZ() + _gyrB[2]) / NUM_CALIB_SAMPLES;
+            System::Delay(1);
+        }
+        _gyrB[0] = _gyroBD[0];
+        _gyrB[1] = _gyroBD[1];
+        _gyrB[2] = _gyroBD[2];
+
+        // recover the full scale setting
+        if (setGyroFS(current_fssel) < 0) return -4;
+
+        return 1;
+    }
+
+    /* finds bias and scale factor calibration for the accelerometer,
+    this should be run for each axis in each direction (6 total) to find
+    the min and max values along each */
+    int calibrateAccel() {
+        // set at a lower range (more resolution) since IMU not moving
+        const AccelFS current_fssel = _accelFS;
+        if (setAccelFS(gpm2) < 0) return -1;
+
+        // take samples and find min / max
+        _accBD[0] = 0;
+        _accBD[1] = 0;
+        _accBD[2] = 0;
+        for (size_t i=0; i < NUM_CALIB_SAMPLES; i++) {
+            getAGT();
+            _accBD[0] += (accX()/_accS[0] + _accB[0]) / NUM_CALIB_SAMPLES;
+            _accBD[1] += (accY()/_accS[1] + _accB[1]) / NUM_CALIB_SAMPLES;
+            _accBD[2] += (accZ()/_accS[2] + _accB[2]) / NUM_CALIB_SAMPLES;
+            System::Delay(1);
+        }
+        if (_accBD[0] > 0.9f) {
+            _accMax[0] = _accBD[0];
+        }
+        if (_accBD[1] > 0.9f) {
+            _accMax[1] = _accBD[1];
+        }
+        if (_accBD[2] > 0.9f) {
+            _accMax[2] = _accBD[2];
+        }
+        if (_accBD[0] < -0.9f) {
+            _accMin[0] = _accBD[0];
+        }
+        if (_accBD[1] < -0.9f) {
+            _accMin[1] = _accBD[1];
+        }
+        if (_accBD[2] < -0.9f) {
+            _accMin[2] = _accBD[2];
+        }
+
+        // find bias and scale factor
+        if ((abs(_accMin[0]) > 0.9f) && (abs(_accMax[0]) > 0.9f)) {
+            _accB[0] = (_accMin[0] + _accMax[0]) / 2.0f;
+            _accS[0] = 1/((abs(_accMin[0]) + abs(_accMax[0])) / 2.0f);
+        }
+        if ((abs(_accMin[1]) > 0.9f) && (abs(_accMax[1]) > 0.9f)) {
+            _accB[1] = (_accMin[1] + _accMax[1]) / 2.0f;
+            _accS[1] = 1/((abs(_accMin[1]) + abs(_accMax[1])) / 2.0f);
+        }
+        if ((abs(_accMin[2]) > 0.9f) && (abs(_accMax[2]) > 0.9f)) {
+            _accB[2] = (_accMin[2] + _accMax[2]) / 2.0f;
+            _accS[2] = 1/((abs(_accMin[2]) + abs(_accMax[2])) / 2.0f);
+        }
+
+        // recover the full scale setting
+        if (setAccelFS(current_fssel) < 0) return -4;
+
+        return 1;
+    }
 
     int setBank(uint8_t bank) {
         // if we are already on this bank, return
@@ -834,6 +983,11 @@ class Icm42688p
     uint8_t _bank = 0;        ///< current user bank
     uint8_t _buffer[15] = {}; ///< buffer for reading from sensor
 
+    // data buffer
+    float _t = 0.0f;
+    float _acc[3] = {};
+    float _gyr[3] = {};
+
     ///\brief Full scale resolution factors
     float _accelScale = 0.0f;
     float _gyroScale = 0.0f;
@@ -842,8 +996,20 @@ class Icm42688p
     AccelFS _accelFS;
     GyroFS _gyroFS;
 
+    ///\brief Accel calibration
+    float _accBD[3] = {};
+    float _accB[3] = {};
+    float _accS[3] = {1.0f, 1.0f, 1.0f};
+    float _accMax[3] = {};
+    float _accMin[3] = {};
+
+    ///\brief Gyro calibration
+    float _gyroBD[3] = {};
+    float _gyrB[3] = {};
+
 // -------------------------------------------------------------------------
 
+#if 0 // gls
 
     uint16_t _sensorid_accel, ///< ID number for accelerometer
         _sensorid_gyro,       ///< ID number for gyro
@@ -874,6 +1040,9 @@ class Icm42688p
         magX,          ///< Last reading's mag X axis in rad/s
         magY,          ///< Last reading's mag Y axis in rad/s
         magZ;          ///< Last reading's mag Z axis in rad/s
+
+#endif // gls
+
 };
 
 /** @} */
