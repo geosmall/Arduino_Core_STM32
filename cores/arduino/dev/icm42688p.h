@@ -112,9 +112,9 @@ class Icm42688pSpiTransport
         SpiHandle::Config spi_conf;
         spi_conf.mode           = SpiHandle::Config::Mode::MASTER;
         spi_conf.direction      = SpiHandle::Config::Direction::TWO_LINES;
-        spi_conf.clock_polarity = SpiHandle::Config::ClockPolarity::LOW;
-        spi_conf.clock_phase    = SpiHandle::Config::ClockPhase::ONE_EDGE;
-        spi_conf.nss            = SpiHandle::Config::NSS::SOFT;
+        spi_conf.clock_polarity = SpiHandle::Config::ClockPolarity::HIGH;
+        spi_conf.clock_phase    = SpiHandle::Config::ClockPhase::TWO_EDGE;
+        spi_conf.nss            = SpiHandle::Config::NSS::HARD_OUTPUT;
         if (use_hs_SPI) {
             spi_conf.baud_prescaler = SpiHandle::Config::BaudPrescaler::PS_4;
         } else {
