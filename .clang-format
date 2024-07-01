@@ -1,0 +1,31 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+UseTab: Never
+BreakBeforeBraces: Allman
+AllowShortIfStatementsOnASingleLine: false
+IndentCaseLabels: false
+BraceWrapping:
+  AfterClass: true
+  AfterControlStatement: true
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterStruct: true
+  AfterUnion: true
+  BeforeCatch: true
+  BeforeElse: true
+  IndentBraces: false
+ColumnLimit: 110
+PointerAlignment: Left
+AlignTrailingComments: true
+AllowShortLoopsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+BinPackParameters: false
+BinPackArguments: false
+SpaceAfterCStyleCast: true
+SpacesInParentheses: false
+SpacesInCStyleCastParentheses: false
+SpaceBeforeParens: ControlStatements
+SpacesInAngles: false
+ContinuationIndentWidth: 2
+CommentPragmas: '^ IWYU pragma:'

@@ -2,11 +2,7 @@
 #define _STM32_DEF_BUILD_
 
 #if !defined(CMSIS_STARTUP_FILE) && !defined(CUSTOM_STARTUP_FILE)
-  #if defined(STM32C011xx)
-    #define CMSIS_STARTUP_FILE "startup_stm32c011xx.s"
-  #elif defined(STM32C031xx)
-    #define CMSIS_STARTUP_FILE "startup_stm32c031xx.s"
-  #elif defined(STM32F030x6)
+  #if defined(STM32F030x6)
     #define CMSIS_STARTUP_FILE "startup_stm32f030x6.s"
   #elif defined(STM32F030x8)
     #define CMSIS_STARTUP_FILE "startup_stm32f030x8.s"
@@ -414,28 +410,14 @@
     #define CMSIS_STARTUP_FILE "startup_stm32mp157cxx_cm4.s"
   #elif defined(STM32MP15xx)
     #define CMSIS_STARTUP_FILE "startup_stm32mp15xx.s"
-  #elif defined(STM32U535xx)
-    #define CMSIS_STARTUP_FILE "startup_stm32u535xx.s"
-  #elif defined(STM32U545xx)
-    #define CMSIS_STARTUP_FILE "startup_stm32u545xx.s"
   #elif defined(STM32U575xx)
     #define CMSIS_STARTUP_FILE "startup_stm32u575xx.s"
   #elif defined(STM32U585xx)
     #define CMSIS_STARTUP_FILE "startup_stm32u585xx.s"
-  #elif defined(STM32U595xx)
-    #define CMSIS_STARTUP_FILE "startup_stm32u595xx.s"
-  #elif defined(STM32U599xx)
-    #define CMSIS_STARTUP_FILE "startup_stm32u599xx.s"
-  #elif defined(STM32U5A5xx)
-    #define CMSIS_STARTUP_FILE "startup_stm32u5a5xx.s"
-  #elif defined(STM32U5A9xx)
-    #define CMSIS_STARTUP_FILE "startup_stm32u5a9xx.s"
   #elif defined(STM32WB10xx)
     #define CMSIS_STARTUP_FILE "startup_stm32wb10xx_cm4.s"
   #elif defined(STM32WB15xx)
     #define CMSIS_STARTUP_FILE "startup_stm32wb15xx_cm4.s"
-  #elif defined(STM32WB1Mxx)
-    #define CMSIS_STARTUP_FILE "startup_stm32wb1mxx_cm4.s"
   #elif defined(STM32WB30xx)
     #define CMSIS_STARTUP_FILE "startup_stm32wb30xx_cm4.s"
   #elif defined(STM32WB35xx)
@@ -454,10 +436,6 @@
     #define CMSIS_STARTUP_FILE "startup_stm32wl55xx_cm0plus.s"
   #elif defined(STM32WL55xx) && defined(USE_CM4_STARTUP_FILE)
     #define CMSIS_STARTUP_FILE "startup_stm32wl55xx_cm4.s"
-  #elif defined(STM32WL5Mxx) && defined(USE_CM0PLUS_STARTUP_FILE)
-    #define CMSIS_STARTUP_FILE "startup_stm32wl5mxx_cm0plus.s"
-  #elif defined(STM32WL5Mxx) && defined(USE_CM4_STARTUP_FILE)
-    #define CMSIS_STARTUP_FILE "startup_stm32wl5mxx_cm4.s"
   #elif defined(STM32WLE4xx)
     #define CMSIS_STARTUP_FILE "startup_stm32wle4xx.s"
   #elif defined(STM32WLE5xx)

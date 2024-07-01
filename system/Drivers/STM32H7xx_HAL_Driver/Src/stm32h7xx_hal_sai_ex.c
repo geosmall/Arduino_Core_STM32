@@ -10,12 +10,13 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2017 STMicroelectronics.
-  * All rights reserved.
+  * <h2><center>&copy; Copyright (c) 2017 STMicroelectronics.
+  * All rights reserved.</center></h2>
   *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
+  * This software component is licensed by ST under BSD 3-Clause license,
+  * the "License"; You may not use this file except in compliance with the
+  * License. You may obtain a copy of the License at:
+  *                        opensource.org/licenses/BSD-3-Clause
   *
   ******************************************************************************
   */
@@ -67,21 +68,16 @@
   * @param  pdmMicDelay Microphone delays configuration.
   * @retval HAL status
   */
-HAL_StatusTypeDef HAL_SAIEx_ConfigPdmMicDelay(const SAI_HandleTypeDef *hsai,
-                                              const SAIEx_PdmMicDelayParamTypeDef *pdmMicDelay)
+HAL_StatusTypeDef HAL_SAIEx_ConfigPdmMicDelay(SAI_HandleTypeDef *hsai, SAIEx_PdmMicDelayParamTypeDef *pdmMicDelay)
 {
   HAL_StatusTypeDef status = HAL_OK;
   uint32_t offset;
   SAI_TypeDef *SaiBaseAddress;
 
   /* Get the SAI base address according to the SAI handle */
-#if defined(SAI4)
-  SaiBaseAddress = ((hsai->Instance == SAI1_Block_A) ? SAI1 : \
-                    (hsai->Instance == SAI4_Block_A) ? SAI4 : \
+  SaiBaseAddress = (hsai->Instance == SAI1_Block_A) ? SAI1 : \
+                   ((hsai->Instance == SAI4_Block_A) ? SAI4 : \
                      NULL);
-#else
-  SaiBaseAddress = ((hsai->Instance == SAI1_Block_A) ? SAI1 : NULL);
-#endif /* SAI4 */
 
   /* Check that SAI sub-block is SAI sub-block A */
   if (SaiBaseAddress == NULL)
@@ -132,3 +128,4 @@ HAL_StatusTypeDef HAL_SAIEx_ConfigPdmMicDelay(const SAI_HandleTypeDef *hsai,
   * @}
   */
 
+/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
