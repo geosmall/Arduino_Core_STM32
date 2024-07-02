@@ -103,6 +103,7 @@ class ICM42688
     SpiHandle spi_;
     bool _useSPIHS = false;
     dsy_gpio nss_pin_;
+    bool nss_pin_is_SOFT;
 
     // buffer for reading from sensor
     uint8_t _buffer[15] = {0};

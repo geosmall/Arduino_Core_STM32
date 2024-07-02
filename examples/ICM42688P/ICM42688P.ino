@@ -44,6 +44,7 @@ int main(void)
     spi_conf.clock_polarity = SpiHandle::Config::ClockPolarity::HIGH;
     spi_conf.clock_phase = SpiHandle::Config::ClockPhase::TWO_EDGE;
     spi_conf.nss = SpiHandle::Config::NSS::SOFT;
+    // spi_conf.nss = SpiHandle::Config::NSS::HARD_OUTPUT;
     spi_conf.baud_prescaler = SpiHandle::Config::BaudPrescaler::PS_32;
     spi_conf.pin_config.nss = Pin(PORTA, 4);
     spi_conf.pin_config.sclk = Pin(PORTA, 5);

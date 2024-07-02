@@ -12,13 +12,13 @@ ICM42688::Result ICM42688::Init(SpiHandle spi)
     // save the SPI handle
     spi_ = spi;
 
-    // initialize the NSS pin, output high
-    // nss_pin_.pin  = spi_.GetConfig().pin_config.nss;
-    // nss_pin_.mode = DSY_GPIO_MODE_OUTPUT_PP;
-    // nss_pin_.pull = DSY_GPIO_NOPULL;
-    // dsy_gpio_init(&nss_pin_);
-    initializeSoftNSSPin();
-    dsy_gpio_write(&nss_pin_, 1);
+    // if the NSS pin is configured as SOFT, initialize as SW NSS pin
+    nss_pin_is_SOFT = (spi_.GetConfig().nss == SpiHandle::Config::NSS::SOFT);
+    if (nss_pin_is_SOFT)
+    {
+        initializeSoftNSSPin();
+        dsy_gpio_write(&nss_pin_, 1);
+    }
 
     // reset the ICM42688
     reset();
@@ -114,7 +114,8 @@ ICM42688::Result ICM42688::setGyroFS(GyroFS gyroFullScale)
 ICM42688::Result ICM42688::readRegisters(uint8_t addr, uint8_t count, uint8_t* dest)
 {
     uint8_t buf = (addr | 0x80);
-    dsy_gpio_write(&nss_pin_, 0);
+
+    if (nss_pin_is_SOFT) dsy_gpio_write(&nss_pin_, 0);
     spi_.BlockingTransmit(&buf, 1); // specify the starting register address
     // uint8_t dummy = 0;
     // for(uint8_t i = 0; i < count; i++) {
@@ -122,17 +123,17 @@ ICM42688::Result ICM42688::readRegisters(uint8_t addr, uint8_t count, uint8_t* d
     //   &dest[i]); // read the data
     // }
     spi_.BlockingReceive(dest, count);
-    dsy_gpio_write(&nss_pin_, 1);
+    if (nss_pin_is_SOFT) dsy_gpio_write(&nss_pin_, 1);
 
     return Result::OK;
 }
 
 ICM42688::Result ICM42688::writeRegister(uint8_t addr, uint8_t data)
 {
-    dsy_gpio_write(&nss_pin_, 0);
+    if (nss_pin_is_SOFT) dsy_gpio_write(&nss_pin_, 0);
     spi_.BlockingTransmit(&addr, 1);
     spi_.BlockingTransmit(&data, 1);
-    dsy_gpio_write(&nss_pin_, 1);
+    if (nss_pin_is_SOFT) dsy_gpio_write(&nss_pin_, 1);
 
     System::Delay(10);
 
@@ -189,7 +190,7 @@ int16_t ICM42688::whoAmI()
 
 void ICM42688::initializeSoftNSSPin()
 {
-    nss_pin_.pin  = spi_.GetConfig().pin_config.nss;
+    nss_pin_.pin = spi_.GetConfig().pin_config.nss;
     nss_pin_.mode = DSY_GPIO_MODE_OUTPUT_PP;
     nss_pin_.pull = DSY_GPIO_NOPULL;
     dsy_gpio_init(&nss_pin_);

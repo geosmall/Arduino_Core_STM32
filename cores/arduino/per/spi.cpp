@@ -223,6 +223,14 @@ SpiHandle::Result SpiHandle::Impl::Init(const Config& config)
         default: return Result::ERR;
     }
 
+    uint32_t nss_pulse;
+    switch(config_.nss_pulse)
+    {
+        case Config::NSSPulseMode::DISABLE: nss_pulse = SPI_NSS_PULSE_DISABLE; break;
+        case Config::NSSPulseMode::ENABLE: nss_pulse = SPI_NSS_PULSE_ENABLE; break;
+        default: return Result::ERR;
+    }
+
     uint32_t baud_prescaler;
     switch(config_.baud_prescaler)
     {
@@ -265,7 +273,7 @@ SpiHandle::Result SpiHandle::Impl::Init(const Config& config)
     hspi_.Init.TIMode            = SPI_TIMODE_DISABLE;
     hspi_.Init.CRCCalculation    = SPI_CRCCALCULATION_DISABLE;
     hspi_.Init.CRCPolynomial     = 0x0;
-    hspi_.Init.NSSPMode          = SPI_NSS_PULSE_ENABLE;
+    hspi_.Init.NSSPMode          = SPI_NSS_PULSE_DISABLE;
     hspi_.Init.NSSPolarity       = SPI_NSS_POLARITY_LOW;
     hspi_.Init.FifoThreshold     = SPI_FIFO_THRESHOLD_01DATA;
     hspi_.Init.TxCRCInitializationPattern

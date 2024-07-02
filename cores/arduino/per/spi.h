@@ -64,6 +64,12 @@ class SpiHandle
             HARD_OUTPUT,
         };
 
+        enum class NSSPulseMode
+        {
+            DISABLE,
+            ENABLE,
+        };
+
         enum class BaudPrescaler
         {
             PS_2,
@@ -91,6 +97,7 @@ class SpiHandle
             clock_polarity = ClockPolarity::LOW;
             clock_phase    = ClockPhase::ONE_EDGE;
             baud_prescaler = BaudPrescaler::PS_8;
+            nss_pulse      = NSSPulseMode::DISABLE;
         }
 
         Peripheral    periph;
@@ -100,6 +107,7 @@ class SpiHandle
         ClockPolarity clock_polarity;
         ClockPhase    clock_phase;
         NSS           nss;
+        NSSPulseMode  nss_pulse;
         BaudPrescaler baud_prescaler;
     };
 
