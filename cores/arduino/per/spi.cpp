@@ -3,6 +3,7 @@
 
 extern "C"
 {
+#include "per/util/spi_util.h"
 #include "util/hal_map.h"
 }
 
@@ -42,6 +43,9 @@ class SpiHandle::Impl
 
     const SpiHandle::Config& GetConfig() const { return config_; }
     int                      CheckError();
+
+    Result SetBaudPrescaler(const Config::BaudPrescaler baud_prescaler, uint32_t timeout);
+    Result GetBaudHz(const Config::Peripheral periph, const uint32_t speed, Config::BaudPrescaler& prescale_val);
 
     Result BlockingTransmit(uint8_t* buff, size_t size, uint32_t timeout);
     Result BlockingReceive(uint8_t* buffer, uint16_t size, uint32_t timeout);
@@ -232,34 +236,8 @@ SpiHandle::Result SpiHandle::Impl::Init(const Config& config)
     }
 
     uint32_t baud_prescaler;
-    switch(config_.baud_prescaler)
-    {
-        case Config::BaudPrescaler::PS_2:
-            baud_prescaler = SPI_BAUDRATEPRESCALER_2;
-            break;
-        case Config::BaudPrescaler::PS_4:
-            baud_prescaler = SPI_BAUDRATEPRESCALER_4;
-            break;
-        case Config::BaudPrescaler::PS_8:
-            baud_prescaler = SPI_BAUDRATEPRESCALER_8;
-            break;
-        case Config::BaudPrescaler::PS_16:
-            baud_prescaler = SPI_BAUDRATEPRESCALER_16;
-            break;
-        case Config::BaudPrescaler::PS_32:
-            baud_prescaler = SPI_BAUDRATEPRESCALER_32;
-            break;
-        case Config::BaudPrescaler::PS_64:
-            baud_prescaler = SPI_BAUDRATEPRESCALER_64;
-            break;
-        case Config::BaudPrescaler::PS_128:
-            baud_prescaler = SPI_BAUDRATEPRESCALER_128;
-            break;
-        case Config::BaudPrescaler::PS_256:
-            baud_prescaler = SPI_BAUDRATEPRESCALER_256;
-            break;
-        default: return Result::ERR;
-    }
+    baud_prescaler = SpiHandle::PrescalerToHAL(config_.baud_prescaler);
+    if(baud_prescaler == 0xFFFFFFFF) return Result::ERR;
 
     hspi_.Instance               = periph;
     hspi_.Init.Mode              = mode;
@@ -273,7 +251,7 @@ SpiHandle::Result SpiHandle::Impl::Init(const Config& config)
     hspi_.Init.TIMode            = SPI_TIMODE_DISABLE;
     hspi_.Init.CRCCalculation    = SPI_CRCCALCULATION_DISABLE;
     hspi_.Init.CRCPolynomial     = 0x0;
-    hspi_.Init.NSSPMode          = SPI_NSS_PULSE_DISABLE;
+    hspi_.Init.NSSPMode          = nss_pulse;
     hspi_.Init.NSSPolarity       = SPI_NSS_POLARITY_LOW;
     hspi_.Init.FifoThreshold     = SPI_FIFO_THRESHOLD_01DATA;
     hspi_.Init.TxCRCInitializationPattern
@@ -281,7 +259,7 @@ SpiHandle::Result SpiHandle::Impl::Init(const Config& config)
     hspi_.Init.RxCRCInitializationPattern
         = SPI_CRC_INITIALIZATION_ALL_ZERO_PATTERN;
     hspi_.Init.MasterSSIdleness        = SPI_MASTER_SS_IDLENESS_00CYCLE;
-    hspi_.Init.MasterInterDataIdleness = SPI_MASTER_INTERDATA_IDLENESS_00CYCLE;
+    hspi_.Init.MasterInterDataIdleness = SPI_MASTER_INTERDATA_IDLENESS_01CYCLE;
     hspi_.Init.MasterReceiverAutoSusp  = SPI_MASTER_RX_AUTOSUSP_DISABLE;
     hspi_.Init.MasterKeepIOState       = SPI_MASTER_KEEP_IO_STATE_ENABLE;
     hspi_.Init.IOSwap                  = SPI_IO_SWAP_DISABLE;
@@ -290,6 +268,65 @@ SpiHandle::Result SpiHandle::Impl::Init(const Config& config)
         Error_Handler();
         return SpiHandle::Result::ERR;
     }
+
+    return SpiHandle::Result::OK;
+}
+
+SpiHandle::Result SpiHandle::Impl::SetBaudPrescaler(const Config::BaudPrescaler baud_prescale, uint32_t timeout)
+{
+
+    // Check that HAL SPI peripheral if handle is valid
+    if (!(IS_SPI_ALL_INSTANCE(hspi_.Instance))) return SpiHandle::Result::ERR;
+
+    // Map the BaudPrescaler enum to the HAL version
+    uint32_t hal_prescaler = SpiHandle::PrescalerToHAL(baud_prescale);
+    if (hal_prescaler == 0xFFFFFFFF) return Result::ERR;
+
+    // Loop if SPI is busy, return error if timeout is reached
+    uint32_t tickstart = HAL_GetTick();
+    while (HAL_SPI_GetState(&hspi_) != HAL_SPI_STATE_READY)
+    {
+        if ((HAL_GetTick() - tickstart) > timeout) return SpiHandle::Result::ERR;
+    }
+
+    // Get the SPI peripheral from the HAL handle
+    SPI_TypeDef* SPIx = hspi_.Instance;
+    // Modify the prescaler bits in SPIx->CFG1 register
+    MODIFY_REG(SPIx->CFG1, SPI_CFG1_MBR_Msk, hal_prescaler);
+
+    return SpiHandle::Result::OK;
+}
+
+SpiHandle::Result SpiHandle::Impl::GetBaudHz(const Config::Peripheral periph,
+                                             const uint32_t speed,
+                                             Config::BaudPrescaler& prescale_val)
+{
+    SPI_TypeDef* instance = PeripheralToHAL(periph);
+
+    // Check that HAL SPI peripheral instance is valid
+    if (!(IS_SPI_ALL_INSTANCE(instance))) return SpiHandle::Result::ERR;
+
+    uint32_t spi_freq = getClkFreqInst(instance);
+
+    // clang-format off
+    if (speed >= (spi_freq / SPI_SPEED_CLOCK_DIV2_MHZ)) {
+        prescale_val = Config::BaudPrescaler::PS_2;
+    } else if (speed >= (spi_freq / SPI_SPEED_CLOCK_DIV4_MHZ)) {
+        prescale_val = Config::BaudPrescaler::PS_4;
+    } else if (speed >= (spi_freq / SPI_SPEED_CLOCK_DIV8_MHZ)) {
+        prescale_val = Config::BaudPrescaler::PS_8;
+    } else if (speed >= (spi_freq / SPI_SPEED_CLOCK_DIV16_MHZ)) {
+        prescale_val = Config::BaudPrescaler::PS_16;
+    } else if (speed >= (spi_freq / SPI_SPEED_CLOCK_DIV32_MHZ)) {
+        prescale_val = Config::BaudPrescaler::PS_32;
+    } else if (speed >= (spi_freq / SPI_SPEED_CLOCK_DIV64_MHZ)) {
+        prescale_val = Config::BaudPrescaler::PS_64;
+    } else if (speed >= (spi_freq / SPI_SPEED_CLOCK_DIV128_MHZ)) {
+        prescale_val = Config::BaudPrescaler::PS_128;
+    } else {
+        prescale_val = Config::BaudPrescaler::PS_256;
+    }
+    // clang-format on
 
     return SpiHandle::Result::OK;
 }
@@ -1162,6 +1199,16 @@ SpiHandle::Result SpiHandle::Init(const Config& config)
 {
     pimpl_ = &spi_handles[int(config.periph)];
     return pimpl_->Init(config);
+}
+
+SpiHandle::Result SpiHandle::SetBaudPrescaler(const Config::BaudPrescaler baud_prescaler, uint32_t timeout)
+{
+    return pimpl_->SetBaudPrescaler(baud_prescaler, timeout);
+}
+
+SpiHandle::Result SpiHandle::GetBaudHz(const Config::Peripheral periph, const uint32_t speed, Config::BaudPrescaler& prescale_val)
+{
+    return pimpl_->GetBaudHz(periph, speed, prescale_val);
 }
 
 const SpiHandle::Config& SpiHandle::GetConfig() const

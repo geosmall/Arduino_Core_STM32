@@ -14,6 +14,12 @@ namespace ICM42688reg {
   // break
   static constexpr uint8_t UB0_REG_DRIVE_CONFIG = 0x13;
   static constexpr uint8_t UB0_REG_INT_CONFIG = 0x14;
+    #define INT1_MODE_PULSED (0 << 2)
+    #define INT1_MODE_LATCHED (1 << 2)
+    #define INT1_DRIVE_CIRCUIT_OD (0 << 1)
+    #define INT1_DRIVE_CIRCUIT_PP (1 << 1)
+    #define INT1_POLARITY_ACTIVE_LOW (0 << 0)
+    #define INT1_POLARITY_ACTIVE_HIGH (1 << 0)
   // break
   static constexpr uint8_t UB0_REG_FIFO_CONFIG = 0x16;
   // break
@@ -49,11 +55,20 @@ namespace ICM42688reg {
   static constexpr uint8_t UB0_REG_SIGNAL_PATH_RESET = 0x4B;
   static constexpr uint8_t UB0_REG_INTF_CONFIG0 = 0x4C;
   static constexpr uint8_t UB0_REG_INTF_CONFIG1 = 0x4D;
+    #define INTF_CONFIG1_AFSR_MASK 0xC0
+    #define INTF_CONFIG1_AFSR_DISABLE 0x40
   static constexpr uint8_t UB0_REG_PWR_MGMT0 = 0x4E;
+    #define PWR_MGMT0_ACCEL_MODE_LN (3 << 0)
+    #define PWR_MGMT0_GYRO_MODE_LN (3 << 2)
+    #define PWR_MGMT0_GYRO_ACCEL_MODE_OFF ((0 << 0) | (0 << 2))
+    #define PWR_MGMT0_TEMP_DISABLE_OFF (0 << 5)
+    #define PWR_MGMT0_TEMP_DISABLE_ON (1 << 5)
   static constexpr uint8_t UB0_REG_GYRO_CONFIG0 = 0x4F;
   static constexpr uint8_t UB0_REG_ACCEL_CONFIG0 = 0x50;
   static constexpr uint8_t UB0_REG_GYRO_CONFIG1 = 0x51;
   static constexpr uint8_t UB0_REG_GYRO_ACCEL_CONFIG0 = 0x52;
+    #define ACCEL_UI_FILT_BW_LOW_LATENCY (15 << 4) 
+    #define GYRO_UI_FILT_BW_LOW_LATENCY (15 << 0)
   static constexpr uint8_t UB0_REG_ACCEFL_CONFIG1 = 0x53;
   static constexpr uint8_t UB0_REG_TMST_CONFIG = 0x54;
   // break
@@ -65,8 +80,24 @@ namespace ICM42688reg {
   static constexpr uint8_t UB0_REG_FIFO_CONFIG3 = 0x61;
   static constexpr uint8_t UB0_REG_FSYNC_CONFIG = 0x62;
   static constexpr uint8_t UB0_REG_INT_CONFIG0 = 0x63;
+    #define UI_DRDY_INT_CLEAR_MASK             ((1 << 5) | (1 << 4))
+    #define UI_DRDY_INT_CLEAR_ON_SBR           ((0 << 5) | (0 << 4))
+    #define UI_DRDY_INT_CLEAR_ON_SBR_DUPLICATE ((0 << 5) | (1 << 4)) // duplicate settings in datasheet, Rev 1.8.
+    #define UI_DRDY_INT_CLEAR_ON_F1BR          ((1 << 5) | (0 << 4))
+    #define UI_DRDY_INT_CLEAR_ON_SBR_AND_F1BR  ((1 << 5) | (1 << 4))
   static constexpr uint8_t UB0_REG_INT_CONFIG1 = 0x64;
+    #define INT_CONFIG1_MASK          ((1 << 6) | (1 << 5) | (1 << 4))
+    #define INT_ASYNC_RESET_BIT       4
+    #define INT_TDEASSERT_DISABLE_BIT 5
+    #define INT_TDEASSERT_ENABLED     (0 << INT_TDEASSERT_DISABLE_BIT)
+    #define INT_TDEASSERT_DISABLED    (1 << INT_TDEASSERT_DISABLE_BIT)
+    #define INT_TPULSE_DURATION_BIT   6
+    #define INT_TPULSE_DURATION_100   (0 << INT_TPULSE_DURATION_BIT)
+    #define INT_TPULSE_DURATION_8     (1 << INT_TPULSE_DURATION_BIT)
   static constexpr uint8_t UB0_REG_INT_SOURCE0 = 0x65;
+    #define UI_DRDY_INT1_MASK         (1 << 3)
+    #define UI_DRDY_INT1_EN_DISABLED  (0 << 3)
+    #define UI_DRDY_INT1_EN_ENABLED   (1 << 3)
   static constexpr uint8_t UB0_REG_INT_SOURCE1 = 0x66;
   // break
   static constexpr uint8_t UB0_REG_INT_SOURCE3 = 0x68;

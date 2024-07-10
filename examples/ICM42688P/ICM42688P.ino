@@ -1,5 +1,6 @@
 #include "daisy_seed.h"
 #include "dev/icm42688p.h"
+#include "stm32h7xx_hal.h"
 
 static void Error_Handler()
 {
@@ -12,6 +13,10 @@ static void Error_Handler()
 // Use the daisy namespace to prevent having to type
 // daisy:: before all libdaisy functions
 using namespace daisy;
+
+// Uncomment to use software driven NSS 
+// #define USE_SOFT_NSS
+#define DESIRED_SPI_FREQ 1000000
 
 // Declare a DaisySeed object called hardware
 DaisySeed hardware;
@@ -43,13 +48,18 @@ int main(void)
     spi_conf.direction = SpiHandle::Config::Direction::TWO_LINES;
     spi_conf.clock_polarity = SpiHandle::Config::ClockPolarity::HIGH;
     spi_conf.clock_phase = SpiHandle::Config::ClockPhase::TWO_EDGE;
+#ifdef USE_SOFT_NSS
     spi_conf.nss = SpiHandle::Config::NSS::SOFT;
-    // spi_conf.nss = SpiHandle::Config::NSS::HARD_OUTPUT;
-    spi_conf.baud_prescaler = SpiHandle::Config::BaudPrescaler::PS_32;
+#else
+    spi_conf.nss = SpiHandle::Config::NSS::HARD_OUTPUT;
+#endif // USE_SOFT_NSS
     spi_conf.pin_config.nss = Pin(PORTA, 4);
     spi_conf.pin_config.sclk = Pin(PORTA, 5);
     spi_conf.pin_config.miso = Pin(PORTA, 6);
     spi_conf.pin_config.mosi = Pin(PORTA, 7);
+
+    // spi_conf.baud_prescaler = SpiHandle::Config::BaudPrescaler::PS_32;
+    spi_handle.GetBaudHz(spi_conf.periph, DESIRED_SPI_FREQ, spi_conf.baud_prescaler);
 
     // Initialize the IMU SPI instance
     spi_handle.Init(spi_conf);

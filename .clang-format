@@ -15,7 +15,7 @@ BraceWrapping:
   BeforeCatch: true
   BeforeElse: true
   IndentBraces: false
-ColumnLimit: 110
+ColumnLimit: 115
 PointerAlignment: Left
 AlignTrailingComments: true
 AllowShortLoopsOnASingleLine: false

@@ -3,6 +3,7 @@
 #define DSY_SPI_H
 
 #include "daisy_core.h"
+#include "stm32h7xx_hal.h"
 
 /* TODO:
 - Add documentation
@@ -135,17 +136,78 @@ class SpiHandle
     /** Returns the current config. */
     const Config& GetConfig() const;
 
+    static constexpr uint32_t PrescalerToHAL(Config::BaudPrescaler baud_prescale)
+    {
+        switch (baud_prescale)
+        {
+        case Config::BaudPrescaler::PS_2:
+            return SPI_BAUDRATEPRESCALER_2;
+        case Config::BaudPrescaler::PS_4:
+            return SPI_BAUDRATEPRESCALER_4;
+        case Config::BaudPrescaler::PS_8:
+            return SPI_BAUDRATEPRESCALER_8;
+        case Config::BaudPrescaler::PS_16:
+            return SPI_BAUDRATEPRESCALER_16;
+        case Config::BaudPrescaler::PS_32:
+            return SPI_BAUDRATEPRESCALER_32;
+        case Config::BaudPrescaler::PS_64:
+            return SPI_BAUDRATEPRESCALER_64;
+        case Config::BaudPrescaler::PS_128:
+            return SPI_BAUDRATEPRESCALER_128;
+        case Config::BaudPrescaler::PS_256:
+            return SPI_BAUDRATEPRESCALER_256;
+        default:
+            return 0xFFFFFFFF; // Invalid value or handle error appropriately
+        }
+    }
+
+    static constexpr SPI_TypeDef* PeripheralToHAL(Config::Peripheral periph)
+    {
+        switch (periph)
+        {
+        case Config::Peripheral::SPI_1:
+            return SPI1;
+        case Config::Peripheral::SPI_2:
+            return SPI2;
+        case Config::Peripheral::SPI_3:
+            return SPI3;
+        case Config::Peripheral::SPI_4:
+            return SPI4;
+        case Config::Peripheral::SPI_5:
+            return SPI5;
+        case Config::Peripheral::SPI_6:
+            return SPI6;
+        default:
+            return nullptr;
+        }
+    }
+
     /** A callback to be executed right before a dma transfer is started. */
     typedef void (*StartCallbackFunctionPtr)(void* context);
     /** A callback to be executed after a dma transfer is completed. */
     typedef void (*EndCallbackFunctionPtr)(void* context, Result result);
 
+    /** Set SPI baud prescaler
+     * \param baud_prescaler The baud prescaler to set
+     * \param timeout How long to timeout for in milliseconds
+     * \return Whether the baud prescaler was set successfully or not
+     */
+    Result SetBaudPrescaler(const Config::BaudPrescaler baud_prescaler, uint32_t timeout = 100);
+
+    /** Set SPI baud rate to achieve a desired speed in Hz
+     * \param periph The specified SPI instance
+     * \param speed The desired speed in Hz
+     * \param prescale_val returned value of computed prescale, passed by reference
+     * \return Whether the data size was set successfully or not
+     */
+    Result GetBaudHz(const Config::Peripheral periph, const uint32_t speed, Config::BaudPrescaler& prescale_val);
 
     /** Blocking transmit 
     \param buff input buffer
     \param size  buffer size
     \param timeout how long in milliseconds the function will wait 
                    before returning without successful communication
+    \return Whether the transmit was successful or not
     */
     Result BlockingTransmit(uint8_t* buff, size_t size, uint32_t timeout = 100);
 
