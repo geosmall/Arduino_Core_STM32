@@ -1,31 +1,70 @@
 #include "icm42688p.h"
-#include "icm42688p_regs.h"
+// #include "icm42688p_regs.h"
 #include "sys/system.h"
 
-using namespace ICM42688reg;
-
-/* Uses:
-- UB0_REG_GYRO_ACCEL_CONFIG0
-- UB0_REG_INT_CONFIG
-- UB0_REG_INT_CONFIG0
-- UB0_REG_INT_SOURCE0
-- UB0_REG_INT_CONFIG1
-- UB0_REG_INTF_CONFIG1
-- UB0_REG_PWR_MGMT0
-- UB0_REG_ACCEL_CONFIG0
-- UB0_REG_GYRO_CONFIG0
-- UB1_REG_GYRO_CONFIG_STATIC3
-- UB1_REG_GYRO_CONFIG_STATIC4
-- UB1_REG_GYRO_CONFIG_STATIC5
-- UB2_REG_ACCEL_CONFIG_STATIC2
-- UB2_REG_ACCEL_CONFIG_STATIC3
-- UB2_REG_ACCEL_CONFIG_STATIC4
-*/
+// using namespace ICM42688reg;
 
 namespace daisy
 {
 
-static const uint32_t SPI_LS_HZ = 1000000; // Per datasheet
+// Accesible from all user banks
+static constexpr uint8_t REG_BANK_SEL = 0x76;
+
+// User Bank 0
+static constexpr uint8_t UB0_REG_DEVICE_CONFIG = 0x11;
+static constexpr uint8_t UB0_REG_INT_CONFIG = 0x14;
+    #define INT1_MODE_PULSED (0 << 2)
+    #define INT1_MODE_LATCHED (1 << 2)
+    #define INT1_DRIVE_CIRCUIT_OD (0 << 1)
+    #define INT1_DRIVE_CIRCUIT_PP (1 << 1)
+    #define INT1_POLARITY_ACTIVE_LOW (0 << 0)
+    #define INT1_POLARITY_ACTIVE_HIGH (1 << 0)
+static constexpr uint8_t UB0_REG_TEMP_DATA1 = 0x1D;
+static constexpr uint8_t UB0_REG_ACCEL_DATA_X1 = 0x1F;
+static constexpr uint8_t UB0_REG_INTF_CONFIG1 = 0x4D;
+    #define INTF_CONFIG1_AFSR_MASK 0xC0
+    #define INTF_CONFIG1_AFSR_DISABLE 0x40
+static constexpr uint8_t UB0_REG_PWR_MGMT0 = 0x4E;
+    #define PWR_MGMT0_ACCEL_MODE_LN (3 << 0)
+    #define PWR_MGMT0_GYRO_MODE_LN (3 << 2)
+    #define PWR_MGMT0_GYRO_ACCEL_MODE_OFF ((0 << 0) | (0 << 2))
+    #define PWR_MGMT0_TEMP_DISABLE_OFF (0 << 5)
+    #define PWR_MGMT0_TEMP_DISABLE_ON (1 << 5)
+static constexpr uint8_t UB0_REG_GYRO_CONFIG0 = 0x4F;
+static constexpr uint8_t UB0_REG_ACCEL_CONFIG0 = 0x50;
+static constexpr uint8_t UB0_REG_GYRO_ACCEL_CONFIG0 = 0x52;
+    #define ACCEL_UI_FILT_BW_LOW_LATENCY (15 << 4) 
+    #define GYRO_UI_FILT_BW_LOW_LATENCY (15 << 0)
+static constexpr uint8_t UB0_REG_INT_CONFIG0 = 0x63;
+    #define UI_DRDY_INT_CLEAR_MASK             ((1 << 5) | (1 << 4))
+    #define UI_DRDY_INT_CLEAR_ON_SBR           ((0 << 5) | (0 << 4))
+    #define UI_DRDY_INT_CLEAR_ON_SBR_DUPLICATE ((0 << 5) | (1 << 4)) // duplicate settings in datasheet, Rev 1.8.
+    #define UI_DRDY_INT_CLEAR_ON_F1BR          ((1 << 5) | (0 << 4))
+    #define UI_DRDY_INT_CLEAR_ON_SBR_AND_F1BR  ((1 << 5) | (1 << 4))
+static constexpr uint8_t UB0_REG_INT_CONFIG1 = 0x64;
+    #define INT_CONFIG1_MASK          ((1 << 6) | (1 << 5) | (1 << 4))
+    #define INT_ASYNC_RESET_BIT       4
+    #define INT_TDEASSERT_DISABLE_BIT 5
+    #define INT_TDEASSERT_ENABLED     (0 << INT_TDEASSERT_DISABLE_BIT)
+    #define INT_TDEASSERT_DISABLED    (1 << INT_TDEASSERT_DISABLE_BIT)
+    #define INT_TPULSE_DURATION_BIT   6
+    #define INT_TPULSE_DURATION_100   (0 << INT_TPULSE_DURATION_BIT)
+    #define INT_TPULSE_DURATION_8     (1 << INT_TPULSE_DURATION_BIT)
+static constexpr uint8_t UB0_REG_INT_SOURCE0 = 0x65;
+    #define UI_DRDY_INT1_MASK         (1 << 3)
+    #define UI_DRDY_INT1_EN_DISABLED  (0 << 3)
+    #define UI_DRDY_INT1_EN_ENABLED   (1 << 3)
+static constexpr uint8_t UB0_REG_WHO_AM_I = 0x75;
+
+// User Bank 1
+static constexpr uint8_t UB1_REG_GYRO_CONFIG_STATIC3 = 0x0C;
+static constexpr uint8_t UB1_REG_GYRO_CONFIG_STATIC4 = 0x0D;
+static constexpr uint8_t UB1_REG_GYRO_CONFIG_STATIC5 = 0x0E;
+
+// User Bank 2
+static constexpr uint8_t UB2_REG_ACCEL_CONFIG_STATIC2 = 0x03;
+static constexpr uint8_t UB2_REG_ACCEL_CONFIG_STATIC3 = 0x04;
+static constexpr uint8_t UB2_REG_ACCEL_CONFIG_STATIC4 = 0x05;
 
 ICM42688::Result ICM42688::Init(SpiHandle spi)
 {
