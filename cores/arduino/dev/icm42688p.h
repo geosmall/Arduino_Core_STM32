@@ -74,6 +74,18 @@ class ICM42688
         ERR,
     };
 
+    // Struct that represents the data from the IMU
+    struct ImuData
+    {
+        int16_t accX;
+        int16_t accY;
+        int16_t accZ;
+        int16_t gyroX;
+        int16_t gyroY;
+        int16_t gyroZ;
+
+    };
+
     ICM42688()
     {
     }
@@ -150,6 +162,13 @@ class ICM42688
 
     /**
      * @brief Retrieves accelerometer, gyroscope data.
+     * @param data int16_t struct of accel and gyro X, Y, Z-axis data, passed by reference.
+     * @return OK if successful, ERR otherwise.
+     */
+    Result getIMU(ImuData& data);
+
+    /**
+     * @brief Retrieves accelerometer, gyroscope data.
      * @param AcX int16_t accelerometer X-axis data, passed by reference.
      * @param AcY int16_t accelerometer Y-axis data, passed by reference.
      * @param AcZ int16_t accelerometer Z-axis data, passed by reference.
@@ -158,7 +177,7 @@ class ICM42688
      * @param GyZ int16_t gyroscope Z-axis data, passed by reference.
      * @return OK if successful, ERR otherwise.
      */
-    Result getIMU(int16_t& AcX, int16_t& AcY, int16_t& AcZ, int16_t& GyX, int16_t& GyY, int16_t& GyZ);
+    Result getIMU6(int16_t& AcX, int16_t& AcY, int16_t& AcZ, int16_t& GyX, int16_t& GyY, int16_t& GyZ);
 
 
   private:

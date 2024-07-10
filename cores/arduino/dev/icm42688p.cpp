@@ -259,7 +259,13 @@ ICM42688::Result ICM42688::disableDataReadyInterrupt()
     return writeRegisterMask(UB0_REG_INT_SOURCE0, UI_DRDY_INT1_EN_DISABLED, UI_DRDY_INT1_MASK);
 }
 
-ICM42688::Result ICM42688::getIMU(int16_t& AcX, int16_t& AcY, int16_t& AcZ, int16_t& GyX, int16_t& GyY, int16_t& GyZ)
+ICM42688::Result ICM42688::getIMU(ImuData& data)
+{
+    return readRegisters(UB0_REG_ACCEL_DATA_X1, sizeof(ImuData), reinterpret_cast<uint8_t*>(&data));
+}
+
+
+ICM42688::Result ICM42688::getIMU6(int16_t& AcX, int16_t& AcY, int16_t& AcZ, int16_t& GyX, int16_t& GyY, int16_t& GyZ)
 {
     // Read the data from the ICM42688
     if (readRegisters(UB0_REG_ACCEL_DATA_X1, 12, rxBuffer_) != Result::OK) return Result::ERR;
