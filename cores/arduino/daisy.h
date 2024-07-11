@@ -19,7 +19,7 @@
 #ifdef __cplusplus
 // #include "per/i2c.h"
 // #include "per/adc.h"
-// #include "per/uart.h"
+#include "per/uart.h"
 // #include "hid/midi.h"
 // #include "hid/encoder.h"
 // #include "hid/switch.h"
