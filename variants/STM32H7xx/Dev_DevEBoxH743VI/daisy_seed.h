@@ -151,7 +151,7 @@ class DaisySeed
     // AudioHandle        audio_handle; /**< & */
     // AdcHandle          adc;          /**< & */
     // DacHandle          dac;
-    // UsbHandle          usb_handle; /**< & */
+    UsbHandle          usb_handle; /**< & */
     dsy_gpio           led, testpoint;
     System             system;
 

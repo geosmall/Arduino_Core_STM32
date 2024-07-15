@@ -1,4 +1,4 @@
-﻿# [EN] FLYSKY I6 IBUS: 14 CHANNELS! (PART1)
+﻿# FLYSKY I6 IBUS: 14 CHANNELS
 
 **IBus Transmission**
 
@@ -6,7 +6,7 @@ The FS-i6 has an IBus interface. It means that it can communicate the servo comm
 
 ![image1 - ibus_receiver](images/ibus_receiver.png)
 
-To see what is happening on the serial interface between the Rx and the FC we can use a logic analyzer and sniff the servo port. We are using a Saleae logic analyzer here.
+To see what is happening on the serial interface between the Rx and the FC we can use a logic analyzer and sniff the output servo port. We are using a Saleae logic analyzer here.
 
 ![image2 - ibus frame](images/ibus_frame.png)
 
@@ -36,6 +36,6 @@ We take the whole frame and group the bytes by 2:
 > x54xF3  = Checksum: 0xF354 -> calculated by adding up all previous bytes, total must be FFFF
 ```
 
-We recognize a header of 2 bytes, then 12 bytes for our 6 channels and at the end 2 bytes of footer, with a checksum at the end. Between the end and the 6 channels we see 8 more channels, fixed at 1500. This brings the numer of channels to 14.
+We see a header of 2 bytes, then 12 bytes for our 6 channels and at the end 2 bytes of footer, with a checksum at the end. Between the end and the 6 channels we see 8 more channels, fixed at 1500. This brings the total numer of channels to 14.
 
 

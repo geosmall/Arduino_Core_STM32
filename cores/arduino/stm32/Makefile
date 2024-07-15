@@ -43,6 +43,9 @@ LIBDAISY_DIR ?= \
 SYSTEM_FILES_DIR ?= \
 ./
 
+VARIANT_DIR ?= \
+../../variants/STM32H7xx/Daisy_Seed
+
 ######################################
 # source
 ######################################
@@ -138,6 +141,7 @@ C_INCLUDES += \
 -I$(SYSTEM_DIR)/Middlewares/ST/STM32_USB_Device_Library/Core/Inc \
 -I$(SYSTEM_DIR)/Middlewares/ST/STM32_USB_Host_Library/Core/Inc \
 -I$(SYSTEM_DIR)/Middlewares/ST/STM32_USB_Host_Library/Class/MSC/Inc \
+-I$(VARIANT_DIR) \
 
 ifdef DAISYSP_DIR
 C_INCLUDES += -I$(DAISYSP_DIR)/Source
@@ -274,7 +278,10 @@ OBJECTS += $(addprefix $(BUILD_DIR)/,$(notdir $(CPP_SOURCES:.cpp=.o)))
 vpath %.cpp $(sort $(dir $(CPP_SOURCES)))
 # list of ASM program objects
 OBJECTS += $(addprefix $(BUILD_DIR)/,$(notdir $(ASM_SOURCES:.S=.o)))
-vpath %.s $(sort $(dir $(ASM_SOURCES)))
+vpath %.S $(sort $(dir $(ASM_SOURCES)))
+
+# print out OBJECTS
+$(info $$ASM_SOURCES is [${ASM_SOURCES}])
 
 $(BUILD_DIR)/%.o: %.c Makefile | $(BUILD_DIR)
 	$(CC) -c $(CFLAGS) $(C_STANDARD) -Wa,-a,-ad,-alms=$(BUILD_DIR)/$(notdir $(<:.c=.lst)) $< -o $@
@@ -282,8 +289,8 @@ $(BUILD_DIR)/%.o: %.c Makefile | $(BUILD_DIR)
 $(BUILD_DIR)/%.o: %.cpp Makefile | $(BUILD_DIR)
 	$(CXX) -c $(CPPFLAGS) $(CPP_STANDARD) -Wa,-a,-ad,-alms=$(BUILD_DIR)/$(notdir $(<:.cpp=.lst)) $< -o $@
 
-$(BUILD_DIR)/%.o: %.s Makefile | $(BUILD_DIR)
-	$(AS) -c $(ASFLAGS) $< -o $@
+$(BUILD_DIR)/%.o: %.S Makefile | $(BUILD_DIR)
+	(AS) -c $(ASFLAGS) $< -o $@
 
 $(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) Makefile
 	$(CXX) $(OBJECTS) $(LDFLAGS) -o $@
