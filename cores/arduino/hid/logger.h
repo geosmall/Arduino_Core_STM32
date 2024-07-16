@@ -31,10 +31,14 @@ namespace daisy
 /** 
  * Helper macros for string concatenation and macro expansion
  */
-#define PPCAT_NX(A, B) A##B          /**< non-expanding concatenation */
-#define PPCAT(A, B) PPCAT_NX(A, B)   /**< concatenate tokens */
-#define STRINGIZE_NX(A) #A           /**< non-expanding stringize  */
-#define STRINGIZE(A) STRINGIZE_NX(A) /**< make a string */
+/**< non-expanding concatenation */
+#define PPCAT_NX(A, B) A##B
+/**< concatenate tokens */
+#define PPCAT(A, B) PPCAT_NX(A, B)
+/**< non-expanding stringize  */
+#define STRINGIZE_NX(A) #A
+/**< make a string */
+#define STRINGIZE(A) STRINGIZE_NX(A)
 
 /** Floating point output formatting string. Include in your printf-style format string
  *  example: printf("float value = " FLT_FMT(3) " continue like that", FLT_VAR(3, x));
