@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "daisy_seed.h"
-#include "example-selftest.h"
+#include "src/example-selftest/example-selftest.h"
 
 /* --------------------------------------------------------------------------------------
  *  Example configuration
