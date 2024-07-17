@@ -63,11 +63,13 @@ Here's how you can modify the `FLT_VAR` macro to incorporate rounding:
  * Note: uses rounding instead of truncation.
  */
 #define FLT_VAR(_n, _x)                                        \
-    (_x < 0 ? '-' : ' '), (int)(round(abs(_x))),               \
-        (int)(round((abs(_x) - (int)(round(abs(_x)))) * pow(10, _n)))
+    (_x < 0 ? '-' : ' '), (int)round(fabs(_x)),                \
+        (int)(round(fabs(_x) * pow(10, _n)) - round(fabs(_x)) * pow(10, _n))
 ```
 
-This modification changes the calculation of the fractional part. Instead of truncating the result of the multiplication by `pow(10, _n)`, it rounds it to the nearest integer. This approach ensures that the last digit is correctly rounded according to standard rounding rules.
+This version calculates the whole number part and the fractional part by:
+1. Rounding the absolute value of `_x` to get the whole number part.
+2. Multiplying `_x` by `10^n`, rounding it, and then subtracting the whole number part multiplied by `10^n` to get the `n` decimal places as an integer.
 
 Remember, for these macros to work correctly, you need to include the appropriate header for the `round` and `pow` functions (`<cmath>` for C++ or `<math.h>` for C).
 
