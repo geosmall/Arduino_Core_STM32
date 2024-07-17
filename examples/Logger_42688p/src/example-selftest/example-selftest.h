@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 #include "src/Icm426xx/Icm426xxTransport.h"
+#include "src/Icm426xx/Icm426xxDefs.h"
+#include "src/Icm426xx/Icm426xxDriver_HL.h"
+#include "src/Icm426xx/Icm426xxSelfTest.h"
 
 /**
  * \brief This function is in charge of reseting and initializing Icm426xx device. It should
