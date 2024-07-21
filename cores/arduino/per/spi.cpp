@@ -775,7 +775,7 @@ static pin_alt_spi spi1_pins_miso[] = {{{DSY_GPIOB, 4}, GPIO_AF5_SPI1},
 
 static pin_alt_spi spi1_pins_mosi[] = {{{DSY_GPIOB, 5}, GPIO_AF5_SPI1},
                                        {{DSY_GPIOA, 7}, GPIO_AF5_SPI1},
-                                       pins_none_spi};
+                                       {{DSY_GPIOD, 7}, GPIO_AF5_SPI1}};
 
 static pin_alt_spi spi1_pins_nss[] = {{{DSY_GPIOG, 10}, GPIO_AF5_SPI1},
                                       {{DSY_GPIOA, 4}, GPIO_AF5_SPI1},

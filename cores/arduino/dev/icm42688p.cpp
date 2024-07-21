@@ -264,19 +264,22 @@ ICM42688::Result ICM42688::getIMU(ImuData& data)
     return readRegisters(UB0_REG_ACCEL_DATA_X1, sizeof(ImuData), reinterpret_cast<uint8_t*>(&data));
 }
 
-
-ICM42688::Result ICM42688::getIMU6(int16_t& AcX, int16_t& AcY, int16_t& AcZ, int16_t& GyX, int16_t& GyY, int16_t& GyZ)
+ICM42688::Result
+ICM42688::getIMU6(int16_t* AcX, int16_t* AcY, int16_t* AcZ, int16_t* GyX, int16_t* GyY, int16_t* GyZ)
 {
+    // Validate pointers before using them
+    if (!AcX || !AcY || !AcZ || !GyX || !GyY || !GyZ) return Result::ERR;
+
     // Read the data from the ICM42688
     if (readRegisters(UB0_REG_ACCEL_DATA_X1, 12, rxBuffer_) != Result::OK) return Result::ERR;
 
     // Combine bytes into signed 16 bit values
-    AcX = ((int16_t) rxBuffer_[0] << 8) | rxBuffer_[1];
-    AcY = ((int16_t) rxBuffer_[2] << 8) | rxBuffer_[3];
-    AcZ = ((int16_t) rxBuffer_[4] << 8) | rxBuffer_[5];
-    GyX = ((int16_t) rxBuffer_[6] << 8) | rxBuffer_[7];
-    GyY = ((int16_t) rxBuffer_[8] << 8) | rxBuffer_[9];
-    GyZ = ((int16_t) rxBuffer_[10] << 8) | rxBuffer_[11];
+    *AcX = ((int16_t) rxBuffer_[0] << 8) | rxBuffer_[1];
+    *AcY = ((int16_t) rxBuffer_[2] << 8) | rxBuffer_[3];
+    *AcZ = ((int16_t) rxBuffer_[4] << 8) | rxBuffer_[5];
+    *GyX = ((int16_t) rxBuffer_[6] << 8) | rxBuffer_[7];
+    *GyY = ((int16_t) rxBuffer_[8] << 8) | rxBuffer_[9];
+    *GyZ = ((int16_t) rxBuffer_[10] << 8) | rxBuffer_[11];
 
     return Result::OK;
 }

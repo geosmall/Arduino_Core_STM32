@@ -24,19 +24,21 @@ Flight_ctrl.build.st_extra_flags=-D{build.product_line} {build.enable_usb} {buil
 Flight_ctrl.upload.maximum_size=0
 Flight_ctrl.upload.maximum_data_size=0
 
-# FC_REVO_F405RG board
-Flight_ctrl.menu.pnum.FC_REVO_F405RG=Revo F405RG
-Flight_ctrl.menu.pnum.FC_REVO_F405RG.node="NODE_F405RG,REVO"
-Flight_ctrl.menu.pnum.FC_REVO_F405RG.upload.maximum_size=1048576
-Flight_ctrl.menu.pnum.FC_REVO_F405RG.upload.maximum_data_size=131072
-Flight_ctrl.menu.pnum.FC_REVO_F405RG.build.mcu=cortex-m4
-Flight_ctrl.menu.pnum.FC_REVO_F405RG.build.fpu=-mfpu=fpv4-sp-d16
-Flight_ctrl.menu.pnum.FC_REVO_F405RG.build.float-abi=-mfloat-abi=hard
-Flight_ctrl.menu.pnum.FC_REVO_F405RG.build.board=FC_REVO_F405RG
-Flight_ctrl.menu.pnum.FC_REVO_F405RG.build.series=STM32F4xx
-Flight_ctrl.menu.pnum.FC_REVO_F405RG.build.product_line=STM32F405xx
-Flight_ctrl.menu.pnum.FC_REVO_F405RG.build.variant=STM32F4xx/FC_Revo_F405RG
-Flight_ctrl.menu.pnum.FC_REVO_F405RG.build.cmsis_lib_gcc=arm_cortexM4lf_math
+# FC_MatekH743
+Flight_ctrl.menu.pnum.FC_MatekH743=Matek H743VI
+Flight_ctrl.menu.pnum.FC_MatekH743.node="NODE_H743VI,Matek"
+Flight_ctrl.menu.pnum.FC_MatekH743.upload.maximum_size=2097152
+Flight_ctrl.menu.pnum.FC_MatekH743.upload.maximum_data_size=524288
+Flight_ctrl.menu.pnum.FC_MatekH743.build.mcu=cortex-m7
+Flight_ctrl.menu.pnum.FC_MatekH743.build.fpu=-mfpu=fpv5-d16
+Flight_ctrl.menu.pnum.FC_MatekH743.build.float-abi=-mfloat-abi=hard
+Flight_ctrl.menu.pnum.FC_MatekH743.build.board=FC_MatekH743
+Flight_ctrl.menu.pnum.FC_MatekH743.build.series=STM32H7xx
+Flight_ctrl.menu.pnum.FC_MatekH743.build.product_line=STM32H743xx
+Flight_ctrl.menu.pnum.FC_MatekH743.build.variant=STM32H7xx/FC_MatekH743
+Flight_ctrl.menu.pnum.FC_MatekH743.build.cmsis_lib_gcc=arm_cortexM7lfsp_math
+Flight_ctrl.menu.pnum.FC_MatekH743.build.ldscript=STM32H743VI_flash.lds
+Flight_ctrl.menu.pnum.FC_MatekH743.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial} -DSTM32H743VI -DARM_MATH_CM7 -Dflash_layout -DHSE_VALUE=8000000 -DUSE_HAL_DRIVER -DUSE_FULL_LL_DRIVER -DDATA_IN_D2_SRAM -DNDEBUG=1 -DRELEASE=1
 
 # Upload menu
 Flight_ctrl.menu.upload_method.swdMethod=STM32CubeProgrammer (SWD)
@@ -71,36 +73,21 @@ Dev_boards.build.st_extra_flags=-D{build.product_line} {build.enable_usb} {build
 Dev_boards.upload.maximum_size=0
 Dev_boards.upload.maximum_data_size=0
 
-# BlackPill F401CC
-Dev_boards.menu.pnum.BLACKPILL_F401CC=BlackPill F401CC
-Dev_boards.menu.pnum.BLACKPILL_F401CC.node="NODE_F401CC,BlkPill"
-Dev_boards.menu.pnum.BLACKPILL_F401CC.upload.maximum_size=262144
-Dev_boards.menu.pnum.BLACKPILL_F401CC.upload.maximum_data_size=65536
-Dev_boards.menu.pnum.BLACKPILL_F401CC.build.mcu=cortex-m4
-Dev_boards.menu.pnum.BLACKPILL_F401CC.build.fpu=-mfpu=fpv4-sp-d16
-Dev_boards.menu.pnum.BLACKPILL_F401CC.build.float-abi=-mfloat-abi=hard
-Dev_boards.menu.pnum.BLACKPILL_F401CC.build.board=BLACKPILL_F401CC
-Dev_boards.menu.pnum.BLACKPILL_F401CC.build.series=STM32F4xx
-Dev_boards.menu.pnum.BLACKPILL_F401CC.build.product_line=STM32F401xC
-Dev_boards.menu.pnum.BLACKPILL_F401CC.build.variant=STM32F4xx/Dev_Blackpill_F401CC
-Dev_boards.menu.pnum.BLACKPILL_F401CC.build.variant_h=variant_BLACKPILL_F401Cx.h
-Dev_boards.menu.pnum.BLACKPILL_F401CC.build.cmsis_lib_gcc=arm_cortexM4lf_math
-
-# DAISY_SEED
-Dev_boards.menu.pnum.DAISY_SEED=Daisy Seed H750IB 
-Dev_boards.menu.pnum.DAISY_SEED.node="NODE_H750IB,DaisySeed"
-Dev_boards.menu.pnum.DAISY_SEED.upload.maximum_size=131072
-Dev_boards.menu.pnum.DAISY_SEED.upload.maximum_data_size=524288
-Dev_boards.menu.pnum.DAISY_SEED.build.mcu=cortex-m7
-Dev_boards.menu.pnum.DAISY_SEED.build.fpu=-mfpu=fpv5-d16
-Dev_boards.menu.pnum.DAISY_SEED.build.float-abi=-mfloat-abi=hard
-Dev_boards.menu.pnum.DAISY_SEED.build.board=DAISY_SEED
-Dev_boards.menu.pnum.DAISY_SEED.build.series=STM32H7xx
-Dev_boards.menu.pnum.DAISY_SEED.build.product_line=STM32H750xx
-Dev_boards.menu.pnum.DAISY_SEED.build.variant=STM32H7xx/Daisy_Seed
-Dev_boards.menu.pnum.DAISY_SEED.build.cmsis_lib_gcc=arm_cortexM7lfsp_math
-Dev_boards.menu.pnum.DAISY_SEED.build.ldscript=STM32H750IB_flash.lds
-Dev_boards.menu.pnum.DAISY_SEED.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial} -DSTM32H750IB -DARM_MATH_CM7 -Dflash_layout -DHSE_VALUE=16000000 -DUSE_HAL_DRIVER -DUSE_FULL_LL_DRIVER -DDATA_IN_D2_SRAM -DNDEBUG=1 -DRELEASE=1
+# DevEBoxH743VI
+Dev_boards.menu.pnum.DevEBoxH743VI=DevEBox H743VI
+Dev_boards.menu.pnum.DevEBoxH743VI.node="NODE_H743VI,DevEBox"
+Dev_boards.menu.pnum.DevEBoxH743VI.upload.maximum_size=2097152
+Dev_boards.menu.pnum.DevEBoxH743VI.upload.maximum_data_size=524288
+Dev_boards.menu.pnum.DevEBoxH743VI.build.mcu=cortex-m7
+Dev_boards.menu.pnum.DevEBoxH743VI.build.fpu=-mfpu=fpv5-d16
+Dev_boards.menu.pnum.DevEBoxH743VI.build.float-abi=-mfloat-abi=hard
+Dev_boards.menu.pnum.DevEBoxH743VI.build.board=DevEBoxH743VI
+Dev_boards.menu.pnum.DevEBoxH743VI.build.series=STM32H7xx
+Dev_boards.menu.pnum.DevEBoxH743VI.build.product_line=STM32H743xx
+Dev_boards.menu.pnum.DevEBoxH743VI.build.variant=STM32H7xx/Dev_DevEBoxH743VI
+Dev_boards.menu.pnum.DevEBoxH743VI.build.cmsis_lib_gcc=arm_cortexM7lfsp_math
+Dev_boards.menu.pnum.DevEBoxH743VI.build.ldscript=STM32H743VI_flash.lds
+Dev_boards.menu.pnum.DevEBoxH743VI.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial} -DSTM32H743VI -DARM_MATH_CM7 -Dflash_layout -DHSE_VALUE=25000000 -DUSE_HAL_DRIVER -DUSE_FULL_LL_DRIVER -DDATA_IN_D2_SRAM -DNDEBUG=1 -DRELEASE=1
 
 # DevEBoxH750VB
 Dev_boards.menu.pnum.DevEBoxH750VB=DevEBox H750VB
@@ -118,37 +105,21 @@ Dev_boards.menu.pnum.DevEBoxH750VB.build.cmsis_lib_gcc=arm_cortexM7lfsp_math
 Dev_boards.menu.pnum.DevEBoxH750VB.build.ldscript=STM32H750VB_flash.lds
 Dev_boards.menu.pnum.DevEBoxH750VB.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial} -DSTM32H750VB -DARM_MATH_CM7 -Dflash_layout -DHSE_VALUE=25000000 -DUSE_HAL_DRIVER -DUSE_FULL_LL_DRIVER -DDATA_IN_D2_SRAM -DNDEBUG=1 -DRELEASE=1
 
-# DevEBoxH743VI
-Dev_boards.menu.pnum.DevEBoxH743VI=DevEBox H743VI
-Dev_boards.menu.pnum.DevEBoxH743VI.node="NODE_H743VI,DevEBox"
-Dev_boards.menu.pnum.DevEBoxH743VI.upload.maximum_size=2097152
-Dev_boards.menu.pnum.DevEBoxH743VI.upload.maximum_data_size=524288
-Dev_boards.menu.pnum.DevEBoxH743VI.build.mcu=cortex-m7
-Dev_boards.menu.pnum.DevEBoxH743VI.build.fpu=-mfpu=fpv5-d16
-Dev_boards.menu.pnum.DevEBoxH743VI.build.float-abi=-mfloat-abi=hard
-Dev_boards.menu.pnum.DevEBoxH743VI.build.board=DevEBoxH743VI
-Dev_boards.menu.pnum.DevEBoxH743VI.build.series=STM32H7xx
-Dev_boards.menu.pnum.DevEBoxH743VI.build.product_line=STM32H743xx
-Dev_boards.menu.pnum.DevEBoxH743VI.build.variant=STM32H7xx/Dev_DevEBoxH743VI
-Dev_boards.menu.pnum.DevEBoxH743VI.build.cmsis_lib_gcc=arm_cortexM7lfsp_math
-Dev_boards.menu.pnum.DevEBoxH743VI.build.ldscript=STM32H743VI_flash.lds
-Dev_boards.menu.pnum.DevEBoxH743VI.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial} -DSTM32H743VI -DARM_MATH_CM7 -Dflash_layout -DHSE_VALUE=25000000 -DUSE_HAL_DRIVER -DUSE_FULL_LL_DRIVER -DDATA_IN_D2_SRAM -DNDEBUG=1 -DRELEASE=1
-
-# DevMatekH743VI
-Dev_boards.menu.pnum.DevMatekH743VI=Matek H743VI
-Dev_boards.menu.pnum.DevMatekH743VI.node="NODE_H743VI,Matek"
-Dev_boards.menu.pnum.DevMatekH743VI.upload.maximum_size=2097152
-Dev_boards.menu.pnum.DevMatekH743VI.upload.maximum_data_size=524288
-Dev_boards.menu.pnum.DevMatekH743VI.build.mcu=cortex-m7
-Dev_boards.menu.pnum.DevMatekH743VI.build.fpu=-mfpu=fpv5-d16
-Dev_boards.menu.pnum.DevMatekH743VI.build.float-abi=-mfloat-abi=hard
-Dev_boards.menu.pnum.DevMatekH743VI.build.board=DevMatekH743VI
-Dev_boards.menu.pnum.DevMatekH743VI.build.series=STM32H7xx
-Dev_boards.menu.pnum.DevMatekH743VI.build.product_line=STM32H743xx
-Dev_boards.menu.pnum.DevMatekH743VI.build.variant=STM32H7xx/Dev_MatekH743VI
-Dev_boards.menu.pnum.DevMatekH743VI.build.cmsis_lib_gcc=arm_cortexM7lfsp_math
-Dev_boards.menu.pnum.DevMatekH743VI.build.ldscript=STM32H743VI_flash.lds
-Dev_boards.menu.pnum.DevMatekH743VI.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial} -DSTM32H743VI -DARM_MATH_CM7 -Dflash_layout -DHSE_VALUE=8000000 -DUSE_HAL_DRIVER -DUSE_FULL_LL_DRIVER -DDATA_IN_D2_SRAM -DNDEBUG=1 -DRELEASE=1
+# DAISY_SEED
+Dev_boards.menu.pnum.DAISY_SEED=Daisy Seed H750IB 
+Dev_boards.menu.pnum.DAISY_SEED.node="NODE_H750IB,DaisySeed"
+Dev_boards.menu.pnum.DAISY_SEED.upload.maximum_size=131072
+Dev_boards.menu.pnum.DAISY_SEED.upload.maximum_data_size=524288
+Dev_boards.menu.pnum.DAISY_SEED.build.mcu=cortex-m7
+Dev_boards.menu.pnum.DAISY_SEED.build.fpu=-mfpu=fpv5-d16
+Dev_boards.menu.pnum.DAISY_SEED.build.float-abi=-mfloat-abi=hard
+Dev_boards.menu.pnum.DAISY_SEED.build.board=DAISY_SEED
+Dev_boards.menu.pnum.DAISY_SEED.build.series=STM32H7xx
+Dev_boards.menu.pnum.DAISY_SEED.build.product_line=STM32H750xx
+Dev_boards.menu.pnum.DAISY_SEED.build.variant=STM32H7xx/Daisy_Seed
+Dev_boards.menu.pnum.DAISY_SEED.build.cmsis_lib_gcc=arm_cortexM7lfsp_math
+Dev_boards.menu.pnum.DAISY_SEED.build.ldscript=STM32H750IB_flash.lds
+Dev_boards.menu.pnum.DAISY_SEED.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial} -DSTM32H750IB -DARM_MATH_CM7 -Dflash_layout -DHSE_VALUE=16000000 -DUSE_HAL_DRIVER -DUSE_FULL_LL_DRIVER -DDATA_IN_D2_SRAM -DNDEBUG=1 -DRELEASE=1
 
 # Upload menu
 Dev_boards.menu.upload_method.swdMethod=STM32CubeProgrammer (SWD)
@@ -172,137 +143,18 @@ Dev_boards.menu.upload_method.clipboard.upload.options=-g
 Dev_boards.menu.upload_method.clipboard.upload.tool=clipboard_upload
 
 ################################################################################
-# Nucleo 64 boards
-
-Nucleo_64.name=Nucleo-64
-
-Nucleo_64.build.core=arduino
-Nucleo_64.build.board=Nucleo_64
-Nucleo_64.build.variant_h=variant_{build.board}.h
-Nucleo_64.build.st_extra_flags=-D{build.product_line} {build.enable_usb} {build.xSerial}
-Nucleo_64.upload.maximum_size=0
-Nucleo_64.upload.maximum_data_size=0
-
-# NUCLEO_F401RE board
-Nucleo_64.menu.pnum.NUCLEO_F401RE=Nucleo F401RE
-Nucleo_64.menu.pnum.NUCLEO_F401RE.node="NODE_F401RE,NUCLEO"
-Nucleo_64.menu.pnum.NUCLEO_F401RE.upload.maximum_size=524288
-Nucleo_64.menu.pnum.NUCLEO_F401RE.upload.maximum_data_size=98304
-Nucleo_64.menu.pnum.NUCLEO_F401RE.build.mcu=cortex-m4
-Nucleo_64.menu.pnum.NUCLEO_F401RE.build.fpu=-mfpu=fpv4-sp-d16
-Nucleo_64.menu.pnum.NUCLEO_F401RE.build.float-abi=-mfloat-abi=hard
-Nucleo_64.menu.pnum.NUCLEO_F401RE.build.board=NUCLEO_F401RE
-Nucleo_64.menu.pnum.NUCLEO_F401RE.build.series=STM32F4xx
-Nucleo_64.menu.pnum.NUCLEO_F401RE.build.product_line=STM32F401xE
-Nucleo_64.menu.pnum.NUCLEO_F401RE.build.variant=STM32F4xx/F401R(B-C-D-E)T
-Nucleo_64.menu.pnum.NUCLEO_F401RE.build.cmsis_lib_gcc=arm_cortexM4lf_math
-
-# NUCLEO_F411RE board
-Nucleo_64.menu.pnum.NUCLEO_F411RE=Nucleo F411RE
-Nucleo_64.menu.pnum.NUCLEO_F411RE.node="NODE_F411RE,NUCLEO"
-Nucleo_64.menu.pnum.NUCLEO_F411RE.upload.maximum_size=524288
-Nucleo_64.menu.pnum.NUCLEO_F411RE.upload.maximum_data_size=131072
-Nucleo_64.menu.pnum.NUCLEO_F411RE.build.mcu=cortex-m4
-Nucleo_64.menu.pnum.NUCLEO_F411RE.build.fpu=-mfpu=fpv4-sp-d16
-Nucleo_64.menu.pnum.NUCLEO_F411RE.build.float-abi=-mfloat-abi=hard
-Nucleo_64.menu.pnum.NUCLEO_F411RE.build.board=NUCLEO_F411RE
-Nucleo_64.menu.pnum.NUCLEO_F411RE.build.series=STM32F4xx
-Nucleo_64.menu.pnum.NUCLEO_F411RE.build.product_line=STM32F411xE
-Nucleo_64.menu.pnum.NUCLEO_F411RE.build.variant=STM32F4xx/F411R(C-E)T
-Nucleo_64.menu.pnum.NUCLEO_F411RE.build.cmsis_lib_gcc=arm_cortexM4lf_math
-
-# Upload menu
-Nucleo_64.menu.upload_method.swdMethod=STM32CubeProgrammer (SWD)
-Nucleo_64.menu.upload_method.swdMethod.upload.protocol=0
-Nucleo_64.menu.upload_method.swdMethod.upload.options=-g
-Nucleo_64.menu.upload_method.swdMethod.upload.tool=stm32CubeProg
-
-Nucleo_64.menu.upload_method.serialMethod=STM32CubeProgrammer (Serial)
-Nucleo_64.menu.upload_method.serialMethod.upload.protocol=1
-Nucleo_64.menu.upload_method.serialMethod.upload.options={serial.port.file} -s
-Nucleo_64.menu.upload_method.serialMethod.upload.tool=stm32CubeProg
-
-Nucleo_64.menu.upload_method.dfuMethod=STM32CubeProgrammer (DFU)
-Nucleo_64.menu.upload_method.dfuMethod.upload.protocol=2
-Nucleo_64.menu.upload_method.dfuMethod.upload.options=-g
-Nucleo_64.menu.upload_method.dfuMethod.upload.tool=stm32CubeProg
-
-Nucleo_64.menu.upload_method.MassStorage=Mass Storage
-Nucleo_64.menu.upload_method.MassStorage.upload.protocol=
-Nucleo_64.menu.upload_method.MassStorage.upload.tool=massStorageCopy
-
-################################################################################
-# Discovery boards
-
-Disco.name=Discovery
-
-Disco.build.core=arduino
-Disco.build.board=Disco
-Disco.build.variant_h=variant_{build.board}.h
-Disco.build.st_extra_flags=-D{build.product_line} {build.enable_usb} {build.xSerial}
-Disco.upload.maximum_size=0
-Disco.upload.maximum_data_size=0
-
-# DISCO_F407VG board
-Disco.menu.pnum.DISCO_F407VG=STM32F407G-DISCO
-Disco.menu.pnum.DISCO_F407VG.node=DIS_F407VG
-Disco.menu.pnum.DISCO_F407VG.upload.maximum_size=1048576
-Disco.menu.pnum.DISCO_F407VG.upload.maximum_data_size=131072
-Disco.menu.pnum.DISCO_F407VG.build.mcu=cortex-m4
-Disco.menu.pnum.DISCO_F407VG.build.fpu=-mfpu=fpv4-sp-d16
-Disco.menu.pnum.DISCO_F407VG.build.float-abi=-mfloat-abi=hard
-Disco.menu.pnum.DISCO_F407VG.build.board=DISCO_F407VG
-Disco.menu.pnum.DISCO_F407VG.build.series=STM32F4xx
-Disco.menu.pnum.DISCO_F407VG.build.product_line=STM32F407xx
-Disco.menu.pnum.DISCO_F407VG.build.variant=STM32F4xx/F407V(E-G)T_F417V(E-G)T
-Disco.menu.pnum.DISCO_F407VG.build.cmsis_lib_gcc=arm_cortexM4lf_math
-
-# Upload menu
-Disco.menu.upload_method.swdMethod=STM32CubeProgrammer (SWD)
-Disco.menu.upload_method.swdMethod.upload.protocol=0
-Disco.menu.upload_method.swdMethod.upload.options=-g
-Disco.menu.upload_method.swdMethod.upload.tool=stm32CubeProg
-
-Disco.menu.upload_method.serialMethod=STM32CubeProgrammer (Serial)
-Disco.menu.upload_method.serialMethod.upload.protocol=1
-Disco.menu.upload_method.serialMethod.upload.options={serial.port.file} -s
-Disco.menu.upload_method.serialMethod.upload.tool=stm32CubeProg
-
-Disco.menu.upload_method.dfuMethod=STM32CubeProgrammer (DFU)
-Disco.menu.upload_method.dfuMethod.upload.protocol=2
-Disco.menu.upload_method.dfuMethod.upload.options=-g
-Disco.menu.upload_method.dfuMethod.upload.tool=stm32CubeProg
-
-Disco.menu.upload_method.clipboard=Clipboard (Copy Path)
-Disco.menu.upload_method.clipboard.upload.protocol=0
-Disco.menu.upload_method.clipboard.upload.options=-g
-Disco.menu.upload_method.clipboard.upload.tool=clipboard_upload
-
-################################################################################
 # Serialx activation
-Flight_ctrl.menu.xserial.generic=Enabled (generic 'Serial')
-Flight_ctrl.menu.xserial.none=Enabled (no generic 'Serial')
-Flight_ctrl.menu.xserial.none.build.xSerial=-DHAL_UART_MODULE_ENABLED -DHWSERIAL_NONE
+
 Flight_ctrl.menu.xserial.disabled=Disabled (No Serial support)
 Flight_ctrl.menu.xserial.disabled.build.xSerial=
+Flight_ctrl.menu.xserial.generic=Enabled (generic 'Serial')
+Flight_ctrl.menu.xserial.none=Enabled (no generic 'Serial')
 
+Dev_boards.menu.xserial.disabled=Disabled (No Serial support)
+Dev_boards.menu.xserial.disabled.build.xSerial=
 Dev_boards.menu.xserial.generic=Enabled (generic 'Serial')
 Dev_boards.menu.xserial.none=Enabled (no generic 'Serial')
 Dev_boards.menu.xserial.none.build.xSerial=-DHAL_UART_MODULE_ENABLED -DHWSERIAL_NONE
-Dev_boards.menu.xserial.disabled=Disabled (No Serial support)
-Dev_boards.menu.xserial.disabled.build.xSerial=
-
-Nucleo_64.menu.xserial.generic=Enabled (generic 'Serial')
-Nucleo_64.menu.xserial.none=Enabled (no generic 'Serial')
-Nucleo_64.menu.xserial.none.build.xSerial=-DHAL_UART_MODULE_ENABLED -DHWSERIAL_NONE
-Nucleo_64.menu.xserial.disabled=Disabled (No Serial support)
-Nucleo_64.menu.xserial.disabled.build.xSerial=
-
-Disco.menu.xserial.generic=Enabled (generic 'Serial')
-Disco.menu.xserial.none=Enabled (no generic 'Serial')
-Disco.menu.xserial.none.build.xSerial=-DHAL_UART_MODULE_ENABLED -DHWSERIAL_NONE
-Disco.menu.xserial.disabled=Disabled (no Serial support)
-Disco.menu.xserial.disabled.build.xSerial=
 
 # USB connectivity
 Flight_ctrl.menu.usb.none=None
@@ -326,28 +178,6 @@ Dev_boards.menu.xusb.HS=High Speed
 Dev_boards.menu.xusb.HS.build.usb_speed=-DUSE_USB_HS
 Dev_boards.menu.xusb.HSFS=High Speed in Full Speed mode
 Dev_boards.menu.xusb.HSFS.build.usb_speed=-DUSE_USB_HS -DUSE_USB_HS_IN_FS
-
-Nucleo_64.menu.usb.none=None
-Nucleo_64.menu.usb.CDCgen=CDC (generic 'Serial' supersede U(S)ART)
-Nucleo_64.menu.usb.CDCgen.build.enable_usb={build.usb_flags} -DUSBD_USE_CDC
-Nucleo_64.menu.usb.CDC=CDC (no generic 'Serial')
-Nucleo_64.menu.usb.CDC.build.enable_usb={build.usb_flags} -DUSBD_USE_CDC -DDISABLE_GENERIC_SERIALUSB
-Nucleo_64.menu.xusb.FS=Low/Full Speed
-Nucleo_64.menu.xusb.HS=High Speed
-Nucleo_64.menu.xusb.HS.build.usb_speed=-DUSE_USB_HS
-Nucleo_64.menu.xusb.HSFS=High Speed in Full Speed mode
-Nucleo_64.menu.xusb.HSFS.build.usb_speed=-DUSE_USB_HS -DUSE_USB_HS_IN_FS
-
-Disco.menu.usb.none=None
-Disco.menu.usb.CDCgen=CDC (generic 'Serial' supersede U(S)ART)
-Disco.menu.usb.CDCgen.build.enable_usb={build.usb_flags} -DUSBD_USE_CDC
-Disco.menu.usb.CDC=CDC (no generic 'Serial')
-Disco.menu.usb.CDC.build.enable_usb={build.usb_flags} -DUSBD_USE_CDC -DDISABLE_GENERIC_SERIALUSB
-Disco.menu.xusb.FS=Low/Full Speed
-Disco.menu.xusb.HS=High Speed
-Disco.menu.xusb.HS.build.usb_speed=-DUSE_USB_HS
-Disco.menu.xusb.HSFS=High Speed in Full Speed mode
-Disco.menu.xusb.HSFS.build.usb_speed=-DUSE_USB_HS -DUSE_USB_HS_IN_FS
 
 # Optimizations
 Flight_ctrl.menu.opt.ogstd=Debug (-Og)
@@ -390,46 +220,6 @@ Dev_boards.menu.opt.o3lto.build.flags.optimize=-O3 -flto
 Dev_boards.menu.opt.o0std=No Optimization (-O0)
 Dev_boards.menu.opt.o0std.build.flags.optimize=-O0
 
-Nucleo_64.menu.opt.ogstd=Debug (-Og)
-Nucleo_64.menu.opt.ogstd.build.flags.optimize=-Og
-Nucleo_64.menu.opt.osstd=Smallest (-Os default)
-Nucleo_64.menu.opt.oslto=Smallest (-Os) with LTO
-Nucleo_64.menu.opt.oslto.build.flags.optimize=-Os -flto
-Nucleo_64.menu.opt.o1std=Fast (-O1)
-Nucleo_64.menu.opt.o1std.build.flags.optimize=-O1
-Nucleo_64.menu.opt.o1lto=Fast (-O1) with LTO
-Nucleo_64.menu.opt.o1lto.build.flags.optimize=-O1 -flto
-Nucleo_64.menu.opt.o2std=Faster (-O2)
-Nucleo_64.menu.opt.o2std.build.flags.optimize=-O2
-Nucleo_64.menu.opt.o2lto=Faster (-O2) with LTO
-Nucleo_64.menu.opt.o2lto.build.flags.optimize=-O2 -flto
-Nucleo_64.menu.opt.o3std=Fastest (-O3)
-Nucleo_64.menu.opt.o3std.build.flags.optimize=-O3
-Nucleo_64.menu.opt.o3lto=Fastest (-O3) with LTO
-Nucleo_64.menu.opt.o3lto.build.flags.optimize=-O3 -flto
-Nucleo_64.menu.opt.o0std=No Optimization (-O0)
-Nucleo_64.menu.opt.o0std.build.flags.optimize=-O0
-
-Disco.menu.opt.ogstd=Debug (-Og)
-Disco.menu.opt.ogstd.build.flags.optimize=-Og
-Disco.menu.opt.osstd=Smallest (-Os default)
-Disco.menu.opt.oslto=Smallest (-Os) with LTO
-Disco.menu.opt.oslto.build.flags.optimize=-Os -flto
-Disco.menu.opt.o1std=Fast (-O1)
-Disco.menu.opt.o1std.build.flags.optimize=-O1
-Disco.menu.opt.o1lto=Fast (-O1) with LTO
-Disco.menu.opt.o1lto.build.flags.optimize=-O1 -flto
-Disco.menu.opt.o2std=Faster (-O2)
-Disco.menu.opt.o2std.build.flags.optimize=-O2
-Disco.menu.opt.o2lto=Faster (-O2) with LTO
-Disco.menu.opt.o2lto.build.flags.optimize=-O2 -flto
-Disco.menu.opt.o3std=Fastest (-O3)
-Disco.menu.opt.o3std.build.flags.optimize=-O3
-Disco.menu.opt.o3lto=Fastest (-O3) with LTO
-Disco.menu.opt.o3lto.build.flags.optimize=-O3 -flto
-Disco.menu.opt.o0std=No Optimization (-O0)
-Disco.menu.opt.o0std.build.flags.optimize=-O0
-
 # Debug information
 Flight_ctrl.menu.dbg.enable_all=Core Logs and Symbols Enabled (-g)
 Flight_ctrl.menu.dbg.enable_all.build.flags.debug=-g
@@ -446,22 +236,6 @@ Dev_boards.menu.dbg.enable_sym=Symbols Enabled (-g)
 Dev_boards.menu.dbg.enable_sym.build.flags.debug=-g -DNDEBUG
 Dev_boards.menu.dbg.enable_log=Core logs Enabled
 Dev_boards.menu.dbg.enable_log.build.flags.debug=
-
-Nucleo_64.menu.dbg.enable_all=Core Logs and Symbols Enabled (-g)
-Nucleo_64.menu.dbg.enable_all.build.flags.debug=-g
-Nucleo_64.menu.dbg.none=None
-Nucleo_64.menu.dbg.enable_sym=Symbols Enabled (-g)
-Nucleo_64.menu.dbg.enable_sym.build.flags.debug=-g -DNDEBUG
-Nucleo_64.menu.dbg.enable_log=Core logs Enabled
-Nucleo_64.menu.dbg.enable_log.build.flags.debug=
-
-Disco.menu.dbg.enable_all=Core Logs and Symbols Enabled (-g)
-Disco.menu.dbg.enable_all.build.flags.debug=-g
-Disco.menu.dbg.none=None
-Disco.menu.dbg.enable_sym=Symbols Enabled (-g)
-Disco.menu.dbg.enable_sym.build.flags.debug=-g -DNDEBUG
-Disco.menu.dbg.enable_log=Core logs Enabled
-Disco.menu.dbg.enable_log.build.flags.debug=
 
 # C Runtime Library
 Flight_ctrl.menu.rtlib.nano=Newlib Nano (default)
@@ -484,23 +258,3 @@ Dev_boards.menu.rtlib.nanofps=Newlib Nano + Float Printf/Scanf
 Dev_boards.menu.rtlib.nanofps.build.flags.ldspecs=--specs=nano.specs -u _printf_float -u _scanf_float
 Dev_boards.menu.rtlib.full=Newlib Standard
 Dev_boards.menu.rtlib.full.build.flags.ldspecs=
-
-Nucleo_64.menu.rtlib.nano=Newlib Nano (default)
-Nucleo_64.menu.rtlib.nanofp=Newlib Nano + Float Printf
-Nucleo_64.menu.rtlib.nanofp.build.flags.ldspecs=--specs=nano.specs -u _printf_float
-Nucleo_64.menu.rtlib.nanofs=Newlib Nano + Float Scanf
-Nucleo_64.menu.rtlib.nanofs.build.flags.ldspecs=--specs=nano.specs -u _scanf_float
-Nucleo_64.menu.rtlib.nanofps=Newlib Nano + Float Printf/Scanf
-Nucleo_64.menu.rtlib.nanofps.build.flags.ldspecs=--specs=nano.specs -u _printf_float -u _scanf_float
-Nucleo_64.menu.rtlib.full=Newlib Standard
-Nucleo_64.menu.rtlib.full.build.flags.ldspecs=
-
-Disco.menu.rtlib.nano=Newlib Nano (default)
-Disco.menu.rtlib.nanofp=Newlib Nano + Float Printf
-Disco.menu.rtlib.nanofp.build.flags.ldspecs=--specs=nano.specs -u _printf_float
-Disco.menu.rtlib.nanofs=Newlib Nano + Float Scanf
-Disco.menu.rtlib.nanofs.build.flags.ldspecs=--specs=nano.specs -u _scanf_float
-Disco.menu.rtlib.nanofps=Newlib Nano + Float Printf/Scanf
-Disco.menu.rtlib.nanofps.build.flags.ldspecs=--specs=nano.specs -u _printf_float -u _scanf_float
-Disco.menu.rtlib.full=Newlib Standard
-Disco.menu.rtlib.full.build.flags.ldspecs=

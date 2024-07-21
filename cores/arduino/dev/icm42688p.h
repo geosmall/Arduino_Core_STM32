@@ -169,15 +169,15 @@ class ICM42688
 
     /**
      * @brief Retrieves accelerometer, gyroscope data.
-     * @param AcX int16_t accelerometer X-axis data, passed by reference.
-     * @param AcY int16_t accelerometer Y-axis data, passed by reference.
-     * @param AcZ int16_t accelerometer Z-axis data, passed by reference.
-     * @param GyX int16_t gyroscope X-axis data, passed by reference.
-     * @param GyY int16_t gyroscope Y-axis data, passed by reference.
-     * @param GyZ int16_t gyroscope Z-axis data, passed by reference.
+     * @param AcX int16_t* pointer to accelerometer X-axis data.
+     * @param AcY int16_t* pointer to accelerometer Y-axis data.
+     * @param AcZ int16_t* pointer to accelerometer Z-axis data.
+     * @param GyX int16_t* pointer to gyroscope X-axis data.
+     * @param GyY int16_t* pointer to gyroscope Y-axis data.
+     * @param GyZ int16_t* pointer to gyroscope Z-axis data.
      * @return OK if successful, ERR otherwise.
      */
-    Result getIMU6(int16_t& AcX, int16_t& AcY, int16_t& AcZ, int16_t& GyX, int16_t& GyY, int16_t& GyZ);
+    Result getIMU6(int16_t* AcX, int16_t* AcY, int16_t* AcZ, int16_t* GyX, int16_t* GyY, int16_t* GyZ);
 
 
   private:

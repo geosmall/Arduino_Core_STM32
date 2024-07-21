@@ -15,7 +15,7 @@ static void Error_Handler()
 using namespace daisy;
 
 // Uncomment to use software driven NSS 
-// #define USE_SOFT_NSS
+#define USE_SOFT_NSS
 #define DESIRED_SPI_FREQ 1000000
 
 // Declare a DaisySeed object called hardware
@@ -42,21 +42,31 @@ int main(void)
     hardware.Configure();
     hardware.Init();
 
-    // Configure the ICM-42688P IMU SPI interface
+    // Configure the ICM-42688P IMU SPI interface (match for Matek_H743 WLITE)
     spi_conf.periph = SpiHandle::Config::Peripheral::SPI_1;
     spi_conf.mode = SpiHandle::Config::Mode::MASTER;
     spi_conf.direction = SpiHandle::Config::Direction::TWO_LINES;
     spi_conf.clock_polarity = SpiHandle::Config::ClockPolarity::HIGH;
     spi_conf.clock_phase = SpiHandle::Config::ClockPhase::TWO_EDGE;
+
 #ifdef USE_SOFT_NSS
     spi_conf.nss = SpiHandle::Config::NSS::SOFT;
 #else
     spi_conf.nss = SpiHandle::Config::NSS::HARD_OUTPUT;
-#endif // USE_SOFT_NSS
-    spi_conf.pin_config.nss = Pin(PORTA, 4);
+#endif /* USE_SOFT_NSS */
+
+#ifdef ARDUINO_FC_MatekH743
+    spi_conf.pin_config.nss  = Pin(PORTC, 15);
     spi_conf.pin_config.sclk = Pin(PORTA, 5);
     spi_conf.pin_config.miso = Pin(PORTA, 6);
+    spi_conf.pin_config.mosi = Pin(PORTD, 7);
+#else
+    spi_conf.pin_config.nss  = Pin(PORTA, 4);
+    spi_conf.pin_config.sclk = Pin(PORTA, 5);
+    spi_conf.pin_config.miso = Pin(PORTA, 6);    
     spi_conf.pin_config.mosi = Pin(PORTA, 7);
+#endif /* ARDUINO_FC_MatekH743 */
+
 
     // spi_conf.baud_prescaler = SpiHandle::Config::BaudPrescaler::PS_32;
     spi_handle.GetBaudHz(spi_conf.periph, DESIRED_SPI_FREQ, spi_conf.baud_prescaler);
