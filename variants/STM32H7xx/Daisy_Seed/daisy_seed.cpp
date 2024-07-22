@@ -1,9 +1,9 @@
 #include "daisy_seed.h"
 
-extern "C"
-{
-#include "dev/codec_ak4556.h"
-}
+// extern "C"
+// {
+// #include "dev/codec_ak4556.h"
+// }
 
 using namespace daisy;
 
