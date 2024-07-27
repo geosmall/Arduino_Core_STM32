@@ -16,7 +16,6 @@ enum LoggerDestination
     LOGGER_NONE,     /**< mute logging */
     LOGGER_INTERNAL, /**< internal USB port */
     LOGGER_EXTERNAL, /**< external USB port */
-    LOGGER_SEMIHOST, /**< stdout */
 };
 
 /** @brief Logging I/O underlying implementation
@@ -101,6 +100,8 @@ class LoggerImpl<LOGGER_EXTERNAL>
 };
 
 
+#if 0 // gls
+
 /**  @brief Specialization for semihosting (stdout)
  */
 template <>
@@ -120,6 +121,7 @@ class LoggerImpl<LOGGER_SEMIHOST>
     }
 };
 
+#endif // gls
 
 } /* namespace daisy */
 

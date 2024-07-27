@@ -119,7 +119,6 @@ void Logger<dest>::AppendNewLine()
 /** explicit forward specializations */
 template class Logger<LOGGER_INTERNAL>;
 template class Logger<LOGGER_EXTERNAL>;
-template class Logger<LOGGER_SEMIHOST>;
 
 /** LoggerImpl static member variables */
 UsbHandle LoggerImpl<LOGGER_INTERNAL>::usb_handle_;

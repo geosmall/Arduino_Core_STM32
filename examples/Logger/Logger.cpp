@@ -185,7 +185,6 @@ int main(void)
      * Don't use LOGGER_INTERNAL, since it will flood the connected terminal
      */
     ProfileDest<LOGGER_EXTERNAL>("LOGGER_EXTERNAL");
-    // ProfileDest<LOGGER_SEMIHOST>("LOGGER_SEMIHOST");
     ProfileDest<LOGGER_NONE>("LOGGER_NONE    ");
 
     /* use static method directly */
