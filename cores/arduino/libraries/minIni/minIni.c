@@ -324,24 +324,10 @@ int ini_gets(const TCHAR *Section, const TCHAR *Key, const TCHAR *DefValue,
 
   if (Buffer == NULL || BufferSize <= 0 || Key == NULL)
     return 0;
-
-  // if (ini_openread(Filename, &fp)) {
-  //   ok = getkeystring(&fp, Section, Key, -1, -1, Buffer, BufferSize, NULL);
-  //   (void)ini_close(&fp);
-  // }
-
-  char str[64];
-
-  FRESULT res = f_open(&fp, "test.ini", (FA_READ + FA_OPEN_EXISTING));
-  if (res == FR_OK)
-  {
-    while (f_gets(str, sizearray(str), &fp))
-    {
-      asm("NOP");
-    }
-    f_close(&fp);
+  if (ini_openread(Filename, &fp)) {
+    ok = getkeystring(&fp, Section, Key, -1, -1, Buffer, BufferSize, NULL);
+    (void)ini_close(&fp);
   }
-
   if (!ok)
     ini_strncpy(Buffer, (DefValue != NULL) ? DefValue : __T(""), BufferSize, QUOTE_NONE);
   return (int)_tcslen(Buffer);

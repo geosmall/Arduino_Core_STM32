@@ -21,8 +21,11 @@
 
 /** Macro for area of memory that is configured as cacheless
 This should be used primarily for DMA buffers, and the like.
+Check linker script for section location, taking note that
+DTCM and ITCM RAM are close coupled to CPU and not accessible
+by the DMA controllers. 
 */
-#define DMA_BUFFER_MEM_SECTION __attribute__((section(".sram1_bss")))
+#define DMA_BUFFER_MEM_SECTION __attribute__((section(".bss")))
 /** 
 THE DTCM RAM section is also non-cached. However, is not suitable 
 for DMA transfers. Performance is on par with internal SRAM w/ 

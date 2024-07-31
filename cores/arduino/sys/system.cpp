@@ -14,8 +14,8 @@ extern "C"
     extern void dsy_uart_global_init();
 }
 
-// boot info struct declared in persistent backup SRAM
-volatile daisy::System::BootInfo __attribute__((section(".backup_sram")))
+// boot info struct declared in persistent backup RAM
+volatile daisy::System::BootInfo __attribute__((section(".backup_ram")))
 daisy::boot_info;
 
 // Jump related stuff
