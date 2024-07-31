@@ -38,7 +38,7 @@ Flight_ctrl.menu.pnum.FC_MatekH743.build.product_line=STM32H743xx
 Flight_ctrl.menu.pnum.FC_MatekH743.build.variant=STM32H7xx/FC_MatekH743
 Flight_ctrl.menu.pnum.FC_MatekH743.build.cmsis_lib_gcc=arm_cortexM7lfsp_math
 Flight_ctrl.menu.pnum.FC_MatekH743.build.ldscript=STM32H743VI_flash.lds
-Flight_ctrl.menu.pnum.FC_MatekH743.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial} -DSTM32H743VI -DARM_MATH_CM7 -Dflash_layout -DHSE_VALUE=8000000 -DUSE_HAL_DRIVER -DUSE_FULL_LL_DRIVER -DDATA_IN_D2_SRAM -DNDEBUG=1 -DRELEASE=1
+Flight_ctrl.menu.pnum.FC_MatekH743.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial} -DSTM32H743VI -DARM_MATH_CM7 -Dflash_layout -DHSE_VALUE=8000000 -DUSE_HAL_DRIVER -DUSE_FULL_LL_DRIVER -DDATA_IN_D2_SRAM
 
 # Upload menu
 Flight_ctrl.menu.upload_method.swdMethod=STM32CubeProgrammer (SWD)
@@ -86,7 +86,7 @@ Dev_boards.menu.pnum.DevEBoxH743VI.build.series=STM32H7xx
 Dev_boards.menu.pnum.DevEBoxH743VI.build.product_line=STM32H743xx
 Dev_boards.menu.pnum.DevEBoxH743VI.build.variant=STM32H7xx/Dev_DevEBoxH743VI
 Dev_boards.menu.pnum.DevEBoxH743VI.build.cmsis_lib_gcc=arm_cortexM7lfsp_math
-Dev_boards.menu.pnum.DevEBoxH743VI.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial} -DSTM32H743VI -DARM_MATH_CM7 -Dflash_layout -DHSE_VALUE=25000000 -DUSE_HAL_DRIVER -DUSE_FULL_LL_DRIVER -DDATA_IN_D2_SRAM -DNDEBUG=1 -DRELEASE=1
+Dev_boards.menu.pnum.DevEBoxH743VI.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial} -DSTM32H743VI -DARM_MATH_CM7 -Dflash_layout -DHSE_VALUE=25000000 -DUSE_HAL_DRIVER -DUSE_FULL_LL_DRIVER -DDATA_IN_D2_SRAM
 
 # DevEBoxH750VB
 Dev_boards.menu.pnum.DevEBoxH750VB=DevEBox H750VB
@@ -102,7 +102,7 @@ Dev_boards.menu.pnum.DevEBoxH750VB.build.product_line=STM32H750xx
 Dev_boards.menu.pnum.DevEBoxH750VB.build.variant=STM32H7xx/Dev_DevEBoxH750VB
 Dev_boards.menu.pnum.DevEBoxH750VB.build.cmsis_lib_gcc=arm_cortexM7lfsp_math
 Dev_boards.menu.pnum.DevEBoxH750VB.build.ldscript=STM32H750VB_flash.lds
-Dev_boards.menu.pnum.DevEBoxH750VB.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial} -DSTM32H750VB -DARM_MATH_CM7 -Dflash_layout -DHSE_VALUE=25000000 -DUSE_HAL_DRIVER -DUSE_FULL_LL_DRIVER -DDATA_IN_D2_SRAM -DNDEBUG=1 -DRELEASE=1
+Dev_boards.menu.pnum.DevEBoxH750VB.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial} -DSTM32H750VB -DARM_MATH_CM7 -Dflash_layout -DHSE_VALUE=25000000 -DUSE_HAL_DRIVER -DUSE_FULL_LL_DRIVER -DDATA_IN_D2_SRAM
 
 # DAISY_SEED
 Dev_boards.menu.pnum.DAISY_SEED=Daisy Seed H750IB 
@@ -118,7 +118,7 @@ Dev_boards.menu.pnum.DAISY_SEED.build.product_line=STM32H750xx
 Dev_boards.menu.pnum.DAISY_SEED.build.variant=STM32H7xx/Daisy_Seed
 Dev_boards.menu.pnum.DAISY_SEED.build.cmsis_lib_gcc=arm_cortexM7lfsp_math
 Dev_boards.menu.pnum.DAISY_SEED.build.ldscript=STM32H750IB_flash.lds
-Dev_boards.menu.pnum.DAISY_SEED.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial} -DSTM32H750IB -DARM_MATH_CM7 -Dflash_layout -DHSE_VALUE=16000000 -DUSE_HAL_DRIVER -DUSE_FULL_LL_DRIVER -DDATA_IN_D2_SRAM -DNDEBUG=1 -DRELEASE=1
+Dev_boards.menu.pnum.DAISY_SEED.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial} -DSTM32H750IB -DARM_MATH_CM7 -Dflash_layout -DHSE_VALUE=16000000 -DUSE_HAL_DRIVER -DUSE_FULL_LL_DRIVER -DDATA_IN_D2_SRAM
 
 # Upload menu
 Dev_boards.menu.upload_method.swdMethod=STM32CubeProgrammer (SWD)
@@ -223,16 +223,18 @@ Dev_boards.menu.opt.o0std.build.flags.optimize=-O0
 Flight_ctrl.menu.dbg.enable_all=Core Logs and Symbols Enabled (-g)
 Flight_ctrl.menu.dbg.enable_all.build.flags.debug=-g
 Flight_ctrl.menu.dbg.none=None
+Flight_ctrl.menu.dbg.none.build.flags.debug=-DNDEBUG -DRELEASE
 Flight_ctrl.menu.dbg.enable_sym=Symbols Enabled (-g)
-Flight_ctrl.menu.dbg.enable_sym.build.flags.debug=-g -DNDEBUG
+Flight_ctrl.menu.dbg.enable_sym.build.flags.debug=-g
 Flight_ctrl.menu.dbg.enable_log=Core logs Enabled
 Flight_ctrl.menu.dbg.enable_log.build.flags.debug=
 
 Dev_boards.menu.dbg.enable_all=Core Logs and Symbols Enabled (-g)
 Dev_boards.menu.dbg.enable_all.build.flags.debug=-g
 Dev_boards.menu.dbg.none=None
+Dev_boards.menu.dbg.none.build.flags.debug=-DNDEBUG -DRELEASE
 Dev_boards.menu.dbg.enable_sym=Symbols Enabled (-g)
-Dev_boards.menu.dbg.enable_sym.build.flags.debug=-g -DNDEBUG
+Dev_boards.menu.dbg.enable_sym.build.flags.debug=-g
 Dev_boards.menu.dbg.enable_log=Core logs Enabled
 Dev_boards.menu.dbg.enable_log.build.flags.debug=
 

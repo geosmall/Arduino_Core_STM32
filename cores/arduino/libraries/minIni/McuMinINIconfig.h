@@ -43,10 +43,10 @@
 #endif
     /*!< maximum line length, maximum path length, buffer is allocated on the stack! */
 
-#ifndef NDEBUG
-  #define NDEBUG
-  /*!< comment above define to turn on assertions */
-#endif
+// #ifndef NDEBUG
+//   #define NDEBUG
+//   /*!< comment above define to turn on assertions */
+// #endif
 
 #if McuMinINI_CONFIG_FS==McuMinINI_CONFIG_FS_TYPE_FLASH_FS
   /* flash memory settings */

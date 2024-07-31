@@ -8,6 +8,7 @@
 
 #include "minIni.h"
 
+#include <string.h>
 #include <assert.h>
 
 /** This prevents us from having to type "daisy::" in front of a lot of things. */
