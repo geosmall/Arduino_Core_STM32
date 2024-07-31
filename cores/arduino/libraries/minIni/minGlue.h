@@ -1,49 +1,48 @@
-/*  Glue functions for the minIni library, based on the C/C++ stdio library
+/*  Glue functions for the minIni library, based on the FatFs and Petit-FatFs
+ *  libraries, see http://elm-chan.org/fsw/ff/00index_e.html
  *
- *  Or better said: this file contains macros that maps the function interface
- *  used by minIni to the standard C/C++ file I/O functions.
- *
- *  By CompuPhase, 2008-2014
+ *  By CompuPhase, 2008-2019
  *  This "glue file" is in the public domain. It is distributed without
  *  warranties or conditions of any kind, either express or implied.
+ *
+ *  (The FatFs and Petit-FatFs libraries are copyright by ChaN and licensed at
+ *  its own terms.)
  */
 
-// #include "McuLib.h" /* SDK and API used */
-// #include "McuMinINIconfig.h" /* MinIni config file */
+#define INI_BUFFERSIZE  256       /* maximum line length, maximum path length */
 
-#if McuMinINI_CONFIG_FS==McuMinINI_CONFIG_FS_TYPE_GENERIC
-  /* map required file I/O types and functions to the standard C library */
-  #include <stdio.h>
+/* You must set FF_USE_STRFUNC to 1 or 2 in the include file ff.h (or tff.h)
+ * to enable the "string functions" fgets() and fputs().
+ */
+#include "ff.h"                   /* include tff.h for Tiny-FatFs */
+#include <string.h>
 
-  #define INI_FILETYPE                  FILE*
-  #define ini_openread(filename,file)   ((*(file) = fopen((filename),"rb")) != NULL)
-  #define ini_openwrite(filename,file)  ((*(file) = fopen((filename),"wb")) != NULL)
-  #define ini_close(file)               (fclose(*(file)) == 0)
-  #define ini_read(buffer,size,file)    (fgets((buffer),(size),*(file)) != NULL)
-  #define ini_write(buffer,file)        (fputs((buffer),*(file)) >= 0)
-  #define ini_rename(source,dest)       (rename((source), (dest)) == 0)
-  #define ini_remove(filename)          (remove(filename) == 0)
-
-  #define INI_FILEPOS                   fpos_t
-  #define ini_tell(file,pos)            (fgetpos(*(file), (pos)) == 0)
-  #define ini_seek(file,pos)            (fsetpos(*(file), (pos)) == 0)
-
-  /* for floating-point support, define additional types and functions */
-  #define ini_ftoa(string,value)        sprintf((string),"%f",(value))
-  #define ini_atof(string)              (INI_REAL)strtod((string),NULL)
-
-  typedef char TCHAR;
-
-  int ini_init(void);
-  int ini_deinit(void);
-
-#elif McuMinINI_CONFIG_FS==McuMinINI_CONFIG_FS_TYPE_FAT_FS
-  #include "minGlue-FatFs.h"
-#elif McuMinINI_CONFIG_FS==McuMinINI_CONFIG_FS_TYPE_FLASH_FS
-  #include "minGlue-Flash.h"
-#elif McuMinINI_CONFIG_FS==McuMinINI_CONFIG_FS_TYPE_LITTLE_FS
-  #include "minGlue-LittleFS.h"
-#else
-  #error "define the type of system"
+/* When setting FF_USE_STRFUNC to 2 (for LF to CR/LF translation), INI_LINETERM
+ * should be defined to "\n" (otherwise "\r\n" will be translated by FatFS to
+ * "\r\r\n").
+*/
+#if defined _USE_STRFUNC && _USE_STRFUNC == 2 && !defined INI_LINETERM
+  #define INI_LINETERM  "\n"
 #endif
 
+#define INI_FILETYPE    FIL
+#define ini_openread(filename,file)   (f_open((file), (filename), FA_READ+FA_OPEN_EXISTING) == FR_OK)
+#define ini_openwrite(filename,file)  (f_open((file), (filename), FA_WRITE+FA_CREATE_ALWAYS) == FR_OK)
+#define ini_close(file)               (f_close(file) == FR_OK)
+#define ini_read(buffer,size,file)    f_gets((buffer), (size), (file))
+#define ini_write(buffer,file)        f_puts((buffer), (file))
+#define ini_remove(filename)          (f_unlink(filename) == FR_OK)
+
+#define INI_FILEPOS                   DWORD
+#define ini_tell(file,pos)            (*(pos) = f_tell((file)))
+#define ini_seek(file,pos)            (f_lseek((file), *(pos)) == FR_OK)
+
+/* Apply __attribute__((unused)) to the function to suppress warning */
+static int ini_rename(TCHAR *source, const TCHAR *dest) __attribute__((unused));
+static int ini_rename(TCHAR *source, const TCHAR *dest)
+{
+  /* Function f_rename() does not allow drive letters in the destination file */
+  const char *drive = strchr(dest, ':');
+  drive = (drive == NULL) ? dest : drive + 1;
+  return (f_rename(source, drive) == FR_OK);
+}

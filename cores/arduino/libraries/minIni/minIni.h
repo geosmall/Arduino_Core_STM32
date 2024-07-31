@@ -1,6 +1,6 @@
 /*  minIni - Multi-Platform INI file parser, suitable for embedded systems
  *
- *  Copyright (c) CompuPhase, 2008-2021
+ *  Copyright (c) CompuPhase, 2008-2024
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not
  *  use this file except in compliance with the License. You may obtain a copy
@@ -19,9 +19,7 @@
 #ifndef MININI_H
 #define MININI_H
 
-#include "McuMinINIconfig.h" /* MinIni config file */
 #include "minGlue.h"
-#include <stddef.h> /* for size_t */
 
 #if (defined _UNICODE || defined __UNICODE__ || defined UNICODE) && !defined INI_ANSIONLY
   #include <tchar.h>
@@ -32,42 +30,39 @@
 #endif
 
 #if !defined INI_BUFFERSIZE
-  #define INI_BUFFERSIZE  McuMinINI_CONFIG_BUFFER_SIZE
+  #define INI_BUFFERSIZE  512
 #endif
 
 #if defined __cplusplus
   extern "C" {
 #endif
 
-int   ini_getbool(const mTCHAR *Section, const mTCHAR *Key, int DefValue, const mTCHAR *Filename);
-long  ini_getl(const mTCHAR *Section, const mTCHAR *Key, long DefValue, const mTCHAR *Filename);
-int   ini_gets(const mTCHAR *Section, const mTCHAR *Key, const mTCHAR *DefValue, mTCHAR *Buffer, int BufferSize, const mTCHAR *Filename);
-int   ini_getsection(int idx, mTCHAR *Buffer, int BufferSize, const mTCHAR *Filename);
-int   ini_getkey(const mTCHAR *Section, int idx, mTCHAR *Buffer, int BufferSize, const mTCHAR *Filename);
+int  ini_getbool(const mTCHAR *Section, const mTCHAR *Key, int DefValue, const mTCHAR *Filename);
+long ini_getl(const mTCHAR *Section, const mTCHAR *Key, long DefValue, const mTCHAR *Filename);
+int  ini_gets(const mTCHAR *Section, const mTCHAR *Key, const mTCHAR *DefValue, mTCHAR *Buffer, int BufferSize, const mTCHAR *Filename);
+int  ini_getsection(int idx, mTCHAR *Buffer, int BufferSize, const mTCHAR *Filename);
+int  ini_getkey(const mTCHAR *Section, int idx, mTCHAR *Buffer, int BufferSize, const mTCHAR *Filename);
 
-int   ini_hassection(const mTCHAR *Section, const mTCHAR *Filename);
-int   ini_haskey(const mTCHAR *Section, const mTCHAR *Key, const mTCHAR *Filename);
+int  ini_hassection(const mTCHAR *Section, const mTCHAR *Filename);
+int  ini_haskey(const mTCHAR *Section, const mTCHAR *Key, const mTCHAR *Filename);
 
 #if defined INI_REAL
 INI_REAL ini_getf(const mTCHAR *Section, const mTCHAR *Key, INI_REAL DefValue, const mTCHAR *Filename);
 #endif
 
-#if !McuMinINI_CONFIG_READ_ONLY
-int   ini_putl(const mTCHAR *Section, const mTCHAR *Key, long Value, const mTCHAR *Filename);
-int   ini_puts(const mTCHAR *Section, const mTCHAR *Key, const mTCHAR *Value, const mTCHAR *Filename);
+#if !defined INI_READONLY
+int  ini_putbool(const mTCHAR *Section, const mTCHAR *Key, int Value, const mTCHAR *Filename);
+int  ini_putl(const mTCHAR *Section, const mTCHAR *Key, long Value, const mTCHAR *Filename);
+int  ini_puts(const mTCHAR *Section, const mTCHAR *Key, const mTCHAR *Value, const mTCHAR *Filename);
 #if defined INI_REAL
-int   ini_putf(const mTCHAR *Section, const mTCHAR *Key, INI_REAL Value, const mTCHAR *Filename);
+int  ini_putf(const mTCHAR *Section, const mTCHAR *Key, INI_REAL Value, const mTCHAR *Filename);
 #endif
-#endif /* !McuMinINI_CONFIG_READ_ONLY */
+#endif /* INI_READONLY */
 
 #if !defined INI_NOBROWSE
 typedef int (*INI_CALLBACK)(const mTCHAR *Section, const mTCHAR *Key, const mTCHAR *Value, void *UserData);
 int  ini_browse(INI_CALLBACK Callback, void *UserData, const mTCHAR *Filename);
 #endif /* INI_NOBROWSE */
-
-#if defined PORTABLE_STRNICMP
-int strnicmp(const TCHAR *s1, const TCHAR *s2, size_t n);
-#endif /* PORTABLE_STRNICMP */
 
 #if defined __cplusplus
   }
@@ -129,14 +124,14 @@ int strnicmp(const TCHAR *s1, const TCHAR *s2, size_t n);
       { return ini_getf(Section.c_str(), Key.c_str(), DefValue, iniFilename.c_str()); }
 #endif
 
-#if !McuMinINI_CONFIG_READ_ONLY
-    bool put(const std::string& Section, const std::string& Key, long Value) const
+#if ! defined INI_READONLY
+    bool put(const std::string& Section, const std::string& Key, bool Value)
+      { return ini_putbool(Section.c_str(), Key.c_str(), (int)Value, iniFilename.c_str()) != 0; }
+
+    bool put(const std::string& Section, const std::string& Key, long Value)
       { return ini_putl(Section.c_str(), Key.c_str(), Value, iniFilename.c_str()) != 0; }
 
     bool put(const std::string& Section, const std::string& Key, int Value)
-      { return ini_putl(Section.c_str(), Key.c_str(), (long)Value, iniFilename.c_str()) != 0; }
-
-    bool put(const std::string& Section, const std::string& Key, bool Value)
       { return ini_putl(Section.c_str(), Key.c_str(), (long)Value, iniFilename.c_str()) != 0; }
 
     bool put(const std::string& Section, const std::string& Key, const std::string& Value)
@@ -170,4 +165,3 @@ int strnicmp(const TCHAR *s1, const TCHAR *s2, size_t n);
 #endif /* __cplusplus */
 
 #endif /* MININI_H */
-

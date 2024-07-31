@@ -84,8 +84,15 @@ int main(void)
         }
     }
 
-    n = ini_gets("first", "string", "dummy", str, sizearray(str), "test.ini");
+    /* string reading */
+    n = ini_gets("first", "string", "dummy", str, sizearray(str), inifile);
     assert(n==4 && strcmp(str,"noot")==0);
+    n = ini_gets("second", "string", "dummy", str, sizearray(str), inifile);
+    assert(n==4 && strcmp(str,"mies")==0);
+    n = ini_gets("first", "undefined", "dummy", str, sizearray(str), inifile);
+    assert(n==5 && strcmp(str,"dummy")==0);
+    /* ----- */
+    hw.PrintLine("1. String reading tests passed\n");
 
     /** Infinite Loop */
     while(1)

@@ -3,7 +3,7 @@
  *  These routines are in part based on the article "Multiplatform .INI Files"
  *  by Joseph J. Graf in the March 1994 issue of Dr. Dobb's Journal.
  *
- *  Copyright (c) CompuPhase, 2008-2021
+ *  Copyright (c) CompuPhase, 2008-2024
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not
  *  use this file except in compliance with the License. You may obtain a copy
@@ -32,9 +32,7 @@
 #define MININI_IMPLEMENTATION
 #include "minIni.h"
 #if defined NDEBUG
-  #ifndef assert
-    #define assert(e)
-  #endif
+  #define assert(e)
 #else
   #include <assert.h>
 #endif
@@ -276,7 +274,7 @@ static int getkeystring(INI_FILETYPE *fp, const TCHAR *Section, const TCHAR *Key
   idx = -1;
   do {
     if (mark != NULL)
-      (void)ini_tell(fp, mark);   /* optionally keep the mark to the start of the line */
+      ini_tell(fp, mark);   /* optionally keep the mark to the start of the line */
     if (!ini_read(LocalBuffer,INI_BUFFERSIZE,fp) || *(sp = skipleading(LocalBuffer)) == '[')
       return 0;
     sp = skipleading(LocalBuffer);
@@ -564,7 +562,7 @@ int ini_browse(INI_CALLBACK Callback, void *UserData, const TCHAR *Filename)
 }
 #endif /* INI_NOBROWSE */
 
-#if !McuMinINI_CONFIG_READ_ONLY
+#if ! defined INI_READONLY
 static void ini_tempname(TCHAR *dest, const TCHAR *source, int maxlength)
 {
   TCHAR *p;
@@ -652,7 +650,7 @@ static int cache_flush(TCHAR *buffer, int *size,
     buffer[pos] = '\0'; /* force zero-termination (may be left unterminated in the above while loop) */
     (void)ini_write(buffer, wfp);
   }
-  (void)ini_tell(rfp, mark);  /* update mark */
+  ini_tell(rfp, mark);  /* update mark */
   *size = 0;
   /* return whether the buffer ended with a line termination */
   return (pos > terminator_len) && (_tcscmp(buffer + pos - terminator_len, INI_LINETERM) == 0);
@@ -684,6 +682,7 @@ int ini_puts(const TCHAR *Section, const TCHAR *Key, const TCHAR *Value, const T
   INI_FILETYPE wfp;
   INI_FILEPOS mark;
   INI_FILEPOS head;
+  INI_FILEPOS tail __attribute__((__unused__)); // gls - needded to suppress warning
   TCHAR *sp, *ep;
   TCHAR LocalBuffer[INI_BUFFERSIZE];
   int len, match, flag, cachelen;
@@ -719,9 +718,8 @@ int ini_puts(const TCHAR *Section, const TCHAR *Key, const TCHAR *Value, const T
        * glue file permits file read/write access, we can modify in place.
        */
       #if defined ini_openrewrite || defined INI_OPENREWRITE
-        INI_FILEPOS tail;
-       /* we already have the start of the (raw) line, get the end too */
-        (void)ini_tell(&rfp, &tail);
+        /* we already have the start of the (raw) line, get the end too */
+        ini_tell(&rfp, &tail);
         /* create new buffer (without writing it to file) */
         writekey(LocalBuffer, Key, Value, NULL);
         if (_tcslen(LocalBuffer) == (size_t)(tail - head)) {
@@ -952,5 +950,18 @@ int ini_putf(const TCHAR *Section, const TCHAR *Key, INI_REAL Value, const TCHAR
   return ini_puts(Section, Key, LocalBuffer, Filename);
 }
 #endif /* INI_REAL */
-#endif /* !INI_READONLY */
 
+/** ini_putbool()
+ * \param Section     the name of the section to write the value in
+ * \param Key         the name of the entry to write
+ * \param Value       the value to write; it should be 0 or 1.
+ * \param Filename    the name and full path of the .ini file to write to
+ *
+ * \return            1 if successful, otherwise 0
+ */
+int ini_putbool(const TCHAR *Section, const TCHAR *Key, int Value, const TCHAR *Filename)
+{
+  return ini_puts(Section, Key, Value ? __T("true") : __T("false"), Filename);
+}
+
+#endif /* !INI_READONLY */
