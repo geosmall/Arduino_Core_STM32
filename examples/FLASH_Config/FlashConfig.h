@@ -17,6 +17,9 @@ struct FlashBlock {
     uint8_t data[DATA_BLOCK_SIZE - DATA_HEADER_SIZE]; // Adjust size to fit within 2K block
 };
 
+// Define the size of the data sectin in FlashBlock
+constexpr uint32_t FlashBlockDataSize = sizeof(FlashBlock::data);
+
 // Define the flash sector to use for storing configuration data
 constexpr uint32_t FLASH_SECTOR_ADDRESS = 0x081E0000; // Address of Sector 7 in Bank 2
 constexpr uint32_t FLASH_SECTOR_BANK    = FLASH_BANK_2;

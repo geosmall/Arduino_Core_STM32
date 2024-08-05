@@ -26,14 +26,14 @@ static uint32_t CalculateCRC32(uint8_t* data, uint32_t length)
 
 namespace daisy
 {
-
 FlashConfig::Result FlashConfig::SaveConfigData(const uint8_t* data, uint32_t length)
 {
-    if (length > sizeof(((FlashBlock*) 0)->data))
-    {
-        return Result::ERR;
-        ; // Data too large
-    }
+    // Check input paramaters
+    if (data == nullptr || length == 0) return Result::ERR;
+
+    // Check if the data is too large to fit in block
+    // if (length > sizeof(((FlashBlock*) 0)->data))
+    if (length > FlashBlockDataSize) return Result::ERR;
 
     uint32_t nextBlockIndex = GetNextUnusedBlockIndex();
     if (nextBlockIndex == NUM_BLOCKS)
