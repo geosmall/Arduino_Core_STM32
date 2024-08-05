@@ -46,41 +46,45 @@ FlashConfig::Result FlashConfig::SaveConfigData(const uint8_t* data, uint32_t le
         nextBlockIndex = 0;
     }
 
-    FlashBlock newBlock;
-    newBlock.magic = MAGIC_NUMBER;
-    newBlock.index = nextBlockIndex;
-    memcpy(newBlock.data, data, length);
-    newBlock.crc32 = CalculateCRC32(newBlock.data, sizeof(newBlock.data));
-
-    uint32_t address = FLASH_SECTOR_ADDRESS + nextBlockIndex * sizeof(FlashBlock);
+    // FlashBlock newBlock;
+    // newBlock.magic = MAGIC_NUMBER;
+    // newBlock.index = nextBlockIndex;
+    // std::memcpy(newBlock.data, data, length);
+    // newBlock.crc32 = CalculateCRC32(newBlock.data, sizeof(newBlock.data));
 
     // Unlock the Flash to enable the flash control register access
     HAL_FLASH_Unlock();
 
-    HAL_StatusTypeDef status = HAL_OK;
-    uint32_t* blockPtr = (uint32_t*) &newBlock;
-    for (uint32_t i = 0; i < sizeof(FlashBlock) / 4; i += 8)
-    {
-/**
-  * HAL_StatusTypeDef HAL_FLASH_Program(uint32_t TypeProgram, uint32_t FlashAddress, uint32_t DataAddress)
-  * @brief  Program flash word of 256 bits at a specified address
-  * @param  TypeProgram Indicate the way to program at a specified address.
-  *         This parameter can be a value of @ref FLASH_Type_Program
-  * @param  FlashAddress specifies the address to be programmed.
-  * @param  DataAddress specifies the address of data (256 bits) to be programmed
-  *
-  * @retval HAL_StatusTypeDef HAL Status
-  */        status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, address + i * 4, (uint64_t) blockPtr[i]);
-        if (status != HAL_OK)
-        {
-            break;
+    // Clear any pending effor flags
+    __HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_ALL_ERRORS_BANK2);
+
+    uint32_t address = FLASH_SECTOR_ADDRESS + nextBlockIndex * sizeof(FlashBlock);
+    uint32_t remaining = length;    // Count of remaining bytes to be written
+    uint32_t offset = 0;            // Offset within the data buffer
+
+    while (remaining > 0) {
+        uint32_t chunkSize = (remaining >= 32) ? 32 : remaining;
+        uint8_t buffer[32] = {0xFF}; // Initialize buffer with all 0xFF
+
+        // void *memcpy(void* _Dst, const void* _Src, size_t _Size)
+        memcpy(buffer, data + offset, chunkSize);
+
+        if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, address, reinterpret_cast<uint32_t>(buffer)) != HAL_OK) {
+            HAL_FLASH_Lock();
+            return Result::ERR;
         }
+
+        // Move to the next 32-byte chunk by incrementing the address and offset
+        // and decrementing the remaining bytes by the chunk size
+        address += 32;
+        offset += chunkSize;
+        remaining -= chunkSize;
     }
 
     // Lock the Flash to disable the flash control register access
     HAL_FLASH_Lock();
 
-    return (status == HAL_OK) ? Result::OK : Result::ERR;
+    return Result::OK;
 }
 
 FlashConfig::Result FlashConfig::GetCurrentConfigDataSize(uint32_t* size)
