@@ -25,7 +25,7 @@ int main(void)
 
     FlashConfig flashConfig;
 
-    static_assert((NUM_TEST_DATA_BYTES <= daisy::DATA_NUM_BYTES),
+    static_assert((NUM_TEST_DATA_BYTES <= daisy::FlashBlockDataSize),
                   "Data to save is too large");
 
     uint8_t dataToSave[NUM_TEST_DATA_BYTES];

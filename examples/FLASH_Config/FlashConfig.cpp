@@ -3,7 +3,7 @@
 #include <string.h>
 
 // CRC-32 calculation function
-static uint32_t CalculateCRC32(uint8_t* data, uint32_t length)
+static uint32_t CalculateCRC32(const uint8_t* data, uint32_t length)
 {
     uint32_t crc = 0xFFFFFFFF;
     for (uint32_t i = 0; i < length; i++)
@@ -26,6 +26,7 @@ static uint32_t CalculateCRC32(uint8_t* data, uint32_t length)
 
 namespace daisy
 {
+
 FlashConfig::Result FlashConfig::SaveConfigData(const uint8_t* data, uint32_t length)
 {
     // Check input paramaters
@@ -55,30 +56,55 @@ FlashConfig::Result FlashConfig::SaveConfigData(const uint8_t* data, uint32_t le
     // Unlock the Flash to enable the flash control register access
     HAL_FLASH_Unlock();
 
-    // Clear any pending effor flags
-    __HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_ALL_ERRORS_BANK2);
+    // Clear pending flags (if any)
+    __HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_EOP | FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGSERR |
+                           FLASH_FLAG_WRPERR);
 
     uint32_t address = FLASH_SECTOR_ADDRESS + nextBlockIndex * sizeof(FlashBlock);
-    uint32_t remaining = length;    // Count of remaining bytes to be written
-    uint32_t offset = 0;            // Offset within the data buffer
 
-    while (remaining > 0) {
-        uint32_t chunkSize = (remaining >= 32) ? 32 : remaining;
+    uint32_t bytes_remaining = length; // Count of bytes_remaining bytes to be written
+    uint32_t offset_ptr = 0; // Offset within the data buffer
+
+    bool header_chunk = true; // Flag to indicate header chunk
+
+    while (bytes_remaining > 0) {
+        uint32_t bytes_to_write;
         uint8_t buffer[32] = {0xFF}; // Initialize buffer with all 0xFF
 
-        // void *memcpy(void* _Dst, const void* _Src, size_t _Size)
-        memcpy(buffer, data + offset, chunkSize);
+        if (header_chunk)
+        {
+            // Calculate the number of data bytes to write in the header chunk
+            uint32_t data_bytes_in_header_chunck = 32 - FlashBlockHeaderSize;
+            bytes_to_write = (bytes_remaining >= data_bytes_in_header_chunck) ? data_bytes_in_header_chunck : bytes_remaining;
+
+            // Populate the header fields in buffer
+            FlashBlockHeader header;
+            header.magic = MAGIC_NUMBER;
+            header.index = nextBlockIndex;
+            header.bytes = length;
+            header.crc32 = CalculateCRC32(data, length);
+            // memcpy(Destination, Source, Size)
+            memcpy(buffer, &header, FlashBlockHeaderSize);
+            // Populate data in the remaining bytes of buffer
+            header_chunk = false;
+        } else {
+            // Make sure we don't exceed the 32-byte chunk size
+            bytes_to_write = (bytes_remaining >= 32) ? 32 : bytes_remaining;
+
+            // memcpy(Destination, Source, Size)
+            memcpy(buffer, data + offset_ptr, bytes_remaining);
+        }
 
         if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, address, reinterpret_cast<uint32_t>(buffer)) != HAL_OK) {
             HAL_FLASH_Lock();
             return Result::ERR;
         }
 
-        // Move to the next 32-byte chunk by incrementing the address and offset
-        // and decrementing the remaining bytes by the chunk size
+        // Move to the next 32-byte chunk by incrementing the address and offset_ptr
+        // and decrementing the bytes_remaining bytes by the chunk size
         address += 32;
-        offset += chunkSize;
-        remaining -= chunkSize;
+        offset_ptr += bytes_to_write;
+        bytes_remaining -= bytes_to_write;
     }
 
     // Lock the Flash to disable the flash control register access
@@ -93,7 +119,7 @@ FlashConfig::Result FlashConfig::GetCurrentConfigDataSize(uint32_t* size)
     if (block == NULL) return Result::ERR;
 
     // put the size of the data block into the size pointer
-    *size = block->bytes;
+    *size = block->header.bytes;
     return Result::OK;
 }
 
@@ -108,7 +134,7 @@ FlashConfig::Result FlashConfig::ReadCurrentConfigData(uint8_t* data, uint32_t l
 
 FlashConfig::Result FlashConfig::VerifyBlockCRC32(FlashBlock* block)
 {
-    if (block->crc32 != CalculateCRC32(block->data, block->bytes))
+    if (block->header.crc32 != CalculateCRC32(block->data, block->header.bytes))
     {
         return Result::ERR;
     }
@@ -144,7 +170,7 @@ FlashBlock* FlashConfig::GetLatestDataBlock(void)
     for (int32_t i = NUM_BLOCKS - 1; i >= 0; i--)
     {
         FlashBlock* block = (FlashBlock*) (FLASH_SECTOR_ADDRESS + i * sizeof(FlashBlock));
-        if (block->magic == MAGIC_NUMBER)
+        if (block->header.magic == MAGIC_NUMBER)
         {
             return block;
         }
@@ -157,58 +183,12 @@ uint32_t FlashConfig::GetNextUnusedBlockIndex(void)
     for (uint32_t i = 0; i < NUM_BLOCKS; i++)
     {
         FlashBlock* block = (FlashBlock*) (FLASH_SECTOR_ADDRESS + i * sizeof(FlashBlock));
-        if (block->magic != MAGIC_NUMBER)
+        if (block->header.magic != MAGIC_NUMBER)
         {
             return i;
         }
     }
     return NUM_BLOCKS; // No available block found
-}
-
-FlashConfig::Result FlashConfig::WriteNextDataBlock(uint8_t* Data, uint32_t Length)
-{
-    if (Length > sizeof(((FlashBlock*) 0)->data))
-    {
-        return Result::ERR; // Data too large
-    }
-
-    uint32_t nextBlockIndex = GetNextUnusedBlockIndex();
-    if (nextBlockIndex == NUM_BLOCKS)
-    {
-        // No available block, erase the sector
-        if (EraseSector() != Result::OK)
-        {
-            return Result::ERR;
-        }
-        nextBlockIndex = 0;
-    }
-
-    FlashBlock newBlock;
-    newBlock.magic = MAGIC_NUMBER;
-    newBlock.index = nextBlockIndex;
-    memcpy(newBlock.data, Data, Length);
-    newBlock.crc32 = CalculateCRC32(newBlock.data, sizeof(newBlock.data));
-
-    uint32_t address = FLASH_SECTOR_ADDRESS + nextBlockIndex * sizeof(FlashBlock);
-
-    // Unlock the Flash to enable the flash control register access
-    HAL_FLASH_Unlock();
-
-    HAL_StatusTypeDef status = HAL_OK;
-    uint32_t* blockPtr = (uint32_t*) &newBlock;
-    for (uint32_t i = 0; i < sizeof(FlashBlock) / 4; i += 8)
-    {
-        status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, address + i * 4, (uint64_t) blockPtr[i]);
-        if (status != HAL_OK)
-        {
-            break;
-        }
-    }
-
-    // Lock the Flash to disable the flash control register access
-    HAL_FLASH_Lock();
-
-    return (status == HAL_OK) ? Result::OK : Result::ERR;
 }
 
 } // namespace daisy

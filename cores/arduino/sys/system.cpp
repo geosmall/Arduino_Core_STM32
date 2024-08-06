@@ -1,6 +1,7 @@
 #ifndef UNIT_TEST // for unit tests, a dummy implementation is provided below
 #include <stm32h7xx_hal.h>
 #include <stm32yyxx.h>
+#include "daisy_core.h"
 #include "sys/system.h"
 #include "sys/dma.h"
 #include "per/gpio.h"
@@ -423,7 +424,8 @@ void System::ConfigureMpu()
 {
     MPU_Region_InitTypeDef MPU_InitStruct;
     HAL_MPU_Disable();
-    // Configure RAM D2 (SRAM1) as non cacheable
+
+    // Configure 32K of RAM D2 (DR SRAM1) as non cacheable for DMA buffer use
     MPU_InitStruct.Enable           = MPU_REGION_ENABLE;
     MPU_InitStruct.BaseAddress      = 0x30000000;
     MPU_InitStruct.Size             = MPU_REGION_SIZE_32KB;
@@ -437,13 +439,19 @@ void System::ConfigureMpu()
     MPU_InitStruct.DisableExec      = MPU_INSTRUCTION_ACCESS_ENABLE;
     HAL_MPU_ConfigRegion(&MPU_InitStruct);
 
-    MPU_InitStruct.IsCacheable  = MPU_ACCESS_CACHEABLE;
-    MPU_InitStruct.IsBufferable = MPU_ACCESS_BUFFERABLE;
-    MPU_InitStruct.IsShareable  = MPU_ACCESS_NOT_SHAREABLE;
-    MPU_InitStruct.Number       = MPU_REGION_NUMBER1;
-    MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL0;
-    MPU_InitStruct.Size         = MPU_REGION_SIZE_64MB;
-    MPU_InitStruct.BaseAddress  = 0xC0000000;
+    // Configure the MPU attributes as Normal, Non Cacheable for
+    // Flash Bank B sector 7 used as persistant config storage
+    MPU_InitStruct.Enable = MPU_REGION_ENABLE;
+    MPU_InitStruct.BaseAddress = ADDR_FLASH_SECTOR_7_BANK2;
+    MPU_InitStruct.Size = MPU_REGION_SIZE_128KB;
+    MPU_InitStruct.AccessPermission = MPU_REGION_FULL_ACCESS;
+    MPU_InitStruct.IsBufferable = MPU_ACCESS_NOT_BUFFERABLE;
+    MPU_InitStruct.IsCacheable = MPU_ACCESS_NOT_CACHEABLE;
+    MPU_InitStruct.IsShareable = MPU_ACCESS_NOT_SHAREABLE;
+    MPU_InitStruct.Number = MPU_REGION_NUMBER1;
+    MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL1;
+    MPU_InitStruct.SubRegionDisable = 0x00;
+    MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_ENABLE;
     HAL_MPU_ConfigRegion(&MPU_InitStruct);
 
     // Configure the backup SRAM region as non-cacheable

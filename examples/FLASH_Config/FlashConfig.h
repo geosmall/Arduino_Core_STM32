@@ -6,15 +6,21 @@
 
 namespace daisy
 {
-constexpr uint32_t DATA_BLOCK_SIZE      = 2048;       // 2K block size
-constexpr uint32_t DATA_HEADER_SIZE     = 16;         // magic + index + bytes + crc
 
-struct FlashBlock {
+constexpr uint32_t DATA_BLOCK_SIZE = 2048; // 2K block size
+
+struct FlashBlockHeader {
     uint32_t magic;
     uint32_t index;
     uint32_t bytes;
     uint32_t crc32;
-    uint8_t data[DATA_BLOCK_SIZE - DATA_HEADER_SIZE]; // Adjust size to fit within 2K block
+};
+
+constexpr uint32_t FlashBlockHeaderSize = sizeof(FlashBlockHeader);
+
+struct FlashBlock {
+    FlashBlockHeader header;
+    uint8_t data[DATA_BLOCK_SIZE - FlashBlockHeaderSize]; // Adjust size to fit within 2K block
 };
 
 // Define the size of the data sectin in FlashBlock
@@ -27,7 +33,7 @@ constexpr uint32_t FLASH_SECTOR_NUM     = FLASH_SECTOR_7;
 
 // Define the magic number to identify valid blocks and the number of bytes available for data
 constexpr uint32_t MAGIC_NUMBER         = 0xDEADBEEF; // Magic number to identify valid blocks
-constexpr uint32_t DATA_NUM_BYTES       = DATA_BLOCK_SIZE - DATA_HEADER_SIZE;
+// constexpr uint32_t DATA_NUM_BYTES       = DATA_BLOCK_SIZE - DATA_HEADER_SIZE;
 constexpr uint32_t NUM_BLOCKS           = FLASH_SECTOR_SIZE / sizeof(FlashBlock); // FLASH_SECTOR_SIZE from stm32h7yyxx.h
 
 class FlashConfig
@@ -70,11 +76,6 @@ class FlashConfig
     // Find index to next available block
     // Returns NUM_BLOCKS if no blocks are available
     uint32_t GetNextUnusedBlockIndex(void);
-
-    // Write data to block with wear leveling
-    // Returns OK if successful, ERR otherwise
-    Result WriteNextDataBlock(uint8_t *Data, uint32_t Length);
-
 };
 
 } // namespace daisy

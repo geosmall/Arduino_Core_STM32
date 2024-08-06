@@ -33,6 +33,10 @@ cache enabled.
 */
 #define DTCM_MEM_SECTION __attribute__((section(".dtcmram_bss")))
 
+/** Flash Bank B sector 7 used as persistant config storage 
+*/
+#define ADDR_FLASH_SECTOR_7_BANK2     ((uint32_t)0x081E0000) /* Base @ of Sector 7, 128 Kbytes */
+
 #define FBIPMAX 0.999985f             /**< close to 1.0f-LSB at 16 bit */
 #define FBIPMIN (-FBIPMAX)            /**< - (1 - LSB) */
 #define U82F_SCALE 0.0078740f         /**< 1 / 127 */
