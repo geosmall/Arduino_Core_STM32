@@ -30,11 +30,13 @@ constexpr uint32_t FlashBlockDataSize = sizeof(FlashBlock::data);
 constexpr uint32_t FLASH_SECTOR_ADDRESS = 0x081E0000; // Address of Sector 7 in Bank 2
 constexpr uint32_t FLASH_SECTOR_BANK    = FLASH_BANK_2;
 constexpr uint32_t FLASH_SECTOR_NUM     = FLASH_SECTOR_7;
+constexpr uint32_t FLASH_WRITE_SIZE     = 32;
 
 // Define the magic number to identify valid blocks and the number of bytes available for data
 constexpr uint32_t MAGIC_NUMBER         = 0xDEADBEEF; // Magic number to identify valid blocks
-// constexpr uint32_t DATA_NUM_BYTES       = DATA_BLOCK_SIZE - DATA_HEADER_SIZE;
 constexpr uint32_t NUM_BLOCKS           = FLASH_SECTOR_SIZE / sizeof(FlashBlock); // FLASH_SECTOR_SIZE from stm32h7yyxx.h
+
+constexpr uint32_t NumDataBytesHeaderChunk = FLASH_WRITE_SIZE - FlashBlockHeaderSize;
 
 class FlashConfig
 {
