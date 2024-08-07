@@ -30,7 +30,7 @@ constexpr uint32_t FlashBlockDataSize = sizeof(FlashBlock::data);
 constexpr uint32_t FLASH_SECTOR_ADDRESS = 0x081E0000; // Address of Sector 7 in Bank 2
 constexpr uint32_t FLASH_SECTOR_BANK    = FLASH_BANK_2;
 constexpr uint32_t FLASH_SECTOR_NUM     = FLASH_SECTOR_7;
-constexpr uint32_t FLASH_WRITE_SIZE     = 32;
+constexpr uint32_t FLASH_WRITE_SIZE     = 32; // Flash write size for STM32H7xx
 
 // Define the magic number to identify valid blocks and the number of bytes available for data
 constexpr uint32_t MAGIC_NUMBER         = 0xDEADBEEF; // Magic number to identify valid blocks
@@ -43,8 +43,8 @@ class FlashConfig
   public:
     enum class Result
     {
-        OK, /**< & */
-        ERR /**< & */
+        OK, // No error
+        ERR // Error occurred
     };
 
     FlashConfig() {}

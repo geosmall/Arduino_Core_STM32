@@ -1,9 +1,12 @@
 #include "FlashConfig.h"
+#include "sys/system.h"
 #include "stm32h7xx_hal.h"
 #include <string.h>
 
-// 'LIMIT' const expression to limit a value to MAX
-#define LIMIT(value, max) ((value) > (max) ? (max) : (value))
+static FORCE_INLINE uint32_t limit(uint32_t value, uint32_t max)
+{
+    return (value > max) ? max : value;
+}
 
 // CRC-32 calculation function
 static uint32_t CalculateCRC32(const uint8_t* data, uint32_t length)
@@ -60,56 +63,74 @@ FlashConfig::Result FlashConfig::SaveConfigData(const uint8_t* data, uint32_t le
     __HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_EOP | FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGSERR |
                            FLASH_FLAG_WRPERR);
 
+    SCB_DisableICache();
+    SCB_DisableDCache();
+
     uint32_t address = FLASH_SECTOR_ADDRESS + nextBlockIndex * sizeof(FlashBlock);
 
     uint32_t bytes_remaining = length; // Count of bytes_remaining bytes to be written
-    uint32_t offset_ptr = 0; // Offset within 'data' buffer
+    uint32_t offset_ptr = 0;           // Offset within 'data' buffer
 
-    bool header_chunk = true; // Flag to indicate header chunk
+    // Initialize buffer with all 0xFF
+    memset(buffer, 0xFF, FLASH_WRITE_SIZE);
 
-    while (bytes_remaining > 0) {
-        uint32_t bytes_write;
-        // Initialize buffer with all 0xFF
-        memset(buffer, 0xFF, FLASH_WRITE_SIZE);
+    // Populate the header fields in buffer
+    FlashBlockHeader header;
+    header.magic = MAGIC_NUMBER;
+    header.index = nextBlockIndex;
+    header.bytes = length;
+    header.crc32 = CalculateCRC32(data, length);
 
-        if (header_chunk)
+    // Put header in buffer - memcpy(Destination, Source, Size)
+    memcpy(buffer, &header, FlashBlockHeaderSize);
+
+    // Max bytes to write on first chunk FLASH_WRITE_SIZE minus header size
+    uint32_t bytes_max = FLASH_WRITE_SIZE - FlashBlockHeaderSize;
+
+    bool first_chunk = true;
+
+    while (bytes_remaining > 0)
+    {
+        uint32_t bytes_to_write = limit(bytes_remaining, bytes_max);
+
+        if (first_chunk)
         {
-            // Populate the header fields in buffer
-            FlashBlockHeader header;
-            header.magic = MAGIC_NUMBER;
-            header.index = nextBlockIndex;
-            header.bytes = length;
-            header.crc32 = CalculateCRC32(data, length);
-            // memcpy(Destination, Source, Size)
-            memcpy(buffer, &header, FlashBlockHeaderSize);
-
-            // Populate data in the remaining bytes of buffer
-            bytes_write = (bytes_remaining >= NumDataBytesHeaderChunk) ? NumDataBytesHeaderChunk : bytes_remaining;
-            memcpy(buffer + FlashBlockHeaderSize, data, bytes_write);
-
-            header_chunk = false;
-        } else {
-            // Make sure we don't exceed the FLASH_WRITE_SIZE-byte chunk size
-            bytes_write = (bytes_remaining >= FLASH_WRITE_SIZE) ? FLASH_WRITE_SIZE : bytes_remaining;
-            memcpy(buffer, data + offset_ptr, bytes_write);
+            memcpy(buffer + FlashBlockHeaderSize, data, bytes_to_write);
+            first_chunk = false;
+            bytes_max = FLASH_WRITE_SIZE;
+        }
+        else
+        {
+            memcpy(buffer, data + offset_ptr, bytes_to_write);
         }
 
         // NOTE: writes FLASHWORDs which are FLASH_WRITE_SIZE bytes in size (defined in header file)
         // HAL_FLASH_Program(uint32_t TypeProgram, uint32_t FlashAddress, uint32_t DataAddress)
-        if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, address, reinterpret_cast<uint32_t>(buffer)) != HAL_OK) {
+        if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, address, reinterpret_cast<uint32_t>(buffer)) != HAL_OK)
+        {
             HAL_FLASH_Lock();
             return Result::ERR;
         }
 
         // Move to the next chunk by incrementing the address and offset_ptr
-        // and decrementing the bytes_remaining bytes by the chunk size
+        // and decrement bytes_remaining bytes by the written number of bytes
         address += FLASH_WRITE_SIZE;
-        offset_ptr += bytes_write;
-        bytes_remaining -= bytes_write;
+        offset_ptr += bytes_to_write;
+        bytes_remaining -= bytes_to_write;
+
+        // Reset buffer with all 0xFF
+        memset(buffer, 0xFF, FLASH_WRITE_SIZE);
     }
 
     // Lock the Flash to disable the flash control register access
     HAL_FLASH_Lock();
+
+    // After programming, the caches can be restored to previous state
+    if (System::UseDcache())
+    {
+        SCB_EnableICache();
+    }
+    SCB_EnableDCache();
 
     return Result::OK;
 }
