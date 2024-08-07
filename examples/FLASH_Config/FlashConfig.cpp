@@ -8,6 +8,18 @@ static FORCE_INLINE uint32_t limit(uint32_t value, uint32_t max)
     return (value > max) ? max : value;
 }
 
+#if defined (__ICACHE_PRESENT) && (__ICACHE_PRESENT == 1U)
+static bool isICacheEnabled() { return (SCB->CCR & SCB_CCR_IC_Msk) != 0; }
+#else
+#pragma error "expected ICACHE_PRESENT to be defined as 1 in FlashConfig.cpp"
+#endif /* defined (__ICACHE_PRESENT) && (__ICACHE_PRESENT == 1U) */
+
+#if defined (__DCACHE_PRESENT) && (__DCACHE_PRESENT == 1U)
+static bool isDCacheEnabled() { return (SCB->CCR & SCB_CCR_DC_Msk) != 0; }
+#else
+#pragma error "expected DCACHE_PRESENT to be defined as 1 in FlashConfig.cpp"
+#endif /* defined (__DCACHE_PRESENT) && (__DCACHE_PRESENT == 1U) */
+
 // CRC-32 calculation function
 static uint32_t CalculateCRC32(const uint8_t* data, uint32_t length)
 {
@@ -62,6 +74,9 @@ FlashConfig::Result FlashConfig::SaveConfigData(const uint8_t* data, uint32_t le
     // Clear pending flags (if any)
     __HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_EOP | FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGSERR |
                            FLASH_FLAG_WRPERR);
+
+    bool icache_saved_status = isICacheEnabled();
+    bool dcache_saved_status = isDCacheEnabled();
 
     SCB_DisableICache();
     SCB_DisableDCache();
@@ -126,11 +141,8 @@ FlashConfig::Result FlashConfig::SaveConfigData(const uint8_t* data, uint32_t le
     HAL_FLASH_Lock();
 
     // After programming, the caches can be restored to previous state
-    if (System::UseDcache())
-    {
-        SCB_EnableICache();
-    }
-    SCB_EnableDCache();
+    if (icache_saved_status) { SCB_EnableICache(); }
+    if (dcache_saved_status) { SCB_EnableDCache(); }
 
     return Result::OK;
 }
