@@ -1,24 +1,30 @@
 #include "FlashConfig.h"
-#include "sys/system.h"
 #include "stm32h7xx_hal.h"
+#include "sys/system.h"
 #include <string.h>
+
+#if defined(__ICACHE_PRESENT) && (__ICACHE_PRESENT == 1U)
+static bool isICacheEnabled()
+{
+    return (SCB->CCR & SCB_CCR_IC_Msk) != 0;
+}
+#else
+#pragma error "expected __ICACHE_PRESENT to be defined as 1 in FlashConfig.cpp"
+#endif /* defined (__ICACHE_PRESENT) && (__ICACHE_PRESENT == 1U) */
+
+#if defined(__DCACHE_PRESENT) && (__DCACHE_PRESENT == 1U)
+static bool isDCacheEnabled()
+{
+    return (SCB->CCR & SCB_CCR_DC_Msk) != 0;
+}
+#else
+#pragma error "expected __DCACHE_PRESENT to be defined as 1 in FlashConfig.cpp"
+#endif /* defined (__DCACHE_PRESENT) && (__DCACHE_PRESENT == 1U) */
 
 static FORCE_INLINE uint32_t limit(uint32_t value, uint32_t max)
 {
     return (value > max) ? max : value;
 }
-
-#if defined (__ICACHE_PRESENT) && (__ICACHE_PRESENT == 1U)
-static bool isICacheEnabled() { return (SCB->CCR & SCB_CCR_IC_Msk) != 0; }
-#else
-#pragma error "expected ICACHE_PRESENT to be defined as 1 in FlashConfig.cpp"
-#endif /* defined (__ICACHE_PRESENT) && (__ICACHE_PRESENT == 1U) */
-
-#if defined (__DCACHE_PRESENT) && (__DCACHE_PRESENT == 1U)
-static bool isDCacheEnabled() { return (SCB->CCR & SCB_CCR_DC_Msk) != 0; }
-#else
-#pragma error "expected DCACHE_PRESENT to be defined as 1 in FlashConfig.cpp"
-#endif /* defined (__DCACHE_PRESENT) && (__DCACHE_PRESENT == 1U) */
 
 // CRC-32 calculation function
 static uint32_t CalculateCRC32(const uint8_t* data, uint32_t length)
@@ -68,6 +74,8 @@ FlashConfig::Result FlashConfig::SaveConfigData(const uint8_t* data, uint32_t le
         nextBlockIndex = 0;
     }
 
+    uint32_t address = FLASH_SECTOR_ADDRESS + nextBlockIndex * sizeof(FlashBlock);
+
     // Unlock the Flash to enable the flash control register access
     HAL_FLASH_Unlock();
 
@@ -76,14 +84,12 @@ FlashConfig::Result FlashConfig::SaveConfigData(const uint8_t* data, uint32_t le
                            FLASH_FLAG_WRPERR);
 
     bool icache_saved_status = isICacheEnabled();
-    bool dcache_saved_status = isDCacheEnabled();
-
     SCB_DisableICache();
+
+    bool dcache_saved_status = isDCacheEnabled();
     SCB_DisableDCache();
 
-    uint32_t address = FLASH_SECTOR_ADDRESS + nextBlockIndex * sizeof(FlashBlock);
-
-    uint32_t bytes_remaining = length; // Count of bytes_remaining bytes to be written
+    int32_t bytes_remaining = length; // Count of bytes_remaining bytes to be written
     uint32_t offset_ptr = 0;           // Offset within 'data' buffer
 
     // Initialize buffer with all 0xFF
@@ -141,8 +147,8 @@ FlashConfig::Result FlashConfig::SaveConfigData(const uint8_t* data, uint32_t le
     HAL_FLASH_Lock();
 
     // After programming, the caches can be restored to previous state
-    if (icache_saved_status) { SCB_EnableICache(); }
-    if (dcache_saved_status) { SCB_EnableDCache(); }
+    if (icache_saved_status) SCB_EnableICache();
+    if (dcache_saved_status) SCB_EnableDCache();
 
     return Result::OK;
 }
@@ -166,8 +172,11 @@ FlashConfig::Result FlashConfig::ReadCurrentConfigData(uint8_t* data, uint32_t l
     return Result::OK;
 }
 
-FlashConfig::Result FlashConfig::VerifyBlockCRC32(FlashBlock* block)
+FlashConfig::Result FlashConfig::VerifyCurrentConfigCRC(void)
 {
+    FlashBlock* block = GetLatestDataBlock();
+    if (block == NULL || block->header.magic != MAGIC_NUMBER) return Result::ERR;
+
     if (block->header.crc32 != CalculateCRC32(block->data, block->header.bytes))
     {
         return Result::ERR;

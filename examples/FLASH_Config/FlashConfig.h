@@ -62,9 +62,9 @@ class FlashConfig
     // Returns OK if successful, ERR otherwise (i.e. no data available)
     Result ReadCurrentConfigData(uint8_t* data, uint32_t length);
 
-    // Verify CRC-32 of specified block
+    // Verify CRC-32 of current config data in flash
     // Returns OK if successful, ERR otherwise (i.e. no data available)
-    Result VerifyBlockCRC32(FlashBlock *block);
+    Result VerifyCurrentConfigCRC(void);
 
   private:
     // Erase the entire flash sector

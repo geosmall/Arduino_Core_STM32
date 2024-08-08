@@ -2,7 +2,7 @@
 #include <string.h>
 #include "FlashConfig.h"
 
-#define NUM_TEST_DATA_BYTES 20
+#define NUM_TEST_DATA_BYTES 36
 
 // Use the daisy namespace to prevent having to type
 // daisy:: before all libdaisy functions
@@ -28,7 +28,7 @@ int main(void)
     static_assert((NUM_TEST_DATA_BYTES <= daisy::FlashBlockDataSize),
                   "Data to save is too large");
 
-    uint8_t dataToSave[NUM_TEST_DATA_BYTES];
+    uint8_t dataToSave[NUM_TEST_DATA_BYTES] = {0};
     uint8_t dataRead[NUM_TEST_DATA_BYTES];
 
     // fill date to write with 8 A5's
@@ -38,7 +38,7 @@ int main(void)
     FlashConfig::Result result = flashConfig.SaveConfigData(dataToSave, sizeof(dataToSave));
     if (result == FlashConfig::Result::OK)
     {
-		hw.PrintLine("Data saved successfully.");
+        hw.PrintLine("Data saved successfully.");
     }
     else
     {
@@ -50,7 +50,6 @@ int main(void)
     result = flashConfig.GetCurrentConfigDataSize(&dataSize);
     if (result == FlashConfig::Result::OK)
     {
-        // std::cout << "Current config data size: " << dataSize << " bytes." << std::endl;
         hw.PrintLine("Current config data size: %d bytes.\n", dataSize);  
     }
     else
@@ -73,6 +72,18 @@ int main(void)
     else
     {
         hw.PrintLine("Failed to read data.");
+    }
+
+    // Verify that the data header CRC of the current config matches the written data
+    // using FlashConfig method VerifyCurrentConfigCRC()
+    result = flashConfig.VerifyCurrentConfigCRC();
+    if (result == FlashConfig::Result::OK)
+    {
+        hw.PrintLine("Data CRC verified successfully.");
+    }
+    else
+    {
+        hw.PrintLine("Failed to verify data CRC.");
     }
 
     // Loop forever

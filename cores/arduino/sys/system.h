@@ -204,16 +204,6 @@ class System
     static uint32_t GetPClk2Freq();
 
     /**
-     ** Returns the boolean state of _cfg.use_dcache
-     */
-    bool UseDcache() const { return cfg_.use_dcache; }
-
-    /**
-     ** Returns the boolean state of _cfg.use_icache
-     */
-    bool UseIcache() const { return cfg_.use_icache; }
-
-    /**
      ** Returns a const reference to the Systems Configuration struct.
      */
     const Config& GetConfig() const { return cfg_; }
