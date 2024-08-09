@@ -23,8 +23,8 @@ int main(void)
     hw.Configure();
     hw.Init();
 
-    // hw.StartLog(
-    //     true); /* true == wait for PC: will block until a terminal is connected */
+    hw.StartLog(
+        true); /* true == wait for PC: will block until a terminal is connected */
 
     FlashConfig flashConfig;
 

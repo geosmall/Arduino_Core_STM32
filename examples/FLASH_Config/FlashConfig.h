@@ -47,16 +47,16 @@ class FlashConfig
     enum class Result
     {
         OK, // No error
-        ERR_NO_BLOCK_FOUND, // No block found
+        ERR_NO_BLOCK_FOUND,     // No block found
         ERR_INVALID_BLOCK_INFO, // Invalid block
-        ERR_READ_FAILED, // Read failed
-        ERR_WRITE_FAILED, // Write failed    
-        ERR_ERASE_FAILED, // Erase failed
-        ERR_DATA_TOO_LARGE, // Data too large to fit in block
-        ERR_DATA_CRC_MISMATCH, // Data CRC does not match header
+        ERR_READ_FAILED,        // Read failed
+        ERR_WRITE_FAILED,       // Write failed    
+        ERR_ERASE_FAILED,       // Erase failed
+        ERR_DATA_TOO_LARGE,     // Data too large to fit in block
+        ERR_DATA_CRC_MISMATCH,  // Data CRC does not match header
         ERR_DATA_INVALID_INPUT, // Invalid data input provided
         ERR_DATA_ALREADY_SAVED, // Data already saved to flash
-        ERR // General error occurred
+        ERR                     // General error occurred
     };
 
     FlashConfig() {}
