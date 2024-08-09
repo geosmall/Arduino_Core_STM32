@@ -35,7 +35,7 @@ int main(void)
     uint8_t dataRead[NUM_TEST_DATA_BYTES];
 
     // fill date to write with 8 A5's
-    memset(dataToSave, 0x5A, 8);
+    memset(dataToSave, 0xA5, 8);
 
     // Save the configuration data
     FlashConfig::Result result = flashConfig.SaveConfigData(dataToSave, sizeof(dataToSave));
@@ -62,6 +62,18 @@ int main(void)
         hw.PrintLine("Failed to get current config data size. Error code: %d", result);
     }
 
+    // Get the size of the current configuration data
+    uint32_t index;
+    result = flashConfig.GetCurrentConfigIndex(&index);
+    if (result == FlashConfig::Result::OK)
+    {
+        hw.PrintLine("Current config index: %d.\n", index);  
+    }
+    else
+    {
+        hw.PrintLine("Failed to get current config data size. Error code: %d", result);
+    }
+
     // Read the current configuration data
     result = flashConfig.ReadCurrentConfigData(dataRead, sizeof(dataRead));
     if (result == FlashConfig::Result::OK)
@@ -69,8 +81,9 @@ int main(void)
         hw.PrintLine("Data read successfully: ");
         for (uint32_t i = 0; i < dataSize; ++i)
         {
-            // %02X prints data in 2 char hex, leading zeros if needed
-            hw.PrintLine("%02X  ", dataRead[i]);
+            // Print i and dataRead separated by ": "
+            // %02X prints data in 2 char hex, leading zeros
+            hw.PrintLine("%d: %02X", i, dataRead[i]);
         }
         hw.PrintLine("");
     }

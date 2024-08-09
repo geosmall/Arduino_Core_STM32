@@ -70,6 +70,10 @@ class FlashConfig
     // Returns OK if successful, ERR otherwise (i.e. no data available)
     Result GetCurrentConfigDataSize(uint32_t* size);
 
+    // Get the index of the latest data block
+    // Returns OK if successful, ERR otherwise (i.e. no data available)
+    Result GetCurrentConfigIndex(uint32_t* index);
+
     // Read the current config data from flash
     // Returns OK if successful, ERR otherwise (i.e. no data available)
     Result ReadCurrentConfigData(uint8_t* data, uint32_t length);
