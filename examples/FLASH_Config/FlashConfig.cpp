@@ -54,10 +54,13 @@ namespace daisy
 FlashConfig::Result FlashConfig::SaveConfigData(const uint8_t* data, uint32_t length)
 {
     // Check input paramaters
-    if (data == nullptr || length == 0) return Result::ERR;
+    if (data == nullptr || length == 0) return Result::ERR_DATA_INVALID_INPUT;
 
     // Check if the data is too large to fit in block
-    if (length > FlashBlockDataSize) return Result::ERR;
+    if (length > FlashBlockDataSize) return Result::ERR_DATA_TOO_LARGE;
+
+    // Check if the data is already saved, return if already saved
+    if (DataMatchesCurrentDataBlock(data, length)) return Result::ERR_DATA_ALREADY_SAVED;
 
     // Define buffer with alignment (TODO: Verify need for source data buffer alignment)
     // alignas(FLASH_WRITE_SIZE) uint8_t buffer[FLASH_WRITE_SIZE] = {0};
@@ -69,7 +72,7 @@ FlashConfig::Result FlashConfig::SaveConfigData(const uint8_t* data, uint32_t le
         // No available block, erase the sector
         if (EraseSector() != Result::OK)
         {
-            return Result::ERR;
+            return Result::ERR_ERASE_FAILED;
         }
         nextBlockIndex = 0;
     }
@@ -130,7 +133,7 @@ FlashConfig::Result FlashConfig::SaveConfigData(const uint8_t* data, uint32_t le
         if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, address, reinterpret_cast<uint32_t>(buffer)) != HAL_OK)
         {
             HAL_FLASH_Lock();
-            return Result::ERR;
+            return Result::ERR_WRITE_FAILED;
         }
 
         // Move to the next chunk by incrementing the address and offset_ptr
@@ -155,8 +158,8 @@ FlashConfig::Result FlashConfig::SaveConfigData(const uint8_t* data, uint32_t le
 
 FlashConfig::Result FlashConfig::GetCurrentConfigDataSize(uint32_t* size)
 {
-    FlashBlock* block = GetLatestDataBlock();
-    if (block == NULL) return Result::ERR;
+    FlashBlock* block = GetCurrentDataBlock();
+    if (block == NULL) return Result::ERR_NO_BLOCK_FOUND;
 
     // put the size of the data block into the size pointer
     *size = block->header.bytes;
@@ -165,8 +168,8 @@ FlashConfig::Result FlashConfig::GetCurrentConfigDataSize(uint32_t* size)
 
 FlashConfig::Result FlashConfig::ReadCurrentConfigData(uint8_t* data, uint32_t length)
 {
-    FlashBlock* block = GetLatestDataBlock();
-    if (block == NULL) return Result::ERR;
+    FlashBlock* block = GetCurrentDataBlock();
+    if (block == NULL) return Result::ERR_NO_BLOCK_FOUND;
 
     memcpy(data, block->data, length);
     return Result::OK;
@@ -174,12 +177,14 @@ FlashConfig::Result FlashConfig::ReadCurrentConfigData(uint8_t* data, uint32_t l
 
 FlashConfig::Result FlashConfig::VerifyCurrentConfigCRC(void)
 {
-    FlashBlock* block = GetLatestDataBlock();
-    if (block == NULL || block->header.magic != MAGIC_NUMBER) return Result::ERR;
+    FlashBlock* block = GetCurrentDataBlock();
+    if (block == NULL) return Result::ERR_NO_BLOCK_FOUND;
+
+    if (block->header.magic != MAGIC_NUMBER) return Result::ERR_INVALID_BLOCK_INFO;
 
     if (block->header.crc32 != CalculateCRC32(block->data, block->header.bytes))
     {
-        return Result::ERR;
+        return Result::ERR_DATA_CRC_MISMATCH;
     }
     return Result::OK;
 }
@@ -200,15 +205,21 @@ FlashConfig::Result FlashConfig::EraseSector(void)
     eraseInitStruct.VoltageRange = FLASH_VOLTAGE_RANGE_3;
 
     // Erase the specified flash sector
-    HAL_StatusTypeDef status = HAL_FLASHEx_Erase(&eraseInitStruct, &SectorError);
+    if (HAL_FLASHEx_Erase(&eraseInitStruct, &SectorError) != HAL_OK)
+    {
+        HAL_FLASH_Lock();
+        return Result::ERR_ERASE_FAILED;
+    }
 
     // Lock the Flash to disable the flash control register access
     HAL_FLASH_Lock();
-
-    return (status == HAL_OK) ? Result::OK : Result::ERR;
+    return Result::OK;
 }
 
-FlashBlock* FlashConfig::GetLatestDataBlock(void)
+// Function to get a pointer to latest data block from flash
+// Search from the last block to the first block
+// Return the pointer if a valid block is found, otherwise NULL
+FlashBlock* FlashConfig::GetCurrentDataBlock(void)
 {
     for (int32_t i = NUM_BLOCKS - 1; i >= 0; i--)
     {
@@ -221,6 +232,29 @@ FlashBlock* FlashConfig::GetLatestDataBlock(void)
     return NULL;
 }
 
+// Function to determine if the data matches the data in the
+// current block, return true if the data matches, otherwise false
+bool FlashConfig::DataMatchesCurrentDataBlock(const uint8_t* data, uint32_t length)
+{
+    FlashBlock* block = GetCurrentDataBlock();
+    if (block == NULL) return false;
+
+    // Check if the length of the data is same and the CRC32 matches
+    if (block->header.bytes == length && block->header.crc32 == CalculateCRC32(data, length))
+    {
+        // Check if the data matches
+        if (memcmp(data, block->data, length) == 0)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// Function to get the next unused block index
+// Return the index of the next unused block,
+// or NUM_BLOCKS if no blocks are available
 uint32_t FlashConfig::GetNextUnusedBlockIndex(void)
 {
     for (uint32_t i = 0; i < NUM_BLOCKS; i++)

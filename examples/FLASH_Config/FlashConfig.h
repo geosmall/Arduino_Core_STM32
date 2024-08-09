@@ -7,7 +7,11 @@
 namespace daisy
 {
 
-constexpr uint32_t DATA_BLOCK_SIZE = 2048; // 2K block size
+constexpr uint32_t FLASH_WRITE_SIZE = 32;   // Flash write size for STM32H7xx
+constexpr uint32_t DATA_BLOCK_SIZE = 2048;  // 2K block size
+
+// Static assert that DATA_BLOCK_SIZE is a multiple of FLASH_WRITE_SIZE
+static_assert((DATA_BLOCK_SIZE % FLASH_WRITE_SIZE) == 0, "DATA_BLOCK_SIZE must be a multiple of FLASH_WRITE_SIZE");
 
 struct FlashBlockHeader {
     uint32_t magic;
@@ -30,7 +34,6 @@ constexpr uint32_t FlashBlockDataSize = sizeof(FlashBlock::data);
 constexpr uint32_t FLASH_SECTOR_ADDRESS = 0x081E0000; // Address of Sector 7 in Bank 2
 constexpr uint32_t FLASH_SECTOR_BANK    = FLASH_BANK_2;
 constexpr uint32_t FLASH_SECTOR_NUM     = FLASH_SECTOR_7;
-constexpr uint32_t FLASH_WRITE_SIZE     = 32; // Flash write size for STM32H7xx
 
 // Define the magic number to identify valid blocks and the number of bytes available for data
 constexpr uint32_t MAGIC_NUMBER         = 0xDEADBEEF; // Magic number to identify valid blocks
@@ -44,7 +47,16 @@ class FlashConfig
     enum class Result
     {
         OK, // No error
-        ERR // Error occurred
+        ERR_NO_BLOCK_FOUND, // No block found
+        ERR_INVALID_BLOCK_INFO, // Invalid block
+        ERR_READ_FAILED, // Read failed
+        ERR_WRITE_FAILED, // Write failed    
+        ERR_ERASE_FAILED, // Erase failed
+        ERR_DATA_TOO_LARGE, // Data too large to fit in block
+        ERR_DATA_CRC_MISMATCH, // Data CRC does not match header
+        ERR_DATA_INVALID_INPUT, // Invalid data input provided
+        ERR_DATA_ALREADY_SAVED, // Data already saved to flash
+        ERR // General error occurred
     };
 
     FlashConfig() {}
@@ -73,7 +85,11 @@ class FlashConfig
     // Function to get a pointer to latest data block from flash
     // Search from the last block to the first block
     // Return the pointer if a valid block is found, otherwise NULL
-    FlashBlock* GetLatestDataBlock(void);
+    FlashBlock* GetCurrentDataBlock(void);
+
+    // Function to determine if the data is new and does
+    // not match the data in the current block
+    bool DataMatchesCurrentDataBlock(const uint8_t* data, uint32_t length);
 
     // Find index to next available block
     // Returns NUM_BLOCKS if no blocks are available

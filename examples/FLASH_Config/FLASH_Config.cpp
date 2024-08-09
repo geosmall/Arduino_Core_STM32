@@ -23,6 +23,9 @@ int main(void)
     hw.Configure();
     hw.Init();
 
+    // hw.StartLog(
+    //     true); /* true == wait for PC: will block until a terminal is connected */
+
     FlashConfig flashConfig;
 
     static_assert((NUM_TEST_DATA_BYTES <= daisy::FlashBlockDataSize),
@@ -32,7 +35,7 @@ int main(void)
     uint8_t dataRead[NUM_TEST_DATA_BYTES];
 
     // fill date to write with 8 A5's
-    memset(dataToSave, 0xA5, 8);
+    memset(dataToSave, 0x5A, 8);
 
     // Save the configuration data
     FlashConfig::Result result = flashConfig.SaveConfigData(dataToSave, sizeof(dataToSave));
@@ -42,7 +45,9 @@ int main(void)
     }
     else
     {
-        hw.PrintLine("Failed to save data.");
+        // hw.PrintLine("Failed to save data.");
+        // Print the error message and the error code
+        hw.PrintLine("Failed to save data. Error code: %d", result);
     }
 
     // Get the size of the current configuration data
@@ -54,7 +59,7 @@ int main(void)
     }
     else
     {
-        hw.PrintLine("Failed to get current config data size.");
+        hw.PrintLine("Failed to get current config data size. Error code: %d", result);
     }
 
     // Read the current configuration data
@@ -65,13 +70,13 @@ int main(void)
         for (uint32_t i = 0; i < dataSize; ++i)
         {
             // %02X prints data in 2 char hex, leading zeros if needed
-            hw.Print("%02X  ", dataRead[i]);
+            hw.PrintLine("%02X  ", dataRead[i]);
         }
         hw.PrintLine("");
     }
     else
     {
-        hw.PrintLine("Failed to read data.");
+        hw.PrintLine("Failed to read data. Error code: %d", result);
     }
 
     // Verify that the data header CRC of the current config matches the written data
@@ -83,7 +88,7 @@ int main(void)
     }
     else
     {
-        hw.PrintLine("Failed to verify data CRC.");
+        hw.PrintLine("Failed to verify data CRC. Error code: %d", result);
     }
 
     // Loop forever
