@@ -1,0 +1,562 @@
+<!doctype html>
+<html>
+
+	<head>
+		<!-- Optional theme -->
+		<link rel="stylesheet" href="/styles/monokai-sublime.css">
+		<link rel="stylesheet" href="/styles/main.css">
+		<link rel="stylesheet" href="/styles/pygments.css">
+		<script src="_/js/highlight.pack.js"></script>
+		<script>hljs.initHighlightingOnLoad();</script>
+		<title> STM32F4 sdram configuration</title>
+		<meta name="keyword" content="c,stm32,stm32f4,sdram,configuration,timing"/>
+		<meta charset="UTF-8" />
+  	</head>
+	<body>
+	<nav>
+		<a href="/index.md" class="headerlink">Main</a>|
+		<a href="/random.md" class="headerlink">Random</a>|
+		<a href="http://git.main.lv" class="headerlink">Projects</a>|
+		<a href="http://archive.main.lv">Archive</a>|
+		<a href="/links.md" class="headerlink">Links</a>|
+		<a href="/about.md" class="headerlink">About</a>
+	</nav>
+	<div class="content">
+		
+<ul id="table-of-content">
+<ul>
+<li><a href="#toc-2">SDRAM parameters</a></li>
+<li><a href="#toc-3">STM32 SDRAM FMC params</a></li>
+<li><a href="#toc-4">Configure FMC SDRAM timings</a></li>
+<li><a href="#toc-5">SDRAM initialization</a><ul>
+<li><a href="#toc-6">Command list for AS4C16M16SA</a></li></ul>
+</li>
+<li><a href="#toc-7">Calculate parameters</a><ul>
+<li><a href="#toc-8">AS4C16M16SA chip parameters</a></li>
+<li><a href="#toc-9">Calculate refresh rate</a></li></ul>
+</li>
+<li><a href="#toc-10">Example config</a></li>
+<li><a href="#toc-11">Using SDRAM</a></li>
+<li><a href="#toc-12">Links</a></li>
+</ul>
+<!--</li>-->
+</ul><h1 id="toc-1">STM32F4 sdram configuration</h1>
+<p>Here is some notes about playing with SDRAM. Some parts are still unclear for
+me but looks like all code works.</p>
+<p>STM32 F4 family have build in FMC controller that can be configured to use
+SDRAM with easy.</p>
+<p>F4 have 2 internals banks and memory ranges where SDRAM could be configured.</p>
+<h2 id="toc-2">SDRAM parameters</h2>
+<h2 id="toc-3">STM32 SDRAM FMC params</h2>
+<p>STM32F4 SDRAM FMC(Flexible Memory Controller) have many parameters that allow
+to configure SDRAM, depending on chip you can have more or less memory available
+different clock speeds.</p>
+<table>
+<thead>
+<tr>
+  <th>Struct field name</th>
+  <th>Possible values</th>
+  <th>Comments</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>SDBank</td>
+  <td>BANK1,BANK2</td>
+  <td></td>
+</tr>
+<tr>
+  <td>ColumnBitsNumber</td>
+  <td>8-11 bits</td>
+  <td></td>
+</tr>
+<tr>
+  <td>RowBitsNumber</td>
+  <td>11-13 bits</td>
+  <td></td>
+</tr>
+<tr>
+  <td>MemoryDataWidth</td>
+  <td>8,16,32 bits</td>
+  <td></td>
+</tr>
+<tr>
+  <td>CASLatency</td>
+  <td>1,2,3</td>
+  <td></td>
+</tr>
+<tr>
+  <td>WriteProtection</td>
+  <td>ENABLE,DISABLE</td>
+  <td></td>
+</tr>
+<tr>
+  <td>SDClockPeriod</td>
+  <td>DISABLE, PERIOD2, PERIOD3</td>
+  <td>If system clock 180Mhz then CLK speeds 90Mhz or 60Mhz</td>
+</tr>
+<tr>
+  <td>ReadBurst</td>
+  <td>ENABLE,DISABLE</td>
+  <td></td>
+</tr>
+<tr>
+  <td>ReadPipeDelay</td>
+  <td>DELAY_0, DELAY_1, DELAY_2</td>
+  <td></td>
+</tr>
+</tbody>
+</table>
+<h2 id="toc-4">Configure FMC SDRAM timings</h2>
+<p>Timing configuration configured in FMC_SDTR1 register</p>
+<table>
+<thead>
+<tr>
+  <th>Struct field name</th>
+  <th>RegisterPossible Values</th>
+  <th>Register bit names</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>LoadToActiveDelay</td>
+  <td>1-16 cycles</td>
+  <td>TMRD</td>
+</tr>
+<tr>
+  <td>ExitSlefRedreshDelay</td>
+  <td>1-16 cycles</td>
+  <td>TXSR</td>
+</tr>
+<tr>
+  <td>SelfRefreshTime</td>
+  <td>1-16 cycles</td>
+  <td>TRAS</td>
+</tr>
+<tr>
+  <td>RowCycleDelay</td>
+  <td>1-16 cycles</td>
+  <td>TRC</td>
+</tr>
+<tr>
+  <td>WriteRecoveryTime</td>
+  <td>1-16 cycles</td>
+  <td>TWR</td>
+</tr>
+<tr>
+  <td>RPDelay</td>
+  <td>1-16 cycles</td>
+  <td>TRCD</td>
+</tr>
+<tr>
+  <td>RCDelay</td>
+  <td>1-16 cycles</td>
+  <td>TRC</td>
+</tr>
+</tbody>
+</table>
+<h2 id="toc-5">SDRAM initialization</h2>
+<p>Before SDRAM could start working it need to be configured and commended are
+sended. Command are just setting up appropriate bits and wait of 100ms.</p>
+<p>Commands for configure SDRAM</p>
+<table>
+<thead>
+<tr>
+  <th>Command</th>
+  <th>Desc</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>FMC_SDRAM_CMD_CLK_ENABLE</td>
+  <td>Configure a clock configuration enable command</td>
+</tr>
+<tr>
+  <td>FMC_SDRAM_CMD_PALL</td>
+  <td>Configure a PALL (precharge all) command</td>
+</tr>
+<tr>
+  <td>FMC_SDRAM_CMD_AUTOREFRESH_MODE</td>
+  <td>Configure a Auto-Refresh command</td>
+</tr>
+<tr>
+  <td>FMC_SDRAM_CMD_LOAD_MODE</td>
+  <td>Program the external memory mode register</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal"> 1</span>
+<span class="normal"> 2</span>
+<span class="normal"> 3</span>
+<span class="normal"> 4</span>
+<span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span>
+<span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span></pre></div></td><td class="code"><div><pre><span></span><span class="n">FMC_SDRAM_CommandTypeDef</span><span class="w"> </span><span class="n">Command</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">__IO</span><span class="w"> </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">tmpmrd</span><span class="w"> </span><span class="o">=</span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="cm">/* Step 3:  Configure a clock configuration enable command */</span>
+<span class="w">  </span><span class="n">Command</span><span class="p">.</span><span class="n">CommandMode</span><span class="w">            </span><span class="o">=</span><span class="w"> </span><span class="n">FMC_SDRAM_CMD_CLK_ENABLE</span><span class="p">;</span>
+<span class="w">  </span><span class="n">Command</span><span class="p">.</span><span class="n">CommandTarget</span><span class="w">          </span><span class="o">=</span><span class="w"> </span><span class="n">FMC_SDRAM_CMD_TARGET_BANK1</span><span class="p">;</span>
+<span class="w">  </span><span class="n">Command</span><span class="p">.</span><span class="n">AutoRefreshNumber</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">  </span><span class="n">Command</span><span class="p">.</span><span class="n">ModeRegisterDefinition</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+
+<span class="w">  </span><span class="cm">/* Send the command */</span>
+<span class="w">  </span><span class="n">HAL_SDRAM_SendCommand</span><span class="p">(</span><span class="n">hsdram</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">Command</span><span class="p">,</span><span class="w"> </span><span class="mh">0x1000</span><span class="p">);</span>
+
+<span class="w">  </span><span class="cm">/* Step 4: Insert 100 ms delay */</span>
+<span class="w">  </span><span class="n">HAL_Delay</span><span class="p">(</span><span class="mi">100</span><span class="p">);</span>
+<span class="w">    </span>
+<span class="w">  </span><span class="cm">/* Step 5: Configure a PALL (precharge all) command */</span><span class="w"> </span>
+<span class="w">  </span><span class="n">Command</span><span class="p">.</span><span class="n">CommandMode</span><span class="w">            </span><span class="o">=</span><span class="w"> </span><span class="n">FMC_SDRAM_CMD_PALL</span><span class="p">;</span>
+<span class="w">  </span><span class="n">Command</span><span class="p">.</span><span class="n">CommandTarget</span><span class="w">          </span><span class="o">=</span><span class="w"> </span><span class="n">FMC_SDRAM_CMD_TARGET_BANK1</span><span class="p">;</span>
+<span class="w">  </span><span class="n">Command</span><span class="p">.</span><span class="n">AutoRefreshNumber</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">  </span><span class="n">Command</span><span class="p">.</span><span class="n">ModeRegisterDefinition</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+
+<span class="w">  </span><span class="cm">/* Send the command */</span>
+<span class="w">  </span><span class="n">HAL_SDRAM_SendCommand</span><span class="p">(</span><span class="n">hsdram</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">Command</span><span class="p">,</span><span class="w"> </span><span class="mh">0x1000</span><span class="p">);</span><span class="w">  </span>
+<span class="w">  </span>
+<span class="w">  </span><span class="cm">/* Step 6 : Configure a Auto-Refresh command */</span><span class="w"> </span>
+<span class="w">  </span><span class="n">Command</span><span class="p">.</span><span class="n">CommandMode</span><span class="w">            </span><span class="o">=</span><span class="w"> </span><span class="n">FMC_SDRAM_CMD_AUTOREFRESH_MODE</span><span class="p">;</span>
+<span class="w">  </span><span class="n">Command</span><span class="p">.</span><span class="n">CommandTarget</span><span class="w">          </span><span class="o">=</span><span class="w"> </span><span class="n">FMC_SDRAM_CMD_TARGET_BANK1</span><span class="p">;</span>
+<span class="w">  </span><span class="n">Command</span><span class="p">.</span><span class="n">AutoRefreshNumber</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="p">;</span>
+<span class="w">  </span><span class="n">Command</span><span class="p">.</span><span class="n">ModeRegisterDefinition</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+
+<span class="w">  </span><span class="cm">/* Send the command */</span>
+<span class="w">  </span><span class="n">HAL_SDRAM_SendCommand</span><span class="p">(</span><span class="n">hsdram</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">Command</span><span class="p">,</span><span class="w"> </span><span class="mh">0x1000</span><span class="p">);</span>
+<span class="w">  </span>
+<span class="w">  </span><span class="cm">/* Step 7: Program the external memory mode register */</span>
+<span class="w">  </span><span class="n">tmpmrd</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="kt">uint32_t</span><span class="p">)</span><span class="n">SDRAM_MODEREG_BURST_LENGTH_2</span><span class="w">          </span><span class="o">|</span>
+<span class="w">                     </span><span class="n">SDRAM_MODEREG_BURST_TYPE_SEQUENTIAL</span><span class="w">   </span><span class="o">|</span>
+<span class="w">                     </span><span class="n">SDRAM_MODEREG_CAS_LATENCY_3</span><span class="w">           </span><span class="o">|</span>
+<span class="w">                     </span><span class="n">SDRAM_MODEREG_OPERATING_MODE_STANDARD</span><span class="w"> </span><span class="o">|</span>
+<span class="w">                     </span><span class="n">SDRAM_MODEREG_WRITEBURST_MODE_SINGLE</span><span class="p">;</span>
+<span class="w">  </span>
+<span class="w">  </span><span class="n">Command</span><span class="p">.</span><span class="n">CommandMode</span><span class="w">            </span><span class="o">=</span><span class="w"> </span><span class="n">FMC_SDRAM_CMD_LOAD_MODE</span><span class="p">;</span>
+<span class="w">  </span><span class="n">Command</span><span class="p">.</span><span class="n">CommandTarget</span><span class="w">          </span><span class="o">=</span><span class="w"> </span><span class="n">FMC_SDRAM_CMD_TARGET_BANK1</span><span class="p">;</span>
+<span class="w">  </span><span class="n">Command</span><span class="p">.</span><span class="n">AutoRefreshNumber</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">  </span><span class="n">Command</span><span class="p">.</span><span class="n">ModeRegisterDefinition</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tmpmrd</span><span class="p">;</span>
+
+<span class="w">  </span><span class="cm">/* Send the command */</span>
+<span class="w">  </span><span class="n">HAL_SDRAM_SendCommand</span><span class="p">(</span><span class="n">hsdram</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">Command</span><span class="p">,</span><span class="w"> </span><span class="mh">0x1000</span><span class="p">);</span>
+
+<span class="w">  </span><span class="n">HAL_SDRAM_ProgramRefreshRate</span><span class="p">(</span><span class="n">hsdram</span><span class="p">,</span><span class="w"> </span><span class="mh">0x56A</span><span class="mi">-20</span><span class="p">);</span>
+</pre></div></td></tr></table></div>
+<h3 id="toc-6">Command list for AS4C16M16SA</h3>
+<table>
+<thead>
+<tr>
+  <th>Commands</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>BankActive</td>
+</tr>
+<tr>
+  <td>BankPrecharge</td>
+</tr>
+<tr>
+  <td>PrechargeAll</td>
+</tr>
+<tr>
+  <td>Read</td>
+</tr>
+<tr>
+  <td>Read and AutoPrecharge</td>
+</tr>
+<tr>
+  <td>Write</td>
+</tr>
+<tr>
+  <td>Write and AutoPrecharge</td>
+</tr>
+<tr>
+  <td>Mode Register Set</td>
+</tr>
+<tr>
+  <td>No-Operation</td>
+</tr>
+<tr>
+  <td>Burst Stop</td>
+</tr>
+<tr>
+  <td>Devaise Deselect</td>
+</tr>
+<tr>
+  <td>AutoRefresh</td>
+</tr>
+<tr>
+  <td>SelfRefresh Entry</td>
+</tr>
+<tr>
+  <td>SelfRedresh Exit</td>
+</tr>
+<tr>
+  <td>Clock Suspend Mode Entry / PowerDown Mode Entry</td>
+</tr>
+<tr>
+  <td>Clock Suspend Mode Exit / PowerDown Mode Exit</td>
+</tr>
+<tr>
+  <td>Data Write / Output Enable</td>
+</tr>
+</tbody>
+</table>
+<h2 id="toc-7">Calculate parameters</h2>
+<h3 id="toc-8">AS4C16M16SA chip parameters</h3>
+<p>Configuration for SystemClock=180Mhz and SDRAM clock rate 90Mhz.
+Some values are adjusted to work.</p>
+<math xmlns="http://www.w3.org/1998/Math/MathML">
+<mtable class="m-equation-square" displaystyle="true" style="display: block; margin-top: 1.0em; margin-bottom: 2.0em">
+  <mtr>
+    <mtd>
+      <mspace width="6.0em" />
+    </mtd>
+    <mtd columnalign="left">
+      <mfrac linethickness="1">
+        <mn>1</mn>
+        <mrow>
+          <mn>90</mn>
+          <mi>M</mi>
+          <mi>h</mi>
+          <mi>z</mi>
+        </mrow>
+      </mfrac>
+      <mo>=</mo>
+      <mn>11.1</mn>
+      <mi>u</mi>
+    </mtd>
+  </mtr>
+</mtable>
+</math>
+<p>All resulting values are rounded up.</p>
+<table>
+<thead>
+<tr>
+  <th>Param in Datasheet</th>
+  <th>Param</th>
+  <th>Calc(cycles)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>12u</td>
+  <td>TMRD</td>
+  <td>1(1.1)+2 ???</td>
+</tr>
+<tr>
+  <td>tRC+tIS = 61.5u</td>
+  <td>TXSR</td>
+  <td>6(5.5)+1 ???</td>
+</tr>
+<tr>
+  <td>42u</td>
+  <td>TRAS</td>
+  <td>4(3.8)+1 ???</td>
+</tr>
+<tr>
+  <td>60u</td>
+  <td>TRC</td>
+  <td>6(5.5)</td>
+</tr>
+<tr>
+  <td>12u</td>
+  <td>TWR</td>
+  <td>2(1.1)</td>
+</tr>
+<tr>
+  <td>18u</td>
+  <td>TRP</td>
+  <td>2(1.6)</td>
+</tr>
+<tr>
+  <td>18u</td>
+  <td>TRCD</td>
+  <td>2(1.6)</td>
+</tr>
+</tbody>
+</table>
+<p>This what worked for me, so should be right (maybe)</p>
+<p>Configuration for SystemClock=180Mhz and SDRAM clock rate 60Mhz</p>
+<math xmlns="http://www.w3.org/1998/Math/MathML">
+<mtable class="m-equation-square" displaystyle="true" style="display: block; margin-top: 1.0em; margin-bottom: 2.0em">
+  <mtr>
+    <mtd>
+      <mspace width="6.0em" />
+    </mtd>
+    <mtd columnalign="left">
+      <mfrac linethickness="1">
+        <mn>1</mn>
+        <mrow>
+          <mn>60</mn>
+          <mi>M</mi>
+          <mi>h</mi>
+          <mi>z</mi>
+        </mrow>
+      </mfrac>
+      <mo>=</mo>
+      <mn>16.6</mn>
+      <mi>u</mi>
+    </mtd>
+  </mtr>
+</mtable>
+</math>
+<table>
+<thead>
+<tr>
+  <th>Param in Datasheet</th>
+  <th>Param</th>
+  <th>Calc(cycles)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>12u</td>
+  <td>TMRD</td>
+  <td>1(1.1)+2 ???</td>
+</tr>
+<tr>
+  <td>tRC+tIS = 61.5u</td>
+  <td>TXSR</td>
+  <td>4(3.6)+1 ???</td>
+</tr>
+<tr>
+  <td>42u</td>
+  <td>TRAS</td>
+  <td>3(2.5)</td>
+</tr>
+<tr>
+  <td>60u</td>
+  <td>TRC</td>
+  <td>4(3.6)+1 ???</td>
+</tr>
+<tr>
+  <td>12u</td>
+  <td>TWR</td>
+  <td>1(0.8)</td>
+</tr>
+<tr>
+  <td>18u</td>
+  <td>TRP</td>
+  <td>1(1.1)</td>
+</tr>
+<tr>
+  <td>18u</td>
+  <td>TRCD</td>
+  <td>1(1.1)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="toc-9">Calculate refresh rate</h3>
+<p>From datasheet - 8192 refresh cycles/64ms</p>
+<p>64ms/8192 = 7.8u</p>
+<p>7.8u * (90Mhz) = 702<br />
+7.8u * (60Mhz) = 402</p>
+<h2 id="toc-10">Example config</h2>
+<p>Here is example config for AS4C16M16SA</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal"> 1</span>
+<span class="normal"> 2</span>
+<span class="normal"> 3</span>
+<span class="normal"> 4</span>
+<span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span>
+<span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span></pre></div></td><td class="code"><div><pre><span></span><span class="n">SDRAM</span><span class="o">-&gt;</span><span class="n">Init</span><span class="p">.</span><span class="n">SDBank</span><span class="w">             </span><span class="o">=</span><span class="w"> </span><span class="n">FMC_SDRAM_BANK2</span><span class="p">;</span>
+<span class="w">  </span><span class="n">SDRAM</span><span class="o">-&gt;</span><span class="n">Init</span><span class="p">.</span><span class="n">ColumnBitsNumber</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="n">FMC_SDRAM_COLUMN_BITS_NUM_9</span><span class="p">;</span>
+<span class="w">  </span><span class="n">SDRAM</span><span class="o">-&gt;</span><span class="n">Init</span><span class="p">.</span><span class="n">RowBitsNumber</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="n">FMC_SDRAM_ROW_BITS_NUM_13</span><span class="p">;</span>
+<span class="w">  </span><span class="n">SDRAM</span><span class="o">-&gt;</span><span class="n">Init</span><span class="p">.</span><span class="n">MemoryDataWidth</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="n">FMC_SDRAM_MEM_BUS_WIDTH_16</span><span class="p">;</span>
+<span class="w">  </span><span class="n">SDRAM</span><span class="o">-&gt;</span><span class="n">Init</span><span class="p">.</span><span class="n">InternalBankNumber</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">FMC_SDRAM_INTERN_BANKS_NUM_4</span><span class="p">;</span>
+<span class="w">  </span><span class="n">SDRAM</span><span class="o">-&gt;</span><span class="n">Init</span><span class="p">.</span><span class="n">CASLatency</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="n">FMC_SDRAM_CAS_LATENCY_3</span><span class="p">;</span>
+<span class="w">  </span><span class="n">SDRAM</span><span class="o">-&gt;</span><span class="n">Init</span><span class="p">.</span><span class="n">WriteProtection</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="n">FMC_SDRAM_WRITE_PROTECTION_DISABLE</span><span class="p">;</span>
+<span class="w">  </span><span class="n">SDRAM</span><span class="o">-&gt;</span><span class="n">Init</span><span class="p">.</span><span class="n">SDClockPeriod</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="n">FMC_SDRAM_CLOCK_PERIOD_2</span><span class="p">;</span><span class="w"> </span><span class="c1">// 90Mhz</span>
+<span class="w">  </span><span class="n">SDRAM</span><span class="o">-&gt;</span><span class="n">Init</span><span class="p">.</span><span class="n">ReadBurst</span><span class="w">          </span><span class="o">=</span><span class="w"> </span><span class="n">FMC_SDRAM_RBURST_DISABLE</span><span class="p">;</span>
+<span class="w">  </span><span class="n">SDRAM</span><span class="o">-&gt;</span><span class="n">Init</span><span class="p">.</span><span class="n">ReadPipeDelay</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="n">FMC_SDRAM_RPIPE_DELAY_1</span><span class="p">;</span>
+
+<span class="w">  </span><span class="cm">/* Timing configuration for 90 MHz of SDRAM clock frequency (180MHz/2) */</span>
+<span class="w">  </span><span class="n">SDRAM_Timing</span><span class="o">-&gt;</span><span class="n">LoadToActiveDelay</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="w">  </span><span class="n">SDRAM_Timing</span><span class="o">-&gt;</span><span class="n">ExitSelfRefreshDelay</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">7</span><span class="p">;</span>
+<span class="w">  </span><span class="n">SDRAM_Timing</span><span class="o">-&gt;</span><span class="n">SelfRefreshTime</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="p">;</span><span class="w">      </span>
+<span class="w">  </span><span class="n">SDRAM_Timing</span><span class="o">-&gt;</span><span class="n">RowCycleDelay</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="mi">7</span><span class="p">;</span><span class="c1">//was 7</span>
+<span class="w">  </span><span class="n">SDRAM_Timing</span><span class="o">-&gt;</span><span class="n">WriteRecoveryTime</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="w">  </span><span class="n">SDRAM_Timing</span><span class="o">-&gt;</span><span class="n">RPDelay</span><span class="w">              </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="w">  </span><span class="n">SDRAM_Timing</span><span class="o">-&gt;</span><span class="n">RCDDelay</span><span class="w">             </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+</pre></div></td></tr></table></div>
+<h2 id="toc-11">Using SDRAM</h2>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal">1</span>
+<span class="normal">2</span>
+<span class="normal">3</span></pre></div></td><td class="code"><div><pre><span></span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">SDRAM_SIZE</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="o">*</span><span class="p">(</span><span class="n">__IO</span><span class="w"> </span><span class="kt">uint16_t</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="n">SDRAM_BANK_ADDR</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">2</span><span class="o">*</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="kt">uint16_t</span><span class="p">)</span><span class="mh">0x00</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+</pre></div></td></tr></table></div>
+<p>Example of setting values into SDRAM. Accessing just like usual memory.</p>
+<h2 id="toc-12">Links</h2>
+<ol>
+<li><a href="https://www.alliancememory.com/wp-content/uploads/pdf/dram/256Mb-AS4C16M16SA-C&amp;I_V3.0_March%202015.pdf">AS4C16M16SA datasheet</a></li>
+<li><a href="http://www.st.com/en/microcontrollers/stm32f429zi.html">STM32F429ZI description</a></li>
+<li><a href="http://en.radzio.dxp.pl/stm32f429idiscovery/sdram.html">http://en.radzio.dxp.pl/stm32f429idiscovery/sdram.html</a></li>
+</ol>
+
+
+
+	</div>
+       <script async src="https://www.googletagmanager.com/gtag/js?id=UA-107702434-1"></script>
+<script>window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-107702434-1');
+ </script>
+
+	</body>
+</html>
