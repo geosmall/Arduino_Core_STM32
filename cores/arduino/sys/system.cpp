@@ -425,7 +425,8 @@ void System::ConfigureMpu()
     MPU_Region_InitTypeDef MPU_InitStruct;
     HAL_MPU_Disable();
 
-    // Configure 32K of RAM D2 (DR SRAM1) as non cacheable for DMA buffer use
+    // Configure 32K of RAM_D2 (aka D2 SRAM1) as non cacheable for DMA buffer use
+    // We add a section to linker scripe and daisy_core.h for DMA_BUFFER_MEM_SECTION
     MPU_InitStruct.Enable           = MPU_REGION_ENABLE;
     MPU_InitStruct.BaseAddress      = 0x30000000;
     MPU_InitStruct.Size             = MPU_REGION_SIZE_32KB;
