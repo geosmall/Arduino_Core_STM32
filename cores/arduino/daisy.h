@@ -49,6 +49,7 @@
 // #include "dev/lcd_hd44780.h"
 // #include "dev/mcp23x17.h"
 // #include "dev/max11300.h"
+#include "dev/internal_flash.h"
 #include "dev/serial_rx.h"
 // #include "dev/tlv493d.h"
 // #include "dev/dotstar.h"

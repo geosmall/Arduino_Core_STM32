@@ -1,4 +1,4 @@
-#include "FlashConfig.h"
+#include "internal_flash.h"
 #include "stm32h7xx_hal.h"
 #include "sys/system.h"
 #include <array>
@@ -11,7 +11,7 @@ static bool isICacheEnabled()
     return (SCB->CCR & SCB_CCR_IC_Msk) != 0;
 }
 #else
-#error "expected __ICACHE_PRESENT to be defined as 1 in FlashConfig.cpp"
+#error "expected __ICACHE_PRESENT to be defined as 1 in internal_flash.cpp"
 #endif
 
 #if defined(__DCACHE_PRESENT) && (__DCACHE_PRESENT == 1U)
@@ -20,7 +20,7 @@ static bool isDCacheEnabled()
     return (SCB->CCR & SCB_CCR_DC_Msk) != 0;
 }
 #else
-#error "expected __DCACHE_PRESENT to be defined as 1 in FlashConfig.cpp"
+#error "expected __DCACHE_PRESENT to be defined as 1 in internal_flash.cpp"
 #endif
 
 static constexpr uint32_t limit(uint32_t value, uint32_t max)
@@ -46,7 +46,7 @@ static uint32_t CalculateCRC32(const uint8_t* data, uint32_t length)
 namespace daisy
 {
 
-FlashConfig::Result FlashConfig::SaveConfigData(const uint8_t* data, uint32_t length)
+InternalFlash::Result InternalFlash::SaveData(const uint8_t* data, uint32_t length)
 {
     if (!data || length == 0) return Result::ERR_DATA_INVALID_INPUT;
 
@@ -124,7 +124,7 @@ FlashConfig::Result FlashConfig::SaveConfigData(const uint8_t* data, uint32_t le
     return Result::OK;
 }
 
-FlashConfig::Result FlashConfig::GetCurrentConfigDataSize(uint32_t* size)
+InternalFlash::Result InternalFlash::GetCurrentDataSize(uint32_t* size)
 {
     FlashBlock* block = GetCurrentDataBlock();
     if (!block) return Result::ERR_NO_BLOCK_FOUND;
@@ -134,7 +134,7 @@ FlashConfig::Result FlashConfig::GetCurrentConfigDataSize(uint32_t* size)
     return Result::OK;
 }
 
-FlashConfig::Result FlashConfig::GetCurrentConfigIndex(uint32_t* index)
+InternalFlash::Result InternalFlash::GetCurrentIndex(uint32_t* index)
 {
     FlashBlock* block = GetCurrentDataBlock();
     if (!block) return Result::ERR_NO_BLOCK_FOUND;
@@ -144,7 +144,7 @@ FlashConfig::Result FlashConfig::GetCurrentConfigIndex(uint32_t* index)
     return Result::OK;
 }
 
-FlashConfig::Result FlashConfig::ReadCurrentConfigData(uint8_t* data, uint32_t length)
+InternalFlash::Result InternalFlash::ReadCurrentData(uint8_t* data, uint32_t length)
 {
     FlashBlock* block = GetCurrentDataBlock();
     if (!block) return Result::ERR_NO_BLOCK_FOUND;
@@ -153,7 +153,7 @@ FlashConfig::Result FlashConfig::ReadCurrentConfigData(uint8_t* data, uint32_t l
     return Result::OK;
 }
 
-FlashConfig::Result FlashConfig::VerifyCurrentConfigCRC(void)
+InternalFlash::Result InternalFlash::VerifyCurrentCRC(void)
 {
     FlashBlock* block = GetCurrentDataBlock();
     if (!block) return Result::ERR_NO_BLOCK_FOUND;
@@ -167,7 +167,7 @@ FlashConfig::Result FlashConfig::VerifyCurrentConfigCRC(void)
     return Result::OK;
 }
 
-FlashConfig::Result FlashConfig::EraseSector(void)
+InternalFlash::Result InternalFlash::EraseSector(void)
 {
     FLASH_EraseInitTypeDef eraseInitStruct;
     uint32_t SectorError;
@@ -197,7 +197,7 @@ FlashConfig::Result FlashConfig::EraseSector(void)
 // Function to get a pointer to latest data block from flash
 // Search from the last block to the first block
 // Return the pointer if a valid block is found, otherwise NULL
-FlashBlock* FlashConfig::GetCurrentDataBlock(void)
+FlashBlock* InternalFlash::GetCurrentDataBlock(void)
 {
     for (int32_t i = NUM_BLOCKS - 1; i >= 0; i--)
     {
@@ -212,7 +212,7 @@ FlashBlock* FlashConfig::GetCurrentDataBlock(void)
 
 // Function to determine if the data matches the data in the
 // current block, return true if the data matches, otherwise false
-bool FlashConfig::DataMatchesCurrentDataBlock(const uint8_t* data, uint32_t length)
+bool InternalFlash::DataMatchesCurrentDataBlock(const uint8_t* data, uint32_t length)
 {
     FlashBlock* block = GetCurrentDataBlock();
     if (!block) return false;
@@ -233,7 +233,7 @@ bool FlashConfig::DataMatchesCurrentDataBlock(const uint8_t* data, uint32_t leng
 // Function to get the next unused block index
 // Return the index of the next unused block,
 // or NUM_BLOCKS if no blocks are available
-uint32_t FlashConfig::GetNextUnusedBlockIndex(void)
+uint32_t InternalFlash::GetNextUnusedBlockIndex(void)
 {
     for (uint32_t i = 0; i < NUM_BLOCKS; i++)
     {

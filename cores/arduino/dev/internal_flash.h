@@ -41,7 +41,7 @@ constexpr uint32_t NUM_BLOCKS           = FLASH_SECTOR_SIZE / sizeof(FlashBlock)
 
 constexpr uint32_t NumDataBytesHeaderChunk = FLASH_WRITE_SIZE - FlashBlockHeaderSize;
 
-class FlashConfig
+class InternalFlash
 {
   public:
     enum class Result
@@ -59,28 +59,28 @@ class FlashConfig
         ERR                     // General error occurred
     };
 
-    FlashConfig() {}
-    ~FlashConfig() {}
+    InternalFlash() {}
+    ~InternalFlash() {}
 
     // Save the config data to flash
     // Returns OK if successful, ERR otherwise
-    Result SaveConfigData(const uint8_t* data, uint32_t length);
+    Result SaveData(const uint8_t* data, uint32_t length);
 
     // Get the number of bytes stored in latest data block
     // Returns OK if successful, ERR otherwise (i.e. no data available)
-    Result GetCurrentConfigDataSize(uint32_t* size);
+    Result GetCurrentDataSize(uint32_t* size);
 
     // Get the index of the latest data block
     // Returns OK if successful, ERR otherwise (i.e. no data available)
-    Result GetCurrentConfigIndex(uint32_t* index);
+    Result GetCurrentIndex(uint32_t* index);
 
     // Read the current config data from flash
     // Returns OK if successful, ERR otherwise (i.e. no data available)
-    Result ReadCurrentConfigData(uint8_t* data, uint32_t length);
+    Result ReadCurrentData(uint8_t* data, uint32_t length);
 
     // Verify CRC-32 of current config data in flash
     // Returns OK if successful, ERR otherwise (i.e. no data available)
-    Result VerifyCurrentConfigCRC(void);
+    Result VerifyCurrentCRC(void);
 
   private:
     // Erase the entire flash sector
