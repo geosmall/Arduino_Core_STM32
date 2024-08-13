@@ -8,7 +8,7 @@ set TEMP_PATH=C:\Users\geoma\AppData\Local\Temp
 
 :: Use TEMP_BUILD_FOLDER if is provided in command line, else use default
 if "%1" == "" (
-    set TEMP_BUILD_FOLDER=arduino_build_95603
+    set TEMP_BUILD_FOLDER=arduino_build_164522
 ) else (
     set TEMP_BUILD_FOLDER=%1
 )
