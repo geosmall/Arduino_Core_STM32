@@ -15,12 +15,12 @@ bool IBusParser::Parse(uint8_t byte, SerRxEvent* event_out)
     {
         case ParserEmpty:
             // check byte for valid Status Byte
-            if(byte == 20) {
+            if(byte == 0x20) {
                 pstate_ = ParserHasData0; // we need to get the 2nd byte yet
             }
             break;
         case ParserHasData0:
-            if(byte == 40) {
+            if(byte == 0x40) {
                 did_parse = true;
             } else  {
                 // invalid message go back to start

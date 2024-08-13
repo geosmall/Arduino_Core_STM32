@@ -60,7 +60,7 @@ class SerRxUartTransport
         UartHandler::Config uart_config;
 
         //defaults
-        uart_config.baudrate   = 31250;
+        uart_config.baudrate   = 115200;
         uart_config.stopbits   = UartHandler::Config::StopBits::BITS_1;
         uart_config.parity     = UartHandler::Config::Parity::NONE;
         uart_config.mode       = UartHandler::Config::Mode::TX_RX;

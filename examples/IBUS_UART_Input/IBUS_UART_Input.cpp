@@ -39,5 +39,9 @@ int main(void)
         /** Process Serial Rx in the background */
         ibus_rx.Listen();
 
+        // hw.PrintLine("---");
+
+        // Wait 500ms
+        System::Delay(20);
     }
 }

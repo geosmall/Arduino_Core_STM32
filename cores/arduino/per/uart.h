@@ -79,7 +79,7 @@ class UartHandler
             stopbits   = StopBits::BITS_1;
             parity     = Parity::NONE;
             wordlength = WordLength::BITS_8;
-            baudrate   = 31250;
+            baudrate   = 115200;
         }
 
         Peripheral periph;
