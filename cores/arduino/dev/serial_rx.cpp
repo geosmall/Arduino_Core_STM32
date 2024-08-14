@@ -5,7 +5,7 @@ namespace daisy
 static constexpr size_t kDefaultSerRxRxBufferSize = 256;
 
 static uint8_t DMA_BUFFER_MEM_SECTION
-    default_ibus_rx_buffer[kDefaultSerRxRxBufferSize];
+    default_ibus_rx_buffer[kDefaultSerRxRxBufferSize] = {0};
 
 SerRxUartTransport::Config::Config()
 {
