@@ -1,5 +1,7 @@
 ﻿# FLYSKY I6 IBUS: 14 CHANNELS
 
+https://basejunction.wordpress.com/2015/08/23/en-flysky-i6-14-channels-part1/
+
 **IBus Transmission**
 
 The FS-i6 has an IBus interface. It means that it can communicate the servo commands to the flight controller by some kind of serial communication. It has the advantage of limiting the number of wires between Rx and FC, but also implements a digital transmission means.
