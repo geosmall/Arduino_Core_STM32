@@ -20,7 +20,7 @@ namespace daisy
 class SerRxUartTransport
 {
   public:
-    typedef void (*IBusRxParseCallback)(uint8_t* data,
+    typedef void (*SerRxParseCallback)(uint8_t* data,
                                         size_t   size,
                                         void*    context);
 
@@ -82,7 +82,7 @@ class SerRxUartTransport
 
     /** @brief Start the UART peripheral in listening mode.
      *  This will fill an internal data structure in the background */
-    inline void StartRx(IBusRxParseCallback parse_callback, void* context)
+    inline void StartRx(SerRxParseCallback parse_callback, void* context)
     {
         parse_context_  = context;
         parse_callback_ = parse_callback;
@@ -102,11 +102,11 @@ class SerRxUartTransport
     inline void Tx(uint8_t* buff, size_t size) { uart_.PollTx(buff, size); }
 
   private:
-    UartHandler         uart_;
-    uint8_t*            rx_buffer;
-    size_t              rx_buffer_size;
-    void*               parse_context_;
-    IBusRxParseCallback parse_callback_;
+    UartHandler        uart_;
+    uint8_t*           rx_buffer;
+    size_t             rx_buffer_size;
+    void*              parse_context_;
+    SerRxParseCallback parse_callback_;
 
     /** Static callback for Uart IBUS that occurs when
          *  new data is available from the peripheral.
@@ -140,9 +140,6 @@ class SerRxUartTransport
     @brief Simple IBUS Handler \n
     Parses bytes from an input into valid IBusEvents. \n
     The IBusEvents fill a FIFO queue that the user can pop messages from.
-    @author shensley
-    @date March 2020
-    @ingroup ibus
 */
 template <typename Transport>
 class IBusHandler
@@ -222,9 +219,9 @@ class IBusHandler
     }
 
   private:
-    Config               config_;
-    Transport            transport_;
-    IBusParser           parser_;
+    Config                config_;
+    Transport             transport_;
+    IBusParser            parser_;
     FIFO<SerRxEvent, 256> event_q_;
 
     static void ParseCallback(uint8_t* data, size_t size, void* context)

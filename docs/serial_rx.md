@@ -95,7 +95,7 @@ namespace daisy
 class SerRxUartTransport
 {
 public:
-    typedef void (*IBusRxParseCallback)(uint8_t* data, size_t size, void* context);
+    typedef void (*SerRxParseCallback)(uint8_t* data, size_t size, void* context);
 
     SerRxUartTransport(IProtocol* protocol) : protocol_(protocol) {}
     ~SerRxUartTransport() {}
@@ -133,7 +133,7 @@ public:
         protocol_->Init();
     }
 
-    void StartRx(IBusRxParseCallback parse_callback, void* context)
+    void StartRx(SerRxParseCallback parse_callback, void* context)
     {
         parse_context_ = context;
         parse_callback_ = parse_callback;
@@ -152,7 +152,7 @@ private:
     uint8_t* rx_buffer;
     size_t rx_buffer_size;
     void* parse_context_;
-    IBusRxParseCallback parse_callback_;
+    SerRxParseCallback parse_callback_;
     IProtocol* protocol_;
 
     static void rxCallback(uint8_t* data, size_t size, void* context, UartHandler::Result res)
@@ -204,7 +204,7 @@ int main()
 
 This approach makes the SerRxUartTransport class more flexible and allows you to easily add support for new protocols by implementing the `IProtocol` interface.
 
-geosmall: Could you revise your answer to accomodate to protocols (IBusProtocol and SBusProtocol)?
+geosmall: Could you revise your answer to accomodate two protocols (IBusProtocol and SBusProtocol)?
 
 GitHub Copilot: Sure, let's revise the implementation to accommodate both `IBusProtocol` and `SBusProtocol` using the Strategy design pattern. We'll create an interface for protocols, implement the specific protocols, and modify the SerRxUartTransport class to use the protocol interface.
 

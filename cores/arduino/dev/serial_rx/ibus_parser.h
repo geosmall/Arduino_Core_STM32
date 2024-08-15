@@ -69,12 +69,15 @@ class IBusParser
   private:
     enum ParserState
     {
-        ParserEmpty,
-        ParserHasData0,
-        ParserSysEx,
+        ParserEmpty,          // Start, looking for header byte
+        ParserHasHeader0,     // Found first header byte
+        ParserHasHeader1,     // Found second header byte
+        ParserHasFrame,       // Have received a full frame
+        ParserHasCheckSum0,   // Has first checksum byte
+        ParserHasValidFrame,  // Passed frame validity check
     };
 
-    ParserState     pstate_;
+    ParserState     pstate_ = ParserEmpty;
     SerRxEvent      incoming_message_;
     // MidiMessageType running_status_;
 
