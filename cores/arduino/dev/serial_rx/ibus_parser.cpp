@@ -6,9 +6,8 @@ bool IBusParser::Parse(uint8_t byte, SerRxEvent* event_out)
 {
     // reset parser when status byte is received
     bool did_parse = false;
-    bool crc_passed;
     uint32_t char_count;
-    uint16_t byte_checksum;
+    uint16_t running_checksum;
     uint16_t frame_checksum;
 
     switch (pstate_)
@@ -18,7 +17,7 @@ bool IBusParser::Parse(uint8_t byte, SerRxEvent* event_out)
         if (byte == 0x20)
         {
             char_count = 1;
-            byte_checksum = 0xFFFF - byte;
+            running_checksum = 0xFFFF - byte;
             pstate_ = ParserHasHeader0; // we need to get the 2nd byte yet
         }
         break;
@@ -26,19 +25,20 @@ bool IBusParser::Parse(uint8_t byte, SerRxEvent* event_out)
         if (byte == 0x40)
         {
             char_count = 2;
-            byte_checksum -= byte;
+            running_checksum -= byte;
             pstate_ = ParserHasHeader1; // we need to get the 2nd byte yet
         }
         else
         {
             // invalid message go back to start
+            char_count = 0;
             pstate_ = ParserEmpty;
         }
         break;
     case ParserHasHeader1:
         char_count++;
-        byte_checksum -= byte;
-        if (char_count == 30)
+        running_checksum -= byte;
+        if (char_count >= 30)
         {
             pstate_ = ParserHasFrame;
         }
@@ -49,22 +49,20 @@ bool IBusParser::Parse(uint8_t byte, SerRxEvent* event_out)
         break;
     case ParserHasCheckSum0:
         frame_checksum = (byte << 8) | frame_checksum;
-        if (byte_checksum == frame_checksum)
+        if (frame_checksum != running_checksum)
         {
-            pstate_ = ParserHasValidFrame;
+            // invalid message go back to start
+            char_count = 0;
+            pstate_ = ParserEmpty;
         }
         else
         {
-            // invalid message go back to start
-            pstate_ = ParserEmpty;
+            if (event_out != nullptr)
+            {
+                *event_out = incoming_message_;
+            }
+            did_parse = true;
         }
-    case ParserHasValidFrame:
-        pstate_ = ParserEmpty;
-        if (event_out != nullptr)
-        {
-            *event_out = incoming_message_;
-        }
-        did_parse = true;
         break;
     default:
         break;

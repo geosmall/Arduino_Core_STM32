@@ -36,7 +36,7 @@ struct IBusFrame
 {
     const uint8_t      length = 20;
     const uint8_t      cmd_code = 40;
-    uint16_t           data[14*2];
+    uint8_t            data[14*2];
     uint16_t           crc;
 };
 
@@ -74,19 +74,11 @@ class IBusParser
         ParserHasHeader1,     // Found second header byte
         ParserHasFrame,       // Have received a full frame
         ParserHasCheckSum0,   // Has first checksum byte
-        ParserHasValidFrame,  // Passed frame validity check
     };
 
     ParserState     pstate_ = ParserEmpty;
     SerRxEvent      incoming_message_;
-    // MidiMessageType running_status_;
 
-    // Masks to check for message type, and byte content
-    const uint8_t kStatusByteMask     = 0x80;
-    const uint8_t kMessageMask        = 0x70;
-    const uint8_t kDataByteMask       = 0x7F;
-    const uint8_t kChannelMask        = 0x0F;
-    const uint8_t kSystemRealTimeMask = 0x07;
 };
 
 } // namespace daisy
