@@ -49,13 +49,7 @@ bool IBusParser::Parse(uint8_t byte, SerRxEvent* event_out)
         break;
     case ParserHasCheckSum0:
         frame_checksum = (byte << 8) | frame_checksum;
-        if (frame_checksum != running_checksum)
-        {
-            // invalid message go back to start
-            char_count = 0;
-            pstate_ = ParserEmpty;
-        }
-        else
+        if (frame_checksum == running_checksum)
         {
             if (event_out != nullptr)
             {
@@ -63,6 +57,9 @@ bool IBusParser::Parse(uint8_t byte, SerRxEvent* event_out)
             }
             did_parse = true;
         }
+        // Go back to start
+        char_count = 0;
+        pstate_ = ParserEmpty;
         break;
     default:
         break;

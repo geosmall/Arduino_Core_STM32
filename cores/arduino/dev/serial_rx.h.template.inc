@@ -16,15 +16,15 @@ namespace daisy
  *           There is an additional 2kB of RAM data used within this class
  *           for processing bulk data from the UART peripheral
  *  @ingroup ibus
- */
+*/
 class SerRxUartTransport
 {
   public:
     typedef void (*SerRxParseCallback)(uint8_t* data,
-                                       size_t   size,
-                                       void*    context);
+                                        size_t   size,
+                                        void*    context);
 
-    SerRxUartTransport() : rx_buffer(nullptr), rx_buffer_size(0), parse_context_(nullptr), parse_callback_(nullptr) {}
+    SerRxUartTransport() {}
     ~SerRxUartTransport() {}
 
     /** @brief Configuration structure for UART IBUS */
@@ -51,28 +51,28 @@ class SerRxUartTransport
          */
         size_t rx_buffer_size;
 
-        Config() : rx_buffer(nullptr), rx_buffer_size(256) {}
+        Config();
     };
 
     /** @brief Initialization of UART using config struct */
-    inline void Init(const Config* config)
+    inline void Init(Config config)
     {
         UartHandler::Config uart_config;
 
-        // defaults
+        //defaults
         uart_config.baudrate   = 115200;
         uart_config.stopbits   = UartHandler::Config::StopBits::BITS_1;
         uart_config.parity     = UartHandler::Config::Parity::NONE;
         uart_config.mode       = UartHandler::Config::Mode::TX_RX;
         uart_config.wordlength = UartHandler::Config::WordLength::BITS_8;
 
-        // user settings
-        uart_config.periph        = config->periph;
-        uart_config.pin_config.rx = config->rx;
-        uart_config.pin_config.tx = config->tx;
+        //user settings
+        uart_config.periph        = config.periph;
+        uart_config.pin_config.rx = config.rx;
+        uart_config.pin_config.tx = config.tx;
 
-        rx_buffer      = config->rx_buffer;
-        rx_buffer_size = config->rx_buffer_size;
+        rx_buffer      = config.rx_buffer;
+        rx_buffer_size = config.rx_buffer_size;
 
         /** zero the buffer to ensure emptiness regardless of source memory */
         std::fill(rx_buffer, rx_buffer + rx_buffer_size, 0);
@@ -93,7 +93,7 @@ class SerRxUartTransport
     }
 
     /** @brief returns whether the UART peripheral is actively listening in the background or not */
-    inline bool RxActive() const { return uart_.IsListening(); }
+    inline bool RxActive() { return uart_.IsListening(); }
 
     /** @brief This is a no-op for UART transport - Rx is via DMA callback with circular buffer */
     inline void FlushRx() {}
@@ -109,14 +109,14 @@ class SerRxUartTransport
     SerRxParseCallback parse_callback_;
 
     /** Static callback for Uart IBUS that occurs when
-     *  new data is available from the peripheral.
-     *  The new data is transferred from the peripheral to the
-     *  IBUS instance's byte FIFO that feeds the IBUS parser.
-     *
-     *  TODO: Handle UartHandler errors better/at all.
-     *  (If there is a UART error, there's not really any recovery
-     *  option at the moment)
-     */
+         *  new data is available from the peripheral.
+         *  The new data is transferred from the peripheral to the
+         *  IBUS instance's byte FIFO that feeds the IBUS parser.
+         *
+         *  TODO: Handle UartHandler errors better/at all.
+         *  (If there is a UART error, there's not really any recovery
+         *  option at the moment)
+         */
     static void rxCallback(uint8_t*            data,
                            size_t              size,
                            void*               context,
@@ -141,6 +141,7 @@ class SerRxUartTransport
     Parses bytes from an input into valid IBusEvents. \n
     The IBusEvents fill a FIFO queue that the user can pop messages from.
 */
+template <typename Transport>
 class IBusHandler
 {
   public:
@@ -149,28 +150,28 @@ class IBusHandler
 
     struct Config
     {
-        SerRxUartTransport::Config transport_config;
+        typename Transport::Config transport_config;
     };
 
     /** Initializes the IBusHandler
      *  \param config Configuration structure used to define specifics to the IBUS Handler.
      */
-    inline void Init(const Config* config)
+    void Init(Config config)
     {
-        config_ = *config;
-        transport_.Init(&config_.transport_config);
+        config_ = config;
+        transport_.Init(config_.transport_config);
         parser_.Init();
     }
 
     /** Starts listening on the selected input mode(s).
      * IBusEvent Queue will begin to fill, and can be checked with HasEvents() */
-    inline void StartReceive()
+    void StartReceive()
     {
         transport_.StartRx(IBusHandler::ParseCallback, this);
     }
 
     /** Start listening */
-    inline void Listen()
+    void Listen()
     {
         // In case of UART Error, (particularly
         //  overrun error), UART disables itself.
@@ -186,17 +187,18 @@ class IBusHandler
     /** Checks if there are unhandled messages in the queue
     \return True if there are events to be handled, else false.
      */
-    inline bool HasEvents() const { return event_q_.GetNumElements() > 0; }
+    bool HasEvents() const { return event_q_.GetNumElements() > 0; }
+
 
     /** Pops the oldest unhandled SerRxEvent from the internal queue
     \return The event to be handled
      */
-    inline SerRxEvent PopEvent() { return event_q_.PopFront(); }
+    SerRxEvent PopEvent() { return event_q_.PopFront(); }
 
     /** SendMessage
     Send raw bytes as message
     */
-    inline void SendMessage(uint8_t* bytes, size_t size)
+    void SendMessage(uint8_t* bytes, size_t size)
     {
         transport_.Tx(bytes, size);
     }
@@ -207,7 +209,7 @@ class IBusHandler
         \note  Normally application code won't need to use this method directly.
         \param byte IBUS byte to be parsed
     */
-    inline void Parse(uint8_t byte)
+    void Parse(uint8_t byte)
     {
         SerRxEvent event;
         if(parser_.Parse(byte, &event))
@@ -218,11 +220,11 @@ class IBusHandler
 
   private:
     Config                config_;
-    SerRxUartTransport    transport_;
+    Transport             transport_;
     IBusParser            parser_;
     FIFO<SerRxEvent, 256> event_q_;
 
-    static inline void ParseCallback(uint8_t* data, size_t size, void* context)
+    static void ParseCallback(uint8_t* data, size_t size, void* context)
     {
         IBusHandler* handler = reinterpret_cast<IBusHandler*>(context);
         for(size_t i = 0; i < size; i++)
@@ -237,6 +239,6 @@ class IBusHandler
  *  @ingroup ibus
  *  @brief shorthand accessors for IBUS Handlers
  * */
-using IBusRxHandler = IBusHandler;
+using IBusRxHandler = IBusHandler<SerRxUartTransport>;
 /** @} */
 } // namespace daisy

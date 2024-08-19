@@ -21,6 +21,8 @@ int main(void)
     /** Initialize our hardware */
     hw.Init();
 
+    System::Delay(50);
+
     hw.StartLog();
 
     IBusRxHandler::Config ser_rx_config;
@@ -28,8 +30,7 @@ int main(void)
 
     ibus_rx.StartReceive();
 
-    // uint32_t now      = System::GetNow();
-    // uint32_t log_time = System::GetNow();
+    // uint32_t now = System::GetNow();
 
     /** Infinite Loop */
     while(1)

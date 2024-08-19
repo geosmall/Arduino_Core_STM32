@@ -260,6 +260,10 @@ UartHandler::Result UartHandler::Impl::Init(const UartHandler::Config& config)
     huart_.Init.ClockPrescaler         = UART_PRESCALER_DIV2;
     huart_.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
 
+    if(HAL_UART_DeInit(&huart_) != HAL_OK)
+    {
+        return Result::ERR;
+    }
     if(HAL_UART_Init(&huart_) != HAL_OK)
     {
         return Result::ERR;
@@ -1107,13 +1111,66 @@ extern "C" void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef* huart)
     }
 }
 
+
+// Helper function to get the te_flag based on DMA instance
+// clang-format off
+uint32_t Get_TE_Flag(DMA_Stream_TypeDef* instance)
+{
+    if (instance == DMA1_Stream0 || instance == DMA2_Stream0 ||
+        instance == DMA1_Stream4 || instance == DMA2_Stream4)
+    {
+        return DMA_FLAG_TEIF0_4;
+    }
+    else if (instance == DMA1_Stream1 || instance == DMA2_Stream1 ||
+             instance == DMA1_Stream5 || instance == DMA2_Stream5)
+    {
+        return DMA_FLAG_TEIF1_5;
+    }
+    else if (instance == DMA1_Stream2 || instance == DMA2_Stream2 ||
+             instance == DMA1_Stream6 || instance == DMA2_Stream6)
+    {
+        return DMA_FLAG_TEIF2_6;
+    }
+    else if (instance == DMA1_Stream3 || instance == DMA2_Stream3 ||
+             instance == DMA1_Stream7 || instance == DMA2_Stream7)
+    {
+        return DMA_FLAG_TEIF3_7;
+    }
+    return 0; // Default case, should not happen
+}
+// clang-format on
+
 extern "C" void HAL_UART_ErrorCallback(UART_HandleTypeDef* huart)
 {
-    /** TODO: This hooks into the "Normal" DMA completion, 
-     *  might want to change this to have a different fallthrough
-     *  for "listener_mode_"
-     */
-    UartHandler::Impl::DmaTransferFinished(huart, UartHandler::Result::ERR);
+    auto* handle = MapInstanceToHandle(huart->Instance);
+    if (handle->listener_mode_)
+    {
+        DMA_HandleTypeDef* p_hdma_rx_ = &(handle->hdma_rx_);
+        uint32_t te_flag = Get_TE_Flag((DMA_Stream_TypeDef*) p_hdma_rx_->Instance);
+
+        /** Disable IDLE IRQ*/
+        __HAL_UART_DISABLE_IT(huart, UART_IT_IDLE);
+        /** Stop DMA */
+        HAL_UART_DMAStop(huart);
+
+        /** Clear UART and DMA error flags */
+        __HAL_DMA_CLEAR_FLAG(p_hdma_rx_, te_flag);
+        __HAL_UART_CLEAR_FLAG(huart, UART_CLEAR_PEF | UART_CLEAR_FEF | UART_CLEAR_NEF | UART_CLEAR_OREF);
+
+        /** Read RDR to clear flags and reset UART state */
+        uint32_t dummy __attribute__((unused)) = READ_REG(huart->Instance->RDR);
+
+        /** enable idle interrupts so that TC, HT, and IDLE are triggers */
+        __HAL_UART_ENABLE_IT(huart, UART_IT_IDLE);
+
+        /** Restart DMA reception */
+        HAL_UART_Receive_DMA(huart, handle->circular_rx_buff_, handle->circular_rx_total_size_);
+    }
+    else
+    {
+        /** Hook into the "Normal" DMA completion */
+        UartHandler::Impl::DmaTransferFinished(huart, UartHandler::Result::ERR);
+    }
 }
 
 extern "C" void HAL_UART_AbortCpltCallback(UART_HandleTypeDef* huart)
