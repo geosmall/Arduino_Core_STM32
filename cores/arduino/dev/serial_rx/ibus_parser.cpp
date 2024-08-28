@@ -9,6 +9,7 @@ bool IBusParser::Parse(uint8_t byte, SerRxEvent* event_out)
     uint32_t char_count;
     uint16_t running_checksum;
     uint16_t frame_checksum;
+    uint8_t i;
 
     switch (pstate_)
     {
@@ -37,8 +38,23 @@ bool IBusParser::Parse(uint8_t byte, SerRxEvent* event_out)
         break;
     case ParserHasHeader1:
         char_count++;
+        // Store the byte in the channel array
+        // odd bytes are high byte, even bytes are low
+        // channels array index is char_count / 2 - 1
+        i = (char_count - 3u) / 2u;
+        if (i < SERRX_NUM_CHAN)
+        {
+            if (char_count % 2u)
+            {
+                event_message_.channels[i] = byte; // odd = low byte
+            }
+            else
+            {
+                event_message_.channels[i] |= byte << 8u; // even = high bytr
+            }
+        }
         running_checksum -= byte;
-        if (char_count >= 30)
+        if (char_count >= 30u)
         {
             pstate_ = ParserHasFrame;
         }
@@ -51,9 +67,11 @@ bool IBusParser::Parse(uint8_t byte, SerRxEvent* event_out)
         frame_checksum = (byte << 8) | frame_checksum;
         if (frame_checksum == running_checksum)
         {
+            event_message_.type = RxValidPacket;
+
             if (event_out != nullptr)
             {
-                *event_out = incoming_message_;
+                *event_out = event_message_;
             }
             did_parse = true;
         }
@@ -71,5 +89,5 @@ bool IBusParser::Parse(uint8_t byte, SerRxEvent* event_out)
 void IBusParser::Reset()
 {
     pstate_ = ParserEmpty;
-    incoming_message_.type = RxNotInit;
+    event_message_.type = RxMessageLast;
 }

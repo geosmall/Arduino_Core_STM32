@@ -129,7 +129,7 @@ class UartHandler::Impl
 
     Result DeInitPins();
 
-    int CheckError();
+    uint32_t CheckError();
 
     static constexpr uint8_t      kNumUartWithDma = 9;
     static volatile int8_t        dma_active_peripheral_;
@@ -534,7 +534,7 @@ UartHandler::Impl::DmaListenStart(uint8_t* buff,
     dsy_dma_invalidate_cache_for_buffer(buff, size);
     if(HAL_UART_Receive_DMA(&huart_, buff, size) != HAL_OK)
         return UartHandler::Result::ERR;
-    dma_active_peripheral_ = int(config_.periph);
+    dma_active_peripheral_ = static_cast<int>(config_.periph);
     return UartHandler::Result::OK;
 }
 
@@ -685,7 +685,7 @@ UartHandler::Result UartHandler::Impl::BlockingTransmit(uint8_t* buff,
     return Result::OK;
 }
 
-int UartHandler::Impl::CheckError()
+uint32_t UartHandler::Impl::CheckError()
 {
     return HAL_UART_GetError(&huart_);
 }
@@ -1111,58 +1111,30 @@ extern "C" void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef* huart)
     }
 }
 
-
-// Helper function to get the te_flag based on DMA instance
-// clang-format off
-uint32_t Get_TE_Flag(DMA_Stream_TypeDef* instance)
-{
-    if (instance == DMA1_Stream0 || instance == DMA2_Stream0 ||
-        instance == DMA1_Stream4 || instance == DMA2_Stream4)
-    {
-        return DMA_FLAG_TEIF0_4;
-    }
-    else if (instance == DMA1_Stream1 || instance == DMA2_Stream1 ||
-             instance == DMA1_Stream5 || instance == DMA2_Stream5)
-    {
-        return DMA_FLAG_TEIF1_5;
-    }
-    else if (instance == DMA1_Stream2 || instance == DMA2_Stream2 ||
-             instance == DMA1_Stream6 || instance == DMA2_Stream6)
-    {
-        return DMA_FLAG_TEIF2_6;
-    }
-    else if (instance == DMA1_Stream3 || instance == DMA2_Stream3 ||
-             instance == DMA1_Stream7 || instance == DMA2_Stream7)
-    {
-        return DMA_FLAG_TEIF3_7;
-    }
-    return 0; // Default case, should not happen
-}
-// clang-format on
-
 extern "C" void HAL_UART_ErrorCallback(UART_HandleTypeDef* huart)
 {
     auto* handle = MapInstanceToHandle(huart->Instance);
+
+    /** Per HAL_UART_IRQHandler(), any error that occurs in DMA mode reception
+     *  is consider as blocking, so need to clear and unblock receive */
     if (handle->listener_mode_)
     {
-        DMA_HandleTypeDef* p_hdma_rx_ = &(handle->hdma_rx_);
-        uint32_t te_flag = Get_TE_Flag((DMA_Stream_TypeDef*) p_hdma_rx_->Instance);
-
-        /** Disable IDLE IRQ*/
+        /** Disable IDLE IRQ */
         __HAL_UART_DISABLE_IT(huart, UART_IT_IDLE);
         /** Stop DMA */
         HAL_UART_DMAStop(huart);
 
-        /** Clear UART and DMA error flags */
-        __HAL_DMA_CLEAR_FLAG(p_hdma_rx_, te_flag);
+        /** Clear UART error flags */
         __HAL_UART_CLEAR_FLAG(huart, UART_CLEAR_PEF | UART_CLEAR_FEF | UART_CLEAR_NEF | UART_CLEAR_OREF);
 
         /** Read RDR to clear flags and reset UART state */
         uint32_t dummy __attribute__((unused)) = READ_REG(huart->Instance->RDR);
 
+        /** cache maintanence to allow memory from cache-able regions  */
+        dsy_dma_invalidate_cache_for_buffer(handle->circular_rx_buff_, handle->circular_rx_total_size_);
+
         /** enable idle interrupts so that TC, HT, and IDLE are triggers */
         __HAL_UART_ENABLE_IT(huart, UART_IT_IDLE);
-
         /** Restart DMA reception */
         HAL_UART_Receive_DMA(huart, handle->circular_rx_buff_, handle->circular_rx_total_size_);
     }
@@ -1257,7 +1229,7 @@ bool UartHandler::IsListening() const
     return pimpl_->IsListening();
 }
 
-int UartHandler::CheckError()
+uint32_t UartHandler::CheckError()
 {
     return pimpl_->CheckError();
 }

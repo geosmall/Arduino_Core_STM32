@@ -210,7 +210,7 @@ class UartHandler
     bool IsListening() const;
 
     /** \return the result of HAL_UART_GetError() to the user. */
-    int CheckError();
+    uint32_t CheckError();
 
     /** Will be deprecated soon! Wrapper for BlockingTransmit */
     int PollReceive(uint8_t* buff, size_t size, uint32_t timeout);

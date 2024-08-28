@@ -34,10 +34,8 @@ namespace daisy
 
 struct IBusFrame
 {
-    const uint8_t      length = 20;
-    const uint8_t      cmd_code = 40;
-    uint8_t            data[14*2];
-    uint16_t           crc;
+    uint16_t           channels[14];
+    uint16_t           checksum;
 };
 
 class IBusParser
@@ -77,7 +75,7 @@ class IBusParser
     };
 
     ParserState     pstate_ = ParserEmpty;
-    SerRxEvent      incoming_message_;
+    SerRxEvent      event_message_;
 
 };
 

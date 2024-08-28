@@ -1,69 +1,55 @@
-// TODO: make this adjustable
-#define SERRX_BUFFER_LEN 128
+#pragma once
+
+#include <cstring>
+
 #define SERRX_PACKET_LEN 0x20
 #define SERRX_CMD_CODE 0x40
-#define SERRX_NUM_CHAN 14
+#define SERRX_NUM_CHAN 10
 
 namespace daisy
 {
 
-enum SerRxMessageType
+enum SerRxMessageType : uint8_t
 {
-    RxNotInit,
     RxValidPacket,
     RxFailSafePacket,
+    RxMessageLast,
 };
-
-/** Struct containing Rx not initialized message
-*/
-struct RxNotInitEvent
-{
-    const uint8_t      length = SERRX_PACKET_LEN;
-    const uint8_t      cmd_code = SERRX_CMD_CODE;
-    uint16_t           data[SERRX_NUM_CHAN*2];
-    uint16_t           crc;
-};
-
 
 /** Struct containing Rx valid packet message
 */
 struct RxValidPacketEvent
 {
-    const uint8_t      length = SERRX_PACKET_LEN;
-    const uint8_t      cmd_code = SERRX_CMD_CODE;
-    uint16_t           data[SERRX_NUM_CHAN*2];
-    uint16_t           crc;
+    uint16_t           channels[SERRX_NUM_CHAN];
 };
 
 /** Struct containing Rx failesafe packet message
 */
 struct RxFailSafePacketEvent
 {
-    const uint8_t      length = SERRX_PACKET_LEN;
-    const uint8_t      cmd_code = SERRX_CMD_CODE;
-    uint16_t           data[SERRX_NUM_CHAN*2];
-    uint16_t           crc;
+    uint16_t           channels[SERRX_NUM_CHAN];
 };
+
+// Calculate the message length at compile time
+constexpr uint8_t MESSAGE_LEN()
+{
+    return sizeof(SerRxMessageType) + (SERRX_NUM_CHAN * sizeof(uint16_t)) + sizeof(uint8_t);
+}
 
 /** Simple SerRxEvent with message type, channel, and data[2] members.
 */
 struct SerRxEvent
 {
-    SerRxMessageType   type;                         /**< & */
-    uint8_t            sysex_data[SERRX_BUFFER_LEN]; /**< & */
-    uint8_t            sysex_message_len;
-
-    /** Returns the data within the SerRxEvent as a RxNotInitEvent struct */
-    RxNotInitEvent AsRxNotInit()
-    {
-        RxNotInitEvent m;
-        return m;
-    }
+    SerRxMessageType   type;
+    uint16_t           channels[SERRX_NUM_CHAN];
+    uint32_t           message_len;
 
     /** Returns the data within the SerRxEvent as a RxValidPacketEvent struct */
     RxValidPacketEvent AsRxValidPacket()
     {
         RxValidPacketEvent m;
+        memcpy(m.channels, channels, sizeof(m.channels));
+        message_len = MESSAGE_LEN();
         return m;
     }
 

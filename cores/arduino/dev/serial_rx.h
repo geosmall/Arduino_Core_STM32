@@ -98,6 +98,9 @@ class SerRxUartTransport
     /** @brief This is a no-op for UART transport - Rx is via DMA callback with circular buffer */
     inline void FlushRx() {}
 
+    /** @brief Returns UART HAL UART Error Code */
+    inline uint32_t GetError() { return uart_.CheckError();}
+
     /** @brief sends the buffer of bytes out of the UART peripheral */
     inline void Tx(uint8_t* buff, size_t size) { uart_.PollTx(buff, size); }
 
@@ -167,6 +170,12 @@ class IBusHandler
     void StartReceive()
     {
         transport_.StartRx(IBusHandler::ParseCallback, this);
+    }
+
+    /** \return the result of uart CheckError() to the user. */
+    uint32_t GetError()
+    {
+        return transport_.GetError();
     }
 
     /** Start listening */

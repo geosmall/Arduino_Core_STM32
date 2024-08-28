@@ -16,6 +16,28 @@ using namespace daisy;
 DaisySeed         hw;
 IBusRxHandler     ibus_rx;
 
+// Typical Switch case for Message Type.
+void HandleIBusMessage(SerRxEvent event)
+{
+    uint16_t ch1;
+
+    switch(event.type)
+    {
+        case RxValidPacket:
+        {
+            RxValidPacketEvent valid_packet = event.AsRxValidPacket();
+            ch1 = valid_packet.channels[0];
+        }
+        break;
+        case RxFailSafePacket:
+        {
+            RxFailSafePacketEvent fail_packet = event.AsRxFailSafePacket();
+            ch1 = fail_packet.channels[0];
+        }
+        default: break;
+    }
+}
+
 int main(void)
 {
     /** Initialize our hardware */
@@ -41,8 +63,13 @@ int main(void)
         ibus_rx.Listen();
 
         // hw.PrintLine("---");
+        // Handle IBus Events
+        while(ibus_rx.HasEvents())
+        {
+            HandleIBusMessage(ibus_rx.PopEvent());
+        }
 
         // Wait 500ms
-        System::Delay(20);
+        System::Delay(100);
     }
 }
