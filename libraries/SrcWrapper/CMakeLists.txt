@@ -20,8 +20,12 @@ target_link_libraries(SrcWrapper INTERFACE SrcWrapper_usage)
 
 add_library(SrcWrapper_bin OBJECT EXCLUDE_FROM_ALL
   src/HAL/stm32yyxx_hal.c
+  src/HAL/stm32yyxx_hal_adc.c
+  src/HAL/stm32yyxx_hal_adc_ex.c
   src/HAL/stm32yyxx_hal_cortex.c
   src/HAL/stm32yyxx_hal_crc.c
+  src/HAL/stm32yyxx_hal_crc_ex.c
+  src/HAL/stm32yyxx_hal_dac.c
   src/HAL/stm32yyxx_hal_dma.c
   src/HAL/stm32yyxx_hal_dma2d.c
   src/HAL/stm32yyxx_hal_dma_ex.c
