@@ -24,10 +24,6 @@
 
 #include "Print.h"
 
-#if defined (VIRTIO_LOG)
-  #include "virtio_log.h"
-#endif
-
 // Public Methods //////////////////////////////////////////////////////////////
 
 /* default implementation: may be overridden */

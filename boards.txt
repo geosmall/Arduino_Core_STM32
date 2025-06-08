@@ -5,7 +5,6 @@ menu.pnum=Board part number
 menu.xserial=U(S)ART support
 menu.usb=USB support (if available)
 menu.xusb=USB speed (if available)
-menu.virtio=Virtual serial support
 
 menu.opt=Optimize
 menu.dbg=Debug symbols and core logs
