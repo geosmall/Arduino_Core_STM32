@@ -130,19 +130,6 @@ Nucleo_144.menu.pnum.NUCLEO_F767ZI.build.series=STM32F7xx
 Nucleo_144.menu.pnum.NUCLEO_F767ZI.build.product_line=STM32F767xx
 Nucleo_144.menu.pnum.NUCLEO_F767ZI.build.variant=STM32F7xx/F765Z(G-I)T_F767Z(G-I)T_F777ZIT
 
-# NUCLEO H563ZI
-Nucleo_144.menu.pnum.NUCLEO_H563ZI=Nucleo H563ZI
-Nucleo_144.menu.pnum.NUCLEO_H563ZI.node=NOD_H563ZI
-Nucleo_144.menu.pnum.NUCLEO_H563ZI.upload.maximum_size=2097152
-Nucleo_144.menu.pnum.NUCLEO_H563ZI.upload.maximum_data_size=655360
-Nucleo_144.menu.pnum.NUCLEO_H563ZI.build.mcu=cortex-m33
-Nucleo_144.menu.pnum.NUCLEO_H563ZI.build.fpu=-mfpu=fpv4-sp-d16
-Nucleo_144.menu.pnum.NUCLEO_H563ZI.build.float-abi=-mfloat-abi=hard
-Nucleo_144.menu.pnum.NUCLEO_H563ZI.build.board=NUCLEO_H563ZI
-Nucleo_144.menu.pnum.NUCLEO_H563ZI.build.series=STM32H5xx
-Nucleo_144.menu.pnum.NUCLEO_H563ZI.build.product_line=STM32H563xx
-Nucleo_144.menu.pnum.NUCLEO_H563ZI.build.variant=STM32H5xx/H563Z(G-I)T
-
 # NUCLEO H723ZG board
 Nucleo_144.menu.pnum.NUCLEO_H723ZG=Nucleo H723ZG
 Nucleo_144.menu.pnum.NUCLEO_H723ZG.node=NODE_H723ZG
@@ -197,10 +184,6 @@ Nucleo_144.menu.pnum.NUCLEO_H753ZI.build.variant=STM32H7xx/H742Z(G-I)T_H743Z(G-I
 Nucleo_144.menu.pnum.NUCLEO_H753ZI.build.variant_h=variant_NUCLEO_H753ZI.h
 
 # Upload menu
-Nucleo_144.menu.upload_method.MassStorage=Mass Storage
-Nucleo_144.menu.upload_method.MassStorage.upload.protocol=
-Nucleo_144.menu.upload_method.MassStorage.upload.tool=massStorageCopy
-
 Nucleo_144.menu.upload_method.swdMethod=STM32CubeProgrammer (SWD)
 Nucleo_144.menu.upload_method.swdMethod.upload.protocol=0
 Nucleo_144.menu.upload_method.swdMethod.upload.options=
@@ -215,6 +198,11 @@ Nucleo_144.menu.upload_method.dfuMethod=STM32CubeProgrammer (DFU)
 Nucleo_144.menu.upload_method.dfuMethod.upload.protocol=2
 Nucleo_144.menu.upload_method.dfuMethod.upload.options=
 Nucleo_144.menu.upload_method.dfuMethod.upload.tool=stm32CubeProg
+
+Nucleo_144.menu.upload_method.clipboard=Clipboard (Copy Path)
+Nucleo_144.menu.upload_method.clipboard.upload.protocol=0
+Nucleo_144.menu.upload_method.clipboard.upload.options=-g
+Nucleo_144.menu.upload_method.clipboard.upload.tool=clipboard_upload
 
 ################################################################################
 # Nucleo 64 boards
@@ -295,10 +283,6 @@ Nucleo_64.menu.pnum.NUCLEO_G474RE.build.product_line=STM32G474xx
 Nucleo_64.menu.pnum.NUCLEO_G474RE.build.variant=STM32G4xx/G473R(B-C-E)T_G474R(B-C-E)T_G483RET_G484RET
 
 # Upload menu
-Nucleo_64.menu.upload_method.MassStorage=Mass Storage
-Nucleo_64.menu.upload_method.MassStorage.upload.protocol=
-Nucleo_64.menu.upload_method.MassStorage.upload.tool=massStorageCopy
-
 Nucleo_64.menu.upload_method.swdMethod=STM32CubeProgrammer (SWD)
 Nucleo_64.menu.upload_method.swdMethod.upload.protocol=0
 Nucleo_64.menu.upload_method.swdMethod.upload.options=
@@ -313,6 +297,11 @@ Nucleo_64.menu.upload_method.dfuMethod=STM32CubeProgrammer (DFU)
 Nucleo_64.menu.upload_method.dfuMethod.upload.protocol=2
 Nucleo_64.menu.upload_method.dfuMethod.upload.options=
 Nucleo_64.menu.upload_method.dfuMethod.upload.tool=stm32CubeProg
+
+Nucleo_64.menu.upload_method.clipboard=Clipboard (Copy Path)
+Nucleo_64.menu.upload_method.clipboard.upload.protocol=0
+Nucleo_64.menu.upload_method.clipboard.upload.options=-g
+Nucleo_64.menu.upload_method.clipboard.upload.tool=clipboard_upload
 
 ################################################################################
 # Nucleo 32 boards
@@ -341,10 +330,6 @@ Nucleo_32.menu.pnum.NUCLEO_G431KB.build.product_line=STM32G431xx
 Nucleo_32.menu.pnum.NUCLEO_G431KB.build.variant=STM32G4xx/G431K(6-8-B)(T-U)_G441KB(T-U)
 
 # Upload menu
-Nucleo_32.menu.upload_method.MassStorage=Mass Storage
-Nucleo_32.menu.upload_method.MassStorage.upload.protocol=
-Nucleo_32.menu.upload_method.MassStorage.upload.tool=massStorageCopy
-
 Nucleo_32.menu.upload_method.swdMethod=STM32CubeProgrammer (SWD)
 Nucleo_32.menu.upload_method.swdMethod.upload.protocol=0
 Nucleo_32.menu.upload_method.swdMethod.upload.options=
@@ -359,6 +344,11 @@ Nucleo_32.menu.upload_method.dfuMethod=STM32CubeProgrammer (DFU)
 Nucleo_32.menu.upload_method.dfuMethod.upload.protocol=2
 Nucleo_32.menu.upload_method.dfuMethod.upload.options=
 Nucleo_32.menu.upload_method.dfuMethod.upload.tool=stm32CubeProg
+
+Nucleo_32.menu.upload_method.clipboard=Clipboard (Copy Path)
+Nucleo_32.menu.upload_method.clipboard.upload.protocol=0
+Nucleo_32.menu.upload_method.clipboard.upload.options=-g
+Nucleo_32.menu.upload_method.clipboard.upload.tool=clipboard_upload
 
 ################################################################################
 # Discovery boards
@@ -428,20 +418,6 @@ Disco.menu.pnum.DISCO_F746NG.build.product_line=STM32F746xx
 Disco.menu.pnum.DISCO_F746NG.build.variant=STM32F7xx/F746B(E-G)T_F746N(E-G)H_F750N8H_F756BGT_F756NGH
 Disco.menu.pnum.DISCO_F746NG.build.peripheral_pins=-DCUSTOM_PERIPHERAL_PINS
 
-# STM32H573I-DK
-Disco.menu.pnum.STM32H573I_DK=STM32H573I-DK
-Disco.menu.pnum.STM32H573I_DK.node=DIS_H573II
-Disco.menu.pnum.STM32H573I_DK.upload.maximum_size=2097152
-Disco.menu.pnum.STM32H573I_DK.upload.maximum_data_size=655360
-Disco.menu.pnum.STM32H573I_DK.build.mcu=cortex-m33
-Disco.menu.pnum.STM32H573I_DK.build.fpu=-mfpu=fpv4-sp-d16
-Disco.menu.pnum.STM32H573I_DK.build.float-abi=-mfloat-abi=hard
-Disco.menu.pnum.STM32H573I_DK.build.board=STM32H573I_DK
-Disco.menu.pnum.STM32H573I_DK.build.series=STM32H5xx
-Disco.menu.pnum.STM32H573I_DK.build.product_line=STM32H573xx
-Disco.menu.pnum.STM32H573I_DK.build.variant=STM32H5xx/H573IIKxQ
-Disco.menu.pnum.STM32H573I_DK.build.peripheral_pins=-DCUSTOM_PERIPHERAL_PINS
-
 # STM32H747I-DISCO
 Disco.menu.pnum.STM32H747I_DISCO=STM32H747I-DISCO
 Disco.menu.pnum.STM32H747I_DISCO.node=DIS_H747XI
@@ -458,10 +434,6 @@ Disco.menu.pnum.STM32H747I_DISCO.build.st_extra_flags=-D{build.product_line} {bu
 Disco.menu.pnum.STM32H747I_DISCO.build.peripheral_pins=-DCUSTOM_PERIPHERAL_PINS
 
 # Upload menu
-Disco.menu.upload_method.MassStorage=Mass Storage
-Disco.menu.upload_method.MassStorage.upload.protocol=
-Disco.menu.upload_method.MassStorage.upload.tool=massStorageCopy
-
 Disco.menu.upload_method.swdMethod=STM32CubeProgrammer (SWD)
 Disco.menu.upload_method.swdMethod.upload.protocol=0
 Disco.menu.upload_method.swdMethod.upload.options=
@@ -476,6 +448,11 @@ Disco.menu.upload_method.dfuMethod=STM32CubeProgrammer (DFU)
 Disco.menu.upload_method.dfuMethod.upload.protocol=2
 Disco.menu.upload_method.dfuMethod.upload.options=
 Disco.menu.upload_method.dfuMethod.upload.tool=stm32CubeProg
+
+Disco.menu.upload_method.clipboard=Clipboard (Copy Path)
+Disco.menu.upload_method.clipboard.upload.protocol=0
+Disco.menu.upload_method.clipboard.upload.options=-g
+Disco.menu.upload_method.clipboard.upload.tool=clipboard_upload
 
 ################################################################################
 # Generic F4
@@ -3424,16 +3401,6 @@ GenFlight.upload.maximum_size=0
 GenFlight.upload.maximum_data_size=0
 
 # Matex H743
-GenFlight.menu.pnum.AFROFLIGHT_F103CB=Afro Flight Rev5 (8MHz)
-GenFlight.menu.pnum.AFROFLIGHT_F103CB.upload.maximum_size=131072
-GenFlight.menu.pnum.AFROFLIGHT_F103CB.upload.maximum_data_size=20480
-GenFlight.menu.pnum.AFROFLIGHT_F103CB.build.mcu=cortex-m3
-GenFlight.menu.pnum.AFROFLIGHT_F103CB.build.series=STM32F1xx
-GenFlight.menu.pnum.AFROFLIGHT_F103CB.build.board=AFROFLIGHT_F103CB
-GenFlight.menu.pnum.AFROFLIGHT_F103CB.build.product_line=STM32F103xB
-GenFlight.menu.pnum.AFROFLIGHT_F103CB.build.variant=STM32F1xx/F103C8T_F103CB(T-U)
-GenFlight.menu.pnum.AFROFLIGHT_F103CB.build.variant_h=variant_AFROFLIGHT_F103CB_XX.h
-
 GenFlight.menu.pnum.MATEK_H743VI=Matex H743VITx
 GenFlight.menu.pnum.MATEK_H743VI.upload.maximum_size=2097152
 GenFlight.menu.pnum.MATEK_H743VI.upload.maximum_data_size=524288

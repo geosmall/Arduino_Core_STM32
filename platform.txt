@@ -161,16 +161,6 @@ recipe.size.regex.eeprom=^(?:\.eeprom)\s+([0-9]+).*
 # Uploader tool
 # -------------------
 
-# Upload to board via mass storage
-tools.massStorageCopy.cmd=massStorageCopy.sh
-tools.massStorageCopy.cmd.windows=massStorageCopy.bat
-tools.massStorageCopy.path={runtime.tools.STM32Tools.path}/win
-tools.massStorageCopy.path.macosx={runtime.tools.STM32Tools.path}/macosx
-tools.massStorageCopy.path.linux={runtime.tools.STM32Tools.path}/linux
-tools.massStorageCopy.upload.params.verbose=
-tools.massStorageCopy.upload.params.quiet=
-tools.massStorageCopy.upload.pattern="{path}/{cmd}" {upload.verbose} -I "{build.path}/{build.project_name}.bin" -O "{node}"
-
 # STM32CubeProgrammer upload
 tools.stm32CubeProg.path={runtime.tools.STM32Tools.path}
 tools.stm32CubeProg.busybox=
@@ -208,14 +198,15 @@ tools.maple_upload.upload.params.verbose=-d
 tools.maple_upload.upload.params.quiet=n
 tools.maple_upload.upload.pattern="{busybox}" sh "{path}/{script}" {serial.port.file} {upload.altID} {upload.usbID} "{build.path}/{build.project_name}.bin"
 
-# STM32MP1 self-contained shell script
-tools.remoteproc_gen.path={runtime.tools.STM32Tools.path}
-tools.remoteproc_gen.busybox=
-tools.remoteproc_gen.busybox.windows={path}/win/busybox.exe
-tools.remoteproc_gen.script=run_arduino_gen.sh
-tools.remoteproc_gen.upload.params.verbose=
-tools.remoteproc_gen.upload.params.quiet=
-tools.remoteproc_gen.upload.pattern="{busybox}" sh "{path}/{script}" generate "{build.path}/{build.project_name}.elf" "{build.path}/run_arduino_{build.project_name}.sh"
+# Clipboard upload (Segger Ozone)
+tools.clipboard_upload.path={runtime.tools.STM32Tools.path}
+tools.clipboard_upload.busybox=
+tools.clipboard_upload.busybox.windows={path}/win/busybox.exe
+tools.clipboard_upload.cmd=clipboard.sh
+tools.clipboard_upload.upload.params.verbose=
+tools.clipboard_upload.upload.params.quiet=
+# tools.clipboard_upload.upload.pattern="{busybox}" sh "{path}/{cmd}" "{build.path}/{build.project_name}"
+tools.clipboard_upload.upload.pattern="{busybox}" sh "{runtime.platform.path}/system/extras/{cmd}" "{build.path}/{build.project_name}"
 
 # Debugger configuration (general options)
 # ----------------------------------------
