@@ -3400,6 +3400,27 @@ GenFlight.menu.pnum.MATEK_H743VI.build.product_line=STM32H743xx
 GenFlight.menu.pnum.MATEK_H743VI.build.variant=STM32H7xx/H742V(G-I)(H-T)_H743V(G-I)(H-T)_H750VBT_H753VI(H-T)
 GenFlight.menu.pnum.MATEK_H743VI.build.variant_h=variant_MATEK_H743VI.h
 
+# Upload menu
+GenFlight.menu.upload_method.swdMethod=STM32CubeProgrammer (SWD)
+GenFlight.menu.upload_method.swdMethod.upload.protocol=0
+GenFlight.menu.upload_method.swdMethod.upload.options=
+GenFlight.menu.upload_method.swdMethod.upload.tool=stm32CubeProg
+
+GenFlight.menu.upload_method.serialMethod=STM32CubeProgrammer (Serial)
+GenFlight.menu.upload_method.serialMethod.upload.protocol=1
+GenFlight.menu.upload_method.serialMethod.upload.options={serial.port.file}
+GenFlight.menu.upload_method.serialMethod.upload.tool=stm32CubeProg
+
+GenFlight.menu.upload_method.dfuMethod=STM32CubeProgrammer (DFU)
+GenFlight.menu.upload_method.dfuMethod.upload.protocol=2
+GenFlight.menu.upload_method.dfuMethod.upload.options=
+GenFlight.menu.upload_method.dfuMethod.upload.tool=stm32CubeProg
+
+GenFlight.menu.upload_method.clipboard=Clipboard (Copy Path)
+GenFlight.menu.upload_method.clipboard.upload.protocol=0
+GenFlight.menu.upload_method.clipboard.upload.options=-g
+GenFlight.menu.upload_method.clipboard.upload.tool=clipboard_upload
+
 ################################################################################
 # Serialx activation
 Nucleo_144.menu.xserial.generic=Enabled (generic 'Serial')
