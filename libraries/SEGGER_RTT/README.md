@@ -126,11 +126,6 @@ JLinkRTTClient
 
 ## Updating the Library
 
-### When to Update
-- New SEGGER RTT version available
-- Bug fixes or performance improvements needed
-- Additional platform support required
-
 ### Update Procedure
 
 1. **Get Latest RTT Source**
@@ -166,29 +161,21 @@ JLinkRTTClient
    cp /home/geo/Arduino/Segger_RTT_PrintfTest_Lib_V862/src/SEGGER_RTT/* src/
    ```
 
-4. **Verify File Integrity (Optional)**
+4. **Test Compilation**
    ```bash
-   # Compare with official archive to verify source integrity
-   diff -u /tmp/SEGGER_RTT_V*/RTT/SEGGER_RTT.h src/SEGGER_RTT.h
-   diff -u /tmp/SEGGER_RTT_V*/RTT/SEGGER_RTT.c src/SEGGER_RTT.c
-   # Minor differences in copyright years/formatting are expected
-   ```
-
-5. **Test Compilation**
-   ```bash
-   cd MyFirstSketch/
+   cd HIL_RTT_Test/
    make clean
    make  # Should compile without errors
    ```
 
-6. **Test RTT Functionality**  
+5. **Test RTT Functionality**  
    ```bash
    # Upload and test RTT output
    ./scripts/jlink_upload.sh <compiled_binary>
    ./scripts/rtt-test.sh -i  # Interactive test
    ```
 
-7. **Update Documentation**
+6. **Update Documentation**
    - Update version number in this README.md
    - Document any breaking changes or new features
    - Update usage examples if API changed
