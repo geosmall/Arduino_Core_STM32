@@ -4,8 +4,8 @@ set -o nounset # Treat unset variables as an error
 UNAME_OS="$(uname -s)"
 
 if [ $# -lt 1 ]; then
-  echo "Not enough arguments!"
-  usage 2
+  echo "Usage: $0 <filepath>"
+  exit 2
 fi
 
 # Parse options
@@ -17,10 +17,10 @@ echo "Path to ELF file:"
 echo "$DIRPATH"
 
 # Copy the string to the clipboard
-if [[ "$UNAME_OS" == "Linux*" ]]; then
+if [ "$UNAME_OS" = "Linux" ]; then
     # For Linux
     echo -n "$DIRPATH" | xclip -selection clipboard
-elif [[ "$UNAME_OS" == "Darwin*" ]]; then
+elif [ "$UNAME_OS" = "Darwin" ]; then
     # For macOS
     echo -n "$DIRPATH" | pbcopy
 else
