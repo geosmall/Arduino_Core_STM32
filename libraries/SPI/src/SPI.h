@@ -123,6 +123,7 @@ class SPIClass {
     };
 
     void begin(void);
+    void begin(SPISettings settings);
     void end(void);
 
     /* This function should be used to configure the SPI instance in case you

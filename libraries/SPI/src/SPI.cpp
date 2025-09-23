@@ -64,6 +64,18 @@ void SPIClass::begin(void)
 }
 
 /**
+  * @brief  Initialize the SPI instance with supplied settings.
+  */
+void SPIClass::begin(SPISettings settings)
+{
+  _spi.handle.State = HAL_SPI_STATE_RESET;
+  _spiSettings = settings;
+  spi_init(&_spi, _spiSettings.clockFreq,
+           _spiSettings.dataMode,
+           _spiSettings.bitOrder);
+}
+
+/**
   * @brief  This function should be used to configure the SPI instance in case you
   *         don't use the default parameters set by the begin() function.
   * @param  settings: SPI settings(clock speed, bit order, data mode).
