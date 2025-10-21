@@ -1,0 +1,16 @@
+// J-Link script to auto-detect STM32 device ID
+// Works with any STM32 family without prior knowledge
+
+// Try connecting with generic Cortex-M4 (most common STM32 core)
+device CORTEX-M0
+connect
+
+// Read DBGMCU_IDCODE register (0xE0042000) - universal for all STM32
+mem32 0xE0042000,1
+
+// Optionally read additional ID info
+// CPUID register for ARM core info
+mem32 0xE000ED00,1
+
+// Exit
+exit
