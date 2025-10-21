@@ -1,4 +1,4 @@
-# Specific
+# STM32 Core Specific
 astyle.out
 boards.local.txt
 platform.local.txt
@@ -6,29 +6,47 @@ path_config.json
 update_config.json
 variant_config.json
 
-# Backup
+# Test logs and HIL artifacts
+test_logs/
+
+# Arduino build artifacts
+tests/*/build/
+libraries/*/examples/*/build/
+extras/*/build/
+cmake/examples/*/build/
+*.bin
+*.hex
+*.elf
+*.map
+
+# Auto-generated build identification files
+build_id.h
+
+# Backup files
 *.bak
 *.gho
 *.ori
 *.swp
 *.tmp
 
-# macOS
-# General
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# Patch
+# Patch files
 *.orig
 *.rej
 
 # Python
-# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
 
-# VisualStudioCode
+# IDE and editors
 .vscode/*
 *.code-workspace
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
