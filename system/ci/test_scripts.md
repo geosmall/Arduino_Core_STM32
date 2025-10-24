@@ -49,7 +49,7 @@ if (test_complete) {
 - **Software**: arduino-cli 1.3.0+, STM32 core 2.7.1+, J-Link v8.62+
 - **Test Sketch**: HIL_RTT_Test/
 
-**Quick Check**: `ls -la scripts/` (all should be executable)
+**Quick Check**: `ls -la system/ci/` (all should be executable)
 
 ## Individual Script Testing
 
@@ -57,7 +57,7 @@ if (test_complete) {
 Captures environment state and validates toolchain.
 
 ```bash
-./scripts/env_probe.sh
+./system/ci/env_probe.sh
 cat test_logs/env/latest_probe.txt
 ```
 **Success**: FQBN valid, log created, no errors
@@ -66,8 +66,8 @@ cat test_logs/env/latest_probe.txt
 Auto-detect any STM32 via J-Link DBGMCU_IDCODE register.
 
 ```bash
-./scripts/detect_device.sh
-eval $(./scripts/detect_device.sh | grep STM32_DEVICE_ID)
+./system/ci/detect_device.sh
+eval $(./system/ci/detect_device.sh | grep STM32_DEVICE_ID)
 ```
 **Success**: Device identified, STM32_DEVICE_ID exported
 
@@ -75,8 +75,8 @@ eval $(./scripts/detect_device.sh | grep STM32_DEVICE_ID)
 Lightning-fast environment validation (~100ms) for build workflows.
 
 ```bash
-./scripts/env_check_quick.sh        # Silent (exit code)
-./scripts/env_check_quick.sh true   # Verbose output
+./system/ci/env_check_quick.sh        # Silent (exit code)
+./system/ci/env_check_quick.sh true   # Verbose output
 ```
 **Success**: Exit code 0, all components validated, <200ms
 
@@ -85,8 +85,8 @@ J-Run-based ELF execution with integrated RTT capture. Primary HIL test runner.
 
 ```bash
 ELF_PATH=$(find /home/geo/.cache/arduino/sketches -name "HIL_RTT_Test.ino.elf" | head -1)
-./scripts/jrun.sh "$ELF_PATH"
-./scripts/jrun.sh "$ELF_PATH" STM32F411RE 60 test_run "*STOP*"
+./system/ci/jrun.sh "$ELF_PATH"
+./system/ci/jrun.sh "$ELF_PATH" STM32F411RE 60 test_run "*STOP*"
 ```
 **Success**: ELF loads, RTT connects, exit wildcard detection works
 
@@ -95,8 +95,8 @@ Enhanced flash tool with universal STM32 device auto-detection.
 
 ```bash
 arduino-cli compile --fqbn STMicroelectronics:stm32:Nucleo_64:pnum=NUCLEO_F411RE HIL_RTT_Test --export-binaries
-./scripts/flash_auto.sh --quick HIL_RTT_Test/build/STMicroelectronics.stm32.Nucleo_64/HIL_RTT_Test.ino.bin
-./scripts/flash_auto.sh HIL_RTT_Test/build/STMicroelectronics.stm32.Nucleo_64/HIL_RTT_Test.ino.bin
+./system/ci/flash_auto.sh --quick HIL_RTT_Test/build/STMicroelectronics.stm32.Nucleo_64/HIL_RTT_Test.ino.bin
+./system/ci/flash_auto.sh HIL_RTT_Test/build/STMicroelectronics.stm32.Nucleo_64/HIL_RTT_Test.ino.bin
 ```
 **Success**: Device auto-detected, optimal J-Link device used, programming completes
 
@@ -104,8 +104,8 @@ arduino-cli compile --fqbn STMicroelectronics:stm32:Nucleo_64:pnum=NUCLEO_F411RE
 J-Link flash tool with dual modes (fixed F411RE device).
 
 ```bash
-./scripts/flash.sh --quick HIL_RTT_Test/build/STMicroelectronics.stm32.Nucleo_64/HIL_RTT_Test.ino.bin
-./scripts/flash.sh HIL_RTT_Test/build/STMicroelectronics.stm32.Nucleo_64/HIL_RTT_Test.ino.bin
+./system/ci/flash.sh --quick HIL_RTT_Test/build/STMicroelectronics.stm32.Nucleo_64/HIL_RTT_Test.ino.bin
+./system/ci/flash.sh HIL_RTT_Test/build/STMicroelectronics.stm32.Nucleo_64/HIL_RTT_Test.ino.bin
 ```
 **Success**: Quick mode <2s, full mode ~9s, no prompts
 
@@ -113,13 +113,13 @@ J-Link flash tool with dual modes (fixed F411RE device).
 Compile sketches with build caching, ELF preservation, optional environment validation, build-ID generation, unified RTT support, and cache management.
 
 ```bash
-./scripts/build.sh HIL_RTT_Test
-./scripts/build.sh HIL_RTT_Test --env-check
-./scripts/build.sh HIL_RTT_Test --env-check --build-id
-./scripts/build.sh HIL_RTT_Test --use-rtt --build-id --env-check  # Unified framework
-./scripts/build.sh HIL_RTT_Test --clean-cache --use-rtt --build-id  # Cache management
-./scripts/build.sh libraries/LittleFS/examples/ListFiles --use-rtt    # LittleFS with RTT
-./scripts/build.sh HIL_RTT_Test STMicroelectronics:stm32:GenF4:pnum=BLACKPILL_F411CE --env-check
+./system/ci/build.sh HIL_RTT_Test
+./system/ci/build.sh HIL_RTT_Test --env-check
+./system/ci/build.sh HIL_RTT_Test --env-check --build-id
+./system/ci/build.sh HIL_RTT_Test --use-rtt --build-id --env-check  # Unified framework
+./system/ci/build.sh HIL_RTT_Test --clean-cache --use-rtt --build-id  # Cache management
+./system/ci/build.sh libraries/LittleFS/examples/ListFiles --use-rtt    # LittleFS with RTT
+./system/ci/build.sh HIL_RTT_Test STMicroelectronics:stm32:GenF4:pnum=BLACKPILL_F411CE --env-check
 ```
 **Success**: Compilation succeeds, binary + ELF created, build time displayed, optional build_id.h generated, RTT mode enabled, cache cleared when requested
 
@@ -127,7 +127,7 @@ Compile sketches with build caching, ELF preservation, optional environment vali
 Legacy RTT capture with timestamps. Use jrun.sh instead.
 
 ```bash
-./scripts/rtt_cat.sh 10 test_run
+./system/ci/rtt_cat.sh 10 test_run
 ```
 **Success**: RTT connection, timestamped output, log created
 
@@ -135,8 +135,8 @@ Legacy RTT capture with timestamps. Use jrun.sh instead.
 Generate build_id.h with git SHA + UTC timestamp for deterministic builds.
 
 ```bash
-./scripts/generate_build_id.sh HIL_RTT_Test
-./scripts/generate_build_id.sh .
+./system/ci/generate_build_id.sh HIL_RTT_Test
+./system/ci/generate_build_id.sh .
 ls -la HIL_RTT_Test/build_id.h
 ```
 **Success**: build_id.h created with BUILD_GIT_SHA, BUILD_UTC_TIME macros, git info displayed
@@ -145,9 +145,9 @@ ls -la HIL_RTT_Test/build_id.h
 Enhanced ready token detection with build-ID parsing and sub-20ms latency measurement.
 
 ```bash
-./scripts/await_ready.sh test_logs/rtt/latest_jrun.txt
-./scripts/await_ready.sh test_logs/rtt/latest_jrun.txt 30 "READY"
-./scripts/await_ready.sh --help
+./system/ci/await_ready.sh test_logs/rtt/latest_jrun.txt
+./system/ci/await_ready.sh test_logs/rtt/latest_jrun.txt 30 "READY"
+./system/ci/await_ready.sh --help
 ```
 **Success**: Enhanced ready token detected with build-ID parsing:
 - Pattern: `READY NUCLEO_F411RE 901dbd1-dirty 2025-09-09T10:07:44Z`
@@ -158,12 +158,12 @@ Enhanced ready token detection with build-ID parsing and sub-20ms latency measur
 Complete build-jrun-test workflow with optional environment validation, build-ID traceability, unified RTT framework support, and cache management.
 
 ```bash
-./scripts/aflash.sh HIL_RTT_Test
-./scripts/aflash.sh HIL_RTT_Test --env-check
-./scripts/aflash.sh HIL_RTT_Test --use-rtt --build-id --env-check     # Complete unified workflow
-./scripts/aflash.sh HIL_RTT_Test --clean-cache --use-rtt --build-id   # With cache management
-./scripts/aflash.sh libraries/LittleFS/examples/ListFiles --use-rtt      # LittleFS unified test
-./scripts/aflash.sh HIL_RTT_Test STMicroelectronics:stm32:Nucleo_64:pnum=NUCLEO_F411RE 60 "*STOP*" --env-check
+./system/ci/aflash.sh HIL_RTT_Test
+./system/ci/aflash.sh HIL_RTT_Test --env-check
+./system/ci/aflash.sh HIL_RTT_Test --use-rtt --build-id --env-check     # Complete unified workflow
+./system/ci/aflash.sh HIL_RTT_Test --clean-cache --use-rtt --build-id   # With cache management
+./system/ci/aflash.sh libraries/LittleFS/examples/ListFiles --use-rtt      # LittleFS unified test
+./system/ci/aflash.sh HIL_RTT_Test STMicroelectronics:stm32:Nucleo_64:pnum=NUCLEO_F411RE 60 "*STOP*" --env-check
 ```
 **Success**: Build completes, J-Run executes with RTT, exit wildcard detected, build traceability included, cache cleared when requested
 
@@ -174,13 +174,13 @@ Test Arduino CLI cache management for deterministic builds:
 
 ```bash
 # Normal incremental build (fast)
-./scripts/build.sh HIL_RTT_Test --use-rtt --build-id
+./system/ci/build.sh HIL_RTT_Test --use-rtt --build-id
 
 # Clean cache build (deterministic, after file moves)
-./scripts/build.sh HIL_RTT_Test --clean-cache --use-rtt --build-id
+./system/ci/build.sh HIL_RTT_Test --clean-cache --use-rtt --build-id
 
 # Full HIL workflow with cache management
-./scripts/aflash.sh tests/AUnit_Pilot_Test --clean-cache --use-rtt --build-id
+./system/ci/aflash.sh tests/AUnit_Pilot_Test --clean-cache --use-rtt --build-id
 ```
 **Success**: Cache cleared when requested, fresh compilation, correct file paths in output, deterministic builds
 
@@ -189,24 +189,24 @@ Test the single-codebase approach supporting both Arduino IDE and CI/HIL workflo
 
 ```bash
 # Arduino IDE mode (Serial output)
-./scripts/build.sh libraries/LittleFS/examples/ListFiles
+./system/ci/build.sh libraries/LittleFS/examples/ListFiles
 
 # CI/HIL mode (RTT output with build traceability)
-./scripts/aflash.sh libraries/LittleFS/examples/ListFiles --use-rtt --build-id --env-check
+./system/ci/aflash.sh libraries/LittleFS/examples/ListFiles --use-rtt --build-id --env-check
 ```
 **Success**: Same sketch works in both modes, appropriate output format, deterministic completion
 
 ### Complete Workflow Test
 ```bash
-./scripts/env_probe.sh
-./scripts/aflash.sh HIL_RTT_Test --env-check
-./scripts/await_ready.sh test_logs/rtt/latest_jrun.txt
+./system/ci/env_probe.sh
+./system/ci/aflash.sh HIL_RTT_Test --env-check
+./system/ci/await_ready.sh test_logs/rtt/latest_jrun.txt
 ls -la test_logs/env/ test_logs/rtt/
 ```
 
 ### Performance Benchmarks
 ```bash
-time ./scripts/aflash.sh HIL_RTT_Test
+time ./system/ci/aflash.sh HIL_RTT_Test
 ```
 **Expected**: Build ~2s, J-Run ~3s, total ~5s + test duration
 
@@ -225,11 +225,11 @@ lsusb | grep -i segger
 pkill -f JLinkGDBServer
 
 # Build failures
-./scripts/env_probe.sh
+./system/ci/env_probe.sh
 arduino-cli core list
 
 # Permission errors
-chmod +x scripts/*.sh
+chmod +x system/ci/*.sh
 ```
 
 ## Log Files

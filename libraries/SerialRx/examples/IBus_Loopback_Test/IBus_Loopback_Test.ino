@@ -17,8 +17,8 @@
  *   - "*TEST_FAIL*" - Validation failure or timeout
  *
  * CI/HIL INTEGRATION:
- *   ./scripts/build.sh tests/SerialRx_Loopback_Test --build-id --env-check --use-rtt
- *   ./scripts/aflash.sh tests/SerialRx_Loopback_Test --use-rtt
+ *   ./system/ci/build.sh tests/SerialRx_Loopback_Test --build-id --env-check --use-rtt
+ *   ./system/ci/aflash.sh tests/SerialRx_Loopback_Test --use-rtt
  */
 
 #include <SerialRx.h>

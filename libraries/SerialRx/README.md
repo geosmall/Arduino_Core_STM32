@@ -154,7 +154,7 @@ Real receiver testing with dual mode:
 **Usage**:
 ```bash
 # CI/HIL testing
-./scripts/aflash.sh libraries/SerialRx/examples/IBus_Basic --use-rtt --build-id
+./system/ci/aflash.sh libraries/SerialRx/examples/IBus_Basic --use-rtt --build-id
 
 # Arduino IDE
 # Upload via IDE, open Serial Monitor at 115200 baud
@@ -177,7 +177,7 @@ SBUS receiver testing (⚠️ not hardware validated yet):
 **Usage**:
 ```bash
 # CI/HIL testing
-./scripts/aflash.sh libraries/SerialRx/examples/SBUS_Basic --use-rtt --build-id
+./system/ci/aflash.sh libraries/SerialRx/examples/SBUS_Basic --use-rtt --build-id
 
 # Arduino IDE
 # Upload via IDE, open Serial Monitor at 115200 baud
@@ -254,10 +254,10 @@ rc.begin(config);
 
 ```bash
 # Loopback test (validates protocol implementation)
-./scripts/aflash.sh libraries/SerialRx/examples/IBus_Loopback_Test --use-rtt
+./system/ci/aflash.sh libraries/SerialRx/examples/IBus_Loopback_Test --use-rtt
 
 # Real receiver test (validates hardware integration)
-./scripts/aflash.sh libraries/SerialRx/examples/IBus_Basic --use-rtt
+./system/ci/aflash.sh libraries/SerialRx/examples/IBus_Basic --use-rtt
 ```
 
 ## References

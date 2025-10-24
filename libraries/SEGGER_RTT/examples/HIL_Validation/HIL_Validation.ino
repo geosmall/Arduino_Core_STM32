@@ -16,13 +16,13 @@
  * - JLinkRTTClient (for HIL/CI testing)
  *
  * Build Integration:
- * When compiled with build scripts (scripts/build.sh --build-id), includes
+ * When compiled with build scripts (system/ci/build.sh --build-id), includes
  * Git SHA and UTC timestamp for traceability. Gracefully degrades when
  * build_id.h is not available (Arduino IDE compilation).
  *
  * Usage (CI/HIL):
- * 1. Build with traceability: ./scripts/build.sh libraries/SEGGER_RTT/examples/HIL_Validation --build-id
- * 2. Flash and test: ./scripts/aflash.sh libraries/SEGGER_RTT/examples/HIL_Validation
+ * 1. Build with traceability: ./system/ci/build.sh libraries/SEGGER_RTT/examples/HIL_Validation --build-id
+ * 2. Flash and test: ./system/ci/aflash.sh libraries/SEGGER_RTT/examples/HIL_Validation
  * 3. JLinkRTTClient captures output and detects *STOP* exit wildcard
  *
  * Usage (Arduino IDE):

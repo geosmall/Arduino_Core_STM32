@@ -103,7 +103,7 @@ void loop() {
 arduino-cli upload --fqbn "STMicroelectronics:stm32:Nucleo_64:pnum=NUCLEO_F411RE" <sketch>
 
 # J-Link upload (if reflashed or using external J-Link)  
-./scripts/jlink_upload.sh <path_to_compiled.bin>
+./system/ci/jlink_upload.sh <path_to_compiled.bin>
 ```
 
 ### 3. Connect RTT Client
@@ -118,10 +118,10 @@ JLinkRTTClient
 ### 4. Using RTT Test Framework
 ```bash
 # Automated RTT testing
-./scripts/rtt-test.sh <sketch_path>
+./system/ci/rtt-test.sh <sketch_path>
 
 # Interactive RTT session  
-./scripts/rtt-test.sh -i
+./system/ci/rtt-test.sh -i
 ```
 
 ## Updating the Library
@@ -171,8 +171,8 @@ JLinkRTTClient
 5. **Test RTT Functionality**  
    ```bash
    # Upload and test RTT output
-   ./scripts/jlink_upload.sh <compiled_binary>
-   ./scripts/rtt-test.sh -i  # Interactive test
+   ./system/ci/jlink_upload.sh <compiled_binary>
+   ./system/ci/rtt-test.sh -i  # Interactive test
    ```
 
 6. **Update Documentation**

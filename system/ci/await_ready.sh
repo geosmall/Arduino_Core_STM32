@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # await_ready.sh - Wait for HIL ready token with timeout/backoff
-# Usage: ./scripts/await_ready.sh [log_file] [timeout] [ready_pattern]
+# Usage: ./system/ci/await_ready.sh [log_file] [timeout] [ready_pattern]
 #
 
 set -euo pipefail

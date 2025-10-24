@@ -1,6 +1,6 @@
 #!/bin/bash
 # cleanup_repo.sh - Clean repository of build artifacts before commit
-# Usage: ./scripts/cleanup_repo.sh
+# Usage: ./system/ci/cleanup_repo.sh
 
 set -e
 

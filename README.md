@@ -41,7 +41,7 @@ arduino-cli core update-index
 arduino-cli core install STMicroelectronics:stm32
 
 # Verify installation
-./scripts/env_check_quick.sh true
+./system/ci/env_check_quick.sh true
 ```
 
 ## Quick Start
@@ -55,21 +55,21 @@ arduino-cli compile --fqbn STMicroelectronics:stm32:Nucleo_64:pnum=NUCLEO_F411RE
 arduino-cli upload --fqbn STMicroelectronics:stm32:Nucleo_64:pnum=NUCLEO_F411RE <sketch_directory>
 
 # Upload via J-Link with auto-detection (when ST-Link reflashed)
-./scripts/flash_auto.sh --quick <path_to_binary.bin>
+./system/ci/flash_auto.sh --quick <path_to_binary.bin>
 ```
 
 ### HIL Testing (Recommended)
 ```bash
 # One-button build and test with environment validation
-./scripts/aflash.sh <sketch_directory> --env-check
+./system/ci/aflash.sh <sketch_directory> --env-check
 
 # Unified development workflow (Arduino IDE + CI/HIL support)
-./scripts/build.sh <sketch_directory>                    # Arduino IDE (Serial)
-./scripts/build.sh <sketch_directory> --use-rtt          # CI/HIL (RTT)
-./scripts/aflash.sh <sketch_directory> --use-rtt --build-id --env-check  # Complete workflow
+./system/ci/build.sh <sketch_directory>                    # Arduino IDE (Serial)
+./system/ci/build.sh <sketch_directory> --use-rtt          # CI/HIL (RTT)
+./system/ci/aflash.sh <sketch_directory> --use-rtt --build-id --env-check  # Complete workflow
 
 # Enhanced ready token detection with build-ID parsing (5.2ms latency)
-./scripts/await_ready.sh [log_file] [timeout] [pattern]
+./system/ci/await_ready.sh [log_file] [timeout] [pattern]
 # Output: READY NUCLEO_F411RE 901dbd1-dirty 2025-09-09T10:07:44Z
 ```
 
@@ -124,7 +124,9 @@ make check          # Verify environment
 ├── cmake/                 # CMake build system and examples
 ├── extras/
 │   └── betaflight_converter/  # Betaflight → BoardConfig converter with validation
-├── scripts/               # Build and test automation
+├── system/
+│   ├── ci/                # Build and test automation scripts
+│   └── extras/            # Arduino build hooks (prebuild/postbuild)
 ├── tests/                 # Unit tests and integration tests
 ├── targets/               # Board configuration headers
 └── doc/                   # Technical documentation
@@ -137,28 +139,28 @@ make check          # Verify environment
 ## Production Development Workflow
 
 ### Arduino IDE Development
-1. **Build for Serial**: `./scripts/build.sh libraries/ICM42688P/examples/example-selftest`
+1. **Build for Serial**: `./system/ci/build.sh libraries/ICM42688P/examples/example-selftest`
 2. **Upload via Arduino IDE**: Standard Arduino workflow with Serial monitoring
 
 ### CI/HIL Testing
-1. **Environment Check**: `./scripts/env_check_quick.sh true` (~100ms validation)
-2. **Device Detection**: `./scripts/detect_device.sh` (auto-detect any STM32 via J-Link)
-3. **Unified Build**: `./scripts/build.sh <sketch> --use-rtt --build-id --env-check` (RTT mode with traceability)
-4. **HIL Testing**: `./scripts/aflash.sh <sketch> --use-rtt --build-id --env-check` (complete workflow)
-5. **Traceability Verification**: `./scripts/await_ready.sh` (enhanced parsing, 5.2ms latency achieved)
+1. **Environment Check**: `./system/ci/env_check_quick.sh true` (~100ms validation)
+2. **Device Detection**: `./system/ci/detect_device.sh` (auto-detect any STM32 via J-Link)
+3. **Unified Build**: `./system/ci/build.sh <sketch> --use-rtt --build-id --env-check` (RTT mode with traceability)
+4. **HIL Testing**: `./system/ci/aflash.sh <sketch> --use-rtt --build-id --env-check` (complete workflow)
+5. **Traceability Verification**: `./system/ci/await_ready.sh` (enhanced parsing, 5.2ms latency achieved)
 6. **Real-time Debug**: SEGGER RTT v8.62 with `JLinkRTTClient` for printf output
 
 ### Example Workflows
 ```bash
 # IMU sensor testing with self-test validation
-./scripts/aflash.sh libraries/ICM42688P/examples/example-selftest --use-rtt --build-id
+./system/ci/aflash.sh libraries/ICM42688P/examples/example-selftest --use-rtt --build-id
 
 # Storage system unit testing
-./scripts/aflash.sh tests/LittleFS_Unit_Tests --use-rtt --build-id
-./scripts/aflash.sh tests/SDFS_Unit_Tests --use-rtt --build-id
+./system/ci/aflash.sh tests/LittleFS_Unit_Tests --use-rtt --build-id
+./system/ci/aflash.sh tests/SDFS_Unit_Tests --use-rtt --build-id
 
 # Configuration management testing
-./scripts/aflash.sh tests/minIniStorage_Unit_Tests --use-rtt --build-id
+./system/ci/aflash.sh tests/minIniStorage_Unit_Tests --use-rtt --build-id
 ```
 
 ### Build Traceability Example

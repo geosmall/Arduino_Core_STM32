@@ -2,7 +2,7 @@
 #
 # J-Run execution with RTT capture
 # Loads ELF file, runs with J-Run, captures RTT output
-# Usage: ./scripts/jrun.sh <elf_file> [device] [duration] [log_prefix]
+# Usage: ./system/ci/jrun.sh <elf_file> [device] [duration] [log_prefix]
 #
 
 set -euo pipefail

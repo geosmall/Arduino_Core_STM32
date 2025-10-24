@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # J-Link flash script for STM32F411RE
-# Usage: ./scripts/flash.sh [--quick] <path_to_binary.bin>
+# Usage: ./system/ci/flash.sh [--quick] <path_to_binary.bin>
 #
 # --quick: Fast upload without erase/verify (development)
 # default: Full cycle with erase/verify (production)

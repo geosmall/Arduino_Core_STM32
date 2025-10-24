@@ -74,10 +74,10 @@ Detects and displays complete SPI flash chip information with optional chip eras
 **Usage:**
 ```bash
 # Arduino IDE development
-./scripts/build.sh libraries/LittleFS/examples/LittleFS_ChipID
+./system/ci/build.sh libraries/LittleFS/examples/LittleFS_ChipID
 
 # CI/HIL testing with RTT
-./scripts/aflash.sh libraries/LittleFS/examples/LittleFS_ChipID --use-rtt --build-id
+./system/ci/aflash.sh libraries/LittleFS/examples/LittleFS_ChipID --use-rtt --build-id
 ```
 
 ### 2. Directory Operations (`ListFiles`)
@@ -239,7 +239,7 @@ All examples support complete automation for CI/CD workflows:
 
 ```bash
 # Environment validation + build + test execution
-./scripts/aflash.sh libraries/LittleFS/examples/LittleFS_Usage \\
+./system/ci/aflash.sh libraries/LittleFS/examples/LittleFS_Usage \\
   --use-rtt --build-id --env-check
 
 # Expected output includes:

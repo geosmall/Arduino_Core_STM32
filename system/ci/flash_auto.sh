@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # J-Link flash script with auto-detection for any STM32
-# Usage: ./scripts/flash_auto.sh [--quick] <path_to_binary.bin>
+# Usage: ./system/ci/flash_auto.sh [--quick] <path_to_binary.bin>
 #
 # --quick: Fast upload without erase/verify (development)
 # default: Full cycle with erase/verify (production)

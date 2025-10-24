@@ -456,11 +456,11 @@ The SDFS configuration system integrates with the HIL testing framework:
 
 ```bash
 # Test with specific configuration
-./scripts/aflash.sh libraries/SDFS/examples/SDFS_Test --use-rtt --build-id
+./system/ci/aflash.sh libraries/SDFS/examples/SDFS_Test --use-rtt --build-id
 
 # Configuration variants testing
-SDFS_CONFIG=high_perf ./scripts/aflash.sh libraries/SDFS/examples/SDFS_Test
-SDFS_CONFIG=conservative ./scripts/aflash.sh libraries/SDFS/examples/SDFS_Test
+SDFS_CONFIG=high_perf ./system/ci/aflash.sh libraries/SDFS/examples/SDFS_Test
+SDFS_CONFIG=conservative ./system/ci/aflash.sh libraries/SDFS/examples/SDFS_Test
 ```
 
 ## References

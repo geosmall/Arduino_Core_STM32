@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Arduino CLI build script with optional environment validation
-# Usage: ./scripts/build.sh <sketch_directory> [FQBN] [--env-check] [--build-id] [--use-rtt] [--clean-cache]
+# Usage: ./system/ci/build.sh <sketch_directory> [FQBN] [--env-check] [--build-id] [--use-rtt] [--clean-cache]
 #
 
 set -euo pipefail
@@ -72,7 +72,7 @@ if [[ "$ENV_CHECK" == true ]]; then
     echo "=== Environment Validation ==="
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     if ! "$SCRIPT_DIR/env_check_quick.sh" true; then
-        echo "Environment validation failed. Run './scripts/env_probe.sh' for detailed diagnostics."
+        echo "Environment validation failed. Run './system/ci/env_probe.sh' for detailed diagnostics."
         exit 1
     fi
     echo "✓ Environment validated"
@@ -152,4 +152,4 @@ echo "  Binary: $BINARY_PATH"
 echo "  Size: $BINARY_SIZE bytes"
 echo "  Build time: ${BUILD_TIME}s"
 echo
-echo "Ready for upload with: ./scripts/flash.sh --quick $BINARY_PATH"
+echo "Ready for upload with: ./system/ci/flash.sh --quick $BINARY_PATH"

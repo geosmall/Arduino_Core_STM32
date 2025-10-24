@@ -17,11 +17,12 @@ This is a fork of the upstream [stm32duino/Arduino_Core_STM32](https://github.co
 - `cores/arduino/` - Core Arduino implementation for STM32
 - `variants/` - Board-specific pin definitions and configurations
 - `system/` - STM32Cube HAL drivers and CMSIS
+  - `system/ci/` - Build and test automation scripts
+  - `system/extras/` - Arduino build hooks (prebuild/postbuild)
 - `libraries/` - Core STM32 + robotics libraries
   - Core: `SPI`, `Wire`, `SoftwareSerial`, `CMSIS_DSP`, `SEGGER_RTT`
   - Robotics: `LittleFS`, `SDFS`, `Storage`, `minIniStorage`, `ICM42688P`, `imu`, `TimerPWM`, `SerialRx`, `libPrintf`, `AUnit`, `STM32RTC`
 - `cmake/` - CMake build system and examples
-- `scripts/` - Build and test automation
 - `tests/` - Unit tests and integration tests
 - `targets/` - Board configuration headers (BoardConfig system)
 - `extras/` - Betaflight config converter and utilities
@@ -48,7 +49,7 @@ arduino-cli board listall
 arduino-cli board list
 
 # J-Link upload (when ST-Link reflashed to J-Link)
-./scripts/jlink_upload.sh <path_to_binary.bin>
+./system/ci/jlink_upload.sh <path_to_binary.bin>
 ```
 
 ### Makefile Support
@@ -67,14 +68,14 @@ Enhanced build workflow with environment validation and device auto-detection:
 
 ```bash
 # Standard build and HIL testing
-./scripts/build.sh <sketch_directory> [--build-id] [--env-check] [--use-rtt]
-./scripts/aflash.sh <sketch_directory> [--env-check] [--use-rtt] [--build-id]
+./system/ci/build.sh <sketch_directory> [--build-id] [--env-check] [--use-rtt]
+./system/ci/aflash.sh <sketch_directory> [--env-check] [--use-rtt] [--build-id]
 
 # Environment and device utilities
-./scripts/env_check_quick.sh         # Fast environment validation
-./scripts/detect_device.sh           # Auto-detect STM32 via J-Link
-./scripts/flash_auto.sh <binary>     # Program with auto-detected device
-./scripts/cleanup_repo.sh            # Clean build artifacts before commit
+./system/ci/env_check_quick.sh         # Fast environment validation
+./system/ci/detect_device.sh           # Auto-detect STM32 via J-Link
+./system/ci/flash_auto.sh <binary>     # Program with auto-detected device
+./system/ci/cleanup_repo.sh            # Clean build artifacts before commit
 ```
 
 **Key Features**:
@@ -87,8 +88,8 @@ Enhanced build workflow with environment validation and device auto-detection:
 
 ```bash
 # J-Link utilities
-./scripts/jrun.sh <elf> [timeout] [exit_wildcard] # J-Run execution with RTT
-./scripts/flash.sh [--quick] <binary>             # Flash with fixed device
+./system/ci/jrun.sh <elf> [timeout] [exit_wildcard] # J-Run execution with RTT
+./system/ci/flash.sh [--quick] <binary>             # Flash with fixed device
 
 # Manual RTT Connection
 JLinkGDBServer -Device STM32F411RE -If SWD -Speed 4000 -RTTTelnetPort 19021 &
@@ -295,8 +296,8 @@ HIL testing framework with complete build-to-runtime traceability and device aut
 
 **Production Usage**:
 ```bash
-./scripts/build.sh HIL_RTT_Test --build-id --env-check
-./scripts/aflash.sh HIL_RTT_Test
+./system/ci/build.sh HIL_RTT_Test --build-id --env-check
+./system/ci/aflash.sh HIL_RTT_Test
 ```
 
 ### Unified Development Framework ✅ **COMPLETED**
@@ -371,9 +372,9 @@ AUnit v1.7.1 unit testing framework integrated with HIL CI/CD workflow for compr
 
 **Production Usage**:
 ```bash
-./scripts/aflash.sh tests/LittleFS_Unit_Tests --use-rtt --build-id
-./scripts/aflash.sh tests/SDFS_Unit_Tests --use-rtt --build-id
-./scripts/aflash.sh tests/AUnit_Pilot_Test --use-rtt --build-id
+./system/ci/aflash.sh tests/LittleFS_Unit_Tests --use-rtt --build-id
+./system/ci/aflash.sh tests/SDFS_Unit_Tests --use-rtt --build-id
+./system/ci/aflash.sh tests/AUnit_Pilot_Test --use-rtt --build-id
 ```
 
 ### Board Configuration System ✅ **COMPLETED**
@@ -767,7 +768,7 @@ void loop() {
 **Cleanup Methods**:
 ```bash
 # Recommended: Use the cleanup script
-./scripts/cleanup_repo.sh
+./system/ci/cleanup_repo.sh
 
 # Manual cleanup (if needed)
 find tests/ libraries/ cmake/ -name "build" -type d -exec rm -rf {} + 2>/dev/null || true
@@ -780,7 +781,7 @@ git status    # Review changes before commit
 
 **Claude Code Integration**:
 - Use the command **"cleanup repo"** for automatic repository cleanup
-- Claude will execute `./scripts/cleanup_repo.sh` and show clean git status
+- Claude will execute `./system/ci/cleanup_repo.sh` and show clean git status
 
 **Pre-Commit Verification**:
 ```bash

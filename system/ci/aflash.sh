@@ -2,7 +2,7 @@
 #
 # One-button build-flash-run harness
 # Orchestrates: build → flash → RTT capture
-# Usage: ./scripts/aflash.sh <sketch_directory> [FQBN] [rtt_duration]
+# Usage: ./system/ci/aflash.sh <sketch_directory> [FQBN] [rtt_duration]
 #
 
 set -euo pipefail
@@ -98,7 +98,7 @@ if [[ "$ENV_CHECK" == true ]]; then
     echo "=== Pre-Flight Environment Check ==="
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     if ! "$SCRIPT_DIR/env_check_quick.sh" true; then
-        echo "Environment validation failed. Run './scripts/env_probe.sh' for detailed diagnostics."
+        echo "Environment validation failed. Run './system/ci/env_probe.sh' for detailed diagnostics."
         exit 1
     fi
     echo "✓ Environment validated for HIL testing"
@@ -129,7 +129,8 @@ fi
 if [[ "$CLEAN_CACHE" == true ]]; then
     BUILD_ARGS="$BUILD_ARGS --clean-cache"
 fi
-if ! ./scripts/build.sh $BUILD_ARGS; then
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if ! "$SCRIPT_DIR/build.sh" $BUILD_ARGS; then
     echo "✗ Build failed"
     exit 1
 fi
@@ -148,7 +149,7 @@ if [ -z "$ELF_PATH" ]; then
     echo "  • Arduino CLI version mismatch (expected: 1.3.0)"
     echo ""
     echo "Troubleshooting steps:"
-    echo "  1. Run: ./scripts/env_probe.sh (full environment diagnostics)"
+    echo "  1. Run: ./system/ci/env_probe.sh (full environment diagnostics)"
     echo "  2. Check: ls -la /home/geo/.cache/arduino/sketches/"
     echo "  3. Verify: arduino-cli version (should be 1.3.0)"
     echo ""
@@ -162,7 +163,7 @@ echo "✓ Found ELF file: $(basename "$ELF_PATH")"
 # Step 2: J-Run HIL test execution with exit wildcard detection
 echo "Step 2/2: Executing HIL test with J-Run (exit wildcard detection)..."
 LOG_PREFIX="${SKETCH_NAME}_aflash"
-if ! ./scripts/jrun.sh "$ELF_PATH" STM32F411RE "$TIMEOUT" "$LOG_PREFIX" "$EXIT_WILDCARD"; then
+if ! "$SCRIPT_DIR/jrun.sh" "$ELF_PATH" STM32F411RE "$TIMEOUT" "$LOG_PREFIX" "$EXIT_WILDCARD"; then
     echo "✗ J-Run HIL test execution failed"
     exit 1
 fi

@@ -67,7 +67,7 @@ Move from `Arduino_dev/libraries/` to `Arduino_Core_STM32/libraries/`:
 
 #### Step 1.2: Move CI/CD Infrastructure
 Move from `Arduino_dev/` to `Arduino_Core_STM32/`:
-- `scripts/` → `Arduino_Core_STM32/scripts/`
+- `scripts/` → `Arduino_Core_STM32/system/ci/`
 - `tests/` → `Arduino_Core_STM32/tests/`
 - `targets/` → `Arduino_Core_STM32/targets/`
 - `extras/` → `Arduino_Core_STM32/extras/`
@@ -172,7 +172,7 @@ https://github.com/geosmall/Arduino_Core_STM32
 ```
 
 #### Step 2.4: Create Release Packaging Script
-Create `BoardManagerFiles/scripts/create_release.sh`:
+Create `BoardManagerFiles/system/ci/create_release.sh`:
 
 ```bash
 #!/bin/bash
@@ -213,7 +213,7 @@ git push origin v1.0.0
 #### Step 3.2: Create Release Archive
 ```bash
 cd BoardManagerFiles
-./scripts/create_release.sh 1.0.0
+./system/ci/create_release.sh 1.0.0
 ```
 
 #### Step 3.3: Upload to GitHub Release
@@ -246,8 +246,8 @@ cd BoardManagerFiles
 
 #### Step 4.3: Test CI/CD Scripts
 1. Clone `Arduino_Core_STM32` repo directly
-2. Run build scripts: `./scripts/build.sh tests/LittleFS_Unit_Tests --use-rtt`
-3. Run HIL tests: `./scripts/aflash.sh tests/SDFS_Unit_Tests --use-rtt --build-id`
+2. Run build scripts: `./system/ci/build.sh tests/LittleFS_Unit_Tests --use-rtt`
+3. Run HIL tests: `./system/ci/aflash.sh tests/SDFS_Unit_Tests --use-rtt --build-id`
 4. Verify all scripts work with new structure
 
 ### Phase 5: Cleanup
@@ -293,7 +293,8 @@ Arduino_Core_STM32/
 │   ├── TimerPWM/              # PWM library
 │   ├── libPrintf/             # Printf library
 │   └── STM32RTC/              # RTC library
-├── scripts/                    # CI/CD build scripts
+├── system/
+│   └── ci/                     # CI/CD build scripts
 ├── tests/                      # Unit tests
 ├── targets/                    # Board configurations
 ├── extras/                     # Betaflight converter
@@ -307,8 +308,9 @@ Arduino_Core_STM32/
 ```
 BoardManagerFiles/
 ├── package_stm32_core_index.json  # Board Manager JSON
-├── scripts/
-│   └── create_release.sh          # Release packaging script
+├── system/
+│   └── ci/
+│       └── create_release.sh      # Release packaging script
 └── README.md                       # Installation instructions
 ```
 
@@ -323,8 +325,8 @@ BoardManagerFiles/
 
 ### Developer Workflow (CI/CD)
 1. Clone `Arduino_Core_STM32` repository
-2. Use build scripts: `./scripts/build.sh <sketch>`
-3. Use HIL testing: `./scripts/aflash.sh <sketch> --use-rtt --build-id`
+2. Use build scripts: `./system/ci/build.sh <sketch>`
+3. Use HIL testing: `./system/ci/aflash.sh <sketch> --use-rtt --build-id`
 4. Develop libraries in `libraries/` directory
 5. Run unit tests in `tests/` directory
 
@@ -354,7 +356,7 @@ https://raw.githubusercontent.com/geosmall/BoardManagerFiles/main/package_stm32_
 
 - [ ] Phase 1: Consolidate into Arduino_Core_STM32
   - [ ] Move libraries (SerialRx, IMU, ICM42688P, LittleFS, SDFS, Storage, minIniStorage, TimerPWM, libPrintf, AUnit, STM32RTC)
-  - [ ] Move scripts/tests/targets/extras/doc
+  - [ ] Move system/ci/tests/targets/extras/doc
   - [ ] Consolidate documentation (CLAUDE.md, README.md)
   - [ ] Update internal paths (example includes, script references)
   - [ ] **Run cleanup_repo.sh in submodule** (manually clean build artifacts)
@@ -364,7 +366,7 @@ https://raw.githubusercontent.com/geosmall/BoardManagerFiles/main/package_stm32_
   - [ ] Create GitHub repository: geosmall/BoardManagerFiles
   - [ ] Create package_stm32_core_index.json with minimal structure
   - [ ] Create README.md with installation instructions
-  - [ ] Create scripts/create_release.sh packaging script
+  - [ ] Create system/ci/create_release.sh packaging script
 
 - [ ] Phase 3: Create initial release
   - [ ] Tag Arduino_Core_STM32 as v1.0.0

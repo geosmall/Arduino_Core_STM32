@@ -446,11 +446,11 @@ void loop() {
 **Hardware Configuration Tests**:
 ```bash
 # Test board configuration on NUCLEO_F411RE
-./scripts/aflash.sh tests/BoardConfig_Test --use-rtt --build-id
+./system/ci/aflash.sh tests/BoardConfig_Test --use-rtt --build-id
 
 # Test storage configurations
-./scripts/aflash.sh tests/Generic_Storage_LittleFS_Unit_Tests --use-rtt --build-id
-./scripts/aflash.sh tests/Generic_Storage_SDFS_Unit_Tests --use-rtt --build-id
+./system/ci/aflash.sh tests/Generic_Storage_LittleFS_Unit_Tests --use-rtt --build-id
+./system/ci/aflash.sh tests/Generic_Storage_SDFS_Unit_Tests --use-rtt --build-id
 ```
 
 **Multi-Board Testing**:

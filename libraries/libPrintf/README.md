@@ -178,7 +178,7 @@ void setup() {
 arduino-cli compile --fqbn STMicroelectronics:stm32:Nucleo_64:pnum=NUCLEO_F411RE <sketch>
 
 # HIL testing with RTT output
-./scripts/aflash.sh <sketch> --use-rtt
+./system/ci/aflash.sh <sketch> --use-rtt
 
 # CMake builds
 cmake -S <sketch> -B build && cmake --build build

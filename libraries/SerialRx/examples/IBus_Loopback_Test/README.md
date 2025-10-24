@@ -102,10 +102,10 @@ Jumper Wire: PA11 → PA10
 
 ```bash
 # Build with RTT and build traceability
-./scripts/build.sh libraries/SerialRx/examples/IBus_Loopback_Test --build-id --env-check --use-rtt
+./system/ci/build.sh libraries/SerialRx/examples/IBus_Loopback_Test --build-id --env-check --use-rtt
 
 # Flash and run with automated exit detection
-./scripts/aflash.sh libraries/SerialRx/examples/IBus_Loopback_Test --use-rtt
+./system/ci/aflash.sh libraries/SerialRx/examples/IBus_Loopback_Test --use-rtt
 ```
 
 ### Expected Output

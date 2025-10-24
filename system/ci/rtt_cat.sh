@@ -1,11 +1,11 @@
 #!/bin/bash
 #
 # RTT logger with timestamps - captures RTT output to log files
-# Usage: ./scripts/rtt_cat.sh [duration_seconds] [log_prefix]
+# Usage: ./system/ci/rtt_cat.sh [duration_seconds] [log_prefix]
 #
 # ⚠️  DEPRECATED: This script is deprecated in favor of jrun.sh
 # jrun.sh provides superior RTT integration with J-Run execution
-# Use: ./scripts/jrun.sh <elf> [timeout] [exit_wildcard]
+# Use: ./system/ci/jrun.sh <elf> [timeout] [exit_wildcard]
 #
 
 set -euo pipefail

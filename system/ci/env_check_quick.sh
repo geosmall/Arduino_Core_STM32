@@ -87,6 +87,6 @@ if [[ $ERRORS -eq 0 ]]; then
     exit 0
 else
     echo "✗ Environment: $ERRORS validation errors found"
-    echo "Run './scripts/env_probe.sh' for detailed diagnostics"
+    echo "Run './system/ci/env_probe.sh' for detailed diagnostics"
     exit 1
 fi
