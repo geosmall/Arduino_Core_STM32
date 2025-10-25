@@ -1,6 +1,6 @@
 # Technical Debt and Future Improvements
 
-## v1.1.0 Planned Improvements
+## v1.0.1 Planned Improvements
 
 ### Platform.txt - Version-Agnostic Tool References
 
@@ -17,7 +17,7 @@ debug.server.openocd.path={runtime.tools.xpack-openocd-0.12.0-1.path}/bin/openoc
 debug.server.openocd.scripts_dir={runtime.tools.xpack-openocd-0.12.0-1.path}/openocd/scripts
 ```
 
-**Desired State** (v1.1.0):
+**Desired State** (v1.0.1):
 ```properties
 # Version-agnostic references (automatically resolve to installed version)
 compiler.path={runtime.tools.xpack-arm-none-eabi-gcc.path}/bin/
