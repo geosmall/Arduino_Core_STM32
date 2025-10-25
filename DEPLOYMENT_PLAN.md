@@ -1,5 +1,9 @@
 # Repository Consolidation and Board Manager Deployment Plan
 
+> **⚠️ HISTORICAL DOCUMENT**: This is the original migration plan. For **current status**, see [DEPLOYMENT_STATUS.md](DEPLOYMENT_STATUS.md).
+>
+> **Quick Status**: Phases 1-3 complete ✅ | v1.0.0 live on Board Manager | Testing and automation remaining
+
 ## Overview
 
 Consolidate all development work into `Arduino_Core_STM32` repository and create separate `BoardManagerFiles` repository for Arduino IDE Board Manager distribution.
@@ -88,8 +92,8 @@ Move from `Arduino_dev/` to `Arduino_Core_STM32/`:
 - Verify all relative paths in tests/examples
 
 #### Step 1.5: Commit and Push
-- Commit all changes to `Arduino_Core_STM32/ardu_min` branch
-- Push to `origin/ardu_min`
+- Commit all changes to `Arduino_Core_STM32/ardu_ci` branch
+- Push to `origin/ardu_ci`
 - Tag as preparation for v1.0.0 release
 
 ### Phase 2: Create Board Manager Repository
@@ -354,26 +358,26 @@ https://raw.githubusercontent.com/geosmall/BoardManagerFiles/main/package_stm32_
   - [x] Commit and push submodule changes
   - [x] Update parent repo with new submodule pointer
 
-- [ ] Phase 1: Consolidate into Arduino_Core_STM32
-  - [ ] Move libraries (SerialRx, IMU, ICM42688P, LittleFS, SDFS, Storage, minIniStorage, TimerPWM, libPrintf, AUnit, STM32RTC)
-  - [ ] Move system/ci/tests/targets/extras/doc
-  - [ ] Consolidate documentation (CLAUDE.md, README.md)
-  - [ ] Update internal paths (example includes, script references)
-  - [ ] **Run cleanup_repo.sh in submodule** (manually clean build artifacts)
-  - [ ] Commit and push to ardu_min branch
+- [x] Phase 1: Consolidate into Arduino_Core_STM32 ✅ COMPLETE
+  - [x] Move libraries (SerialRx, IMU, ICM42688P, LittleFS, SDFS, Storage, minIniStorage, TimerPWM, libPrintf, AUnit, STM32RTC)
+  - [x] Move system/ci/tests/targets/extras/doc
+  - [x] Consolidate documentation (CLAUDE.md, README.md)
+  - [x] Update internal paths (example includes, script references)
+  - [x] **Run cleanup_repo.sh in submodule** (manually clean build artifacts)
+  - [x] Commit and push to ardu_ci branch
 
-- [ ] Phase 2: Create BoardManagerFiles
-  - [ ] Create GitHub repository: geosmall/BoardManagerFiles
-  - [ ] Create package_stm32_core_index.json with minimal structure
-  - [ ] Create README.md with installation instructions
-  - [ ] Create system/ci/create_release.sh packaging script
+- [x] Phase 2: Create BoardManagerFiles ✅ COMPLETE
+  - [x] Create GitHub repository: geosmall/BoardManagerFiles
+  - [x] Create package_stm32_robotics_index.json with minimal structure
+  - [x] Create README.md with installation instructions
+  - [ ] Create system/ci/create_release.sh packaging script ❌ SKIPPED (v1.0.0 done manually)
 
-- [ ] Phase 3: Create initial release
-  - [ ] Tag Arduino_Core_STM32 as v1.0.0
-  - [ ] Create release archive (.tar.gz)
-  - [ ] Upload to GitHub release in Arduino_Core_STM32 repo
-  - [ ] Update package_stm32_core_index.json with checksum/size
-  - [ ] Commit and push BoardManagerFiles
+- [x] Phase 3: Create initial release ✅ COMPLETE
+  - [x] Tag Arduino_Core_STM32 as v1.0.0
+  - [x] Create release archive (STM32-Robotics-1.0.0.tar.bz2)
+  - [x] Upload to GitHub release in Arduino_Core_STM32 repo
+  - [x] Update package_stm32_robotics_index.json with checksum/size
+  - [x] Commit and push BoardManagerFiles
 
 - [ ] Phase 4: Testing
   - [ ] Test Board Manager installation (add URL, install package)
@@ -414,7 +418,7 @@ https://raw.githubusercontent.com/geosmall/BoardManagerFiles/main/package_stm32_
    cd Arduino_Core_STM32
    git add <files>
    git commit -m "..."
-   git push origin ardu_min
+   git push origin ardu_ci
    cd ..
    git add Arduino_Core_STM32  # Updates pointer
    git commit -m "..."
