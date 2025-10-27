@@ -23,7 +23,8 @@ This is a fork of the upstream [stm32duino/Arduino_Core_STM32](https://github.co
   - Core: `SPI`, `Wire`, `SoftwareSerial`, `CMSIS_DSP`, `SEGGER_RTT`
   - Robotics: `LittleFS`, `SDFS`, `Storage`, `minIniStorage`, `ICM42688P`, `imu`, `TimerPWM`, `SerialRx`, `libPrintf`, `AUnit`, `STM32RTC`
 - `cmake/` - CMake build system and examples
-- `tests/` - Unit tests and integration tests
+- `tests/` - Unit tests, integration tests, and flight controller applications
+  - Flight controllers: `dRehmFlight_STM32_BETA_1.3` (4-motor quadcopter)
 - `targets/` - Board configuration headers (BoardConfig system)
 - `extras/` - Betaflight config converter and utilities
 - `doc/` - Technical documentation
@@ -149,6 +150,7 @@ This repository supports **UAV flight controller boards** with the following STM
 
 ### Example Target Applications
 - **UAV Flight Controllers** - Autonomous drone flight control systems
+  - `dRehmFlight_STM32_BETA_1.3` - 4-motor conventional quadcopter (port from Teensy BETA 1.3)
 - **Embedded Storage Systems** - SPI flash (LittleFS) and SD card (SDFS) file systems
 - **Real-time Data Logging** - Flight data, telemetry, and configuration storage
 - **Sensor Data Management** - IMU, GPS, and other sensor data processing
@@ -684,6 +686,92 @@ void loop() {
 **Documentation**:
 - `libraries/SerialRx/README.md` - Protocol docs, state machine, validation results
 - `doc/SERIAL.md` - Technical implementation details
+
+## Projects In Progress
+
+### dRehmFlight STM32 Port 🚧 **IN PROGRESS**
+
+Minimal-change port of dRehmFlight BETA 1.3 (Teensy-based UAV flight controller) to STM32F4, targeting 4-motor conventional quadcopter.
+
+**Target Hardware**:
+- Development: NUCLEO_F411RE with breadboard ICM42688P + SBUS receiver
+- Deployment: NOXE V3 flight controller (STM32F411, ICM42688P, SPI flash)
+
+**Port Strategy**: Minimal changes - hardware interface only, preserve all flight control logic
+- **Libraries Replaced**: MPU6050/MPU9250 → IMU, PWM/PPM/DSM → SerialRx, bit-bang PWM → TimerPWM
+- **Hardware Abstraction**: BoardConfig system (NUCLEO_F411RE_JHEF411.h)
+- **Application Focus**: 4-motor quadcopter (servos commented out)
+
+**Key Metrics**:
+- Binary Size: 43KB (8% of 512KB flash)
+- Line Count: 1735 → 1513 lines (-13% reduction)
+- Flight Control Logic Modified: 0 functions (100% preserved)
+- Hardware Interface Modified: 6 functions (IMUinit, getIMUdata, radioSetup, updateRadioChannels, commandMotors, setup)
+
+**What Changed** (Hardware Interface Only):
+1. **IMU Integration**: ICM42688P via IMU library (250 DPS, 2G, 2kHz ODR)
+   - `IMUinit()`: Clean IMU library API (Init, ConfigureInvDevice)
+   - `getIMUdata()`: ReadIMU6() with GetAccelSensitivity()/GetGyroSensitivity() scaling
+   - Preserved: Error correction, low-pass filtering, all filter math
+
+2. **Radio RX Integration**: SBUS via SerialRx library adapter pattern
+   - `radioSetup()`: SerialRx initialization (100kbaud, SBUS protocol)
+   - `updateRadioChannels()`: Adapter maps SerialRx → channel_X_raw variables
+   - Preserved: All downstream code (getCommands() unchanged)
+   - Eliminated: 110 lines of PWM/PPM/DSM interrupt handlers
+
+3. **Motor Control**: OneShot125 via TimerPWM (PWMOutputBank)
+   - `commandMotors()`: Hardware timer PWM (TIM1, TIM3)
+   - `setup()`: Motor initialization (8kHz, 125-250µs pulses)
+   - Preserved: Same pulse width values, same motor mapping
+
+4. **Pin Configuration**: BoardConfig abstraction
+   - Motors: TIM1 (PA8, PA9, PA10), TIM3 (PB0_ALT1, PB4)
+   - Status LED: PC13
+   - Multi-board support (NUCLEO_F411RE, NOXE V3)
+
+5. **Quad Application**: Servos commented out (not used in 4-motor conventional quadcopter)
+
+**What Did NOT Change** (100% Preserved):
+- ✅ `controlMixer()` - Quad X mixing formula (FL/FR/BR/BL)
+- ✅ `controlANGLE()` / `controlRATE()` - PID controllers (Kp/Ki/Kd unchanged)
+- ✅ `Madgwick6DOF()` - Attitude estimation algorithm
+- ✅ `scaleCommands()` - OneShot125 scaling (0-1 → 125-250µs)
+- ✅ `getDesState()` - Command normalization
+- ✅ `failSafe()` - Timeout detection and failsafe behavior
+- ✅ `armedStatus()` - Arming safety logic
+- ✅ `loopRate()` - 2kHz loop timing
+- ✅ All PID tuning parameters
+- ✅ Main loop flow (same execution sequence)
+
+**Files**:
+```
+tests/dRehmFlight_STM32_BETA_1.3/
+├── dRehmFlight_STM32_BETA_1.3.ino  (main sketch - 1513 lines)
+├── radioComm.ino                    (SerialRx adapter - 88 lines, was 198)
+└── COPYING.txt                      (MIT license from dRehmFlight)
+```
+
+**Build & Test**:
+```bash
+# Compile
+./system/ci/build.sh tests/dRehmFlight_STM32_BETA_1.3
+
+# Flash and test (when hardware ready)
+./system/ci/aflash.sh tests/dRehmFlight_STM32_BETA_1.3 --use-rtt --build-id
+```
+
+**Status**:
+- ✅ Port complete (compiles successfully)
+- ✅ All flight control logic preserved
+- ✅ Minimal changes achieved (only 6 hardware functions modified)
+- 🚧 Hardware validation pending (NUCLEO_F411RE + breadboard setup)
+- 📋 Deployment to NOXE V3 (after bench validation)
+- 📋 Flight testing with PID tuning
+
+**Original Source**: Nicholas Rehm's dRehmFlight Teensy BETA 1.3 (MIT License)
+- Original: https://github.com/nickrehm/dRehmFlight
+- Teensy version: `libraries/dRehmFlight/Versions/dRehmFlight_Teensy_BETA_1.3/`
 
 ## Future Projects
 

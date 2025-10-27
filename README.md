@@ -27,12 +27,36 @@ This repository contains a **fork of the STM32 Arduino Core** with simplified va
 - **Real-time Debugging**: SEGGER RTT v8.62 integration for printf-style debugging
 - **Flight Controller Focus**: Optimized for UAV applications with deterministic testing
 
-## Dependencies
+## Prerequisites
 
-### Required Tools
-- **Arduino CLI** v1.3.0 (locked version)
+### Core Build Environment
+
+#### Required (Basic Compilation)
+- **Arduino CLI** v1.3.0 (locked version for build consistency)
+  - Manages STM32 core and ARM GCC toolchain automatically
+  - Installation: https://arduino.github.io/arduino-cli/latest/installation/
 - **STM32 Core** v2.7.1 (STMicroelectronics:stm32)
-- **J-Link** v8.62+ (for HIL testing and RTT debugging)
+  - Includes ARM GCC 12.x toolchain (xpack-arm-none-eabi-gcc-12.2.1-1.2)
+  - Automatically installed via Arduino CLI
+
+#### Optional (Hardware Testing & Debugging)
+- **SEGGER J-Link** v8.62+ (for HIL testing with RTT debugging)
+  - `JLinkExe` - Flash programming and device detection
+  - `JRun` - Execute with RTT capture (HIL testing)
+  - `JLinkGDBServer` - GDB server with RTT support
+  - `JLinkRTTClient` - Real-time terminal client
+  - Installation: https://www.segger.com/downloads/jlink/
+  - Note: Requires ST-Link V2.1 reflashed to J-Link firmware for NUCLEO boards
+
+### System Tools (Linux/macOS)
+
+#### Build Scripts
+- **bash** - CI/CD automation scripts
+- **git** - Version control and build-ID generation
+
+#### Optional (Device Detection)
+- **lsusb** - USB device enumeration (Linux only)
+  - Ubuntu/Debian: `sudo apt-get install usbutils`
 
 ### Installation
 ```bash
