@@ -3,6 +3,9 @@
 //Project Start: 1/6/2020
 //Last Updated: 7/29/2022
 //Version: Beta 1.3
+//
+//STM32 Port: BETA 1.3 - Minimal changes from Teensy BETA 1.3
+//Target: STM32F4 (NUCLEO_F411RE, NOXE V3)
  
 //========================================================================================================================//
 
@@ -31,15 +34,14 @@ Everyone that sends me pictures and videos of your flying creations! -Nick
 //========================================================================================================================//
 
 //Uncomment only one receiver type
-#define USE_PWM_RX
-//#define USE_PPM_RX
-//#define USE_SBUS_RX
-//#define USE_DSM_RX
-static const uint8_t num_DSM_channels = 6; //If using DSM RX, change this to match the number of transmitter channels you have
+//STM32: Only serial RX supported (IBus/SBUS via SerialRx library)
+#define USE_SERIAL_RX
+//#define USE_IBUS_RX  //Uncomment for IBus protocol
+#define USE_SBUS_RX  //Uncomment for SBUS protocol
 
 //Uncomment only one IMU
-#define USE_MPU6050_I2C //Default
-//#define USE_MPU9250_SPI
+//STM32: Use ICM42688P via IMU library
+#define USE_ICM42688P
 
 //Uncomment only one full scale gyro range (deg/sec)
 #define GYRO_250DPS //Default
@@ -54,34 +56,21 @@ static const uint8_t num_DSM_channels = 6; //If using DSM RX, change this to mat
 //#define ACCEL_16G
 
 
-
 //========================================================================================================================//
 
 
 
-//REQUIRED LIBRARIES (included with download in main sketch folder)
+//REQUIRED LIBRARIES
 
 #include <Wire.h>     //I2c communication
 #include <SPI.h>      //SPI communication
-#include <PWMServo.h> //Commanding any extra actuators, installed with teensyduino installer
 
-#if defined USE_SBUS_RX
-  #include "src/SBUS/SBUS.h"   //sBus interface
-#endif
-
-#if defined USE_DSM_RX
-  #include "src/DSMRX/DSMRX.h"  
-#endif
-
-#if defined USE_MPU6050_I2C
-  #include "src/MPU6050/MPU6050.h"
-  MPU6050 mpu6050;
-#elif defined USE_MPU9250_SPI
-  #include "src/MPU9250/MPU9250.h"
-  MPU9250 mpu9250(SPI2,36);
-#else
-  #error No MPU defined... 
-#endif
+//STM32 libraries
+#include "../../targets/NUCLEO_F411RE_JHEF411.h"  //BoardConfig for pin definitions
+#include <IMU.h>           //IMU library for ICM42688P
+#include <SerialRx.h>      //Serial RX library for IBus/SBUS
+#include <PWMOutputBank.h> //TimerPWM for OneShot125 motor output
+#include <ci_log.h>        //HIL testing and logging
 
 
 
@@ -91,26 +80,16 @@ static const uint8_t num_DSM_channels = 6; //If using DSM RX, change this to mat
 
 //Setup gyro and accel full scale value selection and scale factor
 
-#if defined USE_MPU6050_I2C
-  #define GYRO_FS_SEL_250    MPU6050_GYRO_FS_250
-  #define GYRO_FS_SEL_500    MPU6050_GYRO_FS_500
-  #define GYRO_FS_SEL_1000   MPU6050_GYRO_FS_1000
-  #define GYRO_FS_SEL_2000   MPU6050_GYRO_FS_2000
-  #define ACCEL_FS_SEL_2     MPU6050_ACCEL_FS_2
-  #define ACCEL_FS_SEL_4     MPU6050_ACCEL_FS_4
-  #define ACCEL_FS_SEL_8     MPU6050_ACCEL_FS_8
-  #define ACCEL_FS_SEL_16    MPU6050_ACCEL_FS_16
-#elif defined USE_MPU9250_SPI
-  #define GYRO_FS_SEL_250    mpu9250.GYRO_RANGE_250DPS
-  #define GYRO_FS_SEL_500    mpu9250.GYRO_RANGE_500DPS
-  #define GYRO_FS_SEL_1000   mpu9250.GYRO_RANGE_1000DPS                                                        
-  #define GYRO_FS_SEL_2000   mpu9250.GYRO_RANGE_2000DPS
-  #define ACCEL_FS_SEL_2     mpu9250.ACCEL_RANGE_2G
-  #define ACCEL_FS_SEL_4     mpu9250.ACCEL_RANGE_4G
-  #define ACCEL_FS_SEL_8     mpu9250.ACCEL_RANGE_8G
-  #define ACCEL_FS_SEL_16    mpu9250.ACCEL_RANGE_16G
-#endif
-  
+//Map to IMU library enums (STM32)
+#define GYRO_FS_SEL_250   IMU::dps250
+#define GYRO_FS_SEL_500   IMU::dps500
+#define GYRO_FS_SEL_1000  IMU::dps1000
+#define GYRO_FS_SEL_2000  IMU::dps2000
+#define ACCEL_FS_SEL_2    IMU::gpm2
+#define ACCEL_FS_SEL_4    IMU::gpm4
+#define ACCEL_FS_SEL_8    IMU::gpm8
+#define ACCEL_FS_SEL_16   IMU::gpm16
+
 #if defined GYRO_250DPS
   #define GYRO_SCALE GYRO_FS_SEL_250
   #define GYRO_SCALE_FACTOR 131.0
@@ -204,41 +183,27 @@ float Kd_yaw = 0.00015;       //Yaw D-gain (be careful when increasing too high,
 
 
 //========================================================================================================================//
-//                                                     DECLARE PINS                                                       //                           
-//========================================================================================================================//                                          
+//                                                     DECLARE PINS                                                       //
+//========================================================================================================================//
 
-//NOTE: Pin 13 is reserved for onboard LED, pins 18 and 19 are reserved for the MPU6050 IMU for default setup
-//Radio:
-//Note: If using SBUS, connect to pin 21 (RX5), if using DSM, connect to pin 15 (RX3)
-const int ch1Pin = 15; //throttle
-const int ch2Pin = 16; //ail
-const int ch3Pin = 17; //ele
-const int ch4Pin = 20; //rudd
-const int ch5Pin = 21; //gear (throttle cut)
-const int ch6Pin = 22; //aux1 (free aux channel)
-const int PPM_Pin = 23;
-//OneShot125 ESC pin outputs:
-const int m1Pin = 0;
-const int m2Pin = 1;
-const int m3Pin = 2;
-const int m4Pin = 3;
-const int m5Pin = 4;
-const int m6Pin = 5;
-//PWM servo or ESC outputs:
-const int servo1Pin = 6;
-const int servo2Pin = 7;
-const int servo3Pin = 8;
-const int servo4Pin = 9;
-const int servo5Pin = 10;
-const int servo6Pin = 11;
-const int servo7Pin = 12;
-PWMServo servo1;  //Create servo objects to control a servo or ESC with PWM
-PWMServo servo2;
-PWMServo servo3;
-PWMServo servo4;
-PWMServo servo5;
-PWMServo servo6;
-PWMServo servo7;
+//STM32: Pin configuration from NUCLEO_F411RE_JHEF411.h BoardConfig
+//OneShot125 ESC pin outputs (5 motors available on F411RE):
+const int m1Pin = BoardConfig::Motor::TIM1_Bank::motor1.pin;  // PA8  - TIM1_CH1
+const int m2Pin = BoardConfig::Motor::TIM1_Bank::motor2.pin;  // PA9  - TIM1_CH2
+const int m3Pin = BoardConfig::Motor::TIM1_Bank::motor3.pin;  // PA10 - TIM1_CH3
+const int m4Pin = BoardConfig::Motor::TIM3_Bank::motor4.pin;  // PB0_ALT1 - TIM3_CH3
+const int m5Pin = BoardConfig::Motor::TIM3_Bank::motor5.pin;  // PB4  - TIM3_CH1
+const int m6Pin = NC;  // Not available on F411RE (6th motor not supported)
+//PWM servo outputs (TODO: Define using available timer channels):
+const int servo1Pin = PB10;  // TIM2_CH3 (example)
+const int servo2Pin = NC;    // Not yet assigned
+const int servo3Pin = NC;    // Not yet assigned
+const int servo4Pin = NC;    // Not yet assigned
+const int servo5Pin = NC;    // Not yet assigned
+const int servo6Pin = NC;    // Not yet assigned
+const int servo7Pin = NC;    // Not yet assigned
+//LED:
+const int ledPin = BoardConfig::status_leds.led1_pin;  // PC13
 
 
 
@@ -258,16 +223,6 @@ bool blinkAlternate;
 //Radio communication:
 unsigned long channel_1_pwm, channel_2_pwm, channel_3_pwm, channel_4_pwm, channel_5_pwm, channel_6_pwm;
 unsigned long channel_1_pwm_prev, channel_2_pwm_prev, channel_3_pwm_prev, channel_4_pwm_prev;
-
-#if defined USE_SBUS_RX
-  SBUS sbus(Serial5);
-  uint16_t sbusChannels[16];
-  bool sbusFailSafe;
-  bool sbusLostFrame;
-#endif
-#if defined USE_DSM_RX
-  DSM1024 DSM;
-#endif
 
 //IMU:
 float AccX, AccY, AccZ;
@@ -301,32 +256,42 @@ int s1_command_PWM, s2_command_PWM, s3_command_PWM, s4_command_PWM, s5_command_P
 //Flight status
 bool armedFly = false;
 
+//STM32: IMU library objects
+SPIClass spi_imu(BoardConfig::imu.spi.mosi_pin, BoardConfig::imu.spi.miso_pin,
+                 BoardConfig::imu.spi.sclk_pin, BoardConfig::imu.spi.get_ssel_pin());
+IMU imu;
+
+//STM32: Motor outputs via TimerPWM (OneShot125)
+PWMOutputBank motors_tim1;
+PWMOutputBank motors_tim3;
+
 //========================================================================================================================//
 //                                                      VOID SETUP                                                        //                           
 //========================================================================================================================//
 
 void setup() {
-  Serial.begin(500000); //USB serial
-  delay(500);
-  
+  //STM32: ci_log.h integration for HIL testing
+  #ifndef USE_RTT
+    Serial.begin(115200); //USB serial
+    while (!Serial && millis() < 3000);
+  #endif
+
+  CI_LOG("dRehmFlight STM32 BETA 1.3\n");
+  CI_BUILD_INFO();
+
   //Initialize all pins
-  pinMode(13, OUTPUT); //Pin 13 LED blinker on board, do not modify 
+  pinMode(ledPin, OUTPUT); //LED blinker
   pinMode(m1Pin, OUTPUT);
   pinMode(m2Pin, OUTPUT);
   pinMode(m3Pin, OUTPUT);
   pinMode(m4Pin, OUTPUT);
   pinMode(m5Pin, OUTPUT);
-  pinMode(m6Pin, OUTPUT);
-  servo1.attach(servo1Pin, 900, 2100); //Pin, min PWM value, max PWM value
-  servo2.attach(servo2Pin, 900, 2100);
-  servo3.attach(servo3Pin, 900, 2100);
-  servo4.attach(servo4Pin, 900, 2100);
-  servo5.attach(servo5Pin, 900, 2100);
-  servo6.attach(servo6Pin, 900, 2100);
-  servo7.attach(servo7Pin, 900, 2100);
+  //STM32: m6Pin is NC (not available on F411RE)
+  //TODO: Servos not yet implemented
+  //servo1.attach(servo1Pin, 900, 2100);
 
   //Set built in LED to turn on to signal startup
-  digitalWrite(13, HIGH);
+  digitalWrite(ledPin, HIGH);
 
   delay(5);
 
@@ -349,19 +314,24 @@ void setup() {
   //Get IMU error to zero accelerometer and gyro readings, assuming vehicle is level when powered up
   //calculate_IMU_error(); //Calibration parameters printed to serial monitor. Paste these in the user specified variables section, then comment this out forever.
 
-  //Arm servo channels
-  servo1.write(0); //Command servo angle from 0-180 degrees (1000 to 2000 PWM)
-  servo2.write(0); //Set these to 90 for servos if you do not want them to briefly max out on startup
-  servo3.write(0); //Keep these at 0 if you are using servo outputs for motors
-  servo4.write(0);
-  servo5.write(0);
-  servo6.write(0);
-  servo7.write(0);
-  
+  //STM32: TODO - Servos not yet implemented
+  //servo1.write(0);
+
   delay(5);
 
   //calibrateESCs(); //PROPS OFF. Uncomment this to calibrate your ESCs by setting throttle stick to max, powering on, and lowering throttle to zero after the beeps
   //Code will not proceed past here if this function is uncommented!
+
+  //STM32: Initialize OneShot125 motors via TimerPWM (8kHz = 125µs period, 125-250µs pulses)
+  motors_tim1.Init(BoardConfig::Motor::TIM1_Bank::timer, 8000);  // 8kHz for OneShot125
+  motors_tim3.Init(BoardConfig::Motor::TIM3_Bank::timer, 8000);
+
+  // Attach motor channels
+  motors_tim1.AttachChannel(1, m1Pin, 125, 250);
+  motors_tim1.AttachChannel(2, m2Pin, 125, 250);
+  motors_tim1.AttachChannel(3, m3Pin, 125, 250);
+  motors_tim3.AttachChannel(3, m4Pin, 125, 250);
+  motors_tim3.AttachChannel(1, m5Pin, 125, 250);
 
   //Arm OneShot125 motors
   m1_command_PWM = 125; //Command OneShot125 ESC from 125 to 250us pulse length
@@ -371,6 +341,11 @@ void setup() {
   m5_command_PWM = 125;
   m6_command_PWM = 125;
   armMotors(); //Loop over commandMotors() until ESCs happily arm
+  
+  motors_tim1.Start();
+  motors_tim3.Start();
+
+  delay(100);  // Allow ESCs to arm
   
   //Indicate entering main loop with 3 quick blinks
   setupBlink(3,160,70); //numBlinks, upTime (ms), downTime (ms)
@@ -397,7 +372,7 @@ void loop() {
   //Print data at 100hz (uncomment one at a time for troubleshooting) - SELECT ONE:
   //printRadioData();     //Prints radio pwm values (expected: 1000 to 2000)
   //printDesiredState();  //Prints desired vehicle state commanded in either degrees or deg/sec (expected: +/- maxAXIS for roll, pitch, yaw; 0 to 1 for throttle)
-  //printGyroData();      //Prints filtered gyro data direct from IMU (expected: ~ -250 to 250, 0 at rest)
+  printGyroData();      //Prints filtered gyro data direct from IMU (expected: ~ -250 to 250, 0 at rest)
   //printAccelData();     //Prints filtered accelerometer data direct from IMU (expected: ~ -2 to 2; x,y 0 when level, z 1 when level)
   //printMagData();       //Prints filtered magnetometer data direct from IMU (expected: ~ -300 to 300)
   //printRollPitchYaw();  //Prints roll, pitch, and yaw angles in degrees from Madgwick filter (expected: degrees, 0 when level)
@@ -411,7 +386,7 @@ void loop() {
 
   //Get vehicle state
   getIMUdata(); //Pulls raw gyro, accelerometer, and magnetometer data from IMU and LP filters to remove noise
-  Madgwick(GyroX, -GyroY, -GyroZ, -AccX, AccY, AccZ, MagY, -MagX, MagZ, dt); //Updates roll_IMU, pitch_IMU, and yaw_IMU angle estimates (degrees)
+  Madgwick6DOF(GyroX, -GyroY, -GyroZ, -AccX, AccY, AccZ, dt); //STM32: Use Madgwick6DOF (no magnetometer)
 
   //Compute desired state
   getDesState(); //Convert raw commands to normalized values based on saturated control limits
@@ -430,13 +405,9 @@ void loop() {
 
   //Command actuators
   commandMotors(); //Sends command pulses to each motor pin using OneShot125 protocol
-  servo1.write(s1_command_PWM); //Writes PWM value to servo object
-  servo2.write(s2_command_PWM);
-  servo3.write(s3_command_PWM);
-  servo4.write(s4_command_PWM);
-  servo5.write(s5_command_PWM);
-  servo6.write(s6_command_PWM);
-  servo7.write(s7_command_PWM);
+
+  //STM32: Servos not used - This port targets 4-motor conventional quadcopter (NOXE V3)
+  //servo1.write(s1_command_PWM);
     
   //Get vehicle commands for next loop iteration
   getCommands(); //Pulls current available radio commands
@@ -499,48 +470,30 @@ void armedStatus() {
 
 void IMUinit() {
   //DESCRIPTION: Initialize IMU
-  /*
-   * Don't worry about how this works.
-   */
-  #if defined USE_MPU6050_I2C
-    Wire.begin();
-    Wire.setClock(1000000); //Note this is 2.5 times the spec sheet 400 kHz max...
-    
-    mpu6050.initialize();
-    
-    if (mpu6050.testConnection() == false) {
-      Serial.println("MPU6050 initialization unsuccessful");
-      Serial.println("Check MPU6050 wiring or try cycling power");
-      while(1) {}
-    }
+  //STM32: Using ICM42688P via IMU library
+  IMU::Result status = imu.Init(spi_imu, BoardConfig::imu.spi.cs_pin, BoardConfig::imu.spi.freq_hz);
 
-    //From the reset state all registers should be 0x00, so we should be at
-    //max sample rate with digital low pass filter(s) off.  All we need to
-    //do is set the desired fullscale ranges
-    mpu6050.setFullScaleGyroRange(GYRO_SCALE);
-    mpu6050.setFullScaleAccelRange(ACCEL_SCALE);
-    
-  #elif defined USE_MPU9250_SPI
-    int status = mpu9250.begin();    
+  if (status != IMU::Result::OK) {
+    CI_LOG("IMU initialization failed\n");
+    while(1) {}
+  }
 
-    if (status < 0) {
-      Serial.println("MPU9250 initialization unsuccessful");
-      Serial.println("Check MPU9250 wiring or try cycling power");
-      Serial.print("Status: ");
-      Serial.println(status);
-      while(1) {}
-    }
+  // Verify chip detection
+  IMU::ChipType chip = imu.GetChipType();
+  if (chip != IMU::ChipType::ICM42688_P) {
+    CI_LOGF("Wrong IMU chip detected: 0x%02X\n", static_cast<uint8_t>(chip));
+    while(1) {}
+  }
 
-    //From the reset state all registers should be 0x00, so we should be at
-    //max sample rate with digital low pass filter(s) off.  All we need to
-    //do is set the desired fullscale ranges
-    mpu9250.setGyroRange(GYRO_SCALE);
-    mpu9250.setAccelRange(ACCEL_SCALE);
-    mpu9250.setMagCalX(MagErrorX, MagScaleX);
-    mpu9250.setMagCalY(MagErrorY, MagScaleY);
-    mpu9250.setMagCalZ(MagErrorZ, MagScaleZ);
-    mpu9250.setSrd(0); //sets gyro and accel read to 1khz, magnetometer read to 100hz
-  #endif
+  // Configure gyro and accelerometer using user-defined ranges and 2000 Hz ODR
+  status = imu.ConfigureInvDevice(ACCEL_SCALE, GYRO_SCALE, IMU::accel_odr2k, IMU::gyr_odr2k);
+
+  if (status != IMU::Result::OK) {
+    CI_LOG("IMU configuration failed\n");
+    while(1) {}
+  }
+
+  CI_LOG("IMU initialized: ICM42688P\n");
 }
 
 void getIMUdata() {
@@ -555,11 +508,7 @@ void getIMUdata() {
    */
   int16_t AcX,AcY,AcZ,GyX,GyY,GyZ,MgX,MgY,MgZ;
 
-  #if defined USE_MPU6050_I2C
-    mpu6050.getMotion6(&AcX, &AcY, &AcZ, &GyX, &GyY, &GyZ);
-  #elif defined USE_MPU9250_SPI
-    mpu9250.getMotion9(&AcX, &AcY, &AcZ, &GyX, &GyY, &GyZ, &MgX, &MgY, &MgZ);
-  #endif
+  imu.getMotion6(&AcX, &AcY, &AcZ, &GyX, &GyY, &GyZ);
 
  //Accelerometer
   AccX = AcX / ACCEL_SCALE_FACTOR; //G's
@@ -624,16 +573,12 @@ void calculate_IMU_error() {
   GyroErrorX = 0.0;
   GyroErrorY= 0.0;
   GyroErrorZ = 0.0;
-  
+
   //Read IMU values 12000 times
   int c = 0;
   while (c < 12000) {
-    #if defined USE_MPU6050_I2C
-      mpu6050.getMotion6(&AcX, &AcY, &AcZ, &GyX, &GyY, &GyZ);
-    #elif defined USE_MPU9250_SPI
-      mpu9250.getMotion9(&AcX, &AcY, &AcZ, &GyX, &GyY, &GyZ, &MgX, &MgY, &MgZ);
-    #endif
-    
+    imu.getMotion6(&AcX, &AcY, &AcZ, &GyX, &GyY, &GyZ);
+
     AccX  = AcX / ACCEL_SCALE_FACTOR;
     AccY  = AcY / ACCEL_SCALE_FACTOR;
     AccZ  = AcZ / ACCEL_SCALE_FACTOR;
@@ -1158,50 +1103,21 @@ void scaleCommands() {
 
 void getCommands() {
   //DESCRIPTION: Get raw PWM values for every channel from the radio
-  /*
-   * Updates radio PWM commands in loop based on current available commands. channel_x_pwm is the raw command used in the rest of 
-   * the loop. If using a PWM or PPM receiver, the radio commands are retrieved from a function in the readPWM file separate from this one which 
-   * is running a bunch of interrupts to continuously update the radio readings. If using an SBUS receiver, the alues are pulled from the SBUS library directly.
-   * The raw radio commands are filtered with a first order low-pass filter to eliminate any really high frequency noise. 
-   */
+  //STM32: Using SerialRx library adapter (IBus/SBUS only)
 
-  #if defined USE_PPM_RX || defined USE_PWM_RX
+  #if defined USE_SERIAL_RX
+    // Update channels from SerialRx adapter
+    updateRadioChannels();
+
+    // Get channel values (already in PWM format from SerialRx)
     channel_1_pwm = getRadioPWM(1);
     channel_2_pwm = getRadioPWM(2);
     channel_3_pwm = getRadioPWM(3);
     channel_4_pwm = getRadioPWM(4);
     channel_5_pwm = getRadioPWM(5);
     channel_6_pwm = getRadioPWM(6);
-    
-  #elif defined USE_SBUS_RX
-    if (sbus.read(&sbusChannels[0], &sbusFailSafe, &sbusLostFrame))
-    {
-      //sBus scaling below is for Taranis-Plus and X4R-SB
-      float scale = 0.615;  
-      float bias  = 895.0; 
-      channel_1_pwm = sbusChannels[0] * scale + bias;
-      channel_2_pwm = sbusChannels[1] * scale + bias;
-      channel_3_pwm = sbusChannels[2] * scale + bias;
-      channel_4_pwm = sbusChannels[3] * scale + bias;
-      channel_5_pwm = sbusChannels[4] * scale + bias;
-      channel_6_pwm = sbusChannels[5] * scale + bias; 
-    }
-
-  #elif defined USE_DSM_RX
-    if (DSM.timedOut(micros())) {
-        //Serial.println("*** DSM RX TIMED OUT ***");
-    }
-    else if (DSM.gotNewFrame()) {
-        uint16_t values[num_DSM_channels];
-        DSM.getChannelValues(values, num_DSM_channels);
-
-        channel_1_pwm = values[0];
-        channel_2_pwm = values[1];
-        channel_3_pwm = values[2];
-        channel_4_pwm = values[3];
-        channel_5_pwm = values[4];
-        channel_6_pwm = values[5];
-    }
+  #else
+    #error No serial RX type defined
   #endif
   
   //Low-pass the critical commands and update previous values
@@ -1255,62 +1171,13 @@ void failSafe() {
 
 void commandMotors() {
   //DESCRIPTION: Send pulses to motor pins, oneshot125 protocol
-  /*
-   * My crude implimentation of OneShot125 protocol which sends 125 - 250us pulses to the ESCs (mXPin). The pulselengths being
-   * sent are mX_command_PWM, computed in scaleCommands(). This may be replaced by something more efficient in the future.
-   */
-  int wentLow = 0;
-  int pulseStart, timer;
-  int flagM1 = 0;
-  int flagM2 = 0;
-  int flagM3 = 0;
-  int flagM4 = 0;
-  int flagM5 = 0;
-  int flagM6 = 0;
-  
-  //Write all motor pins high
-  digitalWrite(m1Pin, HIGH);
-  digitalWrite(m2Pin, HIGH);
-  digitalWrite(m3Pin, HIGH);
-  digitalWrite(m4Pin, HIGH);
-  digitalWrite(m5Pin, HIGH);
-  digitalWrite(m6Pin, HIGH);
-  pulseStart = micros();
-
-  //Write each motor pin low as correct pulse length is reached
-  while (wentLow < 6 ) { //Keep going until final (6th) pulse is finished, then done
-    timer = micros();
-    if ((m1_command_PWM <= timer - pulseStart) && (flagM1==0)) {
-      digitalWrite(m1Pin, LOW);
-      wentLow = wentLow + 1;
-      flagM1 = 1;
-    }
-    if ((m2_command_PWM <= timer - pulseStart) && (flagM2==0)) {
-      digitalWrite(m2Pin, LOW);
-      wentLow = wentLow + 1;
-      flagM2 = 1;
-    }
-    if ((m3_command_PWM <= timer - pulseStart) && (flagM3==0)) {
-      digitalWrite(m3Pin, LOW);
-      wentLow = wentLow + 1;
-      flagM3 = 1;
-    }
-    if ((m4_command_PWM <= timer - pulseStart) && (flagM4==0)) {
-      digitalWrite(m4Pin, LOW);
-      wentLow = wentLow + 1;
-      flagM4 = 1;
-    } 
-    if ((m5_command_PWM <= timer - pulseStart) && (flagM5==0)) {
-      digitalWrite(m5Pin, LOW);
-      wentLow = wentLow + 1;
-      flagM5 = 1;
-    } 
-    if ((m6_command_PWM <= timer - pulseStart) && (flagM6==0)) {
-      digitalWrite(m6Pin, LOW);
-      wentLow = wentLow + 1;
-      flagM6 = 1;
-    } 
-  }
+  //STM32: Using TimerPWM library for OneShot125 (8kHz, 125-250µs pulses)
+  motors_tim1.SetPulseWidth(1, m1_command_PWM);
+  motors_tim1.SetPulseWidth(2, m2_command_PWM);
+  motors_tim1.SetPulseWidth(3, m3_command_PWM);
+  motors_tim3.SetPulseWidth(3, m4_command_PWM);
+  motors_tim3.SetPulseWidth(1, m5_command_PWM);
+  // m6 not available on F411RE
 }
 
 void armMotors() {
@@ -1338,7 +1205,7 @@ void calibrateESCs() {
       current_time = micros();      
       dt = (current_time - prev_time)/1000000.0;
     
-      digitalWrite(13, HIGH); //LED on to indicate we are not in main loop
+      digitalWrite(ledPin, HIGH); //LED on to indicate we are not in main loop
 
       getCommands(); //Pulls current available radio commands
       failSafe(); //Prevent failures in event of bad receiver connection, defaults to failsafe values assigned in setup
@@ -1363,14 +1230,15 @@ void calibrateESCs() {
       scaleCommands(); //Scales motor commands to 125 to 250 range (oneshot125 protocol) and servo PWM commands to 0 to 180 (for servo library)
     
       //throttleCut(); //Directly sets motor commands to low based on state of ch5
-      
-      servo1.write(s1_command_PWM); 
-      servo2.write(s2_command_PWM);
-      servo3.write(s3_command_PWM);
-      servo4.write(s4_command_PWM);
-      servo5.write(s5_command_PWM);
-      servo6.write(s6_command_PWM);
-      servo7.write(s7_command_PWM);
+
+      //STM32: Servos not used - This port targets 4-motor conventional quadcopter (NOXE V3)
+      //servo1.write(s1_command_PWM);
+      //servo2.write(s2_command_PWM);
+      //servo3.write(s3_command_PWM);
+      //servo4.write(s4_command_PWM);
+      //servo5.write(s5_command_PWM);
+      //servo6.write(s6_command_PWM);
+      //servo7.write(s7_command_PWM);
       commandMotors(); //Sends command pulses to each motor pin using OneShot125 protocol
       
       //printRadioData(); //Radio pwm values (expected: 1000 to 2000)
@@ -1475,52 +1343,7 @@ void throttleCut() {
   }
 }
 
-void calibrateMagnetometer() {
-  #if defined USE_MPU9250_SPI 
-    float success;
-    Serial.println("Beginning magnetometer calibration in");
-    Serial.println("3...");
-    delay(1000);
-    Serial.println("2...");
-    delay(1000);
-    Serial.println("1...");
-    delay(1000);
-    Serial.println("Rotate the IMU about all axes until complete.");
-    Serial.println(" ");
-    success = mpu9250.calibrateMag();
-    if(success) {
-      Serial.println("Calibration Successful!");
-      Serial.println("Please comment out the calibrateMagnetometer() function and copy these values into the code:");
-      Serial.print("float MagErrorX = ");
-      Serial.print(mpu9250.getMagBiasX_uT());
-      Serial.println(";");
-      Serial.print("float MagErrorY = ");
-      Serial.print(mpu9250.getMagBiasY_uT());
-      Serial.println(";");
-      Serial.print("float MagErrorZ = ");
-      Serial.print(mpu9250.getMagBiasZ_uT());
-      Serial.println(";");
-      Serial.print("float MagScaleX = ");
-      Serial.print(mpu9250.getMagScaleFactorX());
-      Serial.println(";");
-      Serial.print("float MagScaleY = ");
-      Serial.print(mpu9250.getMagScaleFactorY());
-      Serial.println(";");
-      Serial.print("float MagScaleZ = ");
-      Serial.print(mpu9250.getMagScaleFactorZ());
-      Serial.println(";");
-      Serial.println(" ");
-      Serial.println("If you are having trouble with your attitude estimate at a new flying location, repeat this process as needed.");
-    }
-    else {
-      Serial.println("Calibration Unsuccessful. Please reset the board and try again.");
-    }
-  
-    while(1); //Halt code so it won't enter main loop until this function commented out
-  #endif
-  Serial.println("Error: MPU9250 not selected. Cannot calibrate non-existent magnetometer.");
-  while(1); //Halt code so it won't enter main loop until this function commented out
-}
+//STM32: calibrateMagnetometer() deleted - ICM42688P has no magnetometer
 
 void loopRate(int freq) {
   //DESCRIPTION: Regulate main loop rate to specified frequency in Hz

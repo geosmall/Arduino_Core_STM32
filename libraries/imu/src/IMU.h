@@ -253,6 +253,16 @@ public:
     int ReadIMU6(std::array<int16_t, 6>& buf);
 
     /**
+     * @brief MPU6050/MPU9250 compatibility interface for reading IMU data.
+     *        Wraps ReadIMU6() to provide familiar out-parameter interface.
+     * @param ax, ay, az Accelerometer X, Y, Z output (raw int16_t)
+     * @param gx, gy, gz Gyroscope X, Y, Z output (raw int16_t)
+     * @return 0 on success, negative error code on failure.
+     */
+    int getMotion6(int16_t* ax, int16_t* ay, int16_t* az,
+                   int16_t* gx, int16_t* gy, int16_t* gz);
+
+    /**
      * @brief Read sensor data from FIFO.
      * @return Number of FIFO packets read on success, or negative error code on failure.
      */

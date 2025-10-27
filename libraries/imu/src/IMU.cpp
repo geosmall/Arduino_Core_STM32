@@ -348,6 +348,26 @@ int IMU::ReadIMU6(std::array<int16_t, 6>& buf)
     return rc;
 }
 
+int IMU::getMotion6(int16_t* ax, int16_t* ay, int16_t* az,
+                     int16_t* gx, int16_t* gy, int16_t* gz)
+{
+    std::array<int16_t, 6> imu_data;
+    int status = ReadIMU6(imu_data);
+
+    if (status != 0) {
+        return status;
+    }
+
+    *ax = imu_data[0];
+    *ay = imu_data[1];
+    *az = imu_data[2];
+    *gx = imu_data[3];
+    *gy = imu_data[4];
+    *gz = imu_data[5];
+
+    return 0;
+}
+
 int IMU::ReadDataFromFifo()
 {
     if (!initialized_) return -1;
