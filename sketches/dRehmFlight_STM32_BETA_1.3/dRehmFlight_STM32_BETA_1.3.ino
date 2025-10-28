@@ -358,6 +358,7 @@ void setup() {
   //If using MPU9250 IMU, uncomment for one-time magnetometer calibration (may need to repeat for new locations)
   //calibrateMagnetometer(); //Generates magentometer error and scale factors to be pasted in user-specified variables section
 
+  current_time = micros();
 }
 
 
@@ -495,6 +496,16 @@ void IMUinit() {
 
   if (status != IMU::Result::OK) {
     CI_LOG("IMU configuration failed\n");
+    while(1) {}
+  }
+
+  // Enable sensors for continuous data acquisition (required for polling)
+  if (imu.EnableAccelLNMode() != 0) {
+    CI_LOG("Failed to enable accelerometer\n");
+    while(1) {}
+  }
+  if (imu.EnableGyroLNMode() != 0) {
+    CI_LOG("Failed to enable gyroscope\n");
     while(1) {}
   }
 
