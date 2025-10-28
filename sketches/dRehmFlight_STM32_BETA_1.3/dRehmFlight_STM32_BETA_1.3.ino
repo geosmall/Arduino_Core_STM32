@@ -1432,12 +1432,11 @@ void printDesiredState() {
 void printGyroData() {
   if (current_time - print_counter > 10000) {
     print_counter = micros();
-    Serial.print(F("GyroX:"));
-    Serial.print(GyroX);
-    Serial.print(F(" GyroY:"));
-    Serial.print(GyroY);
-    Serial.print(F(" GyroZ:"));
-    Serial.println(GyroZ);
+    CI_LOG("Gyro");
+    CI_LOG_FLOAT(" X:", GyroX, 2);
+    CI_LOG_FLOAT(" Y:", GyroY, 2);
+    CI_LOG_FLOAT(" Z:", GyroZ, 2);
+    CI_LOG("\n");
   }
 }
 
