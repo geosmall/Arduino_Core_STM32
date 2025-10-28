@@ -56,6 +56,7 @@ Everyone that sends me pictures and videos of your flying creations! -Nick
 //#define ACCEL_16G
 
 
+
 //========================================================================================================================//
 
 
@@ -390,7 +391,7 @@ void loop() {
 
   //Get vehicle state
   getIMUdata(); //Pulls raw gyro, accelerometer, and magnetometer data from IMU and LP filters to remove noise
-  Madgwick6DOF(GyroX, -GyroY, -GyroZ, -AccX, AccY, AccZ, dt); //STM32: Use Madgwick6DOF (no magnetometer)
+  Madgwick(GyroX, -GyroY, -GyroZ, -AccX, AccY, AccZ, MagY, -MagX, MagZ, dt); //Updates roll_IMU, pitch_IMU, and yaw_IMU angle estimates (degrees)
 
   //Compute desired state
   getDesState(); //Convert raw commands to normalized values based on saturated control limits
@@ -577,7 +578,7 @@ void calculate_IMU_error() {
   GyroErrorX = 0.0;
   GyroErrorY= 0.0;
   GyroErrorZ = 0.0;
-
+  
   //Read IMU values 12000 times
   int c = 0;
   while (c < 12000) {
