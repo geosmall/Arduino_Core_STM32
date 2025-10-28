@@ -105,6 +105,14 @@ void setup() {
     // Configure IMU for polled operation
     CI_LOG("Configuring IMU...\n");
 
+    // Set full-scale range (matching dRehmFlight: ±250 DPS gyro, ±2G accel)
+    if (imu.SetGyroFSR(IMU::GyroFS::dps250) != 0 ||
+        imu.SetAccelFSR(IMU::AccelFS::gpm2) != 0) {
+        CI_LOG("ERROR: Failed to set FSR!\n");
+        CI_LOG("*STOP*\n");
+        while (1) delay(1000);
+    }
+
     // Enable sensors for continuous data acquisition
     if (imu.EnableAccelLNMode() != 0 || imu.EnableGyroLNMode() != 0) {
         CI_LOG("ERROR: Failed to enable sensors!\n");
@@ -112,53 +120,60 @@ void setup() {
         while (1) delay(1000);
     }
 
-    // Set sample rates (1kHz for both)
-    if (imu.SetAccelODR(IMU::AccelODR::accel_odr1k) != 0 ||
-        imu.SetGyroODR(IMU::GyroODR::gyr_odr1k) != 0) {
+    // Set sample rates (2kHz for both - matching dRehmFlight)
+    if (imu.SetAccelODR(IMU::AccelODR::accel_odr2k) != 0 ||
+        imu.SetGyroODR(IMU::GyroODR::gyr_odr2k) != 0) {
         CI_LOG("ERROR: Failed to set ODR!\n");
         CI_LOG("*STOP*\n");
         while (1) delay(1000);
     }
 
     CI_LOG("✓ IMU configured for polled operation\n");
-    CI_LOG("  Accel ODR: 1kHz, Gyro ODR: 1kHz\n");
-    CI_LOG("  Mode: Simple polling (no interrupt)\n\n");
+    CI_LOG("  Accel: ±2G, 2kHz ODR\n");
+    CI_LOG("  Gyro: ±250 DPS, 2kHz ODR\n");
+    CI_LOG("  Mode: Continuous 2kHz loop (matching dRehmFlight)\n\n");
 
-    // Collect 100 samples by polling
-    CI_LOG("Collecting 100 samples (polling at ~1kHz)...\n\n");
-
-    std::array<int16_t, 6> imu_data;
-    int sample_count = 0;
-    const int target_samples = 100;
-
-    while (sample_count < target_samples) {
-        // Poll IMU data directly (no interrupt needed)
-        if (imu.ReadIMU6(imu_data) == 0) {
-            sample_count++;
-
-            // Print every 5th sample
-            if (sample_count % 5 == 0) {
-                printf("Sample %d: ", sample_count);
-                printf("Accel[%6d,%6d,%6d] ",
-                       imu_data[0], imu_data[1], imu_data[2]);
-                printf("Gyro[%6d,%6d,%6d]\n",
-                       imu_data[3], imu_data[4], imu_data[5]);
-            }
-        }
-
-        // Delay to approximate 1kHz polling rate (1ms period)
-        // Note: Actual rate will be slightly slower due to SPI read time (~100us)
-        delay(1);
-    }
-
-    CI_LOG("\n✓ Data collection complete\n");
-
-    CI_LOG("\n=== Test Complete ===\n");
-    CI_LOG("*STOP*\n");
+    CI_LOG("Starting continuous 2kHz polling loop...\n");
+    CI_LOG("Will print 20 samples over ~10 seconds\n\n");
 }
 
 void loop() {
-    // Nothing to do
+    static unsigned long current_time = 0;
+    static unsigned long loop_timer = 0;
+    static uint32_t sample_count = 0;
+    static const uint32_t loop_freq = 2000; // 2kHz like dRehmFlight
+    static const uint32_t inv_freq = 1000000 / loop_freq; // 500us period
+
+    current_time = micros();
+
+    // Read IMU at 2kHz
+    std::array<int16_t, 6> imu_data;
+    if (imu.ReadIMU6(imu_data) == 0) {
+        sample_count++;
+
+        // Print every 500 samples (~4Hz at 2kHz loop, matching dRehmFlight debug rate)
+        if (sample_count % 500 == 0) {
+            printf("Sample %lu: ", sample_count);
+            printf("Accel[%6d,%6d,%6d] ",
+                   imu_data[0], imu_data[1], imu_data[2]);
+            printf("Gyro[%6d,%6d,%6d]\n",
+                   imu_data[3], imu_data[4], imu_data[5]);
+        }
+
+        // Exit after 20 samples (~10 seconds)
+        if (sample_count >= 10000) {
+            CI_LOG("\n✓ Data collection complete\n");
+            CI_LOG("\n=== Test Complete ===\n");
+            CI_LOG("*STOP*\n");
+            while(1); // Halt
+        }
+    }
+
+    // Regulate loop rate to 2kHz (like dRehmFlight's loopRate function)
+    loop_timer = micros();
+    while (inv_freq > (loop_timer - current_time)) {
+        loop_timer = micros();
+    }
 }
 
 /* --------------------------------------------------------------------------------------

@@ -109,6 +109,14 @@ void setup() {
     // Configure IMU for interrupt-driven operation
     CI_LOG("Configuring IMU...\n");
 
+    // Set full-scale range (±250 DPS gyro, ±2G accel for consistency across examples)
+    if (imu.SetGyroFSR(IMU::GyroFS::dps250) != 0 ||
+        imu.SetAccelFSR(IMU::AccelFS::gpm2) != 0) {
+        CI_LOG("ERROR: Failed to set FSR!\n");
+        CI_LOG("*STOP*\n");
+        while (1) delay(1000);
+    }
+
     // Set accelerometer and gyro to low noise mode
     if (imu.EnableAccelLNMode() != 0 || imu.EnableGyroLNMode() != 0) {
         CI_LOG("ERROR: Failed to enable sensors!\n");
@@ -137,7 +145,8 @@ void setup() {
     }
 
     CI_LOG("✓ IMU configured for interrupt-driven operation\n");
-    CI_LOG("  Accel ODR: 1kHz, Gyro ODR: 1kHz\n");
+    CI_LOG("  Accel: ±2G, 1kHz ODR\n");
+    CI_LOG("  Gyro: ±250 DPS, 1kHz ODR\n");
     CI_LOG("  INT1: Data Ready enabled\n\n");
 
     // Collect 100 samples

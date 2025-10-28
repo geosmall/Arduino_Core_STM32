@@ -165,46 +165,42 @@ Gyro X:0.39 Y:-0.80 Z:0.29
 
 ## Next Steps
 
-### Phase 1: IMU Data Validation (In Progress)
+### Phase 1: IMU Data Validation ✅ COMPLETE
 
-**Issue to Investigate**:
-- dRehmFlight shows ~8x higher raw IMU values than imu-polled-basic example
-- **Scaling is correct** (both use 131 LSB/deg/sec from datasheet)
-- **Hardware is same** (NUCLEO_F411RE, ICM-42688-P, stationary board)
-- **Raw sensor readings differ**:
-  - imu-polled-basic (1kHz ODR): Gyro X=6, Y=-13, Z=4 counts
-  - dRehmFlight (2kHz ODR): Gyro X=40, Y=-110, Z=43 counts
-  - Ratio: ~6-10x difference in raw values
+**Issue Investigated**:
+- dRehmFlight showed ~8x higher raw IMU values than imu-polled-basic example
+- Both used correct scaling (131 LSB/°/s from datasheet)
+- Same hardware (NUCLEO_F411RE, ICM-42688-P, stationary board)
 
-**Possible Root Causes**:
-1. **Different ODR Configuration** (2kHz vs 1kHz) affecting sensor output
-   - Investigate: Does ICM-42688-P output different magnitudes at different ODRs?
-   - Action: Test dRehmFlight with 1kHz ODR to match imu-polled-basic
-   - Action: Check ICM-42688-P datasheet for ODR-dependent behavior
+**Root Cause Identified**: Full-Scale Range (FSR) Configuration Difference
 
-2. **ConfigureInvDevice() vs Explicit SetAccelODR/SetGyroODR**
-   - imu-polled-basic uses explicit SetAccelODR() + SetGyroODR() + EnableAccelLNMode() + EnableGyroLNMode()
-   - dRehmFlight uses ConfigureInvDevice() (wrapper) + EnableAccelLNMode() + EnableGyroLNMode()
-   - Action: Test dRehmFlight with explicit configuration matching imu-polled-basic
-   - Action: Review ConfigureInvDevice() implementation for hidden differences
+The 8x discrepancy was caused by different gyroscope full-scale range settings:
 
-3. **Sensor State/Timing**
-   - Action: Run both tests back-to-back with no code changes
-   - Action: Add RAW value logging to both for direct comparison
-   - Action: Check if sensor startup settling affects readings
+| Configuration | FSR Setting | Sensitivity (LSB/°/s) | Raw Gyro Values (Stationary) |
+|---------------|-------------|----------------------|------------------------------|
+| **imu-polled-basic (original)** | Power-on default (±2000 °/s) | 16.4 | X=5-7, Y=-13 to -15, Z=3-6 |
+| **dRehmFlight** | Explicit ±250 °/s | 131.0 | X=46-58, Y=-100 to -118, Z=31-52 |
+| **Ratio** | 8x sensitivity | 131/16.4 = 8x | ~8x raw counts |
 
-4. **Low-Pass Filter Coefficients**
-   - dRehmFlight applies B_gyro filter (configured for 2kHz)
-   - imu-polled-basic shows raw values without filtering
-   - Action: Verify filter doesn't amplify or offset values
-   - Action: Check B_gyro = 0.04 is appropriate for 2kHz loop
+**Why the Difference**:
+- **ICM-42688-P power-on default**: FSR=0 (±2000 °/s range, 16.4 LSB/°/s sensitivity)
+- **dRehmFlight configuration**: Explicitly sets FSR=3 (±250 °/s range, 131 LSB/°/s sensitivity) via `ConfigureInvDevice()`
+- **Physical rotation rate**: Same (~0.35 °/s stationary drift)
+- **Raw counts differ**: Higher sensitivity → more LSB per degree → higher raw values
 
-**Validation Plan**:
-- Add RAW debug logging to both examples
-- Run side-by-side tests with identical hardware setup
-- Test dRehmFlight at 1kHz ODR to eliminate ODR as variable
-- Compare ConfigureInvDevice() vs explicit configuration
-- Document findings in this README
+**Verification**:
+After configuring imu-polled-basic to use ±250 DPS FSR (matching dRehmFlight):
+```
+imu-polled-basic: Gyro X=53-62, Y=-100 to -112, Z=27-47
+dRehmFlight:      Gyro X=46-58, Y=-100 to -118, Z=31-52
+```
+Raw values now match within normal sensor noise ✅
+
+**Conclusion**:
+- Both configurations are **correct** - just different measurement ranges
+- ±2000 °/s: Wider range, lower resolution (good for aerobatics)
+- ±250 °/s: Narrower range, higher resolution (good for stable flight)
+- All IMU library examples now standardized to ±250 °/s for consistency
 
 ### Phase 2: Hardware Bench Testing
 
