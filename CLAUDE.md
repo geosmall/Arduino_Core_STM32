@@ -703,7 +703,8 @@ Minimal-change port of dRehmFlight BETA 1.3 (Teensy-based UAV flight controller)
 - **Application Focus**: 4-motor quadcopter (servos commented out)
 
 **Key Metrics**:
-- Binary Size: 43KB (8% of 512KB flash)
+- Binary Size: 46.9KB (8.9% of 512KB flash)
+- RAM Usage: 5.9KB (4.5% of 128KB RAM)
 - Line Count: 1735 → 1513 lines (-13% reduction)
 - Flight Control Logic Modified: 0 functions (100% preserved)
 - Hardware Interface Modified: 6 functions (IMUinit, getIMUdata, radioSetup, updateRadioChannels, commandMotors, setup)
@@ -746,28 +747,55 @@ Minimal-change port of dRehmFlight BETA 1.3 (Teensy-based UAV flight controller)
 
 **Files**:
 ```
-tests/dRehmFlight_STM32_BETA_1.3/
+sketches/dRehmFlight_STM32_BETA_1.3/
 ├── dRehmFlight_STM32_BETA_1.3.ino  (main sketch - 1513 lines)
 ├── radioComm.ino                    (SerialRx adapter - 88 lines, was 198)
-└── COPYING.txt                      (MIT license from dRehmFlight)
+├── COPYING.txt                      (MIT license from dRehmFlight)
+└── README.md                        (comprehensive port documentation)
 ```
 
 **Build & Test**:
 ```bash
 # Compile
-./system/ci/build.sh tests/dRehmFlight_STM32_BETA_1.3
+./system/ci/build.sh sketches/dRehmFlight_STM32_BETA_1.3
 
-# Flash and test (when hardware ready)
-./system/ci/aflash.sh tests/dRehmFlight_STM32_BETA_1.3 --use-rtt --build-id
+# Flash and test with RTT logging
+./system/ci/aflash.sh sketches/dRehmFlight_STM32_BETA_1.3 --use-rtt --build-id
 ```
 
 **Status**:
-- ✅ Port complete (compiles successfully)
-- ✅ All flight control logic preserved
+- ✅ Port complete (compiles successfully - 46.9KB binary)
+- ✅ All flight control logic preserved (100% unchanged)
 - ✅ Minimal changes achieved (only 6 hardware functions modified)
-- 🚧 Hardware validation pending (NUCLEO_F411RE + breadboard setup)
-- 📋 Deployment to NOXE V3 (after bench validation)
-- 📋 Flight testing with PID tuning
+- ✅ **IMU Hardware Validated**: WHO_AM_I verified (0x47), self-test passed, gyro data operational
+- ✅ **IMU Data Validated**: Stationary drift readings confirmed (X≈0.38, Y≈-0.81, Z≈0.30 °/s)
+- ✅ **Polling-Based IMU**: 2kHz loop matches 2kHz IMU ODR (same approach as Betaflight/iNav)
+- ✅ **Setup() Execution**: All initialization complete (IMU, radio RX, motor timers)
+- ✅ **Main Loop Running**: 2kHz loop timing operational with RTT/Serial logging
+- 📋 RC receiver bench testing pending (SBUS on USART1)
+- 📋 Motor control bench testing pending (OneShot125 via TIM1/TIM3)
+- 📋 Flight testing with PID tuning pending
+- 📋 Deployment to NOXE V3 pending validation
+
+**Issues Resolved**:
+1. **UART Conflict**: Fixed by moving RC receiver to USART1 (PB7/PB6), Serial debug on USART2 (PA2/PA3)
+2. **Uninitialized Callbacks**: Added NULL initialization in HardwareSerial::init() with NULL checks in ISRs
+3. **RTT Logging**: Fixed with cache clear + CI_LOG_FLOAT() for float formatting
+4. **IMU Sensor Enable**: Fixed by adding EnableAccelLNMode() and EnableGyroLNMode() after ConfigureInvDevice()
+   - ConfigureInvDevice() sets registers but doesn't start continuous sampling
+   - Sensors were stuck in power-off state returning saturated values (-32768)
+   - Fix enables continuous 2kHz data acquisition for polling-based flight loop
+
+**Key Learning - IMU Full-Scale Range Configuration**:
+Investigation revealed ~8× raw value discrepancy between dRehmFlight and imu-polled-basic example on identical hardware (both stationary, same board). Root cause: **different gyroscope FSR settings**, not a bug.
+
+| Configuration | FSR Setting | Sensitivity (LSB/°/s) | Raw Gyro (Stationary) |
+|---------------|-------------|----------------------|----------------------|
+| imu-polled-basic (original) | Power-on default (±2000 °/s) | 16.4 | X=5-7, Y=-13~-15, Z=3-6 |
+| dRehmFlight | Explicit ±250 °/s | 131.0 | X=46-58, Y=-100~-118, Z=31-52 |
+| **Ratio** | 8× sensitivity | 131/16.4 = 8× | ~8× raw counts |
+
+**Conclusion**: Both correct - different measurement ranges. After standardizing to ±250 °/s, values match within sensor noise. Flight controllers typically use ±250 °/s or ±500 °/s for stable flight (higher resolution). All IMU library examples now standardized to ±250 °/s.
 
 **Original Source**: Nicholas Rehm's dRehmFlight Teensy BETA 1.3 (MIT License)
 - Original: https://github.com/nickrehm/dRehmFlight
