@@ -126,17 +126,17 @@ IMU::Result IMU::ConfigureInvDevice(AccelFS acc_fsr_g, GyroFS gyr_fsr_dps,
 
     // Calculate sensitivity from FSR
     switch (acc_fsr_g) {
-        case gpm2:  accel_sensitivity_ = 16384.0f; break;
-        case gpm4:  accel_sensitivity_ = 8192.0f; break;
-        case gpm8:  accel_sensitivity_ = 4096.0f; break;
-        case gpm16: accel_sensitivity_ = 2048.0f; break;
+        case gpm2:  accel_sensitivity_ = ICM42688P_ACCEL_SENS_2G;  break;
+        case gpm4:  accel_sensitivity_ = ICM42688P_ACCEL_SENS_4G;  break;
+        case gpm8:  accel_sensitivity_ = ICM42688P_ACCEL_SENS_8G;  break;
+        case gpm16: accel_sensitivity_ = ICM42688P_ACCEL_SENS_16G; break;
     }
 
     switch (gyr_fsr_dps) {
-        case dps250:  gyro_sensitivity_ = 1311.0f; break;
-        case dps500:  gyro_sensitivity_ = 655.0f; break;
-        case dps1000: gyro_sensitivity_ = 328.0f; break;
-        case dps2000: gyro_sensitivity_ = 164.0f; break;
+        case dps250:  gyro_sensitivity_ = ICM42688P_GYRO_SENS_250;  break;
+        case dps500:  gyro_sensitivity_ = ICM42688P_GYRO_SENS_500;  break;
+        case dps1000: gyro_sensitivity_ = ICM42688P_GYRO_SENS_1000; break;
+        case dps2000: gyro_sensitivity_ = ICM42688P_GYRO_SENS_2000; break;
     }
 
     return (rc == 0) ? Result::OK : Result::ERR;
@@ -205,10 +205,10 @@ int IMU::SetAccelFSR(AccelFS fsr)
     // Update sensitivity
     if (rc == 0) {
         switch (fsr) {
-            case gpm2:  accel_sensitivity_ = 16384.0f; break;
-            case gpm4:  accel_sensitivity_ = 8192.0f; break;
-            case gpm8:  accel_sensitivity_ = 4096.0f; break;
-            case gpm16: accel_sensitivity_ = 2048.0f; break;
+            case gpm2:  accel_sensitivity_ = ICM42688P_ACCEL_SENS_2G;  break;
+            case gpm4:  accel_sensitivity_ = ICM42688P_ACCEL_SENS_4G;  break;
+            case gpm8:  accel_sensitivity_ = ICM42688P_ACCEL_SENS_8G;  break;
+            case gpm16: accel_sensitivity_ = ICM42688P_ACCEL_SENS_16G; break;
         }
     }
     return rc;
@@ -222,10 +222,10 @@ int IMU::SetGyroFSR(GyroFS fsr)
     // Update sensitivity
     if (rc == 0) {
         switch (fsr) {
-            case dps250:  gyro_sensitivity_ = 1311.0f; break;
-            case dps500:  gyro_sensitivity_ = 655.0f; break;
-            case dps1000: gyro_sensitivity_ = 328.0f; break;
-            case dps2000: gyro_sensitivity_ = 164.0f; break;
+            case dps250:  gyro_sensitivity_ = ICM42688P_GYRO_SENS_250;  break;
+            case dps500:  gyro_sensitivity_ = ICM42688P_GYRO_SENS_500;  break;
+            case dps1000: gyro_sensitivity_ = ICM42688P_GYRO_SENS_1000; break;
+            case dps2000: gyro_sensitivity_ = ICM42688P_GYRO_SENS_2000; break;
         }
     }
     return rc;

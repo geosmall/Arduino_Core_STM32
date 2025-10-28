@@ -34,10 +34,10 @@ extern "C" {
  *
  *  |  Gyro Range (dps) | Sensitivity (LSB/dps) |
  *  |-------------------|-----------------------|
- *  |      ±2000        |          164          |
- *  |      ±1000        |          328          |
- *  |      ±500         |         655          |
- *  |      ±250         |         1311          |
+ *  |      ±2000        |         16.4          |
+ *  |      ±1000        |         32.8          |
+ *  |      ±500         |         65.5          |
+ *  |      ±250         |        131.0          |
  *
  * ============================================================
  * Note:
@@ -112,6 +112,22 @@ public:
         MPU_6000 = 0x68,
         MPU_9250 = 0x71,
     };
+
+    // ========================================================================
+    // Sensor Sensitivity Constants (LSB per physical unit)
+    // ========================================================================
+
+    // ICM-42688-P Accelerometer Sensitivity (LSB/g)
+    static constexpr float ICM42688P_ACCEL_SENS_2G   = 16384.0f;
+    static constexpr float ICM42688P_ACCEL_SENS_4G   = 8192.0f;
+    static constexpr float ICM42688P_ACCEL_SENS_8G   = 4096.0f;
+    static constexpr float ICM42688P_ACCEL_SENS_16G  = 2048.0f;
+
+    // ICM-42688-P Gyroscope Sensitivity (LSB/(°/s))
+    static constexpr float ICM42688P_GYRO_SENS_250   = 131.0f;
+    static constexpr float ICM42688P_GYRO_SENS_500   = 65.5f;
+    static constexpr float ICM42688P_GYRO_SENS_1000  = 32.8f;
+    static constexpr float ICM42688P_GYRO_SENS_2000  = 16.4f;
 
     /**
      * @brief Construct an IMU object.
