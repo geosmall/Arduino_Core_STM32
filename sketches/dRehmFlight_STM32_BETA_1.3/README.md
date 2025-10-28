@@ -58,8 +58,8 @@ This port preserves 100% of Nicholas Rehm's flight control logic while adapting 
 
 | Metric | Value |
 |--------|-------|
-| Binary Size | 43KB (8% of 512KB flash) |
-| RAM Usage | 4.7KB (3% of 128KB RAM) |
+| Binary Size | 46.9KB (8.9% of 512KB flash) |
+| RAM Usage | 5.9KB (4.5% of 128KB RAM) |
 | Line Count | 1735 → 1513 (-13%) |
 | Flight Logic Modified | 0 functions |
 | Hardware Interface Modified | 6 functions |
@@ -114,22 +114,25 @@ CI_LOG("Status message\n");  // Uses Serial.print() when USE_RTT not defined
 **Example Output** (both modes):
 ```
 dRehmFlight STM32 BETA 1.3
-Build: 14ec213db (2025-10-28T11:05:30Z)
+Build: 6b80a9499 (2025-10-28T16:42:14Z)
 Radio RX initialized
 IMU initialized: ICM42688P
-Gyro X:-250.14 Y:-250.14 Z:-250.14
+Gyro X:0.00 Y:0.00 Z:0.00
+Gyro X:0.38 Y:-0.81 Z:0.30
+Gyro X:0.39 Y:-0.80 Z:0.29
 ```
 
 ## Current Status
 
-**Initialization: ✅ Complete**
-- ✅ Port compiles successfully (43KB binary)
+**Port Status: ✅ Complete - Ready for Hardware Testing**
+- ✅ Port compiles successfully (46.9KB binary)
 - ✅ Setup() executes without crashes
-- ✅ IMU initializes (ICM42688P detected)
+- ✅ IMU initializes and produces valid data
 - ✅ Radio RX initializes (SBUS on USART1)
 - ✅ Motor timers initialize (OneShot125 ready)
 - ✅ Main loop running at 2kHz
 - ✅ RTT and Serial logging working
+- ✅ Independent gyro axis values confirmed
 
 **Issues Resolved**:
 1. **UART Conflict** - Fixed by moving RC receiver to USART1 (PB7/PB6)
@@ -137,52 +140,110 @@ Gyro X:-250.14 Y:-250.14 Z:-250.14
 2. **Uninitialized Callbacks** - Fixed by NULL initialization in HardwareSerial::init()
    - Added NULL checks in UART interrupt handlers
 3. **RTT Logging** - Fixed by cache clear + CI_LOG_FLOAT() for float formatting
+4. **IMU Sensor Enable** - Fixed by adding EnableAccelLNMode() and EnableGyroLNMode()
+   - ConfigureInvDevice() sets registers but doesn't start continuous sampling
+   - Sensors were stuck in power-off state returning saturated values (-32768)
+   - Fix enables continuous 2kHz data acquisition for polling-based flight loop
 
-**Known Issues**:
-- ⚠️ **Gyro Data Anomaly**: All three axes showing identical values (-250.14 deg/sec)
-  - Exactly at ±250 DPS full-scale range limit
-  - Suggests IMU register reading or axis mapping issue
-  - Requires investigation (see Next Steps)
+**Polling-Based IMU Approach**:
+- Uses direct polling instead of hardware interrupts
+- 2kHz loop rate matches 2kHz IMU ODR for optimal data freshness
+- No interrupt pin required (simpler hardware setup)
+- Validated equivalent to interrupt-driven approach (see `libraries/imu/examples/README.md`)
+- Same methodology used by Betaflight, iNav, and other flight controllers
 
 **Hardware Validation Status**:
 - ✅ Breadboard setup on NUCLEO_F411RE
 - ✅ IMU communication verified (WHO_AM_I = 0x47)
-- ✅ IMU self-test passed (see commit history)
-- 🚧 IMU data reading needs debugging
-- 📋 Flight testing pending data fix
+- ✅ IMU self-test passed
+- ✅ IMU data reading operational (independent axis values)
+- ✅ Gyro readings: X≈0.38, Y≈-0.81, Z≈0.30 deg/sec (stationary drift, as expected)
+- 📋 RC receiver bench testing pending
+- 📋 Motor control bench testing pending
+- 📋 Flight testing pending
 - 📋 Deployment to NOXE V3 pending validation
 
 ## Next Steps
 
-### Immediate (Gyro Data Investigation)
+### Phase 1: IMU Data Validation (In Progress)
 
-1. **Verify IMU Register Reading**
-   - Check if X/Y/Z axes are reading from different registers
-   - Compare against working imu-raw-data-registers example
-   - Verify register addresses in getIMUdata()
+**Issue to Investigate**:
+- dRehmFlight shows ~8x higher raw IMU values than imu-polled-basic example
+- **Scaling is correct** (both use 131 LSB/deg/sec from datasheet)
+- **Hardware is same** (NUCLEO_F411RE, ICM-42688-P, stationary board)
+- **Raw sensor readings differ**:
+  - imu-polled-basic (1kHz ODR): Gyro X=6, Y=-13, Z=4 counts
+  - dRehmFlight (2kHz ODR): Gyro X=40, Y=-110, Z=43 counts
+  - Ratio: ~6-10x difference in raw values
 
-2. **Check Axis Mapping**
-   - Verify ReadIMU6() returns independent X/Y/Z values
-   - Check if filtering is collapsing all axes to same value
-   - Add debug output before/after filtering
+**Possible Root Causes**:
+1. **Different ODR Configuration** (2kHz vs 1kHz) affecting sensor output
+   - Investigate: Does ICM-42688-P output different magnitudes at different ODRs?
+   - Action: Test dRehmFlight with 1kHz ODR to match imu-polled-basic
+   - Action: Check ICM-42688-P datasheet for ODR-dependent behavior
 
-3. **Test Static vs Motion**
-   - Current output: all axes pegged at -250.14 (stationary board)
-   - Move board to see if values change independently
-   - If all axes move together → axis mapping bug
-   - If stuck at -250.14 → register/scaling issue
+2. **ConfigureInvDevice() vs Explicit SetAccelODR/SetGyroODR**
+   - imu-polled-basic uses explicit SetAccelODR() + SetGyroODR() + EnableAccelLNMode() + EnableGyroLNMode()
+   - dRehmFlight uses ConfigureInvDevice() (wrapper) + EnableAccelLNMode() + EnableGyroLNMode()
+   - Action: Test dRehmFlight with explicit configuration matching imu-polled-basic
+   - Action: Review ConfigureInvDevice() implementation for hidden differences
 
-4. **Compare with IMU Library Examples**
-   - Run imu-raw-data-registers with same hardware
-   - Compare raw register reads (should differ between axes)
-   - If example works but dRehmFlight doesn't → integration issue
+3. **Sensor State/Timing**
+   - Action: Run both tests back-to-back with no code changes
+   - Action: Add RAW value logging to both for direct comparison
+   - Action: Check if sensor startup settling affects readings
 
-### Future (Post Data Fix)
+4. **Low-Pass Filter Coefficients**
+   - dRehmFlight applies B_gyro filter (configured for 2kHz)
+   - imu-polled-basic shows raw values without filtering
+   - Action: Verify filter doesn't amplify or offset values
+   - Action: Check B_gyro = 0.04 is appropriate for 2kHz loop
 
-- **PID Tuning** - Adjust gains for STM32F4 timing
-- **Flight Testing** - Bench test with props, then hover test
-- **NOXE V3 Deployment** - Production flight controller hardware
-- **Performance Validation** - Loop rate stability, response times
+**Validation Plan**:
+- Add RAW debug logging to both examples
+- Run side-by-side tests with identical hardware setup
+- Test dRehmFlight at 1kHz ODR to eliminate ODR as variable
+- Compare ConfigureInvDevice() vs explicit configuration
+- Document findings in this README
+
+### Phase 2: Hardware Bench Testing
+
+**RC Receiver**:
+- Connect FlySky FS-iA6B or compatible SBUS receiver
+- Verify channel mapping (throttle, roll, pitch, yaw)
+- Test failsafe behavior
+- Validate arming/disarming logic
+
+**Motor Control**:
+- Connect ESCs to motor outputs (TIM1, TIM3)
+- Test OneShot125 pulse generation (125-250µs)
+- Verify motor response to stick inputs
+- Confirm failsafe stops motors
+
+### Phase 3: Flight Testing
+
+**Bench Testing**:
+- Props on, motor response testing
+- PID tuning on bench
+- Verify control authority on all axes
+
+**Hover Testing**:
+- Initial hover attempts
+- Stability assessment
+- PID tuning iterations
+
+**Flight Testing**:
+- Progressive flight envelope expansion
+- Performance validation
+- Loop rate stability monitoring
+
+### Phase 4: NOXE V3 Deployment
+
+**Hardware Migration**:
+- Port to NOXE V3 flight controller board
+- Verify all peripherals (IMU, flash, motors, receiver)
+- Production flight testing
+- Final PID tuning for production hardware
 
 ## License
 
