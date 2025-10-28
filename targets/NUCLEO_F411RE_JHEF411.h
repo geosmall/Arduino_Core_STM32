@@ -27,14 +27,14 @@ namespace BoardConfig {
   // I2C1: Environmental sensors
   static constexpr I2CConfig sensors{PB8, PB9, 400000};
 
-  // USART1: Serial port
+  // USART1: RC Receiver (to avoid conflict with Serial's USART2)
   static constexpr UARTConfig uart1{PB6, PB7, 115200};
 
-  // USART2: Serial port
+  // USART2: Default Serial port (used by Serial object for debug output)
   static constexpr UARTConfig uart2{PA2, PA3, 115200};
 
-  // RC Receiver: IBus on USART2 (RX=PA3, TX=PA2)
-  static constexpr RCReceiverConfig rc_receiver{PA3, PA2, 115200, 1000, 300};
+  // RC Receiver: IBus/SBUS on USART1 (RX=PB7, TX=PB6)
+  static constexpr RCReceiverConfig rc_receiver{PB7, PB6, 115200, 1000, 300};
 
   // ADC: Battery voltage and current monitoring
   static constexpr ADCConfig battery{PA0, PA1, 110, 170};

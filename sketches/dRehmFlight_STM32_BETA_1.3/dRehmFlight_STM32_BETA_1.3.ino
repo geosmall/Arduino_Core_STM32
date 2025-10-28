@@ -36,8 +36,8 @@ Everyone that sends me pictures and videos of your flying creations! -Nick
 //Uncomment only one receiver type
 //STM32: Only serial RX supported (IBus/SBUS via SerialRx library)
 #define USE_SERIAL_RX
-//#define USE_IBUS_RX  //Uncomment for IBus protocol
-#define USE_SBUS_RX  //Uncomment for SBUS protocol
+#define USE_IBUS_RX  //Uncomment for IBus protocol
+// #define USE_SBUS_RX  //Uncomment for SBUS protocol
 
 //Uncomment only one IMU
 //STM32: Use ICM42688P via IMU library
@@ -256,9 +256,13 @@ int s1_command_PWM, s2_command_PWM, s3_command_PWM, s4_command_PWM, s5_command_P
 //Flight status
 bool armedFly = false;
 
-//STM32: IMU library objects
-SPIClass spi_imu(BoardConfig::imu.spi.mosi_pin, BoardConfig::imu.spi.miso_pin,
-                 BoardConfig::imu.spi.sclk_pin, BoardConfig::imu.spi.get_ssel_pin());
+// Create SPI instance using BoardConfig (software CS control)
+SPIClass spi_imu(BoardConfig::imu.spi.mosi_pin,
+                 BoardConfig::imu.spi.miso_pin,
+                 BoardConfig::imu.spi.sclk_pin,
+                 BoardConfig::imu.spi.get_ssel_pin());
+
+// Create IMU instance
 IMU imu;
 
 //STM32: Motor outputs via TimerPWM (OneShot125)
@@ -297,7 +301,7 @@ void setup() {
 
   //Initialize radio communication
   radioSetup();
-  
+
   //Set radio channels to default (safe) values before entering main loop
   channel_1_pwm = channel_1_fs;
   channel_2_pwm = channel_2_fs;

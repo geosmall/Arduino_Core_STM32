@@ -315,6 +315,8 @@ void HardwareSerial::init(PinName _rx, PinName _tx, PinName _rts, PinName _cts)
   _serial.tx_buff = _tx_buffer;
   _serial.tx_head = 0;
   _serial.tx_tail = 0;
+  _serial.rx_callback = NULL;
+  _serial.tx_callback = NULL;
 }
 
 void HardwareSerial::configForLowPower(void)

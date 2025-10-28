@@ -900,7 +900,7 @@ uint8_t uart_index(UART_HandleTypeDef *huart)
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
   serial_t *obj = get_serial_obj(huart);
-  if (obj) {
+  if (obj && obj->rx_callback) {
     obj->rx_callback(obj);
   }
 }
@@ -913,7 +913,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
   serial_t *obj = get_serial_obj(huart);
-  if (obj) {
+  if (obj && obj->tx_callback) {
     obj->tx_callback(obj);
   }
 }
