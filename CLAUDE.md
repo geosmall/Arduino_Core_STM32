@@ -326,366 +326,77 @@ void setup() {
 }
 ```
 
-### SDFS Implementation ✅ **COMPLETED**
+### Storage Libraries ✅ **COMPLETED**
 
-SPI-based SD card filesystem with FatFs backend providing LittleFS-compatible API for seamless storage switching.
+**SDFS**: SPI-based SD card filesystem with FatFs backend, LittleFS-compatible API
+- Complete File I/O, directory operations, runtime card detection
+- Usage: `SDFS_SPI sdfs; sdfs.begin(CS_PIN); File f = sdfs.open("/log.txt", FILE_WRITE);`
 
-**Key Features**:
-- **Complete File I/O**: All operations (create, read, write, delete, seek, truncate)
-- **Directory Operations**: Full enumeration, creation, and traversal
-- **Configuration System**: SDFSConfig.h with configurable limits
-- **Runtime Detection**: Dynamic sector size and card capacity detection
-- **Error Handling**: SDFSERR enum with mount protection and diagnostics
+**LittleFS**: SPI flash filesystem with 3 examples (ListFiles, ChipID, Usage)
+- HIL integrated, 20+ chip support, 8 AUnit tests
 
-**Production Example**:
-```cpp
-#include <SDFS.h>
-SDFS_SPI sdfs;
-
-void setup() {
-  if (sdfs.begin(CS_PIN)) {  // Auto-detects card capacity
-    File file = sdfs.open("/flight.log", FILE_WRITE_BEGIN);
-    file.printf("Card: %llu MB\n", sdfs.totalSize() / (1024*1024));
-    file.close();
-  }
-}
-```
-
-### LittleFS Example Integration ✅ **COMPLETED**
-
-Complete integration of all LittleFS examples with unified CI/HIL framework for SPI flash testing.
-
-**Key Features**:
-- **3 Examples**: ListFiles, LittleFS_ChipID, LittleFS_Usage
-- **HIL Integration**: Full ci_log.h integration with deterministic testing
-- **Hardware Support**: 20+ SPI flash chips from multiple manufacturers
-- **Interactive Removal**: Eliminated waitforInput() calls for automation
-
-### AUnit Testing Framework Integration ✅ **COMPLETED**
-
-AUnit v1.7.1 unit testing framework integrated with HIL CI/CD workflow for comprehensive storage library testing.
-
-**Key Features**:
-- **Complete Integration**: `aunit_hil.h` wrapper with RTT/Serial abstraction
-- **18 Total AUnit Tests**: LittleFS (8 tests), SDFS (7 tests), AUnit framework validation (3 tests)
-- **Hardware Validation**: Real SPI flash and SD card testing on STM32F411RE
-- **Dual-Mode Support**: Same tests work with RTT (HIL) and Serial (IDE)
-- **Type Safety**: Established AUnit assertion patterns for embedded types
-
-**Production Usage**:
-```bash
-./system/ci/aflash.sh tests/LittleFS_Unit_Tests --use-rtt --build-id
-./system/ci/aflash.sh tests/SDFS_Unit_Tests --use-rtt --build-id
-./system/ci/aflash.sh tests/AUnit_Pilot_Test --use-rtt --build-id
-```
+**AUnit Integration**: v1.7.1 testing framework with `aunit_hil.h` wrapper
+- 18 total tests (LittleFS: 8, SDFS: 7, framework: 3)
+- Usage: `./system/ci/aflash.sh tests/LittleFS_Unit_Tests --use-rtt --build-id`
 
 ### Board Configuration System ✅ **COMPLETED**
 
-Compile-time board configuration system with multi-board support, flexible peripheral config, and hardware/software chip select control.
+Compile-time board config with multi-board support (NUCLEO_F411RE, BLACKPILL_F411CE, NOXE_V3)
+- Config types: StorageConfig, IMUConfig, RCReceiverConfig, UARTConfig, I2CConfig, ADCConfig, LEDConfig
+- CS Mode control: Software/hardware via get_ssel_pin() helper
+- Usage: `#include "targets/NUCLEO_F411RE_LITTLEFS.h"` → `BoardConfig::storage.mosi_pin`
 
-**Key Features**:
-- **Multi-Board Support**: NUCLEO_F411RE, BLACKPILL_F411CE, NOXE_V3 with automatic `ARDUINO_*` detection
-- **Config Types**: StorageConfig, IMUConfig, RCReceiverConfig, UARTConfig, I2CConfig, ADCConfig, LEDConfig
-- **CS Mode Control**: Software/hardware chip select via CS_Mode enum with get_ssel_pin() helper
-- **Composable Architecture**: SPIConfig building blocks for storage, IMU, and RC receiver
-- **Frequency Optimization**: 1MHz (jumper wire), 8MHz (hardwired)
+### Storage Abstraction & Config ✅ **COMPLETED**
 
-**Usage**:
-```cpp
-#include "targets/NUCLEO_F411RE_LITTLEFS.h"
-SPIClass spi(BoardConfig::storage.mosi_pin, BoardConfig::storage.miso_pin,
-             BoardConfig::storage.sclk_pin, BoardConfig::storage.get_ssel_pin());
-// See targets/*.h and targets/HW_CONFIG.md for complete usage
-```
+**Storage**: Unified interface for SDFS/LittleFS with automatic backend selection
+- Usage: `Storage& fs = BOARD_STORAGE; fs.open("/file.txt", FILE_WRITE);`
 
-### Generic Storage Abstraction ✅ **COMPLETED**
+**minIni**: INI config (v1.5) with Storage integration, 6 test suites
+- Usage: `minIniStorage config("config.ini"); config.begin(BoardConfig::storage); config.put("key", "val");`
 
-Unified storage interface for SDFS and LittleFS with automatic backend selection via BoardConfig.
+**libPrintf**: eyalroz/printf v6.2.0, ~20% binary reduction (8KB+ savings)
+- Usage: `#include <libPrintf.h>` → `printf("Pi = %.6f\n", 3.14159);`
 
-**Usage**: `#include <Storage.h>` → `Storage& fs = BOARD_STORAGE;` → `fs.open("/file.txt", FILE_WRITE);`
+### IMU Libraries ✅ **COMPLETED**
 
-### minIni Configuration Management ✅ **COMPLETED**
+**ICM42688P**: Arduino-compatible library adapted from UVOS, 100% InvenSense factory algorithms preserved
+- 4 examples: Simple (WHO_AM_I), self-test, interrupt-driven, processed AG data
+- Usage: `ICM42688P_Simple imu; imu.begin(spi, PA4, 1000000);  // Returns 0x47`
 
-INI file configuration (v1.5) integrated with Storage abstraction for LittleFS/SDFS.
-
-**Features**: String/int/float/bool support, section/key enumeration, HIL validated (6 test suites)
-
-**Usage**: `minIniStorage config("config.ini");` → `config.begin(BoardConfig::storage);` → `config.put("key", "val");`
-
-### libPrintf ✅ **COMPLETED**
-
-Embedded printf library (eyalroz/printf v6.2.0) eliminating nanofp confusion with ~20% binary reduction (8KB+ savings).
-
-**Usage**: `#include <libPrintf.h>` → `printf("Pi = %.6f\n", 3.14159);  // Float formatting works`
-
-### ICM-42688-P IMU Library Integration ✅ **COMPLETED**
-
-Complete Arduino-compatible ICM42688P library with manufacturer-grade reliability and performance. Successfully adapted from UVOS framework while preserving 100% of InvenSense factory algorithms.
-
-**Target Hardware**: ICM-42688-P 6-axis IMU sensor via SPI with PC4 interrupt (EXTI4)
-
-**Key Features**:
-- **Factory Code Preservation**: Zero modifications to InvenSense sensor algorithms
-- **Multiple Usage Modes**: Basic SPI, self-test, interrupt-driven data, processed AG data
-- **BoardConfig Integration**: Dynamic pin/frequency configuration support
-- **HIL Testing**: Automated validation with RTT and build traceability
-- **Arduino Ecosystem**: Full compatibility with Arduino IDE and CLI
-
-**Available Examples**:
-1. **ICM42688P_Simple**: Basic SPI communication and device identification
-2. **example-selftest**: Manufacturer self-test with bias calculation
-3. **example-raw-data-registers**: Interrupt-driven raw sensor data acquisition
-4. **example-raw-ag**: Processed accelerometer/gyroscope data with clock calibration
-
-**Usage**:
-```cpp
-#include <ICM42688P_Simple.h>
-SPIClass spi(PA7, PA6, PA5);
-ICM42688P_Simple imu;
-imu.begin(spi, PA4, 1000000);  // Returns 0x47 device ID
-// See libraries/ICM42688P/examples/ for complete examples
-```
-
-### High-Level IMU Library ✅ **COMPLETED**
-
-Unified C++ wrapper library for InvenSense IMU sensors, starting with ICM-42688-P and designed for easy extension to MPU-6000, MPU-9250, and other InvenSense parts.
-
-**Key Features**:
-- **Context-Based Design**: Multi-instance support via `serif->context` pointer
-- **Chip Detection**: ChipType enum with GetChipType() for ICM42688_P, MPU-6000, MPU-9250
-- **Interrupt Support**: EnableDataReadyInt1() and DisableDataReadyInt1() methods
-- **Full API**: Init, Reset, RunSelfTest, ReadIMU6, sensor configuration (FSR, ODR, power modes)
-- **BoardConfig Integration**: Works with multi-board configuration system
-- **HIL Validated**: Both examples tested on NUCLEO_F411RE hardware
-
-**Available Examples**:
-1. **imu-selftest**: Manufacturer self-test with bias calculation and chip detection
-2. **imu-raw-data-registers**: Interrupt-driven raw sensor data acquisition at 1kHz
-
-**Usage**:
-```cpp
-#include <IMU.h>
-SPIClass spi_bus(BoardConfig::imu.spi.mosi_pin, BoardConfig::imu.spi.miso_pin,
-                 BoardConfig::imu.spi.sclk_pin, BoardConfig::imu.spi.get_ssel_pin());
-IMU imu;
-imu.Init(spi_bus, BoardConfig::imu.spi.cs_pin, BoardConfig::imu.spi.freq_hz);
-IMU::ChipType chip = imu.GetChipType();  // Returns ICM42688_P (0x47)
-// See libraries/imu/examples/ for complete examples
-```
-
-**Notes**: Currently supports ICM-42688-P only. Chip detection framework ready for future MPU-6000/MPU-9250 support.
+**IMU (High-Level Wrapper)**: Unified C++ wrapper for InvenSense IMUs with chip detection
+- Multi-instance support, ChipType enum (ICM42688_P, MPU-6000, MPU-9250)
+- Full API: Init, Reset, RunSelfTest, ReadIMU6, FSR/ODR/power config
+- Usage: `IMU imu; imu.Init(spi_bus, BoardConfig::imu.spi.cs_pin, freq); IMU::ChipType chip = imu.GetChipType();`
+- Currently: ICM-42688-P (0x47), framework ready for MPU-6000/MPU-9250
 
 ### TimerPWM Library ✅ **COMPLETED**
 
-Hardware timer-based PWM library for high-resolution (1µs) servo and ESC control on UAV flight controllers.
-
-**Key Features**:
-- 1 MHz timer resolution (1µs pulse width control)
-- Explicit timer bank configuration (prevents frequency conflicts)
-- BoardConfig hardware abstraction
-- Arduino Servo compatible API (Write method supports 0-180° or µs)
-- Multi-channel support (up to 4 channels per timer)
-- Dual timer support (servos + ESCs simultaneously)
-- **Hardware validated**: PWM channel enable (resumeChannel) correctly implemented per AN4013 Section 2.5
-
-**Implementation Notes**:
-- PWMOutputBank correctly enables channel output via `resumeChannel()` after configuration
-- Per STM32 timer documentation (AN4013 Section 2.5), PWM requires both `resumeChannel(channel)` (CCxE bit) and `resume()` (counter start)
-- See `libraries/TimerPWM/APPROACH.md` for complete implementation details and validation results
+Hardware timer PWM for 1µs resolution servo/ESC control
+- Features: Explicit timer banks (prevents conflicts), BoardConfig integration, Arduino Servo API compatible
+- Multi-channel (4/timer), dual timer support (servos + ESCs simultaneously)
+- **Critical**: PWM requires both `resumeChannel(channel)` (CCxE bit) and `resume()` (counter start) per AN4013 §2.5
+- Hardware validated: 49.50 Hz @ ±2%, 990.10 Hz @ ±4% with TIM2 input capture
+- Examples: PWM_Verification, Servo_Verification, DualTimerPWM_Verification
+- Docs: `libraries/TimerPWM/APPROACH.md`, `doc/TIMERS.md`, `doc/TIMERS_PWM_OUT.md`
 
 ### Betaflight Config Converter ✅ **COMPLETED**
 
-Python tool that converts Betaflight unified target configurations into Arduino STM32 BoardConfig headers with comprehensive validation.
-
-**Location**: `extras/betaflight_converter/`
-
-**Key Features**:
-- **Parser→Validator→Generator Pipeline**: Clean architecture with 53 passing tests
-- **PeripheralPins.c Validation**: Cross-validates all pins against Arduino Core STM32 variants
-- **ALT Variant Handling**: Automatically detects and generates ALT pin variants (e.g., PB0_ALT1) for timer/AF conflicts
-- **Multi-Variant MCU Support**: Automatically finds correct variant for different chip packages
-- **Motor Timer Grouping**: Groups motors by timer banks for TimerPWM integration
-- **Cross-Platform**: Works on Windows, macOS, Linux with Python 3.7+
-
-**Testing**:
-```bash
-# Install pytest (one-time) - Recommended
-pipx install pytest
-
-# Run tests from converter directory
-cd extras/betaflight_converter && pytest -v
-# Expected: 53 tests passing
-```
-
-**Supported MCUs**:
-- STM32F411 (F411CE - BlackPill, JHEF411 - NOXE V3)
-- STM32F405 (F405RG - common in flight controllers)
-- STM32F745 (F7 series)
-- STM32H743 (H743VIH6 - Matek H743-WLITE, H743ZIT6 - Nucleo boards)
-
-**Usage**:
-```bash
-cd extras/betaflight_converter
-python3 convert.py data/MTKS-MATEKH743.config  # Generates output/MTKS-MATEKH743.h
-```
-
-**Generated Configs Include**:
-- Storage (SPI flash/SD card) → `StorageConfig`
-- IMU (gyro + interrupt) → `IMUConfig`
-- I2C sensors → `I2CConfig`
-- UARTs → `UARTConfig`
-- ADC battery monitoring → `ADCConfig`
-- Status LEDs → `LEDConfig`
-- Servos (50 Hz PWM) → `Servo` namespace
-- Motors (DSHOT/OneShot) → `Motor` namespace
-
-**Validated Targets**:
-- ✅ JHEF-JHEF411 (NOXE V3) - 5 motors, SPI flash, dual SPI buses
-  - Generated config: `output/JHEF-JHEF411.h` (8MHz SPI for hardwired boards)
-  - HIL test config: `targets/NUCLEO_F411RE_JHEF411.h` (1MHz SPI for jumper wire testing)
-- ✅ MTKS-MATEKH743 (H743-WLITE) - 8 motors, 2 servos, dual gyros, 7 UARTs, SD card → `output/MTKS-MATEKH743.h`
-
-**Naming Convention**: Follows madflight - output filename matches config filename (e.g., `JHEF-JHEF411.config` → `JHEF-JHEF411.h`)
-
-**CS Mode Selection**: Generator uses software chip select (default) for maximum library compatibility. Hardware CS mode removed in commit fixing ICM42688P library integration.
-
-**Documentation**: See `extras/betaflight_converter/README.md` for quick start
-
-**Converter Examples**:
-- **example-icm42688p-minimal**: Basic ICM42688P WHO_AM_I verification using generated config
-  - Tests SPI communication and chip detection
-  - Validates generated IMU config (SPI pins, CS, frequency)
-  - Expected: 5 continuous WHO_AM_I reads returning 0x47
-- **motor_pwm_verification**: PWMOutputBank with TIM2 input capture measurement
-  - Uses PWMOutputBank to generate PWM on Motor1 (PA8/TIM1) and Motor4 (PB0/TIM3)
-  - Uses TIM2 input capture on PA0/PA1 to measure actual frequencies
-  - Demonstrates timer bank grouping from Betaflight converter
-  - Hardware validation following embedded validation standards
-
-**Usage Example**:
-```cpp
-#include <PWMOutputBank.h>
-#include "targets/NUCLEO_F411RE_LITTLEFS.h"
-
-// Servo control at 50 Hz
-PWMOutputBank servo_pwm;
-auto& servo_ch = BoardConfig::Servo::pwm_output;
-servo_pwm.Init(BoardConfig::Servo::timer, BoardConfig::Servo::frequency_hz);
-servo_pwm.AttachChannel(servo_ch.ch, servo_ch.pin, servo_ch.min_us, servo_ch.max_us);
-servo_pwm.SetPulseWidth(servo_ch.ch, 1500);  // 1500 µs center position
-servo_pwm.Start();
-
-// ESC control at 1 kHz (OneShot125)
-PWMOutputBank esc_pwm;
-auto& esc_ch = BoardConfig::ESC::esc1;
-esc_pwm.Init(BoardConfig::ESC::timer, BoardConfig::ESC::frequency_hz);
-esc_pwm.AttachChannel(esc_ch.ch, esc_ch.pin, esc_ch.min_us, esc_ch.max_us);
-esc_pwm.SetPulseWidth(esc_ch.ch, 187);  // 187 µs midpoint
-esc_pwm.Start();
-```
-
-**Examples** (All use consistent BoardConfig pin assignments):
-- **PWM_Verification**: Single timer validation with input capture
-  - PWM: PB4/D5 (TIM3_CH1) @ 50 Hz → Capture: PA0/A0 (TIM2_CH1)
-  - Hardware measurement: 49.50 Hz ✅ PASS (±2% tolerance)
-  - Demonstrates timeout/fail behavior for missing jumpers
-  - Deterministic HIL testing with exit wildcard
-
-- **Servo_Verification**: Servo PWM validation using JHEF411 config
-  - PWM: PB0/A3 (TIM3_CH3 - repurposed Motor4) @ 50 Hz → Capture: PB10/D6 (TIM2_CH3)
-  - Hardware measurement: 49.50 Hz ✅ PASS (±2% tolerance)
-  - Validates 1500 µs pulse width (center position)
-  - Uses same jumper setup as motor_pwm_verification Motor4 test
-
-- **DualTimerPWM**: Demo of simultaneous servo and ESC control
-  - Servo: PB4/D5 (TIM3) @ 50 Hz (1000-2000 µs pulses)
-  - ESC1: PB6/D10 (TIM4) @ 1 kHz (125-250 µs OneShot125 pulses)
-  - ESC2: PB7/CN7-21 (TIM4) @ 1 kHz
-  - Shows practical dual timer operation for flight controllers
-
-- **DualTimerPWM_Verification**: Dual timer hardware validation
-  - Servo PWM: PB4/D5 (TIM3) → Capture: PA0/A0 (TIM2_CH1)
-  - ESC PWM: PB6/D10 (TIM4) → Capture: PB10/D6 (TIM2_CH3)
-  - Hardware measurements:
-    - Servo: 49.50 Hz ✅ PASS (49-51 Hz tolerance)
-    - ESC: 990.10 Hz ✅ PASS (980-1020 Hz tolerance)
-  - Proves independent timer operation without crosstalk
-  - All pins configured via BoardConfig for consistent test rig setup
-
-**Hardware Validation Results**:
-- ✅ **Single Timer**: PWM_Verification - 49.50 Hz measured (±2% spec)
-- ✅ **Dual Timer**: DualTimerPWM_Verification - 49.50 Hz servo + 990.10 Hz ESC measured simultaneously
-- **Methodology**: TIM2 input capture with jumper wires (no oscilloscope required)
-- **Test Features**: 15-second timeout for missing jumpers, helpful error messages
-
-**Documentation**:
-- `libraries/TimerPWM/APPROACH.md` - Design rationale, technical decisions, and channel enable fix
-- `doc/TIMERS.md` - Comprehensive STM32 timer architecture and API reference
-- `doc/TIMERS_PWM_OUT.md` - Practical servo/ESC PWM configuration guide with correct channel enable steps
-- `targets/NUCLEO_F411RE_LITTLEFS.h` - Hardware configuration with standardized pin assignments
-
-**Important**: All timer PWM examples correctly demonstrate the required `resumeChannel()` call per STM32 documentation. Manual PWM configuration requires both channel enable (`resumeChannel()`) and counter start (`resume()`).
+Python tool (`extras/betaflight_converter/`) converting Betaflight configs to BoardConfig headers with validation
+- Parser→Validator→Generator pipeline, 53 passing tests (`cd extras/betaflight_converter && pytest -v`)
+- PeripheralPins.c validation, ALT variant handling (PB0_ALT1 for timer/AF conflicts), motor timer grouping
+- MCUs: STM32F411/F405/F745/H743
+- Usage: `python3 convert.py data/MTKS-MATEKH743.config` → `output/MTKS-MATEKH743.h`
+- Generates: StorageConfig, IMUConfig, I2CConfig, UARTConfig, ADCConfig, LEDConfig, Servo/Motor namespaces
+- Validated: JHEF-JHEF411 (NOXE V3), MTKS-MATEKH743 (H743-WLITE)
+- **CS Mode**: Software chip select (default) for max library compatibility
 
 ### SerialRx Library ✅ **COMPLETED**
 
-RC receiver protocol parser with hardware-validated IBus implementation, SBUS support, and BoardConfig integration.
-
-**Key Features**:
-- **Dual Protocol Support**: IBus (hardware validated) and SBUS (implemented)
-- **BoardConfig Integration**: RCReceiverConfig for consistent pin/protocol configuration across target boards
-- **Software Idle Detection**: Optional timestamp-based frame synchronization (300µs threshold)
-- **Ring Buffer Management**: Efficient circular buffer for serial data
-- **Failsafe Detection**: Configurable timeout monitoring
-- **HIL Integration**: Full ci_log.h support with deterministic testing
-
-**Supported Protocols**:
-- ✅ **IBus** (FlySky): 32-byte frames, 115200 baud, 14 channels
-- ✅ **SBUS** (FrSky/Futaba): 25-byte frames, 100000 baud, 16 channels × 11-bit (requires inverted signal)
-- 📋 **CRSF** (TBS Crossfire): Framework ready
-
-**Hardware Validation**:
-- **IBus Loopback**: 501/501 frames (0% loss) with dual-USART testing
-- **IBus Real Receiver**: FlySky FS-iA6B validated (15s continuous, 10 channels, 1000-2000µs range)
-- **SBUS**: Implemented but not hardware validated
-
-**Production Usage with BoardConfig**:
-```cpp
-#include <SerialRx.h>
-#include "targets/NUCLEO_F411RE_LITTLEFS.h"
-
-HardwareSerial SerialRC(BoardConfig::rc_receiver.rx_pin,
-                        BoardConfig::rc_receiver.tx_pin);
-SerialRx rc;
-
-void setup() {
-  SerialRx::Config config;
-  config.serial = &SerialRC;
-  config.rx_protocol = SerialRx::IBUS;  // or SerialRx::SBUS
-  config.baudrate = BoardConfig::rc_receiver.baud_rate;
-  config.timeout_ms = BoardConfig::rc_receiver.timeout_ms;
-  config.idle_threshold_us = BoardConfig::rc_receiver.idle_threshold_us;
-  rc.begin(config);
-}
-
-void loop() {
-  rc.update();
-  if (rc.available()) {
-    RCMessage msg;
-    if (rc.getMessage(&msg)) {
-      uint16_t throttle = msg.channels[2];  // Channel 3
-    }
-  }
-}
-```
-
-**Examples**:
-- **IBus_Basic**: Real receiver validation (FlySky FS-iA6B, 15s HIL test, BoardConfig integrated)
-- **IBus_Loopback_Test**: Dual-USART validation (501/501 frames, deterministic exit)
-- **SBUS_Basic**: SBUS testing (requires inverted signal, timeout detection verified)
-
-**Documentation**:
-- `libraries/SerialRx/README.md` - Protocol docs, state machine, validation results
-- `doc/SERIAL.md` - Technical implementation details
+RC receiver protocol parser with BoardConfig integration, software idle detection (300µs), failsafe
+- Protocols: IBus (hardware validated, FlySky FS-iA6B, 501/501 frames 0% loss), SBUS (implemented), CRSF (framework ready)
+- Usage: `SerialRx rc; config.rx_protocol = SerialRx::IBUS; config.baudrate = BoardConfig::rc_receiver.baud_rate; rc.begin(config);`
+- Examples: IBus_Basic, IBus_Loopback_Test, SBUS_Basic
+- Docs: `libraries/SerialRx/README.md`, `doc/SERIAL.md`
 
 ## Projects In Progress
 
@@ -703,75 +414,30 @@ Minimal-change port of dRehmFlight BETA 1.3 (Teensy-based UAV flight controller)
 - **Application Focus**: 4-motor quadcopter (servos commented out)
 
 **Key Metrics**:
-- Binary Size: 46.9KB (8.9% of 512KB flash)
+- Binary Size: 47.3KB (9.0% of 512KB flash)
 - RAM Usage: 5.9KB (4.5% of 128KB RAM)
 - Line Count: 1735 → 1513 lines (-13% reduction)
 - Flight Control Logic Modified: 0 functions (100% preserved)
 - Hardware Interface Modified: 6 functions (IMUinit, getIMUdata, radioSetup, updateRadioChannels, commandMotors, setup)
 
-**What Changed** (Hardware Interface Only):
-1. **IMU Integration**: ICM42688P via IMU library (250 DPS, 2G, 2kHz ODR)
-   - `IMUinit()`: Clean IMU library API (Init, ConfigureInvDevice)
-   - `getIMUdata()`: ReadIMU6() with GetAccelSensitivity()/GetGyroSensitivity() scaling
-   - Preserved: Error correction, low-pass filtering, all filter math
-
-2. **Radio RX Integration**: SBUS via SerialRx library adapter pattern
-   - `radioSetup()`: SerialRx initialization (100kbaud, SBUS protocol)
-   - `updateRadioChannels()`: Adapter maps SerialRx → channel_X_raw variables
-   - Preserved: All downstream code (getCommands() unchanged)
-   - Eliminated: 110 lines of PWM/PPM/DSM interrupt handlers
-
-3. **Motor Control**: OneShot125 via TimerPWM (PWMOutputBank)
-   - `commandMotors()`: Hardware timer PWM (TIM1, TIM3)
-   - `setup()`: Motor initialization (8kHz, 125-250µs pulses)
-   - Preserved: Same pulse width values, same motor mapping
-
-4. **Pin Configuration**: BoardConfig abstraction
-   - Motors: TIM1 (PA8, PA9, PA10), TIM3 (PB0_ALT1, PB4)
-   - Status LED: PC13
-   - Multi-board support (NUCLEO_F411RE, NOXE V3)
-
-5. **Quad Application**: Servos commented out (not used in 4-motor conventional quadcopter)
-
-**What Did NOT Change** (100% Preserved):
-- ✅ `controlMixer()` - Quad X mixing formula (FL/FR/BR/BL)
-- ✅ `controlANGLE()` / `controlRATE()` - PID controllers (Kp/Ki/Kd unchanged)
-- ✅ `Madgwick6DOF()` - Attitude estimation algorithm
-- ✅ `scaleCommands()` - OneShot125 scaling (0-1 → 125-250µs)
-- ✅ `getDesState()` - Command normalization
-- ✅ `failSafe()` - Timeout detection and failsafe behavior
-- ✅ `armedStatus()` - Arming safety logic
-- ✅ `loopRate()` - 2kHz loop timing
-- ✅ All PID tuning parameters
-- ✅ Main loop flow (same execution sequence)
-
-**Files**:
-```
-sketches/dRehmFlight_STM32_BETA_1.3/
-├── dRehmFlight_STM32_BETA_1.3.ino  (main sketch - 1513 lines)
-├── radioComm.ino                    (SerialRx adapter - 88 lines, was 198)
-├── COPYING.txt                      (MIT license from dRehmFlight)
-└── README.md                        (comprehensive port documentation)
-```
-
-**Build & Test**:
-```bash
-# Compile
-./system/ci/build.sh sketches/dRehmFlight_STM32_BETA_1.3
-
-# Flash and test with RTT logging
-./system/ci/aflash.sh sketches/dRehmFlight_STM32_BETA_1.3 --use-rtt --build-id
-```
+**Changes** (6 functions, 100% flight control preserved):
+1. IMU: MPU6050/9250 → ICM42688P via IMU library (±250 DPS, ±2G, 2kHz ODR, polling-based)
+2. Radio RX: PWM/PPM/DSM → SerialRx (SBUS, adapter pattern, eliminated 110 lines)
+3. Motor: Bit-bang → TimerPWM OneShot125 (TIM1/TIM3, 125-250µs)
+4. Pins: BoardConfig (NUCLEO_F411RE, NOXE V3)
+5. Build: `./system/ci/aflash.sh sketches/dRehmFlight_STM32_BETA_1.3 --use-rtt --build-id`
 
 **Status**:
-- ✅ Port complete (compiles successfully - 46.9KB binary)
+- ✅ Port complete (compiles successfully - 47.3KB binary)
 - ✅ All flight control logic preserved (100% unchanged)
 - ✅ Minimal changes achieved (only 6 hardware functions modified)
 - ✅ **IMU Hardware Validated**: WHO_AM_I verified (0x47), self-test passed, gyro data operational
 - ✅ **IMU Data Validated**: Stationary drift readings confirmed (X≈0.38, Y≈-0.81, Z≈0.30 °/s)
 - ✅ **Polling-Based IMU**: 2kHz loop matches 2kHz IMU ODR (same approach as Betaflight/iNav)
+- ✅ **IMU Filters**: Using ICM-42688-P power-on defaults (AAF enabled, UI 2nd-order)
 - ✅ **Setup() Execution**: All initialization complete (IMU, radio RX, motor timers)
 - ✅ **Main Loop Running**: 2kHz loop timing operational with RTT/Serial logging
+- 📋 **Filter Tuning**: See `ICM42688_CONFIG.md` for advanced AAF/UI filter configuration guidance
 - 📋 RC receiver bench testing pending (SBUS on USART1)
 - 📋 Motor control bench testing pending (OneShot125 via TIM1/TIM3)
 - 📋 Flight testing with PID tuning pending
