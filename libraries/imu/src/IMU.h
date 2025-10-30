@@ -247,6 +247,29 @@ public:
     int SetUiFiltersWide();
 
     /**
+     * @brief Verify AAF (Anti-Alias Filter) configuration by reading back registers
+     *
+     * @param gyro_bandwidth Expected gyro AAF bandwidth
+     * @param accel_bandwidth Expected accel AAF bandwidth
+     * @return 0 if verified, -1 if mismatch or unsupported chip
+     *
+     * Reads back AAF registers from hardware and verifies they match the
+     * expected configuration. Only supported on ICM-42688-P.
+     */
+    int VerifyAafConfig(icm42688p_aaf_bandwidth_t gyro_bandwidth,
+                        icm42688p_aaf_bandwidth_t accel_bandwidth);
+
+    /**
+     * @brief Verify UI filter configuration by reading back registers
+     *
+     * @return 0 if verified as 1st-order wide mode, -1 if mismatch or unsupported chip
+     *
+     * Reads back UI filter registers from hardware and verifies they are
+     * configured for 1st-order, ODR/2 bandwidth. Only supported on ICM-42688-P.
+     */
+    int VerifyUiFiltersWide();
+
+    /**
      * @brief Get the accelerometer full-scale range.
      * @return Accel sensitivity value (updated upon change to FS value).
      */

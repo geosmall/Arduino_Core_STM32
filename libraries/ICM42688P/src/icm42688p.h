@@ -203,6 +203,102 @@ static inline int icm42688p_set_accel_aaf(struct inv_icm426xx *s, icm42688p_aaf_
 }
 
 /**
+ * @brief Verify AAF (Anti-Alias Filter) configuration
+ *
+ * @param s Pointer to inv_icm426xx driver instance
+ * @param gyro_bandwidth Expected gyro AAF bandwidth enum
+ * @param accel_bandwidth Expected accel AAF bandwidth enum
+ * @return 0 if configuration matches, -1 if mismatch or read error
+ *
+ * Reads back AAF registers from both Bank 1 (gyro) and Bank 2 (accel)
+ * and verifies they match the expected preset values.
+ *
+ * This provides hardware verification that the AAF configuration was
+ * actually applied to the ICM-42688-P registers.
+ */
+static inline int icm42688p_verify_aaf(struct inv_icm426xx *s,
+                                       icm42688p_aaf_bandwidth_t gyro_bandwidth,
+                                       icm42688p_aaf_bandwidth_t accel_bandwidth) {
+    const icm42688p_aaf_preset_t *gyro_preset = &ICM42688P_AAF_PRESETS[gyro_bandwidth];
+    const icm42688p_aaf_preset_t *accel_preset = &ICM42688P_AAF_PRESETS[accel_bandwidth];
+    int rc = 0;
+    uint8_t val;
+
+    // Verify Gyro AAF (Bank 1)
+    rc |= inv_icm426xx_set_reg_bank(s, 1);
+
+    // Read DELT
+    rc |= inv_icm426xx_read_reg(s, MPUREG_GYRO_CONFIG_STATIC3_B1, 1, &val);
+    if ((val & 0x3F) != (gyro_preset->delt & 0x3F)) return -1;
+
+    // Read DELTSQR low byte
+    rc |= inv_icm426xx_read_reg(s, MPUREG_GYRO_CONFIG_STATIC4_B1, 1, &val);
+    if (val != (gyro_preset->deltsqr & 0xFF)) return -1;
+
+    // Read BITSHIFT and DELTSQR high nibble
+    rc |= inv_icm426xx_read_reg(s, MPUREG_GYRO_CONFIG_STATIC5_B1, 1, &val);
+    uint8_t expected = ((gyro_preset->bitshift & 0x0F) << 4) | ((gyro_preset->deltsqr >> 8) & 0x0F);
+    if (val != expected) return -1;
+
+    // Verify Accel AAF (Bank 2)
+    rc |= inv_icm426xx_set_reg_bank(s, 2);
+
+    // Read DELT (bits 6:1)
+    rc |= inv_icm426xx_read_reg(s, MPUREG_ACCEL_CONFIG_STATIC2_B2, 1, &val);
+    if (((val >> 1) & 0x3F) != (accel_preset->delt & 0x3F)) return -1;
+
+    // Read DELTSQR low byte
+    rc |= inv_icm426xx_read_reg(s, MPUREG_ACCEL_CONFIG_STATIC3_B2, 1, &val);
+    if (val != (accel_preset->deltsqr & 0xFF)) return -1;
+
+    // Read BITSHIFT and DELTSQR high nibble
+    rc |= inv_icm426xx_read_reg(s, MPUREG_ACCEL_CONFIG_STATIC4_B2, 1, &val);
+    expected = ((accel_preset->bitshift & 0x0F) << 4) | ((accel_preset->deltsqr >> 8) & 0x0F);
+    if (val != expected) return -1;
+
+    // Return to Bank 0
+    rc |= inv_icm426xx_set_reg_bank(s, 0);
+
+    return rc;
+}
+
+/**
+ * @brief Verify UI (User Interface) filter configuration
+ *
+ * @param s Pointer to inv_icm426xx driver instance
+ * @return 0 if configuration is 1st-order wide mode, -1 if mismatch or read error
+ *
+ * Reads back UI filter registers from Bank 0 and verifies:
+ * - GYRO_CONFIG1: UI_FILT_ORD[3:2] = 00 (1st order)
+ * - ACCEL_CONFIG1: UI_FILT_ORD[4:3] = 00 (1st order)
+ * - GYRO_ACCEL_CONFIG0: Both BW codes = 0 (ODR/2)
+ *
+ * This provides hardware verification that the UI filter configuration
+ * was actually applied to the ICM-42688-P registers.
+ */
+static inline int icm42688p_verify_ui_filters_wide(struct inv_icm426xx *s) {
+    int rc = 0;
+    uint8_t val;
+
+    // Switch to Bank 0
+    rc |= inv_icm426xx_set_reg_bank(s, 0);
+
+    // Verify GYRO_CONFIG1: UI_FILT_ORD[3:2] = 00
+    rc |= inv_icm426xx_read_reg(s, MPUREG_GYRO_CONFIG1, 1, &val);
+    if ((val & 0x0C) != 0x00) return -1;  // Bits [3:2] should be 00
+
+    // Verify ACCEL_CONFIG1: UI_FILT_ORD[4:3] = 00
+    rc |= inv_icm426xx_read_reg(s, MPUREG_ACCEL_CONFIG1, 1, &val);
+    if ((val & 0x18) != 0x00) return -1;  // Bits [4:3] should be 00
+
+    // Verify GYRO_ACCEL_CONFIG0: Both BW codes = 0
+    rc |= inv_icm426xx_read_reg(s, MPUREG_ACCEL_GYRO_CONFIG0, 1, &val);
+    if (val != 0x00) return -1;  // All bits should be 0
+
+    return rc;
+}
+
+/**
  * @brief Configure UI (User Interface) filters to "wide" 1st-order mode
  *
  * @param s Pointer to inv_icm426xx driver instance

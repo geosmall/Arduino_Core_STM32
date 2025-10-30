@@ -29,6 +29,7 @@
  */
 
 #include <IMU.h>
+#include <icm42688p.h>
 #include <ci_log.h>
 #include <SPI.h>
 #include <libPrintf.h>
@@ -128,9 +129,35 @@ void setup() {
         while (1) delay(1000);
     }
 
+    // Configure IMU filters (AAF + UI) - matching dRehmFlight
+    // AAF (Anti-Alias Filter): Protects against aliasing at sensor front-end
+    //   Gyro: 258 Hz (matches MPU-6000 DLPF 260 Hz, Betaflight standard)
+    //   Accel: 170 Hz (good vibration rejection for level mode)
+    imu.SetGyroFilterHz(ICM42688P_AAF_258HZ);
+    imu.SetAccelFilterHz(ICM42688P_AAF_170HZ);
+
+    // UI Filter: Set to "wide" 1st-order (ODR/2) to let AAF dominate
+    //   This matches MPU-6000 DLPF 260 "wide" feel with minimal phase lag
+    imu.SetUiFiltersWide();
+
+    // Verify filter configuration by reading back registers
+    CI_LOG("Verifying filter configuration...\n");
+    if (imu.VerifyAafConfig(ICM42688P_AAF_258HZ, ICM42688P_AAF_170HZ) != 0) {
+        CI_LOG("ERROR: AAF verification failed!\n");
+        CI_LOG("*STOP*\n");
+        while (1) delay(1000);
+    }
+    if (imu.VerifyUiFiltersWide() != 0) {
+        CI_LOG("ERROR: UI filter verification failed!\n");
+        CI_LOG("*STOP*\n");
+        while (1) delay(1000);
+    }
+    CI_LOG("✓ Filter configuration verified by hardware readback\n\n");
+
     CI_LOG("✓ IMU configured for polled operation\n");
     CI_LOG("  Accel: ±2G, 2kHz ODR\n");
     CI_LOG("  Gyro: ±250 DPS, 2kHz ODR\n");
+    CI_LOG("  Filters: AAF (Gyro 258 Hz, Accel 170 Hz), UI (1st-order, ODR/2)\n");
     CI_LOG("  Mode: Continuous 2kHz loop (matching dRehmFlight)\n\n");
 
     CI_LOG("Starting continuous 2kHz polling loop...\n");

@@ -556,3 +556,32 @@ int IMU::SetUiFiltersWide()
     // Call ICM-42688-P UI filter configuration
     return icm42688p_set_ui_filters_wide(&driver_);
 }
+
+int IMU::VerifyAafConfig(icm42688p_aaf_bandwidth_t gyro_bandwidth,
+                         icm42688p_aaf_bandwidth_t accel_bandwidth)
+{
+    if (!initialized_) return -1;
+
+    // Only ICM-42688-P supported currently
+    ChipType chip = GetChipType();
+    if (chip != ChipType::ICM42688_P) {
+        return -1;  // Chip not supported
+    }
+
+    // Call ICM-42688-P AAF verification
+    return icm42688p_verify_aaf(&driver_, gyro_bandwidth, accel_bandwidth);
+}
+
+int IMU::VerifyUiFiltersWide()
+{
+    if (!initialized_) return -1;
+
+    // Only ICM-42688-P supported currently
+    ChipType chip = GetChipType();
+    if (chip != ChipType::ICM42688_P) {
+        return -1;  // Chip not supported
+    }
+
+    // Call ICM-42688-P UI filter verification
+    return icm42688p_verify_ui_filters_wide(&driver_);
+}
