@@ -236,17 +236,6 @@ public:
     int SetAccelFilterHz(icm42688p_aaf_bandwidth_t bandwidth);
 
     /**
-     * @brief Configure UI (User Interface) filters to ODR/2 bandwidth with 1st-order
-     * @return 0 on success, negative error code on failure.
-     *
-     * @note ICM-42688-P only. Sets both gyro and accel UI filters to:
-     *       - Filter order: 1st order (minimal phase lag)
-     *       - Bandwidth code: 0 (ODR/2, allows AAF to dominate)
-     *       This matches MPU-6000 DLPF 260 "wide" feel.
-     */
-    int SetUiFiltersOdr2_1st();
-
-    /**
      * @brief Verify AAF (Anti-Alias Filter) configuration by reading back registers
      *
      * @param gyro_bandwidth Expected gyro AAF bandwidth
@@ -258,16 +247,6 @@ public:
      */
     int VerifyAafConfig(icm42688p_aaf_bandwidth_t gyro_bandwidth,
                         icm42688p_aaf_bandwidth_t accel_bandwidth);
-
-    /**
-     * @brief Verify UI filter configuration by reading back registers
-     *
-     * @return 0 if verified as 1st-order ODR/2 mode, -1 if mismatch or unsupported chip
-     *
-     * Reads back UI filter registers from hardware and verifies they are
-     * configured for 1st-order, ODR/2 bandwidth. Only supported on ICM-42688-P.
-     */
-    int VerifyUiFiltersOdr2_1st();
 
     /**
      * @brief Configure UI (User Interface) filters with custom bandwidth code and filter order

@@ -543,20 +543,6 @@ int IMU::SetAccelFilterHz(icm42688p_aaf_bandwidth_t bandwidth)
     return icm42688p_set_accel_aaf(&driver_, bandwidth);
 }
 
-int IMU::SetUiFiltersOdr2_1st()
-{
-    if (!initialized_) return -1;
-
-    // Only ICM-42688-P supported currently
-    ChipType chip = GetChipType();
-    if (chip != ChipType::ICM42688_P) {
-        return -1;  // Chip not supported
-    }
-
-    // Call ICM-42688-P UI filter configuration
-    return icm42688p_set_ui_filters_odr2_1st(&driver_);
-}
-
 int IMU::VerifyAafConfig(icm42688p_aaf_bandwidth_t gyro_bandwidth,
                          icm42688p_aaf_bandwidth_t accel_bandwidth)
 {
@@ -570,20 +556,6 @@ int IMU::VerifyAafConfig(icm42688p_aaf_bandwidth_t gyro_bandwidth,
 
     // Call ICM-42688-P AAF verification
     return icm42688p_verify_aaf(&driver_, gyro_bandwidth, accel_bandwidth);
-}
-
-int IMU::VerifyUiFiltersOdr2_1st()
-{
-    if (!initialized_) return -1;
-
-    // Only ICM-42688-P supported currently
-    ChipType chip = GetChipType();
-    if (chip != ChipType::ICM42688_P) {
-        return -1;  // Chip not supported
-    }
-
-    // Call ICM-42688-P UI filter verification
-    return icm42688p_verify_ui_filters_odr2_1st(&driver_);
 }
 
 int IMU::SetUiFilters(uint8_t bw_code, uint8_t gyro_order, uint8_t accel_order)

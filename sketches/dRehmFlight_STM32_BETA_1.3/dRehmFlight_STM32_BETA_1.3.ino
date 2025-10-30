@@ -521,7 +521,8 @@ void IMUinit() {
 
   // UI Filter: Set to 1st-order, ODR/2 bandwidth to let AAF dominate
   //   This matches MPU-6000 DLPF 260 "wide" feel with minimal phase lag
-  imu.SetUiFiltersOdr2_1st();
+  //   Parameters: bandwidth_code=0 (ODR/2), gyro_order=1, accel_order=1
+  imu.SetUiFilters(0, 1, 1);
 
   CI_LOG("IMU filters configured: AAF (Gyro 258 Hz, Accel 170 Hz), UI (1st-order, ODR/2)\n");
 }

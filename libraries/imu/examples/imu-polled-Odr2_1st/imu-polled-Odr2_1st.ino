@@ -147,7 +147,8 @@ void setup() {
 
     // UI Filter: Set to 1st-order, ODR/2 bandwidth to let AAF dominate
     //   This matches MPU-6000 DLPF 260 "wide" feel with minimal phase lag
-    imu.SetUiFiltersOdr2_1st();
+    //   Parameters: bandwidth_code=0 (ODR/2), gyro_order=1, accel_order=1
+    imu.SetUiFilters(0, 1, 1);
 
     // Verify filter configuration by reading back registers
     CI_LOG("Verifying filter configuration...\n");
@@ -156,7 +157,7 @@ void setup() {
         CI_LOG("*STOP*\n");
         while (1) delay(1000);
     }
-    if (imu.VerifyUiFiltersOdr2_1st() != 0) {
+    if (imu.VerifyUiFilters(0, 1, 1) != 0) {
         CI_LOG("ERROR: UI filter verification failed!\n");
         CI_LOG("*STOP*\n");
         while (1) delay(1000);
