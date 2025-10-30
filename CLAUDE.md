@@ -434,10 +434,10 @@ Minimal-change port of dRehmFlight BETA 1.3 (Teensy-based UAV flight controller)
 - ✅ **IMU Hardware Validated**: WHO_AM_I verified (0x47), self-test passed, gyro data operational
 - ✅ **IMU Data Validated**: Stationary drift readings confirmed (X≈0.38, Y≈-0.81, Z≈0.30 °/s)
 - ✅ **Polling-Based IMU**: 2kHz loop matches 2kHz IMU ODR (same approach as Betaflight/iNav)
-- ✅ **IMU Filters**: Using ICM-42688-P power-on defaults (AAF enabled, UI 2nd-order)
-- ✅ **Setup() Execution**: All initialization complete (IMU, radio RX, motor timers)
+- ✅ **IMU Filters**: AAF configured (Gyro 258 Hz, Accel 170 Hz) - Betaflight-standard settings
+- ✅ **Setup() Execution**: All initialization complete (IMU, filters, radio RX, motor timers)
 - ✅ **Main Loop Running**: 2kHz loop timing operational with RTT/Serial logging
-- 📋 **Filter Tuning**: See `ICM42688_CONFIG.md` for advanced AAF/UI filter configuration guidance
+- 📋 **Filter Tuning**: Filter API available via `imu.SetGyroFilterHz()` / `imu.SetAccelFilterHz()` - see `ICM42688_CONFIG.md`
 - 📋 RC receiver bench testing pending (SBUS on USART1)
 - 📋 Motor control bench testing pending (OneShot125 via TIM1/TIM3)
 - 📋 Flight testing with PID tuning pending

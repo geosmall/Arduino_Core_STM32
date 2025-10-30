@@ -6,11 +6,7 @@
 #include <array>
 #include <SPI.h>
 #include <Arduino.h>
-
-// TDK high-level driver API (includes Icm426xxTransport.h references)
-extern "C" {
-#include "icm42688p.h"
-}
+#include "icm42688p.h"  // ICM-42688-P C driver + C++ filter API
 
 /*
  * ============================================================
@@ -218,6 +214,28 @@ public:
     int SetGyroFSR(GyroFS fsr);
 
     /**
+     * @brief Configure gyroscope Anti-Alias Filter (AAF) bandwidth.
+     * @param bandwidth Desired AAF bandwidth from icm42688p_aaf_bandwidth_t enum
+     * @return 0 on success, negative error code on failure.
+     *
+     * @note ICM-42688-P only. Configures AAF using datasheet presets.
+     *       Common values: ICM42688P_AAF_258HZ (Betaflight standard), ICM42688P_AAF_213HZ (tighter), ICM42688P_AAF_303HZ (looser).
+     *       Full range: ICM42688P_AAF_42HZ to ICM42688P_AAF_1051HZ (22 presets).
+     */
+    int SetGyroFilterHz(icm42688p_aaf_bandwidth_t bandwidth);
+
+    /**
+     * @brief Configure accelerometer Anti-Alias Filter (AAF) bandwidth.
+     * @param bandwidth Desired AAF bandwidth from icm42688p_aaf_bandwidth_t enum
+     * @return 0 on success, negative error code on failure.
+     *
+     * @note ICM-42688-P only. Configures AAF using datasheet presets.
+     *       Common values: ICM42688P_AAF_170HZ (default), ICM42688P_AAF_126HZ (tighter), ICM42688P_AAF_213HZ (looser).
+     *       Full range: ICM42688P_AAF_42HZ to ICM42688P_AAF_1051HZ (22 presets).
+     */
+    int SetAccelFilterHz(icm42688p_aaf_bandwidth_t bandwidth);
+
+    /**
      * @brief Get the accelerometer full-scale range.
      * @return Accel sensitivity value (updated upon change to FS value).
      */
@@ -329,6 +347,10 @@ private:
 
     float accel_sensitivity_{-1.0f};
     float gyro_sensitivity_{-1.0f};
+
+    // Track current ODR for filter validation
+    uint16_t gyro_odr_hz_{0};
+    uint16_t accel_odr_hz_{0};
 
     // CS->CLK delay, MPU6000 - 8ns
     // CS->CLK delay, ICM42688P - 39ns

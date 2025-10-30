@@ -1,5 +1,6 @@
 #include "IMU.h"
 #include "stm32yyxx_ll_system.h"  // For DWT cycle counter
+#include "icm42688p.h"  // For ICM-42688-P filter API
 
 // ============================================================================
 // TDK Driver Required External Functions
@@ -139,6 +140,25 @@ IMU::Result IMU::ConfigureInvDevice(AccelFS acc_fsr_g, GyroFS gyr_fsr_dps,
         case dps2000: gyro_sensitivity_ = ICM42688P_GYRO_SENS_2000; break;
     }
 
+    // Track ODR for filter validation
+    switch (acc_freq) {
+        case accel_odr500: accel_odr_hz_ = 500; break;
+        case accel_odr1k:  accel_odr_hz_ = 1000; break;
+        case accel_odr2k:  accel_odr_hz_ = 2000; break;
+        case accel_odr4k:  accel_odr_hz_ = 4000; break;
+        case accel_odr8k:  accel_odr_hz_ = 8000; break;
+        default: accel_odr_hz_ = 0; break;
+    }
+
+    switch (gyr_freq) {
+        case gyr_odr500: gyro_odr_hz_ = 500; break;
+        case gyr_odr1k:  gyro_odr_hz_ = 1000; break;
+        case gyr_odr2k:  gyro_odr_hz_ = 2000; break;
+        case gyr_odr4k:  gyro_odr_hz_ = 4000; break;
+        case gyr_odr8k:  gyro_odr_hz_ = 8000; break;
+        default: gyro_odr_hz_ = 0; break;
+    }
+
     return (rc == 0) ? Result::OK : Result::ERR;
 }
 
@@ -188,13 +208,39 @@ int IMU::DisableGyro()
 int IMU::SetAccelODR(AccelODR frequency)
 {
     if (!initialized_) return -1;
-    return inv_icm426xx_set_accel_frequency(&driver_, static_cast<ICM426XX_ACCEL_CONFIG0_ODR_t>(frequency));
+    int rc = inv_icm426xx_set_accel_frequency(&driver_, static_cast<ICM426XX_ACCEL_CONFIG0_ODR_t>(frequency));
+
+    // Track ODR for filter validation
+    if (rc == 0) {
+        switch (frequency) {
+            case accel_odr500: accel_odr_hz_ = 500; break;
+            case accel_odr1k:  accel_odr_hz_ = 1000; break;
+            case accel_odr2k:  accel_odr_hz_ = 2000; break;
+            case accel_odr4k:  accel_odr_hz_ = 4000; break;
+            case accel_odr8k:  accel_odr_hz_ = 8000; break;
+            default: accel_odr_hz_ = 0; break;
+        }
+    }
+    return rc;
 }
 
 int IMU::SetGyroODR(GyroODR frequency)
 {
     if (!initialized_) return -1;
-    return inv_icm426xx_set_gyro_frequency(&driver_, static_cast<ICM426XX_GYRO_CONFIG0_ODR_t>(frequency));
+    int rc = inv_icm426xx_set_gyro_frequency(&driver_, static_cast<ICM426XX_GYRO_CONFIG0_ODR_t>(frequency));
+
+    // Track ODR for filter validation
+    if (rc == 0) {
+        switch (frequency) {
+            case gyr_odr500: gyro_odr_hz_ = 500; break;
+            case gyr_odr1k:  gyro_odr_hz_ = 1000; break;
+            case gyr_odr2k:  gyro_odr_hz_ = 2000; break;
+            case gyr_odr4k:  gyro_odr_hz_ = 4000; break;
+            case gyr_odr8k:  gyro_odr_hz_ = 8000; break;
+            default: gyro_odr_hz_ = 0; break;
+        }
+    }
+    return rc;
 }
 
 int IMU::SetAccelFSR(AccelFS fsr)
@@ -463,4 +509,36 @@ int IMU::spiConfigure(struct inv_icm426xx_serif *serif)
     // No-op for Arduino - SPI already configured
     (void)serif;
     return 0;
+}
+
+// ============================================================================
+// Filter Configuration Methods
+// ============================================================================
+
+int IMU::SetGyroFilterHz(icm42688p_aaf_bandwidth_t bandwidth)
+{
+    if (!initialized_) return -1;
+
+    // Only ICM-42688-P supported currently
+    ChipType chip = GetChipType();
+    if (chip != ChipType::ICM42688_P) {
+        return -1;  // Chip not supported
+    }
+
+    // Call ICM-42688-P filter configuration
+    return icm42688p_set_gyro_aaf(&driver_, bandwidth);
+}
+
+int IMU::SetAccelFilterHz(icm42688p_aaf_bandwidth_t bandwidth)
+{
+    if (!initialized_) return -1;
+
+    // Only ICM-42688-P supported currently
+    ChipType chip = GetChipType();
+    if (chip != ChipType::ICM42688_P) {
+        return -1;  // Chip not supported
+    }
+
+    // Call ICM-42688-P filter configuration
+    return icm42688p_set_accel_aaf(&driver_, bandwidth);
 }
