@@ -121,9 +121,11 @@ void setup() {
         while (1) delay(1000);
     }
 
-    // Set sample rates (2kHz for both - matching dRehmFlight)
-    if (imu.SetAccelODR(IMU::AccelODR::accel_odr2k) != 0 ||
-        imu.SetGyroODR(IMU::GyroODR::gyr_odr2k) != 0) {
+    // Set sample rates (Gyro 4kHz, Accel 1kHz - matching dRehmFlight)
+    // Higher gyro ODR provides better resolution for fast movements
+    // Lower accel ODR sufficient for orientation/level flight
+    if (imu.SetAccelODR(IMU::AccelODR::accel_odr1k) != 0 ||
+        imu.SetGyroODR(IMU::GyroODR::gyr_odr4k) != 0) {
         CI_LOG("ERROR: Failed to set ODR!\n");
         CI_LOG("*STOP*\n");
         while (1) delay(1000);
@@ -155,8 +157,8 @@ void setup() {
     CI_LOG("✓ Filter configuration verified by hardware readback\n\n");
 
     CI_LOG("✓ IMU configured for polled operation\n");
-    CI_LOG("  Accel: ±2G, 2kHz ODR\n");
-    CI_LOG("  Gyro: ±250 DPS, 2kHz ODR\n");
+    CI_LOG("  Accel: ±2G, 1kHz ODR\n");
+    CI_LOG("  Gyro: ±250 DPS, 4kHz ODR\n");
     CI_LOG("  Filters: AAF (Gyro 258 Hz, Accel 170 Hz), UI (1st-order, ODR/2)\n");
     CI_LOG("  Mode: Continuous 2kHz loop (matching dRehmFlight)\n\n");
 

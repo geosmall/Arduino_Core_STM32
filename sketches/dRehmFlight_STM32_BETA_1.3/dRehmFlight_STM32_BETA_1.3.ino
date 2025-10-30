@@ -491,8 +491,9 @@ void IMUinit() {
     while(1) {}
   }
 
-  // Configure gyro and accelerometer using user-defined ranges and 2000 Hz ODR
-  status = imu.ConfigureInvDevice(ACCEL_SCALE, GYRO_SCALE, IMU::accel_odr2k, IMU::gyr_odr2k);
+  // Configure gyro and accelerometer using user-defined ranges
+  // ODR: Gyro 4kHz (better resolution for fast movements), Accel 1kHz (sufficient for level flight)
+  status = imu.ConfigureInvDevice(ACCEL_SCALE, GYRO_SCALE, IMU::accel_odr1k, IMU::gyr_odr4k);
 
   if (status != IMU::Result::OK) {
     CI_LOG("IMU configuration failed\n");
