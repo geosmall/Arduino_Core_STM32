@@ -276,7 +276,7 @@ static inline int icm42688p_verify_aaf(struct inv_icm426xx *s,
  * This provides hardware verification that the UI filter configuration
  * was actually applied to the ICM-42688-P registers.
  */
-static inline int icm42688p_verify_ui_filters_wide(struct inv_icm426xx *s) {
+static inline int icm42688p_verify_ui_filters_odr2_1st(struct inv_icm426xx *s) {
     int rc = 0;
     uint8_t val;
 
@@ -319,7 +319,7 @@ static inline int icm42688p_verify_ui_filters_wide(struct inv_icm426xx *s) {
  *
  * Reference: ICM-42688-P Datasheet Rev 1.8, Section 5.3
  */
-static inline int icm42688p_set_ui_filters_wide(struct inv_icm426xx *s) {
+static inline int icm42688p_set_ui_filters_odr2_1st(struct inv_icm426xx *s) {
     int rc = 0;
     uint8_t val;
 
@@ -348,6 +348,135 @@ static inline int icm42688p_set_ui_filters_wide(struct inv_icm426xx *s) {
     // (all subsequent operations will be in Bank 0)
 
     return rc;
+}
+
+/**
+ * @brief Set UI (User Interface) filters with configurable bandwidth code and filter order
+ *
+ * Configures the post-AAF low-pass filters in the signal path. These filters operate
+ * after the Anti-Aliasing Filter (AAF) and before data reaches the FIFO/registers.
+ *
+ * @param s Pointer to device structure
+ * @param ui_bw_code Filter bandwidth code (0-15):
+ *                   - 0: ODR/2 (widest, lowest delay)
+ *                   - 1-14: Progressively narrower bandwidths
+ *                   - 15: Low-latency path (trivial decimation, Betaflight default)
+ * @param gyro_order Gyro filter order (1-3):
+ *                   - 1: 1st order
+ *                   - 2: 2nd order (Betaflight default)
+ *                   - 3: 3rd order
+ * @param accel_order Accel filter order (1-3): Same as gyro_order
+ *
+ * @return 0 on success, negative on error
+ *
+ * Reference: ICM-42688-P Datasheet Rev 1.8, Section 5.3
+ *           Betaflight_Filtering.md Section 2 (UI filter registers)
+ */
+static inline int icm42688p_set_ui_filters(struct inv_icm426xx *s, uint8_t ui_bw_code, uint8_t gyro_order, uint8_t accel_order) {
+    int rc = 0;
+    uint8_t val;
+
+    // Validate inputs
+    if (ui_bw_code > 15 || gyro_order < 1 || gyro_order > 3 || accel_order < 1 || accel_order > 3) {
+        return -1;
+    }
+
+    // Convert order (1/2/3) to register encoding (0/1/2)
+    uint8_t gyro_ord_bits = (gyro_order - 1) << 2;   // bits [3:2]
+    uint8_t accel_ord_bits = (accel_order - 1) << 3; // bits [4:3]
+
+    // Switch to Bank 0 (UI filter registers are in Bank 0)
+    rc |= inv_icm426xx_set_reg_bank(s, 0);
+
+    // GYRO_CONFIG1 (0x51): Set UI_FILT_ORD[3:2]
+    rc |= inv_icm426xx_read_reg(s, MPUREG_GYRO_CONFIG1, 1, &val);
+    val &= ~0x0C;  // Clear bits [3:2]
+    val |= gyro_ord_bits;
+    rc |= inv_icm426xx_write_reg(s, MPUREG_GYRO_CONFIG1, 1, &val);
+
+    // ACCEL_CONFIG1 (0x53): Set UI_FILT_ORD[4:3]
+    rc |= inv_icm426xx_read_reg(s, MPUREG_ACCEL_CONFIG1, 1, &val);
+    val &= ~0x18;  // Clear bits [4:3]
+    val |= accel_ord_bits;
+    rc |= inv_icm426xx_write_reg(s, MPUREG_ACCEL_CONFIG1, 1, &val);
+
+    // ACCEL_GYRO_CONFIG0 (0x52): Set bandwidth codes
+    // GYRO_UI_FILT_BW[3:0] = ui_bw_code, ACCEL_UI_FILT_BW[7:4] = ui_bw_code
+    val = (ui_bw_code << 4) | ui_bw_code;
+    rc |= inv_icm426xx_write_reg(s, MPUREG_ACCEL_GYRO_CONFIG0, 1, &val);
+
+    return rc;
+}
+
+/**
+ * @brief Set UI filters to Betaflight defaults (code 15, 2nd-order both)
+ *
+ * Convenience wrapper that configures UI filters to match Betaflight driver defaults:
+ * - BW Code 15: Low-latency path (trivial decimation, minimal delay)
+ * - 2nd order: Balance between noise rejection and phase lag
+ *
+ * Betaflight relies on software filters (gyro LPF, D-term, dynamic notch) for fine
+ * noise control, so hardware UI filters are kept minimal to reduce delay.
+ *
+ * @param s Pointer to device structure
+ * @return 0 on success, negative on error
+ *
+ * Reference: Betaflight_Filtering.md Section 2, 5
+ */
+static inline int icm42688p_set_ui_filters_betaflight(struct inv_icm426xx *s) {
+    return icm42688p_set_ui_filters(s, 15, 2, 2);
+}
+
+/**
+ * @brief Verify UI filter configuration by reading back registers
+ *
+ * Reads GYRO_CONFIG1, ACCEL_CONFIG1, and ACCEL_GYRO_CONFIG0 to verify
+ * the UI filter settings match expected values.
+ *
+ * @param s Pointer to device structure
+ * @param expected_bw_code Expected bandwidth code (0-15)
+ * @param expected_gyro_order Expected gyro filter order (1-3)
+ * @param expected_accel_order Expected accel filter order (1-3)
+ * @return 0 if verified, -1 on mismatch or error
+ *
+ * Reference: ICM-42688-P Datasheet Rev 1.8, Section 5.3
+ */
+static inline int icm42688p_verify_ui_filters(struct inv_icm426xx *s, uint8_t expected_bw_code, uint8_t expected_gyro_order, uint8_t expected_accel_order) {
+    int rc = 0;
+    uint8_t gyro_cfg1, accel_cfg1, bw_cfg;
+
+    // Switch to Bank 0
+    rc |= inv_icm426xx_set_reg_bank(s, 0);
+
+    // Read registers
+    rc |= inv_icm426xx_read_reg(s, MPUREG_GYRO_CONFIG1, 1, &gyro_cfg1);
+    rc |= inv_icm426xx_read_reg(s, MPUREG_ACCEL_CONFIG1, 1, &accel_cfg1);
+    rc |= inv_icm426xx_read_reg(s, MPUREG_ACCEL_GYRO_CONFIG0, 1, &bw_cfg);
+
+    if (rc != 0) {
+        return -1; // Read error
+    }
+
+    // Extract and verify gyro order (bits [3:2])
+    uint8_t gyro_order = ((gyro_cfg1 & 0x0C) >> 2) + 1; // Convert 0/1/2 to 1/2/3
+    if (gyro_order != expected_gyro_order) {
+        return -1;
+    }
+
+    // Extract and verify accel order (bits [4:3])
+    uint8_t accel_order = ((accel_cfg1 & 0x18) >> 3) + 1; // Convert 0/1/2 to 1/2/3
+    if (accel_order != expected_accel_order) {
+        return -1;
+    }
+
+    // Extract and verify bandwidth codes
+    uint8_t gyro_bw = bw_cfg & 0x0F;         // bits [3:0]
+    uint8_t accel_bw = (bw_cfg >> 4) & 0x0F; // bits [7:4]
+    if (gyro_bw != expected_bw_code || accel_bw != expected_bw_code) {
+        return -1;
+    }
+
+    return 0; // All verified
 }
 
 #endif /* __ICM_42688_P_H__ */

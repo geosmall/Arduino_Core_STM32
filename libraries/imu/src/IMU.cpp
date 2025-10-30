@@ -543,7 +543,7 @@ int IMU::SetAccelFilterHz(icm42688p_aaf_bandwidth_t bandwidth)
     return icm42688p_set_accel_aaf(&driver_, bandwidth);
 }
 
-int IMU::SetUiFiltersWide()
+int IMU::SetUiFiltersOdr2_1st()
 {
     if (!initialized_) return -1;
 
@@ -554,7 +554,7 @@ int IMU::SetUiFiltersWide()
     }
 
     // Call ICM-42688-P UI filter configuration
-    return icm42688p_set_ui_filters_wide(&driver_);
+    return icm42688p_set_ui_filters_odr2_1st(&driver_);
 }
 
 int IMU::VerifyAafConfig(icm42688p_aaf_bandwidth_t gyro_bandwidth,
@@ -572,7 +572,7 @@ int IMU::VerifyAafConfig(icm42688p_aaf_bandwidth_t gyro_bandwidth,
     return icm42688p_verify_aaf(&driver_, gyro_bandwidth, accel_bandwidth);
 }
 
-int IMU::VerifyUiFiltersWide()
+int IMU::VerifyUiFiltersOdr2_1st()
 {
     if (!initialized_) return -1;
 
@@ -583,5 +583,47 @@ int IMU::VerifyUiFiltersWide()
     }
 
     // Call ICM-42688-P UI filter verification
-    return icm42688p_verify_ui_filters_wide(&driver_);
+    return icm42688p_verify_ui_filters_odr2_1st(&driver_);
+}
+
+int IMU::SetUiFilters(uint8_t bw_code, uint8_t gyro_order, uint8_t accel_order)
+{
+    if (!initialized_) return -1;
+
+    // Only ICM-42688-P supported currently
+    ChipType chip = GetChipType();
+    if (chip != ChipType::ICM42688_P) {
+        return -1;  // Chip not supported
+    }
+
+    // Call ICM-42688-P general UI filter configuration
+    return icm42688p_set_ui_filters(&driver_, bw_code, gyro_order, accel_order);
+}
+
+int IMU::SetUiFiltersBetaflight()
+{
+    if (!initialized_) return -1;
+
+    // Only ICM-42688-P supported currently
+    ChipType chip = GetChipType();
+    if (chip != ChipType::ICM42688_P) {
+        return -1;  // Chip not supported
+    }
+
+    // Call ICM-42688-P Betaflight UI filter configuration (code 15, 2nd-order)
+    return icm42688p_set_ui_filters_betaflight(&driver_);
+}
+
+int IMU::VerifyUiFilters(uint8_t expected_bw_code, uint8_t expected_gyro_order, uint8_t expected_accel_order)
+{
+    if (!initialized_) return -1;
+
+    // Only ICM-42688-P supported currently
+    ChipType chip = GetChipType();
+    if (chip != ChipType::ICM42688_P) {
+        return -1;  // Chip not supported
+    }
+
+    // Call ICM-42688-P UI filter verification with custom parameters
+    return icm42688p_verify_ui_filters(&driver_, expected_bw_code, expected_gyro_order, expected_accel_order);
 }

@@ -1,8 +1,15 @@
 /*
- * IMU Library - Polled Raw Data Example
+ * IMU Library - Polled ODR/2 1st-Order Filter Configuration Example
  *
- * Demonstrates polling-based raw sensor data acquisition using the IMU library.
- * No interrupt pin required - simply reads data at a fixed rate in the main loop.
+ * Demonstrates polling-based IMU data acquisition with ODR/2 1st-order filter configuration:
+ * - Gyro: ±250 DPS @ 4kHz ODR (high resolution for precise flight control)
+ * - Accel: ±2G @ 1kHz ODR (sufficient for orientation/level flight)
+ * - AAF: Gyro 258 Hz, Accel 170 Hz (vibration rejection optimized)
+ * - UI Filters: 1st-order, ODR/2 (minimal phase lag)
+ *
+ * This configuration balances resolution, noise rejection, and latency for stable
+ * flight applications like dRehmFlight. For Betaflight-style configuration (wider FSR,
+ * minimal filtering), see imu-polled-bf.ino example.
  *
  * WHEN TO USE POLLING vs INTERRUPTS:
  * - Use polling when your main loop runs at a fixed rate (e.g., 2kHz flight controller)
@@ -14,7 +21,7 @@
  * - If loop rate matches IMU ODR: Minimal duplicate/missed reads
  * - If loop faster than ODR: May read same data multiple times
  * - If loop slower than ODR: May miss data samples
- * - For dRehmFlight-style flight controllers: 2kHz loop + 2kHz IMU = ideal match
+ * - This example: 2kHz loop with 4kHz gyro, 1kHz accel
  *
  * HARDWARE CONFIGURATION:
  * - Uses BoardConfig for automatic board detection (NUCLEO_F411RE / BLACKPILL_F411CE)
@@ -57,7 +64,7 @@ void setup() {
     while (!Serial) delay(10);
 #endif
 
-    CI_LOG("\n=== IMU Library - Polled Data Example ===\n");
+    CI_LOG("\n=== IMU Library - Polled ODR/2 1st-Order Filter Example ===\n");
     CI_BUILD_INFO();
     CI_READY_TOKEN();
 
@@ -138,9 +145,9 @@ void setup() {
     imu.SetGyroFilterHz(ICM42688P_AAF_258HZ);
     imu.SetAccelFilterHz(ICM42688P_AAF_170HZ);
 
-    // UI Filter: Set to "wide" 1st-order (ODR/2) to let AAF dominate
+    // UI Filter: Set to 1st-order, ODR/2 bandwidth to let AAF dominate
     //   This matches MPU-6000 DLPF 260 "wide" feel with minimal phase lag
-    imu.SetUiFiltersWide();
+    imu.SetUiFiltersOdr2_1st();
 
     // Verify filter configuration by reading back registers
     CI_LOG("Verifying filter configuration...\n");
@@ -149,7 +156,7 @@ void setup() {
         CI_LOG("*STOP*\n");
         while (1) delay(1000);
     }
-    if (imu.VerifyUiFiltersWide() != 0) {
+    if (imu.VerifyUiFiltersOdr2_1st() != 0) {
         CI_LOG("ERROR: UI filter verification failed!\n");
         CI_LOG("*STOP*\n");
         while (1) delay(1000);

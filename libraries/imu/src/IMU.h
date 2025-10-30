@@ -236,15 +236,15 @@ public:
     int SetAccelFilterHz(icm42688p_aaf_bandwidth_t bandwidth);
 
     /**
-     * @brief Configure UI (User Interface) filters to "wide" 1st-order mode
+     * @brief Configure UI (User Interface) filters to ODR/2 bandwidth with 1st-order
      * @return 0 on success, negative error code on failure.
      *
      * @note ICM-42688-P only. Sets both gyro and accel UI filters to:
      *       - Filter order: 1st order (minimal phase lag)
-     *       - Bandwidth: ODR/2 (wide, allows AAF to dominate)
+     *       - Bandwidth code: 0 (ODR/2, allows AAF to dominate)
      *       This matches MPU-6000 DLPF 260 "wide" feel.
      */
-    int SetUiFiltersWide();
+    int SetUiFiltersOdr2_1st();
 
     /**
      * @brief Verify AAF (Anti-Alias Filter) configuration by reading back registers
@@ -262,12 +262,52 @@ public:
     /**
      * @brief Verify UI filter configuration by reading back registers
      *
-     * @return 0 if verified as 1st-order wide mode, -1 if mismatch or unsupported chip
+     * @return 0 if verified as 1st-order ODR/2 mode, -1 if mismatch or unsupported chip
      *
      * Reads back UI filter registers from hardware and verifies they are
      * configured for 1st-order, ODR/2 bandwidth. Only supported on ICM-42688-P.
      */
-    int VerifyUiFiltersWide();
+    int VerifyUiFiltersOdr2_1st();
+
+    /**
+     * @brief Configure UI (User Interface) filters with custom bandwidth code and filter order
+     * @param bw_code Filter bandwidth code (0-15):
+     *                - 0: ODR/2 (widest, lowest delay)
+     *                - 1-14: Progressively narrower bandwidths
+     *                - 15: Low-latency path (trivial decimation, Betaflight default)
+     * @param gyro_order Gyro filter order (1-3): 1st, 2nd, or 3rd order
+     * @param accel_order Accel filter order (1-3): 1st, 2nd, or 3rd order
+     * @return 0 on success, negative error code on failure.
+     *
+     * @note ICM-42688-P only. General-purpose UI filter configuration.
+     *       For Betaflight defaults, use SetUiFiltersBetaflight() instead.
+     */
+    int SetUiFilters(uint8_t bw_code, uint8_t gyro_order, uint8_t accel_order);
+
+    /**
+     * @brief Configure UI filters to Betaflight defaults (code 15, 2nd-order)
+     * @return 0 on success, negative error code on failure.
+     *
+     * @note ICM-42688-P only. Sets both gyro and accel UI filters to:
+     *       - BW Code 15: Low-latency path (trivial decimation, minimal delay)
+     *       - Filter order: 2nd order (balance between noise and phase lag)
+     *       Betaflight relies on software filters for fine control, so hardware
+     *       UI filters are kept minimal to reduce delay.
+     */
+    int SetUiFiltersBetaflight();
+
+    /**
+     * @brief Verify UI filter configuration by reading back registers
+     *
+     * @param expected_bw_code Expected bandwidth code (0-15)
+     * @param expected_gyro_order Expected gyro filter order (1-3)
+     * @param expected_accel_order Expected accel filter order (1-3)
+     * @return 0 if verified, -1 if mismatch or unsupported chip
+     *
+     * Reads back UI filter registers from hardware and verifies they match the
+     * expected configuration. Only supported on ICM-42688-P.
+     */
+    int VerifyUiFilters(uint8_t expected_bw_code, uint8_t expected_gyro_order, uint8_t expected_accel_order);
 
     /**
      * @brief Get the accelerometer full-scale range.
