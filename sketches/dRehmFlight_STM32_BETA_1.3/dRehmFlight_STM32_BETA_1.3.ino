@@ -511,12 +511,18 @@ void IMUinit() {
 
   CI_LOG("IMU initialized: ICM42688P\n");
 
-  // Configure IMU filters (AAF)
-  // Gyro: 258 Hz (matches MPU-6000 DLPF 260 Hz, Betaflight standard)
-  // Accel: 170 Hz (good vibration rejection for level mode)
+  // Configure IMU filters (AAF + UI)
+  // AAF (Anti-Alias Filter): Protects against aliasing at sensor front-end
+  //   Gyro: 258 Hz (matches MPU-6000 DLPF 260 Hz, Betaflight standard)
+  //   Accel: 170 Hz (good vibration rejection for level mode)
   imu.SetGyroFilterHz(ICM42688P_AAF_258HZ);
   imu.SetAccelFilterHz(ICM42688P_AAF_170HZ);
-  CI_LOG("IMU filters configured: Gyro 258 Hz, Accel 170 Hz\n");
+
+  // UI Filter: Set to "wide" 1st-order (ODR/2) to let AAF dominate
+  //   This matches MPU-6000 DLPF 260 "wide" feel with minimal phase lag
+  imu.SetUiFiltersWide();
+
+  CI_LOG("IMU filters configured: AAF (Gyro 258 Hz, Accel 170 Hz), UI (1st-order, ODR/2)\n");
 }
 
 void getIMUdata() {

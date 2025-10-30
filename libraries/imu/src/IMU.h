@@ -236,6 +236,17 @@ public:
     int SetAccelFilterHz(icm42688p_aaf_bandwidth_t bandwidth);
 
     /**
+     * @brief Configure UI (User Interface) filters to "wide" 1st-order mode
+     * @return 0 on success, negative error code on failure.
+     *
+     * @note ICM-42688-P only. Sets both gyro and accel UI filters to:
+     *       - Filter order: 1st order (minimal phase lag)
+     *       - Bandwidth: ODR/2 (wide, allows AAF to dominate)
+     *       This matches MPU-6000 DLPF 260 "wide" feel.
+     */
+    int SetUiFiltersWide();
+
+    /**
      * @brief Get the accelerometer full-scale range.
      * @return Accel sensitivity value (updated upon change to FS value).
      */

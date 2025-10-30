@@ -542,3 +542,17 @@ int IMU::SetAccelFilterHz(icm42688p_aaf_bandwidth_t bandwidth)
     // Call ICM-42688-P filter configuration
     return icm42688p_set_accel_aaf(&driver_, bandwidth);
 }
+
+int IMU::SetUiFiltersWide()
+{
+    if (!initialized_) return -1;
+
+    // Only ICM-42688-P supported currently
+    ChipType chip = GetChipType();
+    if (chip != ChipType::ICM42688_P) {
+        return -1;  // Chip not supported
+    }
+
+    // Call ICM-42688-P UI filter configuration
+    return icm42688p_set_ui_filters_wide(&driver_);
+}

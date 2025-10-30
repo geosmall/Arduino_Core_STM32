@@ -202,4 +202,56 @@ static inline int icm42688p_set_accel_aaf(struct inv_icm426xx *s, icm42688p_aaf_
     return rc;
 }
 
+/**
+ * @brief Configure UI (User Interface) filters to "wide" 1st-order mode
+ *
+ * @param s Pointer to inv_icm426xx driver instance
+ * @return 0 on success, negative error code on failure
+ *
+ * Sets both gyro and accel UI filters to:
+ * - Filter order: 1st order (minimal phase lag)
+ * - Bandwidth: ODR/2 (wide, AAF dominates filtering)
+ *
+ * This configuration allows the AAF to be the dominant filter corner,
+ * matching MPU-6000 DLPF 260 "wide" feel while maintaining proper
+ * anti-aliasing protection.
+ *
+ * Register configuration:
+ * - GYRO_CONFIG1 (0x51): UI_FILT_ORD = 00 (1st order)
+ * - ACCEL_CONFIG1 (0x53): UI_FILT_ORD = 00 (1st order)
+ * - GYRO_ACCEL_CONFIG0 (0x52): GYRO_UI_FILT_BW = 0 (ODR/2), ACCEL_UI_FILT_BW = 0 (ODR/2)
+ *
+ * Reference: ICM-42688-P Datasheet Rev 1.8, Section 5.3
+ */
+static inline int icm42688p_set_ui_filters_wide(struct inv_icm426xx *s) {
+    int rc = 0;
+    uint8_t val;
+
+    // Switch to Bank 0 (UI filter registers are in Bank 0)
+    rc |= inv_icm426xx_set_reg_bank(s, 0);
+
+    // GYRO_CONFIG1 (0x51): Set UI_FILT_ORD[3:2] = 00 (1st order)
+    // Read-modify-write to preserve other bits
+    rc |= inv_icm426xx_read_reg(s, MPUREG_GYRO_CONFIG1, 1, &val);
+    val &= ~0x0C;  // Clear bits [3:2]
+    val |= 0x00;   // Set to 00 (1st order)
+    rc |= inv_icm426xx_write_reg(s, MPUREG_GYRO_CONFIG1, 1, &val);
+
+    // ACCEL_CONFIG1 (0x53): Set UI_FILT_ORD[4:3] = 00 (1st order)
+    rc |= inv_icm426xx_read_reg(s, MPUREG_ACCEL_CONFIG1, 1, &val);
+    val &= ~0x18;  // Clear bits [4:3]
+    val |= 0x00;   // Set to 00 (1st order)
+    rc |= inv_icm426xx_write_reg(s, MPUREG_ACCEL_CONFIG1, 1, &val);
+
+    // ACCEL_GYRO_CONFIG0 (0x52): Set both BW codes to 0 (ODR/2)
+    // GYRO_UI_FILT_BW[3:0] = 0000, ACCEL_UI_FILT_BW[7:4] = 0000
+    val = 0x00;
+    rc |= inv_icm426xx_write_reg(s, MPUREG_ACCEL_GYRO_CONFIG0, 1, &val);
+
+    // Bank 0 is the default bank, no need to explicitly return
+    // (all subsequent operations will be in Bank 0)
+
+    return rc;
+}
+
 #endif /* __ICM_42688_P_H__ */
