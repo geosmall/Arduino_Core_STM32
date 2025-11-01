@@ -61,7 +61,7 @@ public:
         POWER_ON = true,
     };
 
-    enum AccelFS : uint8_t
+    enum AccelFS : uint8_t // G's plus and minus
     {
         gpm16 = ICM426XX_ACCEL_CONFIG0_FS_SEL_16g, // (default)
         gpm8 = ICM426XX_ACCEL_CONFIG0_FS_SEL_8g,
@@ -69,7 +69,7 @@ public:
         gpm2 = ICM426XX_ACCEL_CONFIG0_FS_SEL_2g
     };
 
-    enum GyroFS : uint8_t
+    enum GyroFS : uint8_t // degrees per second
     {
         dps2000 = ICM426XX_GYRO_CONFIG0_FS_SEL_2000dps, // (default)
         dps1000 = ICM426XX_GYRO_CONFIG0_FS_SEL_1000dps,
@@ -77,7 +77,7 @@ public:
         dps250 = ICM426XX_GYRO_CONFIG0_FS_SEL_250dps
     };
 
-    enum AccelODR : uint8_t
+    enum AccelODR : uint8_t // Output data rate
     {
         accel_odr500 = ICM426XX_ACCEL_CONFIG0_ODR_500_HZ, /*!< 500 Hz (2 ms)*/
         accel_odr1k = ICM426XX_ACCEL_CONFIG0_ODR_1_KHZ, /*!< 1 KHz (1 ms)*/
@@ -86,7 +86,7 @@ public:
         accel_odr8k = ICM426XX_ACCEL_CONFIG0_ODR_8_KHZ, /*!< 8 KHz (125 us)*/
     };
 
-    enum GyroODR : uint8_t
+    enum GyroODR : uint8_t // Output data rate
     {
         gyr_odr500 = ICM426XX_GYRO_CONFIG0_ODR_500_HZ, /*!< 500 Hz (2 ms)*/
         gyr_odr1k = ICM426XX_GYRO_CONFIG0_ODR_1_KHZ, /*!< 1 KHz (1 ms)*/
@@ -254,14 +254,22 @@ public:
      *                - 0: ODR/2 (widest, lowest delay)
      *                - 1-14: Progressively narrower bandwidths
      *                - 15: Low-latency path (trivial decimation, Betaflight default)
-     * @param gyro_order Gyro filter order (1-3): 1st, 2nd, or 3rd order
-     * @param accel_order Accel filter order (1-3): 1st, 2nd, or 3rd order
+     * @param gyro_order Gyro filter order (1-3, or -1 to skip):
+     *                - 1: 1st order
+     *                - 2: 2nd order
+     *                - 3: 3rd order
+     *                - -1: Skip gyro order configuration (leave existing setting)
+     * @param accel_order Accel filter order (1-3, or -1 to skip):
+     *                - 1: 1st order
+     *                - 2: 2nd order
+     *                - 3: 3rd order
+     *                - -1: Skip accel order configuration (leave existing setting)
      * @return 0 on success, negative error code on failure.
      *
      * @note ICM-42688-P only. General-purpose UI filter configuration.
      *       For Betaflight defaults, use SetUiFiltersBetaflight() instead.
      */
-    int SetUiFilters(uint8_t bw_code, uint8_t gyro_order, uint8_t accel_order);
+    int SetUiFilters(uint8_t bw_code, int8_t gyro_order, int8_t accel_order);
 
     /**
      * @brief Configure UI filters to Betaflight defaults (code 15, 2nd-order)
@@ -279,14 +287,18 @@ public:
      * @brief Verify UI filter configuration by reading back registers
      *
      * @param expected_bw_code Expected bandwidth code (0-15)
-     * @param expected_gyro_order Expected gyro filter order (1-3)
-     * @param expected_accel_order Expected accel filter order (1-3)
+     * @param expected_gyro_order Expected gyro filter order (1-3, or -1 to skip verification):
+     *                            - 1-3: Verify gyro order matches this value
+     *                            - -1: Skip gyro order verification
+     * @param expected_accel_order Expected accel filter order (1-3, or -1 to skip verification):
+     *                            - 1-3: Verify accel order matches this value
+     *                            - -1: Skip accel order verification
      * @return 0 if verified, -1 if mismatch or unsupported chip
      *
      * Reads back UI filter registers from hardware and verifies they match the
      * expected configuration. Only supported on ICM-42688-P.
      */
-    int VerifyUiFilters(uint8_t expected_bw_code, uint8_t expected_gyro_order, uint8_t expected_accel_order);
+    int VerifyUiFilters(uint8_t expected_bw_code, int8_t expected_gyro_order, int8_t expected_accel_order);
 
     /**
      * @brief Get the accelerometer full-scale range.

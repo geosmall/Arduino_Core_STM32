@@ -558,7 +558,7 @@ int IMU::VerifyAafConfig(icm42688p_aaf_bandwidth_t gyro_bandwidth,
     return icm42688p_verify_aaf(&driver_, gyro_bandwidth, accel_bandwidth);
 }
 
-int IMU::SetUiFilters(uint8_t bw_code, uint8_t gyro_order, uint8_t accel_order)
+int IMU::SetUiFilters(uint8_t bw_code, int8_t gyro_order, int8_t accel_order)
 {
     if (!initialized_) return -1;
 
@@ -582,11 +582,12 @@ int IMU::SetUiFiltersBetaflight()
         return -1;  // Chip not supported
     }
 
-    // Call ICM-42688-P Betaflight UI filter configuration (code 15, 2nd-order)
-    return icm42688p_set_ui_filters_betaflight(&driver_);
+    // Betaflight UI filter configuration: BW code 15 (low-latency), skip order writes (-1)
+    // Betaflight relies on chip reset default (2nd order) - doesn't explicitly write order registers
+    return icm42688p_set_ui_filters(&driver_, 15, -1, -1);
 }
 
-int IMU::VerifyUiFilters(uint8_t expected_bw_code, uint8_t expected_gyro_order, uint8_t expected_accel_order)
+int IMU::VerifyUiFilters(uint8_t expected_bw_code, int8_t expected_gyro_order, int8_t expected_accel_order)
 {
     if (!initialized_) return -1;
 

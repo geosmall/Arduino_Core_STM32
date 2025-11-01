@@ -5,15 +5,18 @@
  * - FSR: Gyro ±2000 DPS, Accel ±16G (wide range for extreme maneuvers)
  * - ODR: Configurable 8k/4k/2k/1k (both gyro and accel match)
  * - AAF: Both 258 Hz (Betaflight standard anti-aliasing)
- * - UI Filters: Code 15 (low-latency), 2nd-order (minimal delay)
+ * - UI Filters: Code 15 (low-latency), order left at reset default (2nd-order)
  *
  * This configuration exactly matches the Betaflight ICM-42688-P driver
- * (accgyro_spi_icm426xx.c). Betaflight relies on software filters (gyro LPF,
- * D-term, dynamic notch, RPM) for fine noise control, so hardware filters
- * are kept minimal to reduce delay.
+ * (accgyro_spi_icm426xx.c). Betaflight does NOT explicitly write the UI filter
+ * order registers - it relies on the chip's power-on reset default (2nd order).
+ * This example mirrors that behavior by skipping order writes.
  *
- * For dRehmFlight-style configuration (narrower FSR, optimized accel filtering),
- * see imu-polled-Odr2_1st.ino example.
+ * Betaflight relies on robust software filters (gyro LPF, D-term, dynamic notch,
+ * RPM) for fine noise control, so hardware filters are kept minimal to reduce delay.
+ *
+ * For MPU-6000 DLPF simulation (narrower FSR, optimized accel filtering),
+ * see imu-polled-mpu6000-sim.ino example.
  *
  * BETAFLIGHT ODR SELECTION:
  * Uncomment ONE of the BF_ODR_* defines below to set the output data rate.
@@ -30,8 +33,8 @@
  * - No interrupt pin required
  *
  * REFERENCE:
- * - Betaflight_Filtering.md - Complete BF register programming guide
- * - BF driver: src/main/drivers/accgyro/accgyro_spi_icm426xx.c
+ * - Icm42688p Analysis & Guidance.md - Filter configuration guide (Section 2, 9)
+ * - Betaflight driver: src/main/drivers/accgyro/accgyro_spi_icm426xx.c
  *
  * CI/HIL INTEGRATION:
  * - RTT output for automated testing
@@ -183,9 +186,11 @@ void setup() {
     imu.SetGyroFilterHz(ICM42688P_AAF_258HZ);
     imu.SetAccelFilterHz(ICM42688P_AAF_258HZ);
 
-    // 5. Configure UI filters - BF: Code 15 (low-latency), 2nd-order
-    //    Reference: Betaflight_Filtering.md Section 2, Section 7
-    if (imu.SetUiFiltersBetaflight() != 0) {
+    // 5. Configure UI filters - BF: Code 15 (low-latency), leave order at reset default
+    //    Reference: Icm42688p Analysis & Guidance.md Section 2, 9
+    //    Betaflight does NOT write order registers - relies on chip reset default (2nd order)
+    //    Using macro: ICM42688P_SET_UI_FILTERS_BETAFLIGHT (BW=15, order=-1,-1)
+    if (imu.SetUiFilters(15, -1, -1) != 0) {
         CI_LOG("ERROR: Failed to set UI filters!\n");
         CI_LOG("*STOP*\n");
         while (1) delay(1000);
@@ -201,8 +206,8 @@ void setup() {
         while (1) delay(1000);
     }
 
-    // Verify UI filters (code 15, 2nd-order both)
-    if (imu.VerifyUiFilters(15, 2, 2) != 0) {
+    // Verify UI filters (code 15, skip order verification with -1 since BF doesn't write them)
+    if (imu.VerifyUiFilters(15, -1, -1) != 0) {
         CI_LOG("ERROR: UI filter verification failed!\n");
         CI_LOG("*STOP*\n");
         while (1) delay(1000);

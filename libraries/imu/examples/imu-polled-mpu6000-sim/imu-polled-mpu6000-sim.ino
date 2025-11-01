@@ -1,15 +1,19 @@
 /*
- * IMU Library - Polled ODR/2 1st-Order Filter Configuration Example
+ * IMU Library - MPU-6000 DLPF Simulation Example
  *
- * Demonstrates polling-based IMU data acquisition with ODR/2 1st-order filter configuration:
+ * Demonstrates polling-based IMU data acquisition that simulates MPU-6000 DLPF behavior:
  * - Gyro: ±250 DPS @ 4kHz ODR (high resolution for precise flight control)
  * - Accel: ±2G @ 1kHz ODR (sufficient for orientation/level flight)
- * - AAF: Gyro 258 Hz, Accel 170 Hz (vibration rejection optimized)
- * - UI Filters: 1st-order, ODR/2 (minimal phase lag)
+ * - AAF: Gyro 258 Hz, Accel 170 Hz (matches MPU-6000 DLPF 260/256 Hz feel)
+ * - UI Filters: Code 0 (ODR/2), 1st-order (minimal phase lag, lets AAF dominate)
  *
- * This configuration balances resolution, noise rejection, and latency for stable
- * flight applications like dRehmFlight. For Betaflight-style configuration (wider FSR,
- * minimal filtering), see imu-polled-bf.ino example.
+ * This configuration mimics the MPU-6000 DLPF approach where the anti-alias filter
+ * defines the primary corner frequency and the UI filter stays wide with minimal
+ * phase lag. This balances resolution, noise rejection, and latency for stable
+ * flight applications like dRehmFlight.
+ *
+ * For Betaflight-style configuration (wider FSR, low-latency UI filters),
+ * see imu-polled-bf.ino example.
  *
  * WHEN TO USE POLLING vs INTERRUPTS:
  * - Use polling when your main loop runs at a fixed rate (e.g., 2kHz flight controller)
@@ -27,6 +31,9 @@
  * - Uses BoardConfig for automatic board detection (NUCLEO_F411RE / BLACKPILL_F411CE)
  * - Pin assignments and SPI frequency from board configuration
  * - No interrupt pin required
+ *
+ * REFERENCE:
+ * - Icm42688p Analysis & Guidance.md - MPU-6000 parity (Section 10)
  *
  * CI/HIL INTEGRATION:
  * - RTT output for automated testing
@@ -138,17 +145,22 @@ void setup() {
         while (1) delay(1000);
     }
 
-    // Configure IMU filters (AAF + UI) - matching dRehmFlight
+    // Configure IMU filters (AAF + UI) - MPU-6000 DLPF simulation
     // AAF (Anti-Alias Filter): Protects against aliasing at sensor front-end
-    //   Gyro: 258 Hz (matches MPU-6000 DLPF 260 Hz, Betaflight standard)
+    //   Gyro: 258 Hz (matches MPU-6000 DLPF 260 Hz)
     //   Accel: 170 Hz (good vibration rejection for level mode)
     imu.SetGyroFilterHz(ICM42688P_AAF_258HZ);
     imu.SetAccelFilterHz(ICM42688P_AAF_170HZ);
 
-    // UI Filter: Set to 1st-order, ODR/2 bandwidth to let AAF dominate
-    //   This matches MPU-6000 DLPF 260 "wide" feel with minimal phase lag
-    //   Parameters: bandwidth_code=0 (ODR/2), gyro_order=1, accel_order=1
-    imu.SetUiFilters(0, 1, 1);
+    // UI Filter: MPU-6000 DLPF simulation (ODR/2, 1st-order)
+    //   Reference: Icm42688p Analysis & Guidance.md Section 10 (FAQ - MPU-6000 parity)
+    //   Lets AAF define the corner frequency with minimal phase lag from UI stage
+    //   Using macro: ICM42688P_SET_UI_FILTERS_MPU6000_SIM (BW=0, order=1,1)
+    if (imu.SetUiFilters(0, 1, 1) != 0) {
+        CI_LOG("ERROR: Failed to set UI filters!\n");
+        CI_LOG("*STOP*\n");
+        while (1) delay(1000);
+    }
 
     // Verify filter configuration by reading back registers
     CI_LOG("Verifying filter configuration...\n");
