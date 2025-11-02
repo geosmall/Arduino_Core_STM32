@@ -433,4 +433,58 @@ static inline int icm42688p_verify_ui_filters(struct inv_icm426xx *s, uint8_t ex
     return 0; // All verified
 }
 
+/**
+ * @brief Apply AFSR (Automatic Full-Scale Range) workaround
+ *
+ * Disables AFSR to prevent gyro output stalls on ICM-426xx family.
+ * This is a critical workaround discovered by ArduPilot and Betaflight communities.
+ *
+ * @param s Pointer to inv_icm426xx driver instance
+ * @return 0 on success, negative error code on failure
+ *
+ * Technical details:
+ * - Register: INTF_CONFIG1 (0x4D), Bank 0
+ * - Bits [7:6]: AFSR control
+ * - Workaround: Clear bits [7:6], then set bit 6 (AFSR_DISABLE = 0x40)
+ * - Result: Bits [7:6] = 01 (AFSR disabled)
+ *
+ * Background:
+ * The ICM-426xx family has an AFSR feature that can cause gyro data to stall
+ * under certain conditions. Disabling AFSR prevents this issue with no
+ * negative impact on normal operation.
+ *
+ * References:  https://github.com/ArduPilot/ardupilot/issues/25025
+ *              https://github.com/ArduPilot/ardupilot/pull/25332
+ * 
+ * Usage: Call once after inv_icm426xx_init() and before sensor configuration
+ */
+static inline int icm42688p_disable_afsr(struct inv_icm426xx *s) {
+    int rc = 0;
+    uint8_t intf_config1;
+
+    // Ensure we're in Bank 0
+    rc |= inv_icm426xx_set_reg_bank(s, 0);
+    if (rc != 0) {
+        return rc;
+    }
+
+    // Read current INTF_CONFIG1 value
+    rc = inv_icm426xx_read_reg(s, MPUREG_INTF_CONFIG1, 1, &intf_config1);
+    if (rc != 0) {
+        return rc;
+    }
+
+    // Apply AFSR workaround
+    intf_config1 &= ~0xC0;  // Clear AFSR bits [7:6]
+    intf_config1 |= 0x40;   // Set AFSR_DISABLE (bit 6)
+
+    // Write back modified value
+    rc = inv_icm426xx_write_reg(s, MPUREG_INTF_CONFIG1, 1, &intf_config1);
+    if (rc != 0) {
+        return rc;
+    }
+
+    return 0;
+}
+
 #endif /* __ICM_42688_P_H__ */

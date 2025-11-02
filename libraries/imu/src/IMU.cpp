@@ -100,6 +100,13 @@ IMU::Result IMU::Init(SPIClass& spi, uint32_t cs_pin, uint32_t spi_freq_hz)
         return Result::ERR;
     }
 
+    // Apply AFSR workaround - must be done after TDK init
+    // Prevents gyro output stalls on ICM-426xx family
+    rc = icm42688p_disable_afsr(&driver_);
+    if (rc != 0) {
+        return Result::ERR;
+    }
+
     initialized_ = true;
     return Result::OK;
 }
