@@ -156,7 +156,7 @@ Assume ICM‑42688‑P, Gyro ±2000 dps, Accel ±16 g. These cover 95% of bu
 * **Bank discipline**: write AAF in the correct banks (gyro = Bank 1, accel = Bank 2). Always return to Bank 0 for UI settings and runtime.
 
 
-## 10) Appendix — Register map you’ll actually use
+## Appendix — Register map you’ll actually use
 
 **Common (Bank 0)**: `PWR_MGMT0 (0x4E)` LN mode; `GYRO_CONFIG0 (0x4F)` ODR/FS; `ACCEL_CONFIG0 (0x50)` ODR/FS; `GYRO_ACCEL_CONFIG0 (0x52)` UI BW codes; `GYRO_CONFIG1 (0x51)`/`ACCEL_CONFIG1 (0x53)` UI order; `INTF_CONFIG1 (0x4D)` AFSR.
 
@@ -164,8 +164,8 @@ Assume ICM‑42688‑P, Gyro ±2000 dps, Accel ±16 g. These cover 95% of bu
 
 **Accel AAF (Bank 2)**: `ACCEL_CONFIG_STATIC2 (0x03)` **DELT in bits 6:1** + enable; `…STATIC3/4 (0x04/0x05)` **DELTSQR / BITSHIFT**.
 
-**UI codes (Bank 0, 0x52)**: Gyro bits [3:0], Accel bits [7:4].
-Typical: **15 = low‑latency**, **0 = ODR/2**, **1 ≈ max(400, ODR)/4**.
+**UI codes (Bank 0)**: `GYRO_ACCEL_CONFIG0 (0x52)`: Gyro bits [3:0], Accel bits [7:4].
+Typical: **15 = low‑latency**, **0 = ODR/2**, **1 ≈ max(400, ODR)/4 = default on reset**.
 
 
 ## A1) Appendix — AAF presets you’ll use 90% of the time
@@ -181,17 +181,75 @@ Typical: **15 = low‑latency**, **0 = ODR/2**, **1 ≈ max(400, ODR)/4**.
 *(Full table in the datasheet if you need outliers.)*
 
 
-## A2) Betaflight parity — what to set and why (concise)
+## A2) Betaflight parity — what to set and why
 
 * **AAF**: 258 Hz **for both** gyro & accel.  → Good anti‑aliasing; relies on software for fine shaping.
-* **UI**: **code 15** (both), **order = reset default (2nd)**.  → Keeps the UI path nearly transparent.
+* **UI**: **code 15** (both), **order = reset default (2nd)**.  → Keeps the UI post filter path nearly transparent.
 * **AFSR**: **disable** in `INTF_CONFIG1`.  → Avoids rare “stuck” samples noted by multiple FC stacks.
 * **ODR/FSR**: Use ODR LUT (8k→3, 4k→4, 2k→5, 1k→6). FSR Gyro ±2000 dps, Accel ±16 g.
 
-This keeps driver behavior familiar to BF users and simplifies tuning advice and log interpretation.
+This keeps driver behavior similiar to BF users, simplifies tuning advice and log interpretation. Relies on good SW filters.
 
 
-## A3) FAQ and Notes
+## A3) Emulating the MPU‑6000 feel (8k/256 & 1k/260 style)
+
+The well proven MPU‑6000 at high rate has **Gyro: 8 kHz ODR, DLPF ≈256 Hz** and **Accel: 1 kHz ODR, DLPF ≈260 Hz**. On ICM‑42688‑P you can closely mimic that behavior by letting **AAF define the corner** and keeping the **UI path minimally intrusive**.
+
+### Target behavior
+
+* **Gyro:** ODR **4–8 kHz** (pick 4 k if your bus/CPU budget is tight), bandwidth ≈ **256–260 Hz**.
+* **Accel:** ODR **1 kHz**, bandwidth ≈ **260 Hz** (or **170 Hz** if you prefer a calmer accel for level/loiter).
+* **UI:** Very light touch — **code 0 (ODR/2) with 1st‑order** (a defined corner like MPU-6000).
+* **AFSR:** **Disable** for stable, repeatable outputs (MPU‑6000 had no such auto feature).
+
+### Concrete register recipe (MPU‑like option A: “defined corner”)
+
+*Closest in spirit to MPU‑6000’s published DLPF corners*
+
+1. **ODR/FSR (Bank 0):** `GYRO_CONFIG0` → Gyro ODR **4 k** (or **8 k**), FS ±2000 dps; `ACCEL_CONFIG0` → Accel ODR **1 k**, FS ±16 g.
+2. **AFSR off (Bank 0):** `INTF_CONFIG1 (0x4D)` → `val = (val & ~0xC0) | 0x40`.
+3. **Gyro AAF ≈ 258 Hz (Bank 1):** `0x0C`=0x06 (DELT), `0x0D`=0x24 (DELTSQR[7:0]), `0x0E`=0xA0 (BITSHIFT=10).
+4. **Accel AAF ≈ 258 Hz (Bank 2):** `0x03` bits6:1=0b000110 (DELT=6), bit0=0; `0x04`=0x24; `0x05`=0xA0.
+   *If you prefer calmer accel for attitude work, use **********170 Hz********** instead: ********`DELT=4`********, ********`DELTSQR=0x10`********, ********`BITSHIFT=11`********.*
+5. **UI (Bank 0):** set **order = 1st** (`GYRO_CONFIG1` bits3:2=00; `ACCEL_CONFIG1` bits4:3=00) and **BW = code 0 (ODR/2)** for both (`GYRO_ACCEL_CONFIG0`: gyro bits[3:0]=0, accel bits[7:4]=0).
+
+### Notes & equivalence
+
+* With **AAF ≈ 258 Hz** and **UI code 0 @ ODR/2**, the resulting shape and in‑band lag are very close to the MPU‑6000’s 8k/256 setup, especially at **Gyro ODR 4–8 k**.
+* If you lower Gyro ODR to **2 k**, keep the MPU‑like feel by holding **AAF in 213–258 Hz** and leaving **UI code 0** (or **code 15** if you value latency more than a defined UI corner).
+
+### Side‑by‑side: MPU‑6000 vs ICM‑42688‑P
+
+| **Parameter** | **MPU‑6000 (classic)** | **ICM‑42688‑P — Option A (defined corner)**                           | **ICM‑42688‑P — Option B (low‑latency)**         | **Comments**                                                         |
+| ------------- | ---------------------- | --------------------------------------------------------------------- | ------------------------------------------------ | -------------------------------------------------------------------- |
+| Gyro ODR      | 8 k                    | 4–8 k (prefer 4 k if bus/CPU tight)                                   | 4–8 k                                            | Higher ODR reduces quantization of timing; 4 k is often sufficient.  |
+| Gyro BW       | ~256 Hz DLPF           | **AAF ≈ 258 Hz**, UI **code 0** (ODR/2), **order 1st**                | **AAF ≈ 258 Hz**, UI **code 15** (low‑latency)   | AAF defines the true corner in both options.                         |
+| Accel ODR     | 1 k                    | 1 k                                                                   | 1 k                                              | Matches classic setups.                                              |
+| Accel BW      | ~260 Hz DLPF           | **AAF ≈ 258 Hz** (or **170 Hz** calmer), UI **code 0**, **order 1st** | **AAF ≈ 258 Hz** (or **170 Hz**), UI **code 15** | Many pilots prefer ~170 Hz accel for level/loiter smoothness.        |
+| UI order      | 1st‑order DLPF         | 1st                                                                   | reset default (2nd)                              | Order matters mainly if you’re using UI as an active LPF (Option A). |
+| Added latency | Low                    | Low‑moderate (defined LPF @ ODR/2)                                    | **Minimal**                                      | Option B minimizes group delay, helping fast control loops.          |
+| AFSR          | N/A                    | **Disabled**                                                          | **Disabled**                                     | Disable early to avoid rare stuck/repeat samples.                    |
+
+### Why pick Option A vs Option B?
+
+**Option A — “defined corner” (UI order 1st, BW code 0 @ ODR/2) - Closely follows MPU-6000 behavior**
+
+* **Why:** Prioritize a **predictable, hardware‑defined corner** that behaves like a classic DLPF. This gives consistent logs across teams/airframes and makes controller tuning more transferable.
+* **Benefits:** Stable in‑band shape with modest extra smoothing; easier to reason about when comparing to legacy MPU‑6000 data; slightly more tolerant of imperfect software filtering.
+* **Best when:** New/untuned builds, mixed hardware quality, conservative bring‑up, or when you want analysis repeatability first and absolute latency second.
+* **Trade‑offs:** Adds a bit more **group delay** than B; peak responsiveness is slightly reduced on very sharp acro.
+
+**Option B — “modern low‑latency” (UI BW code 15; order left at reset) - Closely follows Betaflight config, relies on SW filtering**
+
+* **Why:** Prioritize **minimal phase lag** so the control loop “sees” the AAF‑bounded signal with almost no extra on‑chip shaping; rely on strong **software filters** to finish the job.
+* **Benefits:** Snappier feel, better high‑rate tracking on stiff/clean airframes, lets dynamic notch/RPM filters work on a less phase‑distorted signal.
+* **Best when:** Airframe is mechanically clean, ODR and CPU budgets are healthy, and your stack already runs robust SW filtering (BF‑style).
+* **Trade‑offs:** UI adds almost no smoothing; if the build is noisy, you must compensate via **lower AAF**, better mechanical damping, or more aggressive SW filters.
+
+**Quick chooser:** If your priority is **repeatable tuning & legacy comparability**, pick **A**. If your priority is **lowest latency & peak handling** on a clean build, pick **B**.
+
+
+## FAQ and Notes
 
 * **Does “UI wide” mean code 15 or code 0?**  For lowest added delay, prefer **code 15** (BF style). For a predictable UI corner without software filters, use **code 0 (ODR/2)** with **1st‑order**.
 * **Why not just crank AAF high?**  Too‑high AAF raises alias risk relative to ODR and can surface noise the SW filters must then kill with extra phase cost. Start near **258 Hz**.
