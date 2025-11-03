@@ -208,6 +208,21 @@ typedef struct accDev_s {
 
 ## Phase 3: MPU-6000 Library (Betaflight-based, GPL v3) - 3 days
 
+### License Decision: GPL v3 (Confirmed)
+
+**Rationale:**
+- ✅ **Production quality** - Betaflight drivers are battle-tested in thousands of flight controllers
+- ✅ **Bug-free initialization** - Includes all quirks/workarounds discovered over years
+- ✅ **Faster development** - Direct adaptation vs reinventing the wheel
+- ✅ **GPL containment** - Separate library, optional dependency, core remains MIT
+- ✅ **dRehmFlight stays MIT** - Depends on MIT `IMU.h` interface only, not GPL driver directly
+
+**GPL Containment Strategy:**
+- MPU6000 library (GPL v3) is a **separate, optional library**
+- `IMU` wrapper (MIT) provides **interface abstraction** - depends on `IMU.h` interface, not implementation
+- Users who don't need MPU-6000 simply don't include the library
+- Clear documentation of license boundaries
+
 ### Create New Library
 **Location:** `libraries/MPU6000/`
 **License:** GPL v3 (Betaflight-derived code)
@@ -287,11 +302,16 @@ From `libraries/imu/betaflight/drivers/accgyro/accgyro_spi_mpu6000.c`:
 
 ---
 
-## Phase 4: MPU-9250 Library (Betaflight-based, GPL v3) - 3 days
+## Phase 4: MPU-9250 & ICM-206xx Libraries (Betaflight-based, GPL v3) - 3 days
 
-### Create New Library
+### MPU-9250 Library
 **Location:** `libraries/MPU9250/`
 **License:** GPL v3 (Betaflight-derived code)
+
+### ICM-206xx Family Library
+**Location:** `libraries/ICM20689/`
+**License:** GPL v3 (Betaflight-derived code)
+**Supported Chips:** ICM-20601, ICM-20602, ICM-20608, ICM-20689
 
 ### File Structure
 ```
@@ -691,13 +711,13 @@ void loop() {
 
 | Phase | Duration | Status |
 |-------|----------|--------|
-| Phase 1: AFSR fix | 1 day | ✅ COMPLETE |
-| Phase 2: Bus abstraction | 2 days | ✅ COMPLETE |
-| Phase 3: MPU-6000 library | 3 days | PENDING |
-| Phase 4: MPU-9250 library | 3 days | PENDING |
-| Phase 5: Unified wrapper | 2 days | PENDING |
-| Phase 6: dRehmFlight testing | 2 days | PENDING |
-| **TOTAL** | **13 days (~2.5 weeks)** | |
+| Phase 1: AFSR fix | 1 day | ✅ COMPLETE (2025-11-02) |
+| Phase 2: Bus abstraction | 2 days | ✅ COMPLETE (2025-11-02) |
+| Phase 3: MPU-6000 library | 3 days | ✅ COMPLETE + HARDWARE VALIDATED (2025-11-03) |
+| Phase 4: MPU-9250 library | 3 days | ✅ COMPLETE - Hardware validation pending |
+| Phase 5: Unified wrapper | 2 days | 📋 PENDING |
+| Phase 6: dRehmFlight testing | 2 days | 📋 PENDING |
+| **TOTAL** | **13 days (~2.5 weeks)** | **4/6 phases complete** |
 
 ---
 
@@ -790,5 +810,195 @@ void loop() {
 
 ---
 
-**Last Updated:** 2025-11-02
-**Status:** Phase 2 complete ✅ - Ready for Phase 3
+---
+
+## Phase 3 Completion - MPU-6000 Library ✅
+
+**Completed:** 2025-11-03
+
+**Implementation:**
+- Created `libraries/MPU6000/` with GPL v3 license
+- Adapted Betaflight MPU-6000 driver code (`mpu6000_bf.c/h`)
+- Implemented Arduino wrapper class (`MPU6000.h/cpp`)
+- Created shared MPU register definitions (`mpu_common.h`)
+- Implemented MPU6000_Basic example sketch
+
+**Files Created:**
+1. `LICENSE` - GNU GPL v3 with Betaflight attribution
+2. `README.md` - Library documentation with GPL notice and containment strategy
+3. `library.properties` - Arduino library metadata
+4. `src/MPU6000.h` - Arduino class interface (GPL v3)
+5. `src/MPU6000.cpp` - Arduino wrapper implementation (GPL v3)
+6. `src/mpu6000_bf.h` - Betaflight driver header (GPL v3)
+7. `src/mpu6000_bf.c` - Betaflight driver adaptation (GPL v3)
+8. `src/mpu_common.h` - Shared MPU register definitions (GPL v3)
+9. `examples/MPU6000_Basic/MPU6000_Basic.ino` - Detection and 6DOF example
+
+**Key Features:**
+- **Production-validated initialization** - Betaflight reset sequences, timing delays preserved
+- **WHO_AM_I + PRODUCT_ID detection** - Validates MPU-6000 revisions C4-D10
+- **Configurable DLPF** - 7 bandwidth settings (5Hz to 256Hz)
+- **Configurable FSR** - Gyro: ±250/500/1000/2000 dps, Accel: ±2/4/8/16g
+- **6-axis data reading** - Gyro (dps) and Accel (g) with scale conversion
+- **Arduino-compatible API** - Clean interface with SPI abstraction via `bf_bus`
+
+**GPL Containment:**
+- MPU6000 library is **separate, optional** - users can exclude if not needed
+- `IMU` wrapper (MIT) provides **interface abstraction** - no GPL code in interface
+- dRehmFlight (MIT) depends on `IMU.h` interface only, not GPL implementation
+- Clear license boundaries documented in README.md
+
+**Hardware Validation:**
+- ✅ **Board:** NUCLEO_F411RE with JHEF411 target config
+- ✅ **IMU:** MPU-6000 on SPI1 (PA5=SCK, PA6=MISO, PA7=MOSI, PA4=CS)
+- ✅ **WHO_AM_I:** 0x68 (MPU-6000 correctly detected)
+- ✅ **Initialization:** Successful with 1 MHz SPI
+- ✅ **Data acquisition:** 50 samples at 10 Hz
+- ✅ **Gyro readings:** Stationary drift ~0.5 dps (expected)
+- ✅ **Accel readings:** Z-axis ~0.97g (gravity)
+- ✅ **HIL test:** Deterministic exit with *STOP* wildcard
+- ✅ **Binary size:** 22,268 bytes (4% flash)
+
+**API Example:**
+```cpp
+#include <MPU6000.h>
+
+MPU6000 imu;
+imu.begin(SPI, PA4, 1000000);        // Initialize
+uint8_t id = imu.whoAmI();           // Returns 0x68
+imu.read6DOF(gx, gy, gz, ax, ay, az); // Read 6-axis
+imu.setDLPF(0);                       // 256 Hz bandwidth
+```
+
+**Status:** Phase 3 complete with hardware validation ✅
+
+---
+
+---
+
+## Phase 4 Completion - MPU-9250 Library ✅
+
+**Completed:** 2025-11-02
+
+**Implementation:**
+- Created `libraries/MPU9250/` with GPL v3 license
+- Adapted Betaflight MPU-9250 driver code with write-verify patterns (`mpu9250_bf.c/h`)
+- Implemented Arduino wrapper class (`MPU9250.h/cpp`)
+- Copied shared bus abstraction (`bf_bus.*`, `bf_types.h`, `mpu_common.h`)
+- Implemented MPU9250_Basic example sketch
+
+**Files Created:**
+1. `LICENSE` - GNU GPL v3 with Betaflight attribution
+2. `README.md` - Library documentation with GPL notice, hardware validation noted
+3. `library.properties` - Arduino library metadata
+4. `src/MPU9250.h` - Arduino class interface (GPL v3)
+5. `src/MPU9250.cpp` - Arduino wrapper implementation (GPL v3)
+6. `src/mpu9250_bf.h` - Betaflight driver header (GPL v3)
+7. `src/mpu9250_bf.c` - Betaflight driver adaptation (GPL v3)
+8. `src/mpu_common.h` - Shared MPU register definitions (copied from MPU6000)
+9. `src/bf_bus.h/cpp` - SPI bus abstraction (copied from MPU6000)
+10. `src/bf_types.h` - Device type definitions (copied from MPU6000)
+11. `examples/MPU9250_Basic/MPU9250_Basic.ino` - Detection and 6DOF example
+
+**Key Features:**
+- **Production-validated initialization** - Betaflight write-verify patterns preserved
+- **Write-verify with retry** - Up to 20 attempts for critical registers (MPU-9250 specific)
+- **Slow read/write operations** - 1µs delays for register reliability
+- **WHO_AM_I detection with retry** - 150ms delays between attempts
+- **Dual chip support** - MPU-9250 (0x71) and MPU-9255 (0x73)
+- **Separate gyro/accel DLPF** - Independent filter configuration
+- **Magnetometer bypass** - BYPASS_EN set for AK8963 access (future magnetometer support)
+- **Configurable FSR** - Gyro: ±250/500/1000/2000 dps, Accel: ±2/4/8/16g
+- **6-axis data reading** - Gyro (dps) and Accel (g) with scale conversion
+
+**Build Results:**
+```
+✓ Build successful
+Binary: MPU9250_Basic.ino.bin
+Size: 22,836 bytes (4% of 512KB flash)
+RAM: 2,188 bytes (1% of 128KB RAM)
+Build time: 8 seconds
+```
+
+**Hardware Validation Target:**
+- **Board:** Blackpill F411CE
+- **IMU:** MPU-9250 breakout board
+- **Interface:** SPI_1 (PA5=SCK, PA6=MISO, PA7=MOSI), CS=PA4
+- **Status:** Ready for hardware testing ⏳
+
+**Next Steps:**
+- Hardware validation on Blackpill F411 + MPU-9250 (Phase 4 final step)
+- Phase 5: Unified IMU wrapper with multi-chip auto-detection
+- Phase 6: dRehmFlight testing with all 3 IMU chips
+
+---
+
+## Phase 4b Completion - ICM20689 Library (ICM-206xx Family) ✅
+
+**Completed:** 2025-11-03
+
+**Implementation:**
+- Created `libraries/ICM20689/` with GPL v3 license
+- Adapted Betaflight ICM-206xx driver code (`icm20689_bf.c/h`)
+- Implemented Arduino wrapper class (`ICM20689.h/cpp`)
+- Created shared MPU register definitions (`mpu_common.h`)
+- Implemented ICM20689_Basic example sketch
+
+**Files Created:**
+1. `LICENSE` - GNU GPL v3 with Betaflight attribution
+2. `README.md` - Library documentation with multi-chip support details
+3. `library.properties` - Arduino library metadata
+4. `src/ICM20689.h` - Arduino class interface with ChipVariant enum (GPL v3)
+5. `src/ICM20689.cpp` - Arduino wrapper implementation (GPL v3)
+6. `src/icm20689_bf.h` - Betaflight driver header (GPL v3)
+7. `src/icm20689_bf.c` - Betaflight driver adaptation (GPL v3)
+8. `src/mpu_common.h` - Shared MPU register definitions (copied from MPU6000)
+9. `src/bf_bus.h/cpp` - SPI bus abstraction (copied from MPU6000)
+10. `src/bf_types.h` - Device type definitions with ICM-206xx enums (copied from MPU6000)
+11. `examples/ICM20689_Basic/ICM20689_Basic.ino` - Detection and 6DOF example
+
+**Key Features:**
+- **Multi-chip support** - Single driver for 4 chip variants
+- **Auto-detection** - ChipVariant enum and getChipName() API
+- **Production-validated initialization** - Betaflight reset sequences with timing delays preserved
+- **Clock selection with settle delay** - PLL clock with 120µs settle time
+- **Configurable DLPF** - 8 bandwidth settings (5Hz to 3600Hz)
+- **Configurable FSR** - Gyro: ±250/500/1000/2000 dps, Accel: ±2/4/8/16g
+- **6-axis data reading** - Gyro (dps) and Accel (g) with scale conversion
+- **Arduino-compatible API** - Clean interface with SPI abstraction via `bf_bus`
+
+**Supported Chips:**
+| Chip | WHO_AM_I | Status |
+|------|----------|--------|
+| ICM-20601 | 0xAC | ✅ Supported |
+| ICM-20602 | 0x12 | ⭐ Primary target |
+| ICM-20608 | 0xAF | ✅ Supported |
+| ICM-20689 | 0x98 | ✅ Supported |
+
+**Build Results:**
+```
+✓ Build successful
+Binary: ICM20689_Basic.ino.bin
+Size: 22,124 bytes (4% of 512KB flash)
+RAM: 2,192 bytes (1% of 128KB RAM)
+Build time: 8 seconds
+```
+
+**API Example:**
+```cpp
+#include <ICM20689.h>
+
+ICM20689 imu;
+imu.begin(SPI, PA4, 1000000);               // Initialize
+uint8_t id = imu.whoAmI();                   // Returns 0x12 (ICM-20602)
+const char* name = imu.getChipName();        // Returns "ICM-20602"
+imu.read6DOF(gx, gy, gz, ax, ay, az);       // Read 6-axis
+imu.setDLPF(0);                              // 250 Hz bandwidth
+```
+
+**Status:** Phase 4b complete - Ready for hardware validation with ICM-20602 ⏳
+
+---
+
+**Last Updated:** 2025-11-03
+**Status:** Phase 3 hardware validated ✅ | Phase 4a/4b ready for hardware validation ⏳

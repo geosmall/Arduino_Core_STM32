@@ -31,8 +31,42 @@ This is a fork of the upstream [stm32duino/Arduino_Core_STM32](https://github.co
 
 ## Build Systems and Commands
 
-### Arduino CLI (Recommended)
-The primary build system uses arduino-cli with STM32 boards:
+**IMPORTANT - CI Scripts Are Required:**
+- ✅ **ALWAYS use** `./system/ci/build.sh` and `./system/ci/aflash.sh` for building and testing
+- ✅ **ALWAYS use** `./system/ci/cleanup_repo.sh` before commits
+- ❌ **DO NOT use** `arduino-cli compile` directly - use `build.sh` wrapper instead
+- ❌ **DO NOT use** `arduino-cli upload` directly - use `aflash.sh` wrapper instead
+
+**Why CI scripts are mandatory:**
+1. Environment validation (Arduino CLI 1.3.0, STM32 Core 2.7.1)
+2. Build traceability (Git SHA + UTC timestamp)
+3. Deterministic builds (cache management)
+4. HIL testing integration (RTT, exit wildcard detection)
+5. Device auto-detection (50+ STM32 devices)
+
+### CI Build Scripts (Primary Method)
+Enhanced build workflow with environment validation and device auto-detection:
+
+```bash
+# Standard build and HIL testing (USE THESE)
+./system/ci/build.sh <sketch_directory> [--build-id] [--env-check] [--use-rtt]
+./system/ci/aflash.sh <sketch_directory> [--env-check] [--use-rtt] [--build-id]
+
+# Environment and device utilities
+./system/ci/env_check_quick.sh         # Fast environment validation
+./system/ci/detect_device.sh           # Auto-detect STM32 via J-Link
+./system/ci/flash_auto.sh <binary>     # Program with auto-detected device
+./system/ci/cleanup_repo.sh            # Clean build artifacts before commit
+```
+
+**Key Features**:
+- **Environment Validation**: Arduino CLI (1.3.0) and STM32 Core (2.7.1) validation
+- **Build Traceability**: Git SHA + UTC timestamp integration
+- **Device Auto-Detection**: 50+ STM32 device IDs supported
+- **Cache Management**: `--clean-cache` for deterministic builds
+
+### Arduino CLI (Reference Only - Use CI Scripts Instead)
+The CI scripts wrap arduino-cli with additional validation and features:
 
 ```bash
 # Install STM32 core

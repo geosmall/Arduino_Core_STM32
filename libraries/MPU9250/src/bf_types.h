@@ -37,6 +37,7 @@ typedef struct gyroDev_s {
     int16_t gyroADCRaw[3];         // Raw gyro data [X, Y, Z]
     mpuDetectionResult_e mpuDetectionResult;
     uint8_t hardware_lpf;          // Hardware low-pass filter setting
+    uint8_t mpuDividerDrops;       // Sample rate divider (SMPLRT_DIV register)
     void (*initFn)(struct gyroDev_s *gyro);    // Init function pointer
     bool (*readFn)(struct gyroDev_s *gyro);    // Read function pointer
 } gyroDev_t;

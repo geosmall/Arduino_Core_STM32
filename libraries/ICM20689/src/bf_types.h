@@ -26,7 +26,11 @@ typedef enum {
     MPU_NONE = 0,
     MPU_60x0_SPI,
     MPU_9250_SPI,
-    ICM_42688P_SPI
+    ICM_42688P_SPI,
+    ICM_20601_SPI,
+    ICM_20602_SPI,
+    ICM_20608_SPI,
+    ICM_20689_SPI
 } mpuDetectionResult_e;
 
 // Gyro device structure
