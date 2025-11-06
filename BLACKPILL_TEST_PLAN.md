@@ -285,8 +285,6 @@ Accel (g):    X=0.00 Y=0.03 Z=0.99
 - **Data all zeros**: Sensor not powered or damaged
 - **Accel Z not 1.0g**: Board not flat, or sensor orientation different
 
-**Note**: Target file comment incorrectly says "SPI1" but pins are actually SPI2 (PB13/14/15). This is correct behavior - comment needs fixing in future.
-
 ---
 
 ## Pre-Test Checklist
@@ -360,11 +358,7 @@ Execute tests in order due to dependencies:
 ## Known Issues & Notes
 
 ### Target File Issues (Non-Critical)
-1. **Comment mismatch**: IMU config comment says "SPI1" but pins are SPI2 (PB13/14/15)
-   - **Status**: Correct behavior, comment needs updating
-   - **Impact**: None (code is correct)
-
-2. **MISO routing variance**: Different BLACKPILL board versions route flash MISO differently
+1. **MISO routing variance**: Different BLACKPILL board versions route flash MISO differently
    - **V2.0**: MISO on PB4
    - **V2.1+**: MISO on PA6 (current target config)
    - **Impact**: If flash test fails, check board version and update target file
@@ -469,7 +463,64 @@ All pin collisions from previous analysis have been resolved:
 
 ---
 
+## Test Execution Results
+
+**Date**: 2025-01-06
+**Hardware**: WeAct Studio BLACKPILL F411CE (STM32F411CEU6)
+**Flash Chip**: Winbond W25Q64JV-Q (8MB)
+
+### Phase 1: LED Blink Test ✅ PASSED
+- **Visual Confirmation**: LED blinking at 1 Hz confirmed
+- **RTT Output**: 10 blinks completed, clean exit with *STOP*
+- **Binary Size**: 13,432 bytes (2.5% flash)
+- **Duration**: ~20 seconds
+- **Result**: GPIO (PC13) validated
+
+### Phase 2: SPI Flash Test ✅ PASSED
+- **Chip Detected**: W25Q64JV-Q (JEDEC ID: 0xEF4017)
+- **Manufacturer**: Winbond (0xEF)
+- **Capacity**: 8MB (8,388,608 bytes)
+- **Operations**: Chip erase successful
+- **Binary Size**: 45,284 bytes (8.6% flash)
+- **Result**: SPI1 (PA5/PA6/PA7/PA4) validated
+
+### Phase 2+: AUnit Framework Test ✅ PASSED
+- **Tests**: 3/3 passed (basic_arithmetic, boolean_logic, string_operations)
+- **Duration**: 0.120 seconds
+- **RTT Integration**: Perfect, exit wildcard detected
+- **Result**: AUnit HIL framework operational
+
+### Phase 2+: LittleFS Unit Tests ✅ PASSED (8/8)
+- **Tests Passed**: All 8 tests (100%)
+  - a_initialize_filesystem
+  - basic_file_operations
+  - directory_operations
+  - file_append_operations
+  - file_rename_operations
+  - file_seek_and_position
+  - filesystem_basic_info
+  - large_file_operations
+- **Duration**: 11.677 seconds
+- **Binary Size**: 51,108 bytes (9.7% flash)
+- **Improvements**: Updated chip validation logic (manufacturer check + size range)
+- **Result**: Complete filesystem functionality validated
+
+### Phase 3: MPU-9250 IMU Test ⏳ PENDING
+- Status: Not executed (requires external IMU hardware wiring)
+
+---
+
 ## Revision History
+
+**2025-01-06**: Test execution and improvements
+- Executed Phase 1, 2, and 2+ tests successfully (100% pass rate)
+- Fixed BLACKPILL_F411CE.h storage CS pin (PA15→PA4) to match hardware
+- Fixed BLACKPILL_F411CE.h ADC pin (PA4→PA0) to resolve conflict
+- Fixed BLACKPILL_F411CE.h timer types (TimerInfo→TIM_TypeDef*) for compilation
+- Improved LittleFS_Unit_Tests chip validation (removed magic numbers, added manufacturer/range checks)
+- Fixed MPU9250/MPU6000 example wiring docs (SPI1→SPI2 for BLACKPILL)
+- Fixed BLACKPILL_F411CE.h comment (IMU now correctly labeled as SPI2)
+- Created tests/BLACKPILL_LED_Test/ for Phase 1 validation
 
 **2025-01-04**: Initial test plan created
 - Hardware confirmed: Onboard flash, external MPU-9250

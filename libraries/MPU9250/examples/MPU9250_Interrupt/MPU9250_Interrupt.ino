@@ -15,10 +15,10 @@
  *   -----------------
  *   VCC  → 3.3V
  *   GND  → GND
- *   SCK  → PA5 (SPI1_SCK)
- *   MISO → PA6 (SPI1_MISO)
- *   MOSI → PA7 (SPI1_MOSI)
- *   CS   → PA4 (GPIO)
+ *   SCK  → PB13 (SPI2_SCK)
+ *   MISO → PB14 (SPI2_MISO)
+ *   MOSI → PB15 (SPI2_MOSI)
+ *   CS   → PB12 (GPIO)
  *   INT  → PB2 (EXTI2)
  *
  * CI/HIL INTEGRATION:

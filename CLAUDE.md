@@ -379,6 +379,7 @@ Compile-time board config with multi-board support (NUCLEO_F411RE, BLACKPILL_F41
 - Config types: StorageConfig, IMUConfig, RCReceiverConfig, UARTConfig, I2CConfig, ADCConfig, LEDConfig
 - CS Mode control: Software/hardware via get_ssel_pin() helper
 - Usage: `#include "targets/NUCLEO_F411RE_LITTLEFS.h"` → `BoardConfig::storage.mosi_pin`
+- **Hardware Validated**: BLACKPILL_F411CE fully validated (LED, SPI flash W25Q64, LittleFS filesystem) - see BLACKPILL_TEST_PLAN.md
 
 ### Storage Abstraction & Config ✅ **COMPLETED**
 

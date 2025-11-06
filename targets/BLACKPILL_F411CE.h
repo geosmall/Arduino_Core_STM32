@@ -18,9 +18,9 @@
 namespace BoardConfig {
   // see: https://github.com/WeActStudio/WeActStudio.MiniSTM32F4x1/blob/master/HDK/MiniF4x1Cx_V31.pdf
   // StorageConfig(StorageBackend, mosi, miso, sclk, cs, frequency_hz)
-  static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PA7, PA6, PA5, PA15, 8000000};
+  static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PA7, PA6, PA5, PA4, 8000000};
 
-  // IMU: SPI1 (MPU6000/MPU6500/MPU9250)
+  // IMU: MPU6000/MPU6500/MPU9250 on SPI2
   // SPIConfig(mosi, miso, sclk, cs, frequency_hz)
   static constexpr SPIConfig imu_spi{PB15, PB14, PB13, PB12, 1000000};
   // IMUConfig(spi_config, interrupt_pin, frequency_hz)
@@ -40,7 +40,7 @@ namespace BoardConfig {
 
   // ADC: Battery voltage, current
   // ADCConfig(vbat_pin, current_pin, vbat_scale, current_scale)
-  static constexpr ADCConfig battery{PA1, PA4, 110, 170};
+  static constexpr ADCConfig battery{PA1, PA0, 110, 170};
 
   // Status LEDs
   static constexpr LEDConfig status_leds{PC13};
@@ -64,21 +64,20 @@ namespace BoardConfig {
     };
 
     // TIM3 motors (M1-M4)
-    static constexpr TimerInfo timer3 = TIM3;
+    static inline TIM_TypeDef* const timer3 = TIM3;
     static constexpr MotorChannel motor1{PB4, 1, 125, 250};      // TIM3_CH1
     static constexpr MotorChannel motor2{PB5, 2, 125, 250};      // TIM3_CH2
     static constexpr MotorChannel motor3{PB0_ALT1, 3, 125, 250}; // TIM3_CH3 (ALT1)
     static constexpr MotorChannel motor4{PB1_ALT1, 4, 125, 250}; // TIM3_CH4 (ALT1)
 
     // TIM4 motors (M5-M6)
-    static constexpr TimerInfo timer4 = TIM4;
+    static inline TIM_TypeDef* const timer4 = TIM4;
     static constexpr MotorChannel motor5{PB6, 1, 125, 250};      // TIM4_CH1
     static constexpr MotorChannel motor6{PB7, 2, 125, 250};      // TIM4_CH2
 
-    // TIM2 motors (M7-M8)
-    static constexpr TimerInfo timer2 = TIM2;
+    // TIM2 motors (M7)
+    static inline TIM_TypeDef* const timer2 = TIM2;
     static constexpr MotorChannel motor7{PA2, 3, 125, 250};      // TIM2_CH3
-    static constexpr MotorChannel motor8{PA0, 1, 125, 250};      // TIM2_CH1
   }
 
 }

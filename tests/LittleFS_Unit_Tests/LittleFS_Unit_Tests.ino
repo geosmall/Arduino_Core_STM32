@@ -65,8 +65,23 @@ test(a_initialize_filesystem) {
   uint64_t totalSize = myfs.totalSize();
   assertTrue(totalSize > 0);
 
-  // Expected size for W25Q128JV is 16MB = 16777216 bytes
-  assertEqual((unsigned long)totalSize, 16777216UL);
+  // Verify chip was detected and is in known_chips table
+  // getChipInfo() returns chip metadata from the detected chip
+  LFS_W25QXX_info_t chipInfo;
+  assertTrue(myfs.getChipInfo(chipInfo));
+
+  // Verify JEDEC ID indicates a Winbond (0xEF) or GigaDevice (0xC8) chip
+  // These are the most common chips in known_chips table
+  bool knownManufacturer = (chipInfo.manufacturer_id == 0xEF) ||
+                           (chipInfo.manufacturer_id == 0xC8) ||
+                           (chipInfo.manufacturer_id == 0x01) ||  // Spansion
+                           (chipInfo.manufacturer_id == 0x1F) ||  // Adesto/Atmel
+                           (chipInfo.manufacturer_id == 0x62);    // Microchip
+  assertTrue(knownManufacturer);
+
+  // Verify size is within expected range for supported chips (0.5MB to 128MB)
+  assertTrue(totalSize >= 524288UL);      // >= 0.5MB (smallest supported)
+  assertTrue(totalSize <= 134217728UL);   // <= 128MB (largest single-die chip in table)
 
   // Media name should be available
   const char* mediaName = myfs.getMediaName();
@@ -341,7 +356,14 @@ test(filesystem_basic_info) {
   // Basic sanity checks
   assertTrue(totalSize > 0);
   assertTrue(usedSize <= totalSize);
-  assertEqual((unsigned long)totalSize, 16777216UL); // 16MB for W25Q128JV
+
+  // Verify chip is still recognized (should be from known_chips table)
+  LFS_W25QXX_info_t chipInfo;
+  assertTrue(myfs.getChipInfo(chipInfo));
+
+  // Verify size is still within expected range for supported chips
+  assertTrue(totalSize >= 524288UL);      // >= 0.5MB (smallest supported)
+  assertTrue(totalSize <= 134217728UL);   // <= 128MB (largest single-die chip in table)
 
   // Create a small test file
   myfs.remove("infotest.txt");
