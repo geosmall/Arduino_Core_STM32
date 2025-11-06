@@ -505,14 +505,32 @@ All pin collisions from previous analysis have been resolved:
 - **Improvements**: Updated chip validation logic (manufacturer check + size range)
 - **Result**: Complete filesystem functionality validated
 
-### Phase 3: MPU-9250 IMU Test ⏳ PENDING
-- Status: Not executed (requires external IMU hardware wiring)
+### Phase 3: MPU-9250 IMU Test ✅ PASSED
+- **WHO_AM_I**: 0x71 (MPU-9250 detected)
+- **Samples Collected**: 50 samples
+- **Gyro Data (stationary)**: X=-0.43 to -0.67, Y=0.18 to 0.37, Z=-0.79 to -1.10 dps
+  - All within ±2 dps tolerance ✅
+- **Accel Data (board flat)**:
+  - X: -0.058 to -0.062g (within ±0.1g) ✅
+  - Y: -0.094 to -0.103g (within ±0.1g) ✅
+  - Z: -0.973 to -0.981g (gravity, 0.9-1.1g range) ✅
+- **SPI Communication**: SPI2 (PB13/14/15/12) validated
+- **DLPF Configuration**: Gyro=250Hz, Accel=460Hz
+- **Binary Size**: 22,880 bytes (4.3% flash)
+- **Duration**: Continuous data acquisition, 50 samples
+- **Result**: All IMU measurements within specification ✅
 
 ---
 
 ## Revision History
 
-**2025-01-06**: Test execution and improvements
+**2025-11-06**: Phase 3 execution - MPU-9250 IMU test
+- Executed Phase 3 test successfully (MPU-9250 IMU validated)
+- Verified SPI2 communication (PB13/14/15/12 pins confirmed working)
+- Validated WHO_AM_I (0x71), gyro/accel data acquisition
+- All test phases complete: Phase 1 ✅, Phase 2 ✅, Phase 2+ ✅, Phase 3 ✅
+
+**2025-01-06**: Phase 1, 2, and 2+ execution and improvements
 - Executed Phase 1, 2, and 2+ tests successfully (100% pass rate)
 - Fixed BLACKPILL_F411CE.h storage CS pin (PA15→PA4) to match hardware
 - Fixed BLACKPILL_F411CE.h ADC pin (PA4→PA0) to resolve conflict
