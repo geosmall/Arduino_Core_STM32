@@ -2,7 +2,19 @@
  * MPU9250_Interrupt Example
  *
  * Demonstrates interrupt-driven data acquisition from MPU-9250.
- * This example uses the data-ready interrupt to achieve precise 1kHz sampling.
+ * This example implements the SMOOTH preset (see libraries/imu/imu_hal.md).
+ *
+ * FILTER PRESET: SMOOTH (1 kHz, 184 Hz bandwidth)
+ * - Gyro DLPF_CFG=1 (184 Hz bandwidth, 1 kHz internal rate)
+ * - Accel DLPF_CFG=1 (184 Hz bandwidth)
+ * - SMPLRT_DIV=0 (no division, 1 kHz output)
+ * - This matches Betaflight/dRehmFlight configuration for MPU-9250
+ * - Hardware-validated: 1000 Hz DRDY interrupt rate
+ *
+ * For other presets, see libraries/imu/imu_hal.md:
+ * - SAFE: DLPF_CFG=2 (92 Hz, 1 kHz)
+ * - BALANCED: DLPF_CFG=0 (250 Hz, 8 kHz with SW decimation to 4 kHz)
+ * - ACRO: DLPF_CFG=0 (250 Hz, 8 kHz)
  *
  * HARDWARE CONFIGURATION:
  * - Uses BoardConfig for automatic board detection (BLACKPILL_F411CE)
@@ -124,14 +136,18 @@ void setup() {
     CI_LOG("(Expected 0x71 or 0x73, detection may have failed)\n");
   }
 
-  // Configure for 1kHz operation
-  // DLPF = 0 (256 Hz bandwidth, 8kHz internal sample rate)
-  // SMPLRT_DIV = 7 (8kHz / (1+7) = 1kHz output)
-  imu.setDLPF(0, 0);  // Gyro DLPF=0, Accel DLPF=0
-  CI_LOG("DLPF configured: 256 Hz bandwidth (8kHz internal)\n");
+  // Configure SMOOTH preset (see libraries/imu/imu_hal.md)
+  // DLPF_CFG=1: 184 Hz bandwidth, 1 kHz internal sample rate
+  // SMPLRT_DIV=0: No division, 1 kHz output rate
+  // This matches Betaflight/dRehmFlight standard configuration for MPU-9250
+  //
+  // Note: SMPLRT_DIV only effective when 0 < DLPF_CFG < 7 (per MPU-9250 datasheet)
+  // For BALANCED/ACRO presets (DLPF_CFG=0), see imu_hal.md for software decimation approach.
+  imu.setDLPF(1, 1);  // Gyro DLPF=1, Accel DLPF=1
+  CI_LOG("DLPF configured: 184 Hz bandwidth (1kHz internal) - SMOOTH preset\n");
 
-  imu.setSampleRateDivider(7);  // 8kHz / (1+7) = 1kHz
-  CI_LOG("Sample rate divider: 7 (target 1kHz output)\n");
+  imu.setSampleRateDivider(0);  // 1kHz / (1+0) = 1kHz
+  CI_LOG("Sample rate divider: 0 (1kHz output)\n");
 
   // Set ranges
   imu.setGyroFSR(2000);  // ±2000 dps

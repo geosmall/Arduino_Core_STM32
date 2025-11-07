@@ -2,33 +2,17 @@
  * MPU9250_Basic Example
  *
  * Demonstrates MPU-9250/MPU-9255 detection and basic 6-axis data reading.
+ * This is a simple polling-mode example for quick hardware verification.
+ *
+ * FILTER PRESET: Not aligned with standard presets (see libraries/imu/imu_hal.md)
+ * - Uses DLPF_CFG=0 for wide bandwidth (250 Hz gyro, 460 Hz accel)
+ * - Polling mode at 100 Hz (not interrupt-driven)
+ * - For production use, see MPU9250_Interrupt (implements SMOOTH preset)
  *
  * HARDWARE CONFIGURATION:
  * - Uses BoardConfig for automatic board detection (BLACKPILL_F411CE)
  * - Pin assignments and SPI frequency from board configuration
  *
- * Hardware Setup - BLACKPILL_F411CE:
- *   MPU-9250 → Blackpill
- *   -----------------
- *   VCC  → 3.3V
- *   GND  → GND
- *   SCK  → PB13 (SPI2_SCK)
- *   MISO → PB14 (SPI2_MISO)
- *   MOSI → PB15 (SPI2_MOSI)
- *   CS   → PB12 (GPIO)
- *   INT  → PB2 (Optional - interrupt pin)
- *
- * Hardware Setup - NUCLEO_F411RE:
- *   MPU-9250 → NUCLEO
- *   -----------------
- *   VCC  → 3.3V
- *   GND  → GND
- *   SCK  → PA5 (SPI1_SCK)
- *   MISO → PA6 (SPI1_MISO)
- *   MOSI → PA7 (SPI1_MOSI)
- *   CS   → PA4 (GPIO)
- *
- * License: GPL v3 (Betaflight-derived library)
  */
 
 #include <MPU9250.h>
@@ -101,9 +85,14 @@ void setup() {
     CI_LOGF("(Expected 0x71 or 0x73, detection may have failed)\n");
   }
 
-  // Configure DLPF (250 Hz gyro, 460 Hz accel - low latency)
+  // Configure DLPF (wide bandwidth for testing)
+  // DLPF_CFG=0: Gyro=250Hz BW, Accel=460Hz BW
+  // NOTE: This produces 8 kHz on-sensor rate (SMPLRT_DIV non-functional with DLPF_CFG=0)
+  // This example polls at 100 Hz, so intermediate samples are ignored.
+  // See libraries/imu/imu_hal.md for standard SAFE/SMOOTH/BALANCED/ACRO presets.
   imu.setDLPF(0, 0);
-  CI_LOG("DLPF configured: Gyro=250Hz, Accel=460Hz\n");
+  CI_LOG("DLPF configured: Gyro=250Hz, Accel=460Hz (wide bandwidth)\n");
+  CI_LOG("Note: On-sensor rate is 8kHz, but polling at 100Hz for this demo\n");
 
   // Set ranges
   imu.setGyroFSR(2000);  // ±2000 dps
