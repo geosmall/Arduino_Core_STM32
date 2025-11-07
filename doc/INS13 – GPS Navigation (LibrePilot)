@@ -1,0 +1,133 @@
+# INS13 – GPS Navigation (LibrePilot)
+
+*Source:* LibrePilot Documentation → “INS13 – GPS Navigation”  
+*Author:* Lalanne Laurent  
+*Date:* Feb 05, 2016  
+*Original page:* https://librepilot.atlassian.net/wiki/spaces/LPDOC/pages/15499281/INS13+-+GPS+Navigation
+
+---
+
+## Overview
+
+INS13 is LibrePilot’s INS/GPS navigation mode. It uses an Extended Kalman Filter (EKF) to fuse multiple onboard sensors (IMU, magnetometer, barometer) with GPS to estimate a full 13-state representation of vehicle position, velocity, attitude, and gyro bias.
+
+> For EKF theory behind LibrePilot’s INS/GPS implementation, see **INSGPSAlg.pdf** (referenced in the original page).
+
+---
+
+## Contents
+
+- [Complementary filter](#complementary-filter)
+- [State estimation with EKF](#state-estimation-with-extended-kalman-filter-ekf)
+- [State (13-dimensional)](#state)
+- [Prediction model](#prediction-model)
+- [Correction step](#correction-step)
+- [Variances](#variances)
+- [Sensor contradiction](#sensor-contradiction)
+
+---
+
+## Complementary filter
+
+On CC3D hardware, a simple complementary filter fuses the accelerometer and gyroscope to estimate attitude (orientation).  
+Limitations:
+
+- Skewed by centripetal/long-duration turning forces (e.g., flying in circles).
+- Cannot compute speed or position.
+- Cannot estimate yaw/heading without a magnetometer (CC3D has no compass).
+
+---
+
+## State estimation with Extended Kalman Filter (EKF)
+
+Typical flight-controller sensors cannot directly observe the full system state (position, velocity, attitude). Instead, they measure:
+
+- Inertial quantities: rotation (gyros) and acceleration (accelerometers),  
+- Heading: magnetometer,  
+- Altitude: barometer,  
+- Global position and ground speed: GPS.
+
+These measurements are **noisy**, **inaccurate**, and **temperature-dependent**, so a sensor-fusion filter (EKF) is used to produce a consistent state estimate.
+
+---
+
+## State
+
+Revolution-class boards run an EKF that estimates a **13-dimensional** state with full covariance in real time:
+
+| # | State Variable |
+|---|----------------|
+| 1 | Position **N** (North) |
+| 2 | Position **E** (East) |
+| 3 | Position **D** (Down) |
+| 4 | Velocity **N** |
+| 5 | Velocity **E** |
+| 6 | Velocity **D** |
+| 7 | Quaternion **Q0** |
+| 8 | Quaternion **Q1** |
+| 9 | Quaternion **Q2** |
+| 10 | Quaternion **Q3** |
+| 11 | Gyro bias **X** |
+| 12 | Gyro bias **Y** |
+| 13 | Gyro bias **Z** |
+
+---
+
+## Prediction model
+
+- **Rate:** ~1 kHz (1000 updates/s).
+- **Inputs:** current **gyro** (corrected by estimated gyro bias) and **accelerometer** measurements.
+- **Gravity:** explicitly modeled (gravity vector used to adjust acceleration).
+- **Purpose:** projects state forward by Δt = 1/1000 s.
+
+**Sensors used in prediction:**
+- Accelerometer: X, Y, Z  
+- Gyroscope: X, Y, Z
+
+This is the **prediction step**. The predicted state is then refined by the **correction step** using absolute/relative measurements.
+
+---
+
+## Correction step
+
+**Fast (every step, orientation-constraining):**
+- Magnetometer: X, Y, Z
+
+**Slower-rate measurements (not every step):**
+- Barometric altitude (meters; D axis; slowly corrected pressure offset)
+- GPS position (lat/lon converted to local NED relative to home): N, E
+- GPS altitude: D
+- GPS velocity: N, E, D
+- Airspeed (if available)
+
+---
+
+## Variances
+
+The EKF estimates both the **state** and its **uncertainty/covariance**:
+
+- **Prediction increases** overall uncertainty (variance grows with process noise).
+- **Correction reduces** uncertainty, but each sensor contributes its own measurement variance.
+- **Variance meaning:** average squared error (e.g., GPS altitude with ±3 m average error ⇒ variance ≈ 3² = **9 m²**).
+
+Notes:
+
+- Easily measured noise (e.g., IMU noise) is only **one** error source.
+- Real-world effects (engine-induced magnetic disturbances, imperfect calibration, biases) may require **larger variances** than pure noise estimates suggest.
+
+---
+
+## Sensor contradiction
+
+Variance settings express **relative trust** in each sensor. When sensors disagree:
+
+- Example: accelerometers vs magnetometer both influence attitude. If local magnetic field differs from expected, **contradiction** occurs.
+- The EKF must prefer one sensor over another based on **variance**. A difference by a factor of **≥2** typically sets a clear priority.
+
+If two contradictory sensors have **similar variances**, the EKF can oscillate between two competing state estimates, causing an unstable or “drunken” artificial horizon.
+
+**Mitigation:**
+- Adjust variances to set clear priorities (increase/decrease one sensor’s variance).
+- Fix root causes (e.g., magnetometer recalibration, reduce magnetic interference).
+
+---

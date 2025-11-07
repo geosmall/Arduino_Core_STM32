@@ -389,6 +389,15 @@ bool MPU9250::initAK8963()
     writeAK8963Register(AK8963_CNTL1, AK8963_MODE_CONT_2_16BIT);
     delay(100);  // Critical: 100ms delay for mode change
 
+    // Configure I2C Slave 0 for continuous auto-reading of magnetometer data
+    // This configures the MPU9250 to automatically read 7 bytes from AK8963
+    // at the gyro sample rate and populate EXT_SENS_DATA_00 to EXT_SENS_DATA_06
+    // (Matches Teensy library approach for high-speed reading)
+    spiWriteReg(&gyro->dev, MPU_RA_I2C_SLV0_ADDR, AK8963_I2C_ADDR | I2C_READ_FLAG);
+    spiWriteReg(&gyro->dev, MPU_RA_I2C_SLV0_REG, AK8963_HXL);
+    spiWriteReg(&gyro->dev, MPU_RA_I2C_SLV0_CTRL, I2C_SLV0_EN | 0x07);  // Enable + 7 bytes
+    delay(10);
+
     return true;
 }
 
@@ -398,10 +407,15 @@ bool MPU9250::readMagnetometer(float &mx, float &my, float &mz)
         return false;
     }
 
-    // Read magnetometer data (7 bytes: HXL, HXH, HYL, HYH, HZL, HZH, ST2)
+    gyroDev_t *gyro = (gyroDev_t *)gyro_dev;
+
+    // Read magnetometer data directly from EXT_SENS_DATA registers
+    // The MPU9250 I2C master automatically populates these at the gyro sample rate
+    // (7 bytes: HXL, HXH, HYL, HYH, HZL, HZH, ST2)
+    // This approach matches the Teensy library and eliminates per-read overhead
     uint8_t mag_data[7];
-    if (!readAK8963Registers(AK8963_HXL, 7, mag_data)) {
-        return false;
+    for (uint8_t i = 0; i < 7; i++) {
+        mag_data[i] = spiReadRegMsk(&gyro->dev, MPU_RA_EXT_SENS_DATA_00 + i);
     }
 
     // Check ST2 status register for overflow

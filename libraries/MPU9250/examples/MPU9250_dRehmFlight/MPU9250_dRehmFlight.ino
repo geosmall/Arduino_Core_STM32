@@ -154,9 +154,9 @@ void setup() {
   CI_LOG("On-sensor: 8 kHz (fresh data every poll)\n");
   CI_LOG("---\n");
 
+  delay(100);  // Brief settling delay before starting measurements
   last_report_time = millis();
   loop_start_time = micros();
-  delay(100);
 }
 
 void loop() {
