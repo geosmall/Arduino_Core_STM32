@@ -86,6 +86,72 @@ public:
                   float &ax, float &ay, float &az);
 
     /**
+     * @brief Read magnetometer data (AK8963)
+     * @param mx Mag X-axis (µT, microtesla)
+     * @param my Mag Y-axis (µT)
+     * @param mz Mag Z-axis (µT)
+     * @return true if read successful
+     */
+    bool readMagnetometer(float &mx, float &my, float &mz);
+
+    /**
+     * @brief Read all 9-axis data (gyro + accel + mag)
+     * @param gx Gyro X-axis (degrees/second)
+     * @param gy Gyro Y-axis (degrees/second)
+     * @param gz Gyro Z-axis (degrees/second)
+     * @param ax Accel X-axis (g)
+     * @param ay Accel Y-axis (g)
+     * @param az Accel Z-axis (g)
+     * @param mx Mag X-axis (µT)
+     * @param my Mag Y-axis (µT)
+     * @param mz Mag Z-axis (µT)
+     * @return true if read successful
+     */
+    bool read9DOF(float &gx, float &gy, float &gz,
+                  float &ax, float &ay, float &az,
+                  float &mx, float &my, float &mz);
+
+    /**
+     * @brief Calibrate magnetometer using figure-8 motion
+     *
+     * This method collects 1500 samples over 15 seconds while the user
+     * rotates the IMU in a figure-8 pattern. It calculates bias and scale
+     * factors for each axis to compensate for hard and soft iron distortions.
+     *
+     * Usage:
+     *   1. Call calibrateMagnetometer()
+     *   2. Rotate IMU in figure-8 motion for 15 seconds
+     *   3. Calibration values are automatically applied
+     *
+     * @return true if calibration successful
+     */
+    bool calibrateMagnetometer();
+
+    /**
+     * @brief Set magnetometer calibration values
+     * @param bias_x X-axis bias (µT)
+     * @param bias_y Y-axis bias (µT)
+     * @param bias_z Z-axis bias (µT)
+     * @param scale_x X-axis scale factor
+     * @param scale_y Y-axis scale factor
+     * @param scale_z Z-axis scale factor
+     */
+    void setMagCalibration(float bias_x, float bias_y, float bias_z,
+                           float scale_x, float scale_y, float scale_z);
+
+    /**
+     * @brief Get current magnetometer calibration values
+     * @param bias_x X-axis bias (µT)
+     * @param bias_y Y-axis bias (µT)
+     * @param bias_z Z-axis bias (µT)
+     * @param scale_x X-axis scale factor
+     * @param scale_y Y-axis scale factor
+     * @param scale_z Z-axis scale factor
+     */
+    void getMagCalibration(float &bias_x, float &bias_y, float &bias_z,
+                           float &scale_x, float &scale_y, float &scale_z) const;
+
+    /**
      * @brief Set Digital Low-Pass Filter (DLPF) configuration
      * @param gyro_dlpf Gyro DLPF setting (0-7):
      *   0 = 250 Hz, 1 = 184 Hz, 2 = 92 Hz, 3 = 41 Hz,
@@ -136,11 +202,32 @@ public:
     bool isInitialized() const { return initialized; }
 
 private:
+    // Betaflight driver pointers
     void *gyro_dev;  // gyroDev_t pointer
     void *acc_dev;   // accDev_t pointer
     bool initialized;
+
+    // Gyro/Accel scale factors
     float gyro_scale;  // Current gyro scale factor (LSB to dps)
     float accel_scale; // Current accel scale factor (LSB to g)
+
+    // Magnetometer (AK8963) support
+    bool mag_initialized;
+    float mag_scale_x;   // ASA calibration scale factor X
+    float mag_scale_y;   // ASA calibration scale factor Y
+    float mag_scale_z;   // ASA calibration scale factor Z
+    float mag_bias_x;    // Hard iron bias X (µT)
+    float mag_bias_y;    // Hard iron bias Y (µT)
+    float mag_bias_z;    // Hard iron bias Z (µT)
+    float mag_scale_factor_x;  // Soft iron scale factor X
+    float mag_scale_factor_y;  // Soft iron scale factor Y
+    float mag_scale_factor_z;  // Soft iron scale factor Z
+
+    // AK8963 helper methods
+    bool initAK8963();
+    bool writeAK8963Register(uint8_t reg, uint8_t value);
+    bool readAK8963Registers(uint8_t reg, uint8_t count, uint8_t *dest);
+    uint8_t whoAmIAK8963();
 };
 
 #endif // MPU9250_H

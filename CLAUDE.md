@@ -104,7 +104,7 @@ Enhanced build workflow with environment validation and device auto-detection:
 ```bash
 # Standard build and HIL testing
 ./system/ci/build.sh <sketch_directory> [--build-id] [--env-check] [--use-rtt]
-./system/ci/aflash.sh <sketch_directory> [--env-check] [--use-rtt] [--build-id]
+./system/ci/aflash.sh <sketch_directory> [FQBN] [--env-check] [--use-rtt] [--build-id]
 
 # Environment and device utilities
 ./system/ci/env_check_quick.sh         # Fast environment validation
@@ -118,6 +118,19 @@ Enhanced build workflow with environment validation and device auto-detection:
 - **Build Traceability**: Git SHA + UTC timestamp integration
 - **Device Auto-Detection**: 50+ STM32 device IDs supported
 - **Cache Management**: `--clean-cache` for deterministic builds
+
+**FQBN Specification**:
+- `aflash.sh` accepts optional FQBN as second positional argument (after sketch directory)
+- Default FQBN: `STMicroelectronics:stm32:Nucleo_64:pnum=NUCLEO_F411RE`
+- **CRITICAL**: Match FQBN to connected hardware to ensure correct pin mappings and peripherals
+- Examples:
+  ```bash
+  # BLACKPILL_F411CE (when connected)
+  ./system/ci/aflash.sh libraries/MPU9250/examples/MPU9250_Basic STMicroelectronics:stm32:GenF4:pnum=BLACKPILL_F411CE --use-rtt --build-id
+
+  # NUCLEO_F411RE (default)
+  ./system/ci/aflash.sh libraries/MPU9250/examples/MPU9250_Basic --use-rtt --build-id
+  ```
 
 ### J-Link and RTT Utilities
 
@@ -173,7 +186,11 @@ cmake --build <build_folder>
   - **Serial Monitor**: Available via J-Link connection (connected CDC ACM serial monitor)
   - **Programming**: J-Run execution via reflashed J-Link interface
 - **BlackPill F411CE** (Secondary): `STMicroelectronics:stm32:GenF4:pnum=BLACKPILL_F411CE`
+  - **CRITICAL**: Must specify FQBN when using `aflash.sh` to ensure correct BoardConfig pin mappings
+  - **Example**: `./system/ci/aflash.sh <sketch> STMicroelectronics:stm32:GenF4:pnum=BLACKPILL_F411CE --use-rtt`
 - **Nucleo H753ZI** (High-Performance): `STMicroelectronics:stm32:Nucleo_144:pnum=NUCLEO_H753ZI`
+
+**Important**: Examples using BoardConfig system (e.g., MPU9250, LittleFS) auto-detect board via `ARDUINO_*` defines. The FQBN must match the connected hardware to ensure correct pin assignments and peripheral configurations.
 
 ### Target Hardware Platforms
 This repository supports **UAV flight controller boards** with the following STM32 microcontrollers:
