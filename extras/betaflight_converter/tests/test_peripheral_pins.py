@@ -20,7 +20,7 @@ class TestPeripheralPinMap(unittest.TestCase):
         """Load real F411CE PeripheralPins.c file."""
         # Path to Arduino Core STM32 variant
         arduino_root = Path(__file__).parents[3]
-        variant_path = arduino_root / "Arduino_Core_STM32/variants/STM32F4xx/F411C(C-E)(U-Y)/PeripheralPins.c"
+        variant_path = arduino_root / "variants/STM32F4xx/F411C(C-E)(U-Y)/PeripheralPins.c"
 
         if not variant_path.exists():
             raise FileNotFoundError(f"PeripheralPins.c not found at {variant_path}")

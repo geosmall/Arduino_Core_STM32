@@ -63,7 +63,16 @@ def main():
             'STM32F4xx/F411C(C-E)(U-Y)',
         ],
         'STM32F405': [
-            'STM32F4xx/F405RG',
+            'STM32F4xx/F405RGT_F415RGT',  # R package (LQFP64)
+            'STM32F4xx/F405VGT_F415VGT',  # V package (LQFP100)
+            'STM32F4xx/F405ZGT_F415ZGT',  # Z package (LQFP144)
+            'STM32F4xx/F405O(E-G)Y_F415OGY',  # O package (UFBGA176)
+        ],
+        'STM32F7X2': [
+            'STM32F7xx/F722Z(C-E)T_F732ZET',  # Z package (LQFP144)
+            'STM32F7xx/F722V(C-E)T_F730V8T_F732VET',  # V package (LQFP100)
+            'STM32F7xx/F722I(C-E)(K-T)_F732IE(K-T)',  # I package (BGA176)
+            'STM32F7xx/F722R(C-E)T_F730R8T_F732RET',  # R package (LQFP64)
         ],
         'STM32F745': [
             'STM32F7xx/F74xZ(G-I)',
@@ -84,7 +93,7 @@ def main():
     # Try each variant path until we find one that exists
     pinmap_path = None
     for variant_subpath in variant_paths:
-        candidate = arduino_root / f"Arduino_Core_STM32/variants/{variant_subpath}/PeripheralPins.c"
+        candidate = arduino_root / f"variants/{variant_subpath}/PeripheralPins.c"
         if candidate.exists():
             pinmap_path = candidate
             break
@@ -93,7 +102,7 @@ def main():
         print(f"Error: No PeripheralPins.c found for {bf_config.mcu_type}")
         print(f"Tried paths:")
         for variant_subpath in variant_paths:
-            print(f"  - Arduino_Core_STM32/variants/{variant_subpath}/PeripheralPins.c")
+            print(f"  - variants/{variant_subpath}/PeripheralPins.c")
         sys.exit(1)
 
     print(f"Loading PeripheralPins.c: {pinmap_path}")

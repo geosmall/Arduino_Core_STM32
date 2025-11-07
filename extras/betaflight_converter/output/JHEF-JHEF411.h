@@ -1,6 +1,6 @@
 /*
  * Auto-generated BoardConfig from Betaflight unified target
- * Generated: 2025-10-12 06:47:32
+ * Generated: 2025-11-07 16:27:54
  * Generator: betaflight_target_converter.py
  */
 

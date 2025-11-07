@@ -38,6 +38,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
+.pytest_cache/
 
 # IDE and editors
 .vscode/*

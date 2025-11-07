@@ -28,7 +28,7 @@ class TestConfigValidator(unittest.TestCase):
 
         # Load PeripheralPins.c
         arduino_root = Path(__file__).parents[3]
-        pinmap_path = arduino_root / "Arduino_Core_STM32/variants/STM32F4xx/F411C(C-E)(U-Y)/PeripheralPins.c"
+        pinmap_path = arduino_root / "variants/STM32F4xx/F411C(C-E)(U-Y)/PeripheralPins.c"
         if not pinmap_path.exists():
             raise FileNotFoundError(f"PeripheralPins.c not found at {pinmap_path}")
         cls.pinmap = PeripheralPinMap(pinmap_path)
