@@ -1,9 +1,9 @@
 /*
- * ICM20689 Arduino Library
+ * ICM206xx Arduino Library
  *
  * Copyright (C) 2025 Arduino_Core_STM32 Contributors
  *
- * This file is part of the ICM20689 Arduino library, derived from Betaflight.
+ * This file is part of the ICM206xx Arduino library, derived from Betaflight.
  *
  * This software is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
  * along with this software. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ICM20689.h"
+#include "ICM206xx.h"
 #include "icm20689_bf.h"
 #include "mpu_common.h"
 #include "bf_bus.h"
@@ -32,7 +32,7 @@
 // Default accel scale for ±16g
 #define ACCEL_SCALE_16G (16.0f / 32768.0f)
 
-ICM20689::ICM20689()
+ICM206xx::ICM206xx()
     : gyro_dev(nullptr)
     , acc_dev(nullptr)
     , initialized(false)
@@ -42,7 +42,7 @@ ICM20689::ICM20689()
 {
 }
 
-ICM20689::~ICM20689()
+ICM206xx::~ICM206xx()
 {
     if (gyro_dev) {
         free(gyro_dev);
@@ -54,7 +54,7 @@ ICM20689::~ICM20689()
     }
 }
 
-bool ICM20689::begin(SPIClass &spi, uint8_t cs_pin, uint32_t freq)
+bool ICM206xx::begin(SPIClass &spi, uint8_t cs_pin, uint32_t freq)
 {
     // Allocate device structures
     gyro_dev = malloc(sizeof(gyroDev_t));
@@ -124,7 +124,7 @@ bool ICM20689::begin(SPIClass &spi, uint8_t cs_pin, uint32_t freq)
     return true;
 }
 
-uint8_t ICM20689::whoAmI()
+uint8_t ICM206xx::whoAmI()
 {
     if (!initialized) {
         return 0;
@@ -134,12 +134,12 @@ uint8_t ICM20689::whoAmI()
     return spiReadRegMsk(&gyro->dev, 0x75); // MPU_RA_WHO_AM_I
 }
 
-ChipVariant ICM20689::getChipVariant() const
+ChipVariant ICM206xx::getChipVariant() const
 {
     return chip_variant;
 }
 
-const char* ICM20689::getChipName() const
+const char* ICM206xx::getChipName() const
 {
     switch (chip_variant) {
         case ChipVariant::ICM20601: return "ICM-20601";
@@ -150,7 +150,7 @@ const char* ICM20689::getChipName() const
     }
 }
 
-bool ICM20689::readGyro(float &gx, float &gy, float &gz)
+bool ICM206xx::readGyro(float &gx, float &gy, float &gz)
 {
     if (!initialized) {
         return false;
@@ -170,7 +170,7 @@ bool ICM20689::readGyro(float &gx, float &gy, float &gz)
     return true;
 }
 
-bool ICM20689::readAccel(float &ax, float &ay, float &az)
+bool ICM206xx::readAccel(float &ax, float &ay, float &az)
 {
     if (!initialized) {
         return false;
@@ -190,7 +190,7 @@ bool ICM20689::readAccel(float &ax, float &ay, float &az)
     return true;
 }
 
-bool ICM20689::read6DOF(float &gx, float &gy, float &gz,
+bool ICM206xx::read6DOF(float &gx, float &gy, float &gz,
                        float &ax, float &ay, float &az)
 {
     bool gyro_ok = readGyro(gx, gy, gz);
@@ -199,7 +199,7 @@ bool ICM20689::read6DOF(float &gx, float &gy, float &gz,
     return gyro_ok && accel_ok;
 }
 
-void ICM20689::setDLPF(uint8_t dlpf_cfg)
+void ICM206xx::setDLPF(uint8_t dlpf_cfg)
 {
     if (!initialized || dlpf_cfg > 7) {
         return;
@@ -212,7 +212,7 @@ void ICM20689::setDLPF(uint8_t dlpf_cfg)
     spiWriteReg(&gyro->dev, 0x1A, dlpf_cfg); // MPU_RA_CONFIG
 }
 
-void ICM20689::setGyroFSR(uint16_t fsr)
+void ICM206xx::setGyroFSR(uint16_t fsr)
 {
     if (!initialized) {
         return;
@@ -245,7 +245,7 @@ void ICM20689::setGyroFSR(uint16_t fsr)
     spiWriteReg(&gyro->dev, 0x1B, fsr_bits); // MPU_RA_GYRO_CONFIG
 }
 
-void ICM20689::setAccelFSR(uint8_t fsr)
+void ICM206xx::setAccelFSR(uint8_t fsr)
 {
     if (!initialized) {
         return;

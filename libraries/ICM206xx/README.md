@@ -1,4 +1,4 @@
-# ICM20689 Arduino Library
+# ICM206xx Arduino Library
 
 Production-validated ICM-206xx family IMU library derived from Betaflight.
 
@@ -62,9 +62,9 @@ CS   → PA4 (GPIO)
 ### Initialization
 
 ```cpp
-#include <ICM20689.h>
+#include <ICM206xx.h>
 
-ICM20689 imu;
+ICM206xx imu;
 
 // Initialize with SPI bus, CS pin, and frequency
 bool success = imu.begin(SPI, PA4, 1000000);  // 1 MHz for detection
@@ -113,12 +113,12 @@ imu.setAccelFSR(16);   // 2, 4, 8, or 16 g
 
 ### Basic Detection and 6DOF Reading
 
-See `examples/ICM20689_Basic/ICM20689_Basic.ino`:
+See `examples/ICM206xx_Basic/ICM206xx_Basic.ino`:
 
 ```cpp
-#include <ICM20689.h>
+#include <ICM206xx.h>
 
-ICM20689 imu;
+ICM206xx imu;
 
 void setup() {
   Serial.begin(115200);

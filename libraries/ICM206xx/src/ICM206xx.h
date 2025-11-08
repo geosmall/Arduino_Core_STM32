@@ -1,9 +1,9 @@
 /*
- * ICM20689 Arduino Library
+ * ICM206xx Arduino Library
  *
  * Copyright (C) 2025 Arduino_Core_STM32 Contributors
  *
- * This file is part of the ICM20689 Arduino library, derived from Betaflight.
+ * This file is part of the ICM206xx Arduino library, derived from Betaflight.
  *
  * This software is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,8 +19,8 @@
  * along with this software. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ICM20689_H
-#define ICM20689_H
+#ifndef ICM206XX_H
+#define ICM206XX_H
 
 #include <Arduino.h>
 #include <SPI.h>
@@ -50,10 +50,10 @@ enum class ChipVariant {
  *
  * License: GPL v3 (Betaflight-derived)
  */
-class ICM20689 {
+class ICM206xx {
 public:
-    ICM20689();
-    ~ICM20689();
+    ICM206xx();
+    ~ICM206xx();
 
     /**
      * @brief Initialize the ICM-206xx IMU
@@ -154,4 +154,4 @@ private:
     ChipVariant chip_variant;
 };
 
-#endif // ICM20689_H
+#endif // ICM206XX_H

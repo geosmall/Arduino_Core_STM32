@@ -309,7 +309,7 @@ From `libraries/imu/betaflight/drivers/accgyro/accgyro_spi_mpu6000.c`:
 **License:** GPL v3 (Betaflight-derived code)
 
 ### ICM-206xx Family Library
-**Location:** `libraries/ICM20689/`
+**Location:** `libraries/ICM206xx/`
 **License:** GPL v3 (Betaflight-derived code)
 **Supported Chips:** ICM-20601, ICM-20602, ICM-20608, ICM-20689
 
@@ -933,29 +933,29 @@ Build time: 8 seconds
 
 ---
 
-## Phase 4b Completion - ICM20689 Library (ICM-206xx Family) ✅
+## Phase 4b Completion - ICM206xx Library (ICM-206xx Family) ✅
 
 **Completed:** 2025-11-03
 
 **Implementation:**
-- Created `libraries/ICM20689/` with GPL v3 license
+- Created `libraries/ICM206xx/` with GPL v3 license
 - Adapted Betaflight ICM-206xx driver code (`icm20689_bf.c/h`)
-- Implemented Arduino wrapper class (`ICM20689.h/cpp`)
+- Implemented Arduino wrapper class (`ICM206xx.h/cpp`)
 - Created shared MPU register definitions (`mpu_common.h`)
-- Implemented ICM20689_Basic example sketch
+- Implemented ICM206xx_Basic example sketch
 
 **Files Created:**
 1. `LICENSE` - GNU GPL v3 with Betaflight attribution
 2. `README.md` - Library documentation with multi-chip support details
 3. `library.properties` - Arduino library metadata
-4. `src/ICM20689.h` - Arduino class interface with ChipVariant enum (GPL v3)
-5. `src/ICM20689.cpp` - Arduino wrapper implementation (GPL v3)
+4. `src/ICM206xx.h` - Arduino class interface with ChipVariant enum (GPL v3)
+5. `src/ICM206xx.cpp` - Arduino wrapper implementation (GPL v3)
 6. `src/icm20689_bf.h` - Betaflight driver header (GPL v3)
 7. `src/icm20689_bf.c` - Betaflight driver adaptation (GPL v3)
 8. `src/mpu_common.h` - Shared MPU register definitions (copied from MPU6000)
 9. `src/bf_bus.h/cpp` - SPI bus abstraction (copied from MPU6000)
 10. `src/bf_types.h` - Device type definitions with ICM-206xx enums (copied from MPU6000)
-11. `examples/ICM20689_Basic/ICM20689_Basic.ino` - Detection and 6DOF example
+11. `examples/ICM206xx_Basic/ICM206xx_Basic.ino` - Detection and 6DOF example
 
 **Key Features:**
 - **Multi-chip support** - Single driver for 4 chip variants
@@ -978,7 +978,7 @@ Build time: 8 seconds
 **Build Results:**
 ```
 ✓ Build successful
-Binary: ICM20689_Basic.ino.bin
+Binary: ICM206xx_Basic.ino.bin
 Size: 22,124 bytes (4% of 512KB flash)
 RAM: 2,192 bytes (1% of 128KB RAM)
 Build time: 8 seconds
@@ -986,9 +986,9 @@ Build time: 8 seconds
 
 **API Example:**
 ```cpp
-#include <ICM20689.h>
+#include <ICM206xx.h>
 
-ICM20689 imu;
+ICM206xx imu;
 imu.begin(SPI, PA4, 1000000);               // Initialize
 uint8_t id = imu.whoAmI();                   // Returns 0x12 (ICM-20602)
 const char* name = imu.getChipName();        // Returns "ICM-20602"

@@ -1,45 +1,35 @@
 /*
- * ICM20689_Basic Example
+ * ICM206xx_Basic Example
  *
  * Demonstrates ICM-206xx family detection and basic 6-axis data reading.
  * Supports: ICM-20601, ICM-20602, ICM-20608, ICM-20689
  *
- * Hardware Setup - NUCLEO_F411RE_JHEF411:
- *   ICM-20602 → NUCLEO
+ * Hardware Setup - BKMN-NERO (STM32F7X2):
+ *   ICM-20602 → NERO FC
  *   ------------------
  *   VCC  → 3.3V
  *   GND  → GND
  *   SCK  → PA5 (SPI1_SCK)
  *   MISO → PA6 (SPI1_MISO)
  *   MOSI → PA7 (SPI1_MOSI)
- *   CS   → PA4 (GPIO)
- *
- * Hardware Setup - Generic:
- *   ICM-206xx → STM32
- *   ------------------
- *   VCC  → 3.3V
- *   GND  → GND
- *   SCK  → SPI1_SCK
- *   MISO → SPI1_MISO
- *   MOSI → SPI1_MOSI
- *   CS   → PA4 (or configure below)
+ *   CS   → PC4 (GPIO)
+ *   INT  → PB2 (optional)
  *
  * License: GPL v3 (Betaflight-derived library)
  */
 
-#include <ICM20689.h>
+#include <ICM206xx.h>
 #include <ci_log.h>
+#include "../../../../targets/BKMN-NERO.h"
 
-// SPI configuration
-// NUCLEO_F411RE_JHEF411: SPI1 (PA5=SCK, PA6=MISO, PA7=MOSI), CS=PA4
-#if defined(ARDUINO_NUCLEO_F411RE)
-  #define ICM20689_CS_PIN    PA4
-#else
-  #define ICM20689_CS_PIN    PA4
-#endif
-#define ICM20689_SPI_FREQ  1000000  // 1 MHz for detection, can go up to 8 MHz
+// SPI configuration from BoardConfig
+SPIClass spi_bus(BoardConfig::imu_spi.mosi_pin,
+                 BoardConfig::imu_spi.miso_pin,
+                 BoardConfig::imu_spi.sclk_pin);
+#define ICM206xx_CS_PIN    BoardConfig::imu_spi.cs_pin
+#define ICM206xx_SPI_FREQ  BoardConfig::imu_spi.freq_hz
 
-ICM20689 imu;
+ICM206xx imu;
 
 void setup() {
   // Initialize Serial for non-RTT mode
@@ -54,8 +44,14 @@ void setup() {
 
   // Initialize ICM-206xx
   CI_LOG("Initializing ICM-206xx...\n");
+  CI_LOGF("Board: BKMN-NERO (STM32F7X2)\n");
+  CI_LOGF("IMU SPI: CS=%d, MOSI=%d, MISO=%d, SCLK=%d\n",
+          BoardConfig::imu_spi.cs_pin,
+          BoardConfig::imu_spi.mosi_pin,
+          BoardConfig::imu_spi.miso_pin,
+          BoardConfig::imu_spi.sclk_pin);
 
-  if (!imu.begin(SPI, ICM20689_CS_PIN, ICM20689_SPI_FREQ)) {
+  if (!imu.begin(spi_bus, ICM206xx_CS_PIN, ICM206xx_SPI_FREQ)) {
     CI_LOG("ERROR: ICM-206xx initialization failed!\n");
     CI_LOG("Check connections:\n");
     CI_LOG("  - SPI MOSI, MISO, SCK\n");
