@@ -76,7 +76,7 @@ const uint32_t analogInputPin[] = {
 extern "C" {
 #endif
 
-WEAK void SystemClock_Config(void)
+void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {};

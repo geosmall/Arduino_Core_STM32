@@ -129,9 +129,7 @@
   #define PIN_SERIAL_TX         PA2
 #endif
 
-#ifndef HSE_VALUE
-  #define HSE_VALUE             8000000U  // NOXE V3 uses 8 MHz crystal
-#endif
+#define HSE_VALUE             8000000U  // NOXE V3 uses 8 MHz crystal
 
 /*----------------------------------------------------------------------------
  *        Arduino objects - C++ only

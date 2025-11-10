@@ -216,6 +216,9 @@
   #define PIN_ADC_CURR          PC2   // Battery current
 #endif
 
+// Value of the External oscillator in Hz
+#define HSE_VALUE             8000000U  // NERO uses 8 MHz crystal
+
 // SDMMC signals not available
 #define SDMMC_CKIN_NA
 #define SDMMC_CDIR_NA
