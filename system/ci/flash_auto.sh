@@ -55,6 +55,7 @@ case "$(printf "%03X" $((STM32_DEVICE_ID & 0xFFF)))" in
     413) JLINK_DEVICE="STM32F405RG" ;;  # F405/407 flight controllers
     431) JLINK_DEVICE="STM32F411RE" ;;  # F411 like yours
     450) JLINK_DEVICE="STM32H743ZI" ;;  # H7 high-performance
+    452) JLINK_DEVICE="STM32F722RE" ;;  # F7 high-performance
     468) JLINK_DEVICE="STM32G431RB" ;;  # G4 series
     *) JLINK_DEVICE="CORTEX-M4" ;;      # Generic fallback
 esac

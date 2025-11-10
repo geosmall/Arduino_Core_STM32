@@ -1351,6 +1351,11 @@ GenF4.menu.upload_method.hidMethod.upload.tool=hid_upload
 GenF4.menu.upload_method.hidMethod.build.flash_offset=0x4000
 GenF4.menu.upload_method.hidMethod.build.bootloader_flags=-DBL_HID
 
+GenF4.menu.upload_method.clipboard=Clipboard (Copy Path)
+GenF4.menu.upload_method.clipboard.upload.protocol=0
+GenF4.menu.upload_method.clipboard.upload.options=-g
+GenF4.menu.upload_method.clipboard.upload.tool=clipboard_upload
+
 ################################################################################
 # Generic F7
 
@@ -1822,6 +1827,11 @@ GenF7.menu.upload_method.dfuMethod=STM32CubeProgrammer (DFU)
 GenF7.menu.upload_method.dfuMethod.upload.protocol=2
 GenF7.menu.upload_method.dfuMethod.upload.options=
 GenF7.menu.upload_method.dfuMethod.upload.tool=stm32CubeProg
+
+GenF7.menu.upload_method.clipboard=Clipboard (Copy Path)
+GenF7.menu.upload_method.clipboard.upload.protocol=0
+GenF7.menu.upload_method.clipboard.upload.options=-g
+GenF7.menu.upload_method.clipboard.upload.tool=clipboard_upload
 
 ###############################
 # Generic G4
@@ -2862,6 +2872,11 @@ GenG4.menu.upload_method.dfuMethod.upload.protocol=2
 GenG4.menu.upload_method.dfuMethod.upload.options=
 GenG4.menu.upload_method.dfuMethod.upload.tool=stm32CubeProg
 
+GenG4.menu.upload_method.clipboard=Clipboard (Copy Path)
+GenG4.menu.upload_method.clipboard.upload.protocol=0
+GenG4.menu.upload_method.clipboard.upload.options=-g
+GenG4.menu.upload_method.clipboard.upload.tool=clipboard_upload
+
 ################################################################################
 # Generic H7
 GenH7.name=Generic STM32H7 Series
@@ -3374,52 +3389,80 @@ GenH7.menu.upload_method.dfuMethod.upload.protocol=2
 GenH7.menu.upload_method.dfuMethod.upload.options=
 GenH7.menu.upload_method.dfuMethod.upload.tool=stm32CubeProg
 
+GenH7.menu.upload_method.clipboard=Clipboard (Copy Path)
+GenH7.menu.upload_method.clipboard.upload.protocol=0
+GenH7.menu.upload_method.clipboard.upload.options=-g
+GenH7.menu.upload_method.clipboard.upload.tool=clipboard_upload
+
 ################################################################################
-# Generic Flight Controllers
+# Flight Controller Boards
 
-GenFlight.name=Generic Flight Controllers
+FlightCtr.name=Flight Controller Boards
 
-GenFlight.build.core=arduino
-GenFlight.build.board=Genericflight
-GenFlight.build.variant_h=variant_{build.board}.h
-GenFlight.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial}
-GenFlight.build.fpu=-mfpu=fpv4-sp-d16
-GenFlight.build.float-abi=-mfloat-abi=hard
-GenFlight.build.flash_offset=0x0
-GenFlight.upload.maximum_size=0
-GenFlight.upload.maximum_data_size=0
+FlightCtr.build.core=arduino
+FlightCtr.build.board=Genericflight
+FlightCtr.build.variant_h=variant_{build.board}.h
+FlightCtr.build.st_extra_flags=-D{build.product_line} {build.enable_usb} {build.xSerial}
+FlightCtr.build.fpu=-mfpu=fpv4-sp-d16
+FlightCtr.build.float-abi=-mfloat-abi=hard
+FlightCtr.build.flash_offset=0x0
+FlightCtr.upload.maximum_size=0
+FlightCtr.upload.maximum_data_size=0
 
 # Matex H743
-GenFlight.menu.pnum.MATEK_H743VI=Matex H743VITx
-GenFlight.menu.pnum.MATEK_H743VI.upload.maximum_size=2097152
-GenFlight.menu.pnum.MATEK_H743VI.upload.maximum_data_size=524288
-GenFlight.menu.pnum.MATEK_H743VI.build.mcu=cortex-m7
-GenFlight.menu.pnum.MATEK_H743VI.build.series=STM32H7xx
-GenFlight.menu.pnum.MATEK_H743VI.build.board=MATEK_H743VI
-GenFlight.menu.pnum.MATEK_H743VI.build.product_line=STM32H743xx
-GenFlight.menu.pnum.MATEK_H743VI.build.variant=STM32H7xx/H742V(G-I)(H-T)_H743V(G-I)(H-T)_H750VBT_H753VI(H-T)
-GenFlight.menu.pnum.MATEK_H743VI.build.variant_h=variant_MATEK_H743VI.h
+FlightCtr.menu.pnum.MATEK_H743VI=Matex H743VITx
+FlightCtr.menu.pnum.MATEK_H743VI.upload.maximum_size=2097152
+FlightCtr.menu.pnum.MATEK_H743VI.upload.maximum_data_size=524288
+FlightCtr.menu.pnum.MATEK_H743VI.build.mcu=cortex-m7
+FlightCtr.menu.pnum.MATEK_H743VI.build.series=STM32H7xx
+FlightCtr.menu.pnum.MATEK_H743VI.build.board=MATEK_H743VI
+FlightCtr.menu.pnum.MATEK_H743VI.build.product_line=STM32H743xx
+FlightCtr.menu.pnum.MATEK_H743VI.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial}
+FlightCtr.menu.pnum.MATEK_H743VI.build.variant=STM32H7xx/H742V(G-I)(H-T)_H743V(G-I)(H-T)_H750VBT_H753VI(H-T)
+FlightCtr.menu.pnum.MATEK_H743VI.build.variant_h=variant_MATEK_H743VI.h
+
+# NERO F7
+FlightCtr.menu.pnum.BKMN_NERO=NERO F7 (BKMN)
+FlightCtr.menu.pnum.BKMN_NERO.upload.maximum_size=524288
+FlightCtr.menu.pnum.BKMN_NERO.upload.maximum_data_size=262144
+FlightCtr.menu.pnum.BKMN_NERO.build.mcu=cortex-m7
+FlightCtr.menu.pnum.BKMN_NERO.build.series=STM32F7xx
+FlightCtr.menu.pnum.BKMN_NERO.build.board=BKMN_NERO
+FlightCtr.menu.pnum.BKMN_NERO.build.product_line=STM32F722xx
+FlightCtr.menu.pnum.BKMN_NERO.build.variant=STM32F7xx/F722R(C-E)T_F730R8T_F732RET
+FlightCtr.menu.pnum.BKMN_NERO.build.variant_h=variant_BKMN_NERO.h
+
+# NOXE V3
+FlightCtr.menu.pnum.JHEF_JHEF411=NOXE V3 (JHEF)
+FlightCtr.menu.pnum.JHEF_JHEF411.upload.maximum_size=524288
+FlightCtr.menu.pnum.JHEF_JHEF411.upload.maximum_data_size=131072
+FlightCtr.menu.pnum.JHEF_JHEF411.build.mcu=cortex-m4
+FlightCtr.menu.pnum.JHEF_JHEF411.build.series=STM32F4xx
+FlightCtr.menu.pnum.JHEF_JHEF411.build.board=JHEF_JHEF411
+FlightCtr.menu.pnum.JHEF_JHEF411.build.product_line=STM32F411xE
+FlightCtr.menu.pnum.JHEF_JHEF411.build.variant=STM32F4xx/F411C(C-E)(U-Y)
+FlightCtr.menu.pnum.JHEF_JHEF411.build.variant_h=variant_JHEF_JHEF411.h
 
 # Upload menu
-GenFlight.menu.upload_method.swdMethod=STM32CubeProgrammer (SWD)
-GenFlight.menu.upload_method.swdMethod.upload.protocol=0
-GenFlight.menu.upload_method.swdMethod.upload.options=
-GenFlight.menu.upload_method.swdMethod.upload.tool=stm32CubeProg
+FlightCtr.menu.upload_method.swdMethod=STM32CubeProgrammer (SWD)
+FlightCtr.menu.upload_method.swdMethod.upload.protocol=0
+FlightCtr.menu.upload_method.swdMethod.upload.options=
+FlightCtr.menu.upload_method.swdMethod.upload.tool=stm32CubeProg
 
-GenFlight.menu.upload_method.serialMethod=STM32CubeProgrammer (Serial)
-GenFlight.menu.upload_method.serialMethod.upload.protocol=1
-GenFlight.menu.upload_method.serialMethod.upload.options={serial.port.file}
-GenFlight.menu.upload_method.serialMethod.upload.tool=stm32CubeProg
+FlightCtr.menu.upload_method.serialMethod=STM32CubeProgrammer (Serial)
+FlightCtr.menu.upload_method.serialMethod.upload.protocol=1
+FlightCtr.menu.upload_method.serialMethod.upload.options={serial.port.file}
+FlightCtr.menu.upload_method.serialMethod.upload.tool=stm32CubeProg
 
-GenFlight.menu.upload_method.dfuMethod=STM32CubeProgrammer (DFU)
-GenFlight.menu.upload_method.dfuMethod.upload.protocol=2
-GenFlight.menu.upload_method.dfuMethod.upload.options=
-GenFlight.menu.upload_method.dfuMethod.upload.tool=stm32CubeProg
+FlightCtr.menu.upload_method.dfuMethod=STM32CubeProgrammer (DFU)
+FlightCtr.menu.upload_method.dfuMethod.upload.protocol=2
+FlightCtr.menu.upload_method.dfuMethod.upload.options=
+FlightCtr.menu.upload_method.dfuMethod.upload.tool=stm32CubeProg
 
-GenFlight.menu.upload_method.clipboard=Clipboard (Copy Path)
-GenFlight.menu.upload_method.clipboard.upload.protocol=0
-GenFlight.menu.upload_method.clipboard.upload.options=-g
-GenFlight.menu.upload_method.clipboard.upload.tool=clipboard_upload
+FlightCtr.menu.upload_method.clipboard=Clipboard (Copy Path)
+FlightCtr.menu.upload_method.clipboard.upload.protocol=0
+FlightCtr.menu.upload_method.clipboard.upload.options=-g
+FlightCtr.menu.upload_method.clipboard.upload.tool=clipboard_upload
 
 ################################################################################
 # Serialx activation
@@ -3471,11 +3514,11 @@ GenH7.menu.xserial.none.build.xSerial=-DHAL_UART_MODULE_ENABLED -DHWSERIAL_NONE
 GenH7.menu.xserial.disabled=Disabled (No Serial support)
 GenH7.menu.xserial.disabled.build.xSerial=
 
-GenFlight.menu.xserial.generic=Enabled (generic 'Serial')
-GenFlight.menu.xserial.none=Enabled (no generic 'Serial')
-GenFlight.menu.xserial.none.build.xSerial=-DHAL_UART_MODULE_ENABLED -DHWSERIAL_NONE
-GenFlight.menu.xserial.disabled=Disabled (no Serial support)
-GenFlight.menu.xserial.disabled.build.xSerial=
+FlightCtr.menu.xserial.generic=Enabled (generic 'Serial')
+FlightCtr.menu.xserial.none=Enabled (no generic 'Serial')
+FlightCtr.menu.xserial.none.build.xSerial=-DHAL_UART_MODULE_ENABLED -DHWSERIAL_NONE
+FlightCtr.menu.xserial.disabled=Disabled (no Serial support)
+FlightCtr.menu.xserial.disabled.build.xSerial=
 
 # USB connectivity
 Nucleo_144.menu.usb.none=None
@@ -3582,18 +3625,18 @@ GenH7.menu.xusb.HS.build.usb_speed=-DUSE_USB_HS
 GenH7.menu.xusb.HSFS=High Speed in Full Speed mode
 GenH7.menu.xusb.HSFS.build.usb_speed=-DUSE_USB_HS -DUSE_USB_HS_IN_FS
 
-GenFlight.menu.usb.none=None
-GenFlight.menu.usb.CDCgen=CDC (generic 'Serial' supersede U(S)ART)
-GenFlight.menu.usb.CDCgen.build.enable_usb={build.usb_flags} -DUSBD_USE_CDC
-GenFlight.menu.usb.CDC=CDC (no generic 'Serial')
-GenFlight.menu.usb.CDC.build.enable_usb={build.usb_flags} -DUSBD_USE_CDC -DDISABLE_GENERIC_SERIALUSB
-GenFlight.menu.usb.HID=HID (keyboard and mouse)
-GenFlight.menu.usb.HID.build.enable_usb={build.usb_flags} -DUSBD_USE_HID_COMPOSITE
-GenFlight.menu.xusb.FS=Low/Full Speed
-GenFlight.menu.xusb.HS=High Speed
-GenFlight.menu.xusb.HS.build.usb_speed=-DUSE_USB_HS
-GenFlight.menu.xusb.HSFS=High Speed in Full Speed mode
-GenFlight.menu.xusb.HSFS.build.usb_speed=-DUSE_USB_HS -DUSE_USB_HS_IN_FS
+FlightCtr.menu.usb.none=None
+FlightCtr.menu.usb.CDCgen=CDC (generic 'Serial' supersede U(S)ART)
+FlightCtr.menu.usb.CDCgen.build.enable_usb={build.usb_flags} -DUSBD_USE_CDC
+FlightCtr.menu.usb.CDC=CDC (no generic 'Serial')
+FlightCtr.menu.usb.CDC.build.enable_usb={build.usb_flags} -DUSBD_USE_CDC -DDISABLE_GENERIC_SERIALUSB
+FlightCtr.menu.usb.HID=HID (keyboard and mouse)
+FlightCtr.menu.usb.HID.build.enable_usb={build.usb_flags} -DUSBD_USE_HID_COMPOSITE
+FlightCtr.menu.xusb.FS=Low/Full Speed
+FlightCtr.menu.xusb.HS=High Speed
+FlightCtr.menu.xusb.HS.build.usb_speed=-DUSE_USB_HS
+FlightCtr.menu.xusb.HSFS=High Speed in Full Speed mode
+FlightCtr.menu.xusb.HSFS.build.usb_speed=-DUSE_USB_HS -DUSE_USB_HS_IN_FS
 
 # Optimizations
 Nucleo_144.menu.opt.osstd=Smallest (-Os default)
@@ -3756,25 +3799,25 @@ GenH7.menu.opt.ogstd.build.flags.optimize=-Og
 GenH7.menu.opt.o0std=No Optimization (-O0)
 GenH7.menu.opt.o0std.build.flags.optimize=-O0
 
-GenFlight.menu.opt.osstd=Smallest (-Os default)
-GenFlight.menu.opt.oslto=Smallest (-Os) with LTO
-GenFlight.menu.opt.oslto.build.flags.optimize=-Os -flto
-GenFlight.menu.opt.o1std=Fast (-O1)
-GenFlight.menu.opt.o1std.build.flags.optimize=-O1
-GenFlight.menu.opt.o1lto=Fast (-O1) with LTO
-GenFlight.menu.opt.o1lto.build.flags.optimize=-O1 -flto
-GenFlight.menu.opt.o2std=Faster (-O2)
-GenFlight.menu.opt.o2std.build.flags.optimize=-O2
-GenFlight.menu.opt.o2lto=Faster (-O2) with LTO
-GenFlight.menu.opt.o2lto.build.flags.optimize=-O2 -flto
-GenFlight.menu.opt.o3std=Fastest (-O3)
-GenFlight.menu.opt.o3std.build.flags.optimize=-O3
-GenFlight.menu.opt.o3lto=Fastest (-O3) with LTO
-GenFlight.menu.opt.o3lto.build.flags.optimize=-O3 -flto
-GenFlight.menu.opt.ogstd=Debug (-Og)
-GenFlight.menu.opt.ogstd.build.flags.optimize=-Og
-GenFlight.menu.opt.o0std=No Optimization (-O0)
-GenFlight.menu.opt.o0std.build.flags.optimize=-O0
+FlightCtr.menu.opt.osstd=Smallest (-Os default)
+FlightCtr.menu.opt.oslto=Smallest (-Os) with LTO
+FlightCtr.menu.opt.oslto.build.flags.optimize=-Os -flto
+FlightCtr.menu.opt.o1std=Fast (-O1)
+FlightCtr.menu.opt.o1std.build.flags.optimize=-O1
+FlightCtr.menu.opt.o1lto=Fast (-O1) with LTO
+FlightCtr.menu.opt.o1lto.build.flags.optimize=-O1 -flto
+FlightCtr.menu.opt.o2std=Faster (-O2)
+FlightCtr.menu.opt.o2std.build.flags.optimize=-O2
+FlightCtr.menu.opt.o2lto=Faster (-O2) with LTO
+FlightCtr.menu.opt.o2lto.build.flags.optimize=-O2 -flto
+FlightCtr.menu.opt.o3std=Fastest (-O3)
+FlightCtr.menu.opt.o3std.build.flags.optimize=-O3
+FlightCtr.menu.opt.o3lto=Fastest (-O3) with LTO
+FlightCtr.menu.opt.o3lto.build.flags.optimize=-O3 -flto
+FlightCtr.menu.opt.ogstd=Debug (-Og)
+FlightCtr.menu.opt.ogstd.build.flags.optimize=-Og
+FlightCtr.menu.opt.o0std=No Optimization (-O0)
+FlightCtr.menu.opt.o0std.build.flags.optimize=-O0
 
 # Debug information
 Nucleo_144.menu.dbg.none=None
@@ -3841,13 +3884,13 @@ GenH7.menu.dbg.enable_log.build.flags.debug=
 GenH7.menu.dbg.enable_all=Core Logs and Symbols Enabled (-g)
 GenH7.menu.dbg.enable_all.build.flags.debug=-g
 
-GenFlight.menu.dbg.none=None
-GenFlight.menu.dbg.enable_sym=Symbols Enabled (-g)
-GenFlight.menu.dbg.enable_sym.build.flags.debug=-g -DNDEBUG
-GenFlight.menu.dbg.enable_log=Core logs Enabled
-GenFlight.menu.dbg.enable_log.build.flags.debug=
-GenFlight.menu.dbg.enable_all=Core Logs and Symbols Enabled (-g)
-GenFlight.menu.dbg.enable_all.build.flags.debug=-g
+FlightCtr.menu.dbg.none=None
+FlightCtr.menu.dbg.enable_sym=Symbols Enabled (-g)
+FlightCtr.menu.dbg.enable_sym.build.flags.debug=-g -DNDEBUG
+FlightCtr.menu.dbg.enable_log=Core logs Enabled
+FlightCtr.menu.dbg.enable_log.build.flags.debug=
+FlightCtr.menu.dbg.enable_all=Core Logs and Symbols Enabled (-g)
+FlightCtr.menu.dbg.enable_all.build.flags.debug=-g
 
 # C Runtime Library
 Nucleo_144.menu.rtlib.nano=Newlib Nano (default)
@@ -3930,12 +3973,12 @@ GenH7.menu.rtlib.nanofps.build.flags.ldspecs=--specs=nano.specs -u _printf_float
 GenH7.menu.rtlib.full=Newlib Standard
 GenH7.menu.rtlib.full.build.flags.ldspecs=
 
-GenFlight.menu.rtlib.nano=Newlib Nano (default)
-GenFlight.menu.rtlib.nanofp=Newlib Nano + Float Printf
-GenFlight.menu.rtlib.nanofp.build.flags.ldspecs=--specs=nano.specs -u _printf_float
-GenFlight.menu.rtlib.nanofs=Newlib Nano + Float Scanf
-GenFlight.menu.rtlib.nanofs.build.flags.ldspecs=--specs=nano.specs -u _scanf_float
-GenFlight.menu.rtlib.nanofps=Newlib Nano + Float Printf/Scanf
-GenFlight.menu.rtlib.nanofps.build.flags.ldspecs=--specs=nano.specs -u _printf_float -u _scanf_float
-GenFlight.menu.rtlib.full=Newlib Standard
-GenFlight.menu.rtlib.full.build.flags.ldspecs=
+FlightCtr.menu.rtlib.nano=Newlib Nano (default)
+FlightCtr.menu.rtlib.nanofp=Newlib Nano + Float Printf
+FlightCtr.menu.rtlib.nanofp.build.flags.ldspecs=--specs=nano.specs -u _printf_float
+FlightCtr.menu.rtlib.nanofs=Newlib Nano + Float Scanf
+FlightCtr.menu.rtlib.nanofs.build.flags.ldspecs=--specs=nano.specs -u _scanf_float
+FlightCtr.menu.rtlib.nanofps=Newlib Nano + Float Printf/Scanf
+FlightCtr.menu.rtlib.nanofps.build.flags.ldspecs=--specs=nano.specs -u _printf_float -u _scanf_float
+FlightCtr.menu.rtlib.full=Newlib Standard
+FlightCtr.menu.rtlib.full.build.flags.ldspecs=

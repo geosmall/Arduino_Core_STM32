@@ -160,10 +160,31 @@ fi
 
 echo "✓ Found ELF file: $(basename "$ELF_PATH")"
 
+# Auto-detect J-Link device
+echo "Auto-detecting J-Link device..."
+STM32_DEVICE_ID=""
+eval $("$SCRIPT_DIR/detect_device.sh" | grep STM32_DEVICE_ID || true)
+
+if [ -z "${STM32_DEVICE_ID:-}" ]; then
+    echo "⚠ Could not auto-detect device, using default: STM32F411RE"
+    JLINK_DEVICE="STM32F411RE"
+else
+    # Map device ID to J-Link device name (same as flash_auto.sh)
+    case "$(printf "%03X" $((STM32_DEVICE_ID & 0xFFF)))" in
+        413) JLINK_DEVICE="STM32F405RG" ;;
+        431) JLINK_DEVICE="STM32F411RE" ;;
+        450) JLINK_DEVICE="STM32H743ZI" ;;
+        452) JLINK_DEVICE="STM32F722RE" ;;
+        468) JLINK_DEVICE="STM32G431RB" ;;
+        *) JLINK_DEVICE="STM32F411RE" ;;
+    esac
+    echo "✓ Detected device: $JLINK_DEVICE"
+fi
+
 # Step 2: J-Run HIL test execution with exit wildcard detection
 echo "Step 2/2: Executing HIL test with J-Run (exit wildcard detection)..."
 LOG_PREFIX="${SKETCH_NAME}_aflash"
-if ! "$SCRIPT_DIR/jrun.sh" "$ELF_PATH" STM32F411RE "$TIMEOUT" "$LOG_PREFIX" "$EXIT_WILDCARD"; then
+if ! "$SCRIPT_DIR/jrun.sh" "$ELF_PATH" "$JLINK_DEVICE" "$TIMEOUT" "$LOG_PREFIX" "$EXIT_WILDCARD"; then
     echo "✗ J-Run HIL test execution failed"
     exit 1
 fi
