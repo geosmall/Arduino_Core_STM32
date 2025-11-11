@@ -1,108 +1,194 @@
-# IMU Presets — SAFE / SMOOTH / BALANCED / ACRO (ICM-42688-P · MPU-6000 · MPU-9250)
+# Betaflight-Oriented IMU Filtering Guide (ICM‑42688‑P, MPU‑6000, MPU‑9250, ICM‑20602)
 
-**FSR for all presets and chips:** Gyro **±2000 dps**, Accel **±16 g**.
-**Baseline host ODRs:** Gyro **4 kHz** (except where limited), Accel **1 kHz**. **ACRO** may use **8 kHz** gyro where supported.
+This guide consolidates what we learned into one **clean, BF‑style reference** for configuring hardware filters and sample rates across four popular IMUs. It’s structured for developers who want consistent **intent** (latency vs noise) with minimal chip‑specific surprises.
 
-> **Corrections in this revision**
->
-> * **MPU-9250:** `SMPLRT_DIV` **does not divide** the 8 kHz path when `DLPF_CFG=0`. Balanced/Acro now show **8 kHz** on-sensor with a note to **software-decimate to 4 kHz** if desired.
-> * **MPU-6000 / ICM-42688-P:** re-checked rate rules and tables for parity with datasheets and common FC practice.
+* **ICM‑42688‑P** — dual stage (**AAF** + **UI**) with optional Auto‑FSR (disable it)
+* **MPU‑6000** — classic **DLPF** with true 8 k/4 k paths via divider
+* **MPU‑9250** — classic **DLPF**, but **no 4 k via divider** on wide/8 k path
+* **ICM‑20602** — MPU‑6500‑class: DLPF + a very wide/bypass path
+
+> **FSR default for all modes:** Gyro **±2000 dps**, Accel **±16 g**.
+> **Baseline loop assumption:** Gyro ODR target **4 kHz** (8 kHz for Acro), Accel **1 kHz**.
 
 ---
 
-## ICM-42688-P (AAF + UI filter)
+## 1) Bottom line presets (one intent, all chips)
 
-> **Init rule:** Disable **Auto-FSR** (AFSR) to prevent range-switch stalls → Bank0 `INTF_CONFIG1 (0x4D)` set bits **[7:6] = 01** (apply mask `0x40`).
+Choose one of these and you’ll get nearly the same “feel” regardless of IMU. **Program the hardware first; finish with software filters (PT1/biquads) per your airframe.**
 
-| Preset       | Gyro ODR | Accel ODR | **Gyro AAF** *(DELT, DELTSQR, BITSHIFT)* | **Accel AAF** *(DELT, DELTSQR, BITSHIFT)*                                | **UI BW**   | **UI order** | Notes                              |
-| ------------ | -------: | --------: | ---------------------------------------- | ------------------------------------------------------------------------ | ----------- | -----------: | ---------------------------------- |
-| **SAFE**     |      1 k |       1 k | **126 Hz** → (4, 0x0010, 12)             | **84 Hz**  → (3, 0x0009, 12)                                             | **code 1**  |          2nd | Very tame; easiest bring-up        |
-| **SMOOTH**   |      4 k |       1 k | **213 Hz** → (5, 0x0019, 11)             | **126 Hz** → (4, 0x0010, 12)                                             | **code 1**  |          2nd | Extra HW smoothing                 |
-| **BALANCED** |      4 k |       1 k | **258 Hz** → (6, 0x0024, 10)             | **170 Hz** → (4, 0x0010, 11)                                             | **code 15** |      **1st** | Strong default for 2 kHz PID loops |
-| **ACRO**     |  **8 k** |       1 k | **303 Hz** → (7, 0x0031, 10)             | **170 Hz** *(or 258 for BF parity)* → (4,0x0010,11) *(or (6,0x0024,10))* | **code 15** |      **1st** | Lowest added phase                 |
+| Preset       | Intent                      | ICM‑42688‑P                                                             | MPU‑6000                                                    | MPU‑9250                                                                   | ICM‑20602                                                      |
+| ------------ | --------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| **SAFE**     | Bring‑up, very noisy frames | Gyro/Acc ODR 1 k; AAF **126/84 Hz**; UI **code 1**, **2nd‑order**       | DLPF **98/94 Hz**, SR **1 k**                               | DLPF **92/92 Hz**, SR **1 k**                                              | DLPF **≈92/92 Hz**, SR **1 k**                                 |
+| **SMOOTH**   | Extra on‑chip smoothing     | Gyro ODR 4 k, Acc 1 k; AAF **213/126 Hz**; UI **code 1**, **2nd‑order** | DLPF **188/184 Hz**, SR **1 k**                             | DLPF **184/184 Hz**, SR **1 k**                                            | DLPF **≈176/184 Hz**, SR **1 k**                               |
+| **BALANCED** | Default for 2 k PID         | Gyro ODR 4 k; AAF **258/170 Hz**; UI **code 15**, **1st‑order**         | Gyro **DLPF=0**, **SMPLRT_DIV=1** → **4 k**; Acc **260 Hz** | **Wide 8 k** (DLPF=0), **read at 4 k in SW** (decimate ×2); Acc **184 Hz** | **Wide** gyro (bypass), **read at 4 k in SW**; Acc **≈184 Hz** |
+| **ACRO**     | Minimum phase               | Gyro ODR **8 k**; AAF **303/170 Hz**; UI **code 15**, **1st‑order**     | Gyro **8 k** (DLPF=0, DIV=0); Acc **260 Hz**                | **Wide 8 k** (DLPF=0), Acc **184/460 Hz**                                  | **Wide 8 k** (bypass), Acc **≈184/218 Hz**                     |
 
-**Where to write:**
+> **Notes**
+> • On **MPU‑9250** and **ICM‑20602**, when the gyro is in **wide/8 k** mode the **divider does not produce 4 k**. To fly at a 4 k read cadence, **software‑decimate** the 8 k stream.
+> • On **MPU‑6000**, the **divider *does*** produce **4 k** from the 8 k path (DLPF=0 + `SMPLRT_DIV=1`).
+> • On **ICM‑42688‑P**, AAF is the **main anti‑alias corner**; UI is best kept **wide (code 15)** unless you need extra on‑chip smoothing.
 
-* **Gyro AAF (Bank1):** 0x0B enable, 0x0C DELT, 0x0D DELTSQR[7:0], 0x0E BITSHIFT[7:4] + DELTSQR[11:8]
-* **Accel AAF (Bank2):** 0x03 DELT (bits6:1) + enable, 0x04 DELTSQR[7:0], 0x05 BITSHIFT[7:4] + DELTSQR[11:8]
+---
+
+## 2) Common concepts (quick refresher)
+
+* **ODR vs DRDY:** The **gyro ODR** sets how often new data is produced; **DRDY** typically pulses at that ODR. Your task rate (read cadence) can be the same or a software decimation of it.
+* **Hardware vs software filtering:** Hardware filters (DLPF/AAF/UI) define the front‑end corner and **group delay floor**; software filters finalize noise/phase tradeoffs.
+* **Do not over‑close** the hardware corner near Nyquist of your control loop—leave room for software filters.
+
+### ⚠️ Critical distinction: MPU‑6000 vs. MPU‑9250 / ICM‑20602 sample‑rate divider behavior
+
+* **MPU‑6000 (6000‑class):** `CONFIG.DLPF_CFG=0` selects the **8 kHz** gyro path *and* the **`SMPLRT_DIV` divider still applies** → you can legally get **4 kHz** with `SMPLRT_DIV=1`, or **8 kHz** with `SMPLRT_DIV=0`. There are **no** `FCHOICE_B` bits on MPU‑6000; the DLPF code alone controls the path and bandwidth.
+* **MPU‑9250 / ICM‑20602 (6500‑class):** The divider **only** applies when the **DLPF path is engaged** (`FCHOICE_B=00` and `DLPF_CFG∈{1..6}`), i.e., the **1 kHz internal path**. When you select the **wide/8 kHz** gyro path (`DLPF_CFG=0` or bypass via `FCHOICE_B≠00`), **`SMPLRT_DIV` does not divide**; output remains **8 kHz**. If you want a 4 kHz read cadence in wide mode, **decimate in software**.
+* **Accelerometer (6500‑class):** `ACCEL_CONFIG2` governs accel filtering. With the accel DLPF engaged (`ACCEL_FCHOICE_B=0`), output is **1 kHz** and can be down‑sampled by the system task; with bypass (`ACCEL_FCHOICE_B=1`), accel is very wide (~1 kHz‑class BW) and not rate‑divided by `SMPLRT_DIV`.
+
+---
+
+## 3) ICM‑42688‑P (AAF + UI)
+
+**Do this first (critical):** **Disable Auto‑FSR (AFSR)** to avoid “sticky” samples during internal range switching.
+
+* Bank0 `INTF_CONFIG1 (0x4D)` → set bits **[7:6] = 01** (write mask `0x40`).
+
+**Programming fields**
+
+* **AAF (Gyro, Bank1):** `0x0B` enable, `0x0C` DELT, `0x0D` DELTSQR[7:0], `0x0E` BITSHIFT[7:4]+DELTSQR[11:8]
+* **AAF (Accel, Bank2):** `0x03` DELT(bits6:1)+enable, `0x04` DELTSQR[7:0], `0x05` BITSHIFT[7:4]+DELTSQR[11:8]
 * **UI (Bank0):** `GYRO_ACCEL_CONFIG0 (0x52)` BW codes (gyro bits[3:0], accel bits[7:4]); `GYRO_CONFIG1 (0x51)` order bits[3:2]; `ACCEL_CONFIG1 (0x53)` order bits[4:3]
 
-**Guardrail:** **AAF ≤ 0.45×ODR** (absolute). For control loops, target **~0.05–0.20×ODR** (e.g., 213–303 Hz @ 4 kHz gyro).
+**Recommended values (exact tuples)**
+
+* **SAFE** — Gyro/Acc ODR 1 k; **Gyro AAF 126 Hz** → `(4, 0x0010, 12)`; **Acc AAF 84 Hz** → `(3, 0x0009, 12)`; **UI code 1**, **2nd‑order**
+* **SMOOTH** — Gyro ODR 4 k; **213/126 Hz**; **UI code 1**, **2nd‑order**
+* **BALANCED** — Gyro ODR 4 k; **258/170 Hz**; **UI code 15**, **1st‑order** (low extra phase)
+* **ACRO** — Gyro ODR **8 k**; **303/170 Hz**; **UI code 15**, **1st‑order**
+
+**Guardrails**
+
+* Treat **AAF ≤ 0.45×ODR** as hard max. For control loops, prefer **0.05–0.20×ODR** (e.g., 213–303 Hz at 4 k gyro).
+* Keep **FSR ±2000 dps / ±16 g** unless you have solid headroom measurements.
 
 ---
 
-## MPU-6000 (classic DLPF)
+## 4) MPU‑6000 (classic DLPF)
 
-**Rate rules:**
+**Rate rules**
 
-* `CONFIG.DLPF_CFG = 0` → **base 8 kHz**; **GyroSR = 8 kHz / (1 + SMPLRT_DIV)**
-* `CONFIG.DLPF_CFG = 1..6` → **base 1 kHz**; **GyroSR = 1 kHz / (1 + SMPLRT_DIV)**
-  Accel path is 1 kHz; at ≥4 kHz gyro you’ll re-read accel between updates.
+* `CONFIG.DLPF_CFG = 0` ⇒ **8 k** gyro base. With `SMPLRT_DIV=1` you get **4 k**; with `0` you get **8 k**.
+* `CONFIG.DLPF_CFG = 1..6` ⇒ **1 k** gyro base, then `SR = 1000/(1+DIV)`.
 
-| Preset       |    `CONFIG.DLPF_CFG` | **SMPLRT_DIV** | **Gyro SR** | **Accel DLPF** | Notes                                           |
-| ------------ | -------------------: | -------------: | ----------: | -------------: | ----------------------------------------------- |
-| **SAFE**     |        **2** (98 Hz) |              0 |   **1 kHz** |      **94 Hz** | Calm bring-up                                   |
-| **SMOOTH**   |       **1** (188 Hz) |              0 |   **1 kHz** |     **184 Hz** | More smoothing                                  |
-| **BALANCED** | **0** (256/260 wide) |          **1** |   **4 kHz** |     **260 Hz** | 4 k “wide” feel; matches 42688P Balanced intent |
-| **ACRO**     | **0** (256/260 wide) |          **0** |   **8 kHz** |     **260 Hz** | Lowest latency                                  |
+**Presets**
 
-**Where to write:**
+* **SAFE** — Gyro **98 Hz** (code 2), Acc **94 Hz**, **1 k** SR
+* **SMOOTH** — Gyro **188 Hz** (1), Acc **184 Hz**, **1 k** SR
+* **BALANCED** — **DLPF=0**, `DIV=1` → **4 k**; Acc **260 Hz**
+* **ACRO** — **DLPF=0**, `DIV=0` → **8 k**; Acc **260 Hz**
 
-* `CONFIG (0x1A).DLPF_CFG`, `SMPLRT_DIV (0x19)`
-* `GYRO_CONFIG (0x1B).FS_SEL=3 (±2000 dps)`; `ACCEL_CONFIG (0x1C).AFS_SEL=3 (±16 g)`
+**Notes**
 
----
-
-## MPU-9250 (MPU-6500-class gyro + AK8963)
-
-**Rate rules (datasheet-accurate):**
-
-* `CONFIG.DLPF_CFG = 0` → **internal base 8 kHz (wide)**. **On this path, `SMPLRT_DIV` does *not* divide the 8 kHz base**; output remains 8 kHz. Use **software decimation** if you want 4 kHz reads.
-* `CONFIG.DLPF_CFG = 1..6` → **internal base 1 kHz**; only **here** does `SMPLRT_DIV` apply: **`GyroSR = 1000 / (1 + SMPLRT_DIV)`**.
-* Accel LPF via `ACCEL_CONFIG2.A_DLPF_CFG` (1 kHz update when LPF engaged). Keep `GYRO_CONFIG.FCHOICE_B=00` to use DLPF tables.
-
-| Preset       | **Gyro DLPF** (`CONFIG`) | **SMPLRT_DIV** | **Gyro SR** | **Accel DLPF** (`ACCEL_CONFIG2`)                        | Notes                                                            |
-| ------------ | ------------------------ | -------------: | ----------: | ------------------------------------------------------- | ---------------------------------------------------------------- |
-| **SAFE**     | **92 Hz**  (code **2**)  |              0 |   **1 kHz** | **92 Hz**  (code **2**)                                 | Very tame                                                        |
-| **SMOOTH**   | **184 Hz** (code **1**)  |              0 |   **1 kHz** | **184 Hz** (code **1**)                                 | More smoothing                                                   |
-| **BALANCED** | **250 Hz** (code **0**)  |          **0** |   **8 kHz** | **184 Hz** (code **1**)                                 | **Read at 4 kHz in driver (software decimate ×2)** to match feel |
-| **ACRO**     | **250 Hz** (code **0**)  |          **0** |   **8 kHz** | **184 Hz** (code **1**) *(or 460 Hz if you want wider)* | Lowest latency                                                   |
-
-**Where to write:**
-
-* `CONFIG (0x1A).DLPF_CFG`, `SMPLRT_DIV (0x19)`, `GYRO_CONFIG (0x1B).FS_SEL`, `GYRO_CONFIG (0x1B).FCHOICE_B=00`
-* `ACCEL_CONFIG2 (0x1D): ACCEL_FCHOICE_B=0, A_DLPF_CFG=0..6` (0=460, 1=184, 2=92, …)
-
-> **Footnote:** Per the register map, `SMPLRT_DIV` is **only used for the 1 kHz internal sampling path** (DLPF 1..6). For `DLPF_CFG=0` (8 kHz wide), the divider **does not** reduce the 8 kHz base—use software decimation if you need 4 kHz.
+* Accel path is **1 k**; at 4–8 k gyro you’ll re‑read accel between updates.
+* Keep `FCHOICE_B=00` (DLPF path) unless you intentionally want full bypass behavior.
 
 ---
 
-## Optional: single-source LUT structure
+## 5) MPU‑9250 (MPU‑6500‑class)
+
+**Critical difference vs MPU‑6000**
+
+* `CONFIG.DLPF_CFG = 0` puts gyro on an **8 k wide path**, **but the divider does not make 4 k**. Output stays **8 k**; **software‑decimate to 4 k** if desired.
+* `CONFIG.DLPF_CFG = 1..6` is the **1 k** path where the divider applies.
+
+**Presets**
+
+* **SAFE** — Gyro **92 Hz** (2), Acc **92 Hz**, **1 k** SR
+* **SMOOTH** — Gyro **184 Hz** (1), Acc **184 Hz**, **1 k** SR
+* **BALANCED** — Gyro **DLPF=0 wide 8 k**, **read at 4 k in SW**; Acc **184 Hz**
+* **ACRO** — Gyro **DLPF=0 wide 8 k**, Acc **184 Hz** (or **460 Hz** if you want wider)
+
+**Notes**
+
+* Keep `GYRO_CONFIG.FCHOICE_B=00` to use DLPF table; non‑zero selects analog‑wide modes.
+* Accel **ACCEL_CONFIG2.A_DLPF_CFG**: 460/184/92/41/20/10/5 Hz — choose 184 Hz for Balanced/Acro.
+
+---
+
+## 6) ICM‑20602 (MPU‑6500‑class)
+
+**Rate rules**
+
+* **Wide/bypass**: DLPF bypass (non‑zero `FCHOICE_B`) or `DLPF_CFG=0/7` → **very wide** gyro, internal ~**8 k** path. **Divider doesn’t produce 4 k** here → **software‑decimate**.
+* **DLPF path**: `FCHOICE_B=00` and `DLPF_CFG=1..6` → **1 k** internal; set SR via `SMPLRT_DIV`.
+
+**Presets**
+
+* **SAFE** — DLPF **≈92/92 Hz**, **1 k** SR
+* **SMOOTH** — DLPF **≈176/184 Hz**, **1 k** SR
+* **BALANCED** — **Wide** gyro (bypass/0), **read at 4 k in SW**; Acc **≈184 Hz**
+* **ACRO** — **Wide 8 k** gyro; Acc **≈184/218 Hz**
+
+**Notes**
+
+* Accel has DLPF table; a bypass option gives ~1 kHz‑class BW.
+* Keep SPI/I²C budgets in mind if you actually read at 8 k.
+
+---
+
+## 7) Betaflight parity & migration tips
+
+* **ICM‑42688‑P BF‑parity** — Set **both AAFs = 258 Hz**, **UI BW code = 15**, **UI order = 2nd**; Gyro ODR 8 k/4 k per target; Acc ODR 1 k.
+* **From MPU‑6000 tune to 42688P** — Start with **Balanced** (258/170 Hz AAF; UI 15/1st), then retune SW filters. If you need more damping, flip UI to **code 1/2nd** before reducing AAF.
+* **From 9250/20602 to 42688P** — If you were flying **8 k wide** before, keep it and **decimate in SW** to 4 k while matching AAF ≈ **258 Hz**.
+
+---
+
+## 8) Implementation checklist
+
+1. **FSR**: Gyro ±2000 dps; Accel ±16 g.
+2. **ICM‑42688‑P only**: Disable **AFSR** (`INTF_CONFIG1[7:6]=01`).
+3. **Program ODR & filter block** (per table for your preset).
+4. **Confirm DRDY**: Verify pulse rate vs intended SR (logic analyzer).
+5. **FFT/log review**: AAF/DLPF corner seen where expected; no alias ridge near Nyquist.
+6. **Flight signs**: If sluggish but clean → widen UI or raise AAF/DLPF one step. If motor song/D‑term high → lower AAF/DLPF one step.
+
+---
+
+## 9) Copy‑paste snippets
+
+**ICM‑42688‑P — disable Auto‑FSR**
 
 ```c
-typedef enum { FILTER_SAFE, FILTER_SMOOTH, FILTER_BALANCED, FILTER_ACRO } ImuPreset;
-typedef enum { IMU_ICM42688P, IMU_MPU6000, IMU_MPU9250 } ImuModel;
+uint8_t v = readReg(0x4D);  // INTF_CONFIG1 (Bank0)
+v &= ~0xC0;                 // clear [7:6]
+v |=  0x40;                 // set [7:6] = 01 (disable Auto‑FSR)
+writeReg(0x4D, v);
+```
 
-typedef struct {
-  ImuPreset preset;
-  uint16_t gyro_rate_hz;
-  uint16_t accel_rate_hz;
-  // 42688P specifics
-  uint8_t  icm_ui_bw_code_gyro, icm_ui_bw_code_accel; // 0..15 (15 = low-latency)
-  uint8_t  icm_ui_order_gyro,   icm_ui_order_accel;   // 1 or 2
-  uint8_t  icm_g_delT, icm_g_bitshift;  uint16_t icm_g_delTsqr;
-  uint8_t  icm_a_delT, icm_a_bitshift;  uint16_t icm_a_delTsqr;
-  // MPU specifics
-  uint8_t  mpu_dlpf_cfg_gyro, mpu_dlpf_cfg_accel;
-  uint8_t  mpu_smpr_div;
-} ImuLutRow;
+**MPU‑6000 — 4 k “wide” gyro**
+
+```c
+write(CONFIG, 0x00);        // DLPF_CFG=0 → 8k base, 256/260 Hz BW
+write(SMPLRT_DIV, 0x01);    // 8k/(1+1) = 4k gyro SR
+```
+
+**MPU‑9250 — 8 k wide + SW decimate to 4 k**
+
+```c
+write(CONFIG, 0x00);        // DLPF_CFG=0 → 8k wide
+// read every other DRDY in driver to get effective 4k cadence
+```
+
+**ICM‑20602 — wide gyro + SW decimate**
+
+```c
+// Either FCHOICE_B != 0 or DLPF_CFG = 0/7 for wide path
+// Then read at 8k and decimate in software to 4k if desired
 ```
 
 ---
 
-## Practical tuning tips
+## 10) Appendix — field references (quick map)
 
-* **Betaflight parity (42688P):** AAF **258/258** (gyro/accel), UI **code 15**, UI order **2nd** (reset default).
-* If the craft feels **sluggish but clean**, step **gyro AAF up** (213→258→303) or switch UI from **code 1 → code 15** (42688P).
-* If **D-term/motor song** is high, step **gyro AAF down** (258→213→170) or move MPU DLPF from 250/184 → 184/92.
-* Always re-check **AAF ≤ 0.45×ODR** when you change ODR.
+* **ICM‑42688‑P**: `INTF_CONFIG1 (0x4D)`, `GYRO_CONFIG1 (0x51)`, `GYRO_ACCEL_CONFIG0 (0x52)`, `ACCEL_CONFIG1 (0x53)`, AAF regs (Bank1/2 listed above).
+* **MPU‑6000**: `PWR_MGMT_1 (0x6B)`, `SMPLRT_DIV (0x19)`, `CONFIG (0x1A)`, `GYRO_CONFIG (0x1B)`, `ACCEL_CONFIG (0x1C)`.
+* **MPU‑9250**: `SMPLRT_DIV (0x19)`, `CONFIG (0x1A)`, `GYRO_CONFIG (0x1B, FCHOICE_B)`, `ACCEL_CONFIG2 (0x1D, A_DLPF_CFG)`.
+* **ICM‑20602**: `SMPLRT_DIV (0x19)`, `CONFIG (0x1A)`, `GYRO_CONFIG (0x1B, FCHOICE_B)`, `ACCEL_CONFIG2 (0x1D)`.
