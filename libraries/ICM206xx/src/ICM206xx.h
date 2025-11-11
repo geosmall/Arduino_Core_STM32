@@ -115,17 +115,28 @@ public:
 
     /**
      * @brief Set Digital Low-Pass Filter (DLPF) configuration
-     * @param dlpf_cfg DLPF setting (0-7):
-     *   0 = 250 Hz bandwidth
-     *   1 = 176 Hz
-     *   2 = 92 Hz
-     *   3 = 41 Hz
-     *   4 = 20 Hz
-     *   5 = 10 Hz
-     *   6 = 5 Hz
-     *   7 = 3600 Hz (bypass)
+     * @param gyro_dlpf Gyro DLPF setting (0-7):
+     *   0 = 250 Hz bandwidth, 8 kHz internal sample rate
+     *   1 = 176 Hz bandwidth, 1 kHz internal sample rate
+     *   2 = 92 Hz bandwidth, 1 kHz internal sample rate
+     *   3 = 41 Hz bandwidth, 1 kHz internal sample rate
+     *   4 = 20 Hz bandwidth, 1 kHz internal sample rate
+     *   5 = 10 Hz bandwidth, 1 kHz internal sample rate
+     *   6 = 5 Hz bandwidth, 1 kHz internal sample rate
+     *   7 = 3600 Hz bandwidth (bypass), 8 kHz internal sample rate
+     * @param accel_dlpf Accel DLPF setting (0-7):
+     *   0 = 218.1 Hz bandwidth, 1 kHz internal sample rate
+     *   1 = 218.1 Hz bandwidth, 1 kHz internal sample rate
+     *   2 = 99 Hz bandwidth, 1 kHz internal sample rate
+     *   3 = 44.8 Hz bandwidth, 1 kHz internal sample rate
+     *   4 = 21.2 Hz bandwidth, 1 kHz internal sample rate
+     *   5 = 10.2 Hz bandwidth, 1 kHz internal sample rate
+     *   6 = 5.05 Hz bandwidth, 1 kHz internal sample rate
+     *   7 = 420 Hz bandwidth (bypass), 1 kHz internal sample rate
+     *
+     * Note: For 1 kHz sample rate, use DLPF 1-6 (not 0 or 7)
      */
-    void setDLPF(uint8_t dlpf_cfg);
+    void setDLPF(uint8_t gyro_dlpf, uint8_t accel_dlpf);
 
     /**
      * @brief Set gyroscope full-scale range
@@ -138,6 +149,22 @@ public:
      * @param fsr Full-scale range (2, 4, 8, or 16 g)
      */
     void setAccelFSR(uint8_t fsr);
+
+    /**
+     * @brief Set sample rate divider
+     * @param divider Sample rate divider (0-255)
+     *   Effective sample rate = Internal_Sample_Rate / (1 + divider)
+     *   For DLPF enabled (DLPF_CFG 1-6): Internal rate = 1 kHz
+     *
+     *   Examples:
+     *   - divider=0: 1 kHz output (1000 Hz / (1+0))
+     *   - divider=4: 200 Hz output (1000 Hz / (1+4))
+     *   - divider=9: 100 Hz output (1000 Hz / (1+9))
+     *
+     *   Note: Data-ready interrupts are automatically enabled by the driver.
+     *         Use pinMode() + attachInterrupt() in your sketch to handle them.
+     */
+    void setSampleRateDivider(uint8_t divider);
 
     /**
      * @brief Check if device is initialized

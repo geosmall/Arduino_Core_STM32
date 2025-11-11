@@ -77,9 +77,9 @@ void setup() {
     CI_LOG("WARNING: Unknown chip variant\n");
   }
 
-  // Configure DLPF (250 Hz bandwidth, low latency)
-  imu.setDLPF(0);
-  CI_LOG("DLPF configured: 250 Hz\n");
+  // Configure DLPF (250 Hz gyro, 218 Hz accel bandwidth)
+  imu.setDLPF(0, 0);
+  CI_LOG("DLPF configured: Gyro 250 Hz, Accel 218 Hz\n");
 
   // Set ranges
   imu.setGyroFSR(2000);  // ±2000 dps

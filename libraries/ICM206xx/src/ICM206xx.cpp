@@ -199,17 +199,20 @@ bool ICM206xx::read6DOF(float &gx, float &gy, float &gz,
     return gyro_ok && accel_ok;
 }
 
-void ICM206xx::setDLPF(uint8_t dlpf_cfg)
+void ICM206xx::setDLPF(uint8_t gyro_dlpf, uint8_t accel_dlpf)
 {
-    if (!initialized || dlpf_cfg > 7) {
+    if (!initialized || gyro_dlpf > 7 || accel_dlpf > 7) {
         return;
     }
 
     gyroDev_t *gyro = (gyroDev_t *)gyro_dev;
-    gyro->hardware_lpf = dlpf_cfg;
+    gyro->hardware_lpf = gyro_dlpf;
 
-    // Write to CONFIG register
-    spiWriteReg(&gyro->dev, 0x1A, dlpf_cfg); // MPU_RA_CONFIG
+    // Write to CONFIG register (gyro DLPF)
+    spiWriteReg(&gyro->dev, 0x1A, gyro_dlpf); // MPU_RA_CONFIG
+
+    // Write to ACCEL_CONFIG_2 register (accel DLPF)
+    spiWriteReg(&gyro->dev, 0x1D, accel_dlpf); // MPU_RA_ACCEL_CONFIG_2
 }
 
 void ICM206xx::setGyroFSR(uint16_t fsr)
@@ -281,4 +284,16 @@ void ICM206xx::setAccelFSR(uint8_t fsr)
 
     // Write to ACCEL_CONFIG register
     spiWriteReg(&gyro->dev, 0x1C, fsr_bits); // MPU_RA_ACCEL_CONFIG
+}
+
+void ICM206xx::setSampleRateDivider(uint8_t divider)
+{
+    if (!initialized) {
+        return;
+    }
+
+    gyroDev_t *gyro = (gyroDev_t *)gyro_dev;
+
+    // Write to SMPLRT_DIV register (0x19)
+    spiWriteReg(&gyro->dev, 0x19, divider); // MPU_RA_SMPLRT_DIV
 }
