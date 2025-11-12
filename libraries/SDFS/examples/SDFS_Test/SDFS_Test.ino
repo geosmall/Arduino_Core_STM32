@@ -1,34 +1,35 @@
 /*
  * SDFS Test Example
- * 
+ *
  * Single sketch supporting both Arduino IDE (Serial) and J-Run/RTT modes.
  * Controlled via USE_RTT compile flag for deterministic HIL testing.
- * 
+ *
  * Arduino IDE mode: Serial output with manual monitoring
  * J-Run/RTT mode:   RTT output with deterministic exit tokens
- * 
- * Hardware connections:
- * - MOSI: PC12 (or PA7 for BlackPill)  
- * - MISO: PC11 (or PA6 for BlackPill)
- * - SCLK: PC10 (or PA5 for BlackPill)  
- * - CS:   PD2  (or PA4 for BlackPill)
+ *
+ * Hardware connections (via BoardConfig):
+ * - NUCLEO_F411RE: MOSI: PC12, MISO: PC11, SCLK: PC10, CS: PD2
+ * - BLACKPILL_F411CE: MOSI: PA7, MISO: PA6, SCLK: PA5, CS: PA4
+ * - NERO F7 (BKMN): MOSI: PC12, MISO: PC11, SCLK: PC10, CS: PA15 (SPI3)
  */
 
 #include <SDFS.h>
 #include <ci_log.h>
 
-// Pin definitions based on board type
+// Board configuration for hardware abstraction
 #if defined(ARDUINO_BLACKPILL_F411CE)
-#define CS_PIN PA4
-#define SPI_MOSI PA7
-#define SPI_MISO PA6
-#define SPI_SCLK PA5
+#include "../../../targets/BLACKPILL_F411CE.h"
+#elif defined(ARDUINO_BKMN_NERO)
+#include "../../../targets/BKMN-NERO.h"
 #else
-#define CS_PIN PD2
-#define SPI_MOSI PC12
-#define SPI_MISO PC11
-#define SPI_SCLK PC10
+#include "../../../targets/NUCLEO_F411RE_SDFS.h"
 #endif
+
+// Hardware configuration - BoardConfig integration
+#define CS_PIN BoardConfig::storage.cs_pin
+#define SPI_MOSI BoardConfig::storage.mosi_pin
+#define SPI_MISO BoardConfig::storage.miso_pin
+#define SPI_SCLK BoardConfig::storage.sclk_pin
 
 // Create SDFS instance
 SDFS_SPI sdfs;
@@ -52,7 +53,13 @@ void setup() {
 #ifdef USE_RTT
   // J-Run mode: Enhanced header with build traceability
   CI_LOG("Mode: J-Run/RTT (deterministic)\n");
+#if defined(ARDUINO_BLACKPILL_F411CE)
+  CI_LOG("Target: BLACKPILL_F411CE\n");
+#elif defined(ARDUINO_BKMN_NERO)
+  CI_LOG("Target: NERO F7 (BKMN)\n");
+#else
   CI_LOG("Target: NUCLEO_F411RE\n");
+#endif
   CI_BUILD_INFO();
   CI_READY_TOKEN();
 #else
