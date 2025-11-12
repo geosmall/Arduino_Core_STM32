@@ -4,6 +4,8 @@
 // Board configuration for hardware abstraction
 #if defined(ARDUINO_BLACKPILL_F411CE)
 #include "../../targets/BLACKPILL_F411CE.h"
+#elif defined(ARDUINO_BKMN_NERO)
+#include "../../targets/BKMN-NERO.h"
 #else
 #include "../../targets/NUCLEO_F411RE_SDFS.h"
 #endif
@@ -17,9 +19,9 @@
  *
  * Validated Hardware:
  * - SD Card: Standard SD/SDHC card (tested with various capacities)
- * - Target Board: STM32F411RE Nucleo
- * - Pin Configuration:
- *   - MOSI: PC12, MISO: PC11, SCLK: PC10, CS: PD2
+ * - Target Boards:
+ *   - STM32F411RE Nucleo: MOSI: PC12, MISO: PC11, SCLK: PC10, CS: PD2
+ *   - NERO F7 (BKMN): MOSI: PC12, MISO: PC11, SCLK: PC10, CS: PA15 (SPI3)
  *
  * File System: Uses FatFs backend with LittleFS-compatible API
  * Supports: FAT16/FAT32 formatted SD cards
