@@ -298,6 +298,89 @@ if (imu.begin(ImuType::Auto)) {
 
 ---
 
-**Status:** Phases 1, 2, and 3 complete and hardware validated ✅
-**Next:** Phase 4 - Additional device support (ICM206xx, MPU6000, MPU9250)
+### Phase 4: Additional Device Support 🚧 **IN PROGRESS**
+
+**Goal:** Add MPU6000, MPU9250, and ICM206xx device drivers
+
+**Device 1: MPU6000 ✅ COMPLETE**
+
+**Deliverables:**
+1. ✅ **MPU6000_BF.h** (~62 lines) - Madflight-pattern class interface
+2. ✅ **MPU6000_BF.cpp** (~180 lines) - Modified Betaflight driver
+3. ✅ **Test_MPU6000_Direct** example (~116 lines) - Direct driver test
+4. ✅ **IMU_BF integration** - Added MPU6000 to auto-detection
+
+**Hardware Validation:**
+```
+✓ Device detected: MPU6000 (WHO_AM_I=0x68)
+✓ Product ID validated: 0x58 (MPU6000 Rev D8)
+✓ Full initialization: ±2000 dps, ±16g, 1kHz sampling
+✓ Direct driver test: 28,515 reads in 5 seconds (5,703 Hz)
+✓ Accelerometer: Z-axis = 1.02G (excellent accuracy)
+✓ Gyroscope: Drift within noise range
+✓ Facade integration: 152,660 reads in 5 seconds (30,532 Hz)
+✓ Auto-detection working: MPU6000 detected and typed correctly
+```
+
+**Code Statistics:**
+- MPU6000_BF.h: 62 lines
+- MPU6000_BF.cpp: 180 lines
+- Test_MPU6000_Direct.ino: 116 lines
+- IMU_BF updates: ~30 lines modified
+- Total Phase 4 Device 1 code: ~358 lines
+- Build: Clean (both direct and facade tests)
+
+**Technical Achievements:**
+1. ✅ Betaflight driver adaptation (231 lines → 180 lines, -22% reduction)
+2. ✅ Madflight pattern: Protected constructor, static factory detect()
+3. ✅ Product revision validation (MPU6000ES and MPU6000 C4-D10 revisions)
+4. ✅ Complete initialization sequence (clock source, sensors, sampling, FSR, interrupts)
+5. ✅ Big-endian data parsing (14-byte burst read with temperature)
+6. ✅ Scale factors: 1/16.4 dps/LSB (gyro), 1/2048 G/LSB (accel)
+7. ✅ IMU_BF facade integration with cascading auto-detection
+
+**Multi-Device Auto-Detection:**
+```cpp
+bool IMU_BF::autoDetect() {
+    // Try ICM42688 family first (0x42, 0x47, 0x56)
+    icm42688_device_ = ICM42688_BF::detect(bus_);
+    if (icm42688_device_ != nullptr) {
+        detected_type_ = /* map WHO_AM_I to ImuType */;
+        return true;
+    }
+
+    // Try MPU6000 (0x68)
+    mpu6000_device_ = MPU6000_BF::detect(bus_);
+    if (mpu6000_device_ != nullptr) {
+        detected_type_ = ImuType::MPU6000;
+        return true;
+    }
+
+    return false;
+}
+```
+
+**Current Architecture Note:**
+- Using expedient multiple-pointer approach (icm42688_device_, mpu6000_device_)
+- Dispatch via if/else chains in read() and typeName()
+- **Planned refactoring:** Abstract DeviceBase class before adding more devices
+- Committing working code before architectural refactoring
+
+**Commit:** Ready to commit
+
+**Device 2: MPU9250 📋 PLANNED**
+- Platform: BlackPill F411CE
+- Approach: Same madflight pattern as MPU6000
+- Estimated effort: ~1 hour
+
+**Device 3: ICM206xx 📋 PLANNED**
+- Platform: NERO F7 flight controller (BKMN-NERO target)
+- Chip: ICM20602 on SPI1
+- Approach: Same madflight pattern
+- Estimated effort: ~1 hour
+
+---
+
+**Status:** Phases 1, 2, and 3 complete ✅ | Phase 4: MPU6000 complete ✅, MPU9250 and ICM206xx pending
+**Next:** Commit MPU6000 work, then refactor to DeviceBase pattern
 **Blocked:** None

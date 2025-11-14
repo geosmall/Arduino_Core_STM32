@@ -548,9 +548,12 @@ void ICM42688_BF::read(int16_t* accgyr) {
 |-------|-------------|------|------------|--------|
 | 0 | Clean slate + plan update | 10 min | Simple | ✅ Complete |
 | 1 | Bus abstraction (~200 lines) | 30 min | Simple | ✅ Complete |
-| 2 | ICM42688 driver (madflight pattern, ~410 lines) | 1.5-2 hours | Moderate | 🚧 In Progress |
-| 3 | Facade API (~80 lines) | 1 hour | Simple | 📋 Planned |
-| 4 | Add 3 more devices (ICM206xx, MPU6000, MPU9250) | 3 hours | Moderate | 📋 Future |
+| 2 | ICM42688 driver (madflight pattern, ~410 lines) | 1.5-2 hours | Moderate | ✅ Complete |
+| 3 | Facade API (~80 lines) | 1 hour | Simple | ✅ Complete |
+| 4a | MPU6000 device driver | 1 hour | Moderate | ✅ Complete |
+| 4b | MPU9250 device driver | 1 hour | Moderate | 📋 Planned |
+| 4c | ICM206xx device driver | 1 hour | Moderate | 📋 Planned |
+| 4d | DeviceBase refactoring | 30 min | Moderate | 📋 Next |
 | 5 | Documentation | 30 min | Simple | 📋 Future |
 
 **Total Estimated:** ~6-7 hours (vs 9-12 hours with stub approach, vs 46+ stub files from original attempt)
@@ -558,8 +561,11 @@ void ICM42688_BF::read(int16_t* accgyr) {
 **Actual Progress:**
 - Phase 0: ✅ 10 min (complete)
 - Phase 1: ✅ 40 min (complete + hardware validation)
-- Phase 2: 🚧 ~50% (find-replace done, class structure pending)
-- Total so far: ~50 min + research time
+- Phase 2: ✅ 2 hours (ICM42688 complete + hardware validation)
+- Phase 3: ✅ 45 min (Facade API complete + hardware validation)
+- Phase 4a: ✅ 1 hour (MPU6000 complete + hardware validation)
+- **Total so far:** ~4 hours 35 min
+- **Remaining:** DeviceBase refactor (30 min), MPU9250 (1h), ICM206xx (1h), docs (30 min) = ~3 hours
 
 **Key Insight from Analysis:**
 - Madflight reduced Betaflight by only 17% (493→408 lines)

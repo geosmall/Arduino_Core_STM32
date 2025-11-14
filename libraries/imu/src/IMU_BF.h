@@ -12,6 +12,7 @@
 #include "bus/DeviceBusSPI.h"
 #include "bus/DeviceBusI2C.h"
 #include "devices/ICM42688_BF.h"
+#include "devices/MPU6000_BF.h"
 
 /**
  * @brief High-level IMU facade with auto-detection
@@ -87,14 +88,15 @@ public:
      * @brief Check if IMU is initialized
      * @return true if begin() was successful
      */
-    bool isInitialized() const { return device_ != nullptr; }
+    bool isInitialized() const { return (icm42688_device_ != nullptr || mpu6000_device_ != nullptr); }
 
 private:
     // Bus abstraction (owned)
     DeviceBus* bus_;
 
-    // Device driver (polymorphic - owned)
-    ICM42688_BF* device_;
+    // Device drivers (only one will be non-null)
+    ICM42688_BF* icm42688_device_;
+    MPU6000_BF* mpu6000_device_;
 
     // Detected device type
     ImuType detected_type_;
