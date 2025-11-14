@@ -11,22 +11,17 @@ static constexpr float IMU_DEG_TO_RAD = 0.017453292519943295f;
 
 IMU_BF::IMU_BF()
     : bus_(nullptr)
-    , icm42688_device_(nullptr)
-    , mpu6000_device_(nullptr)
+    , device_(nullptr)
     , detected_type_(ImuType::Unknown)
 {
 }
 
 IMU_BF::~IMU_BF()
 {
-    // Delete devices first (use bus)
-    if (icm42688_device_ != nullptr) {
-        delete icm42688_device_;
-        icm42688_device_ = nullptr;
-    }
-    if (mpu6000_device_ != nullptr) {
-        delete mpu6000_device_;
-        mpu6000_device_ = nullptr;
+    // Delete device first (uses bus)
+    if (device_ != nullptr) {
+        delete device_;
+        device_ = nullptr;
     }
 
     // Then delete bus
@@ -66,14 +61,10 @@ bool IMU_BF::begin(ImuType type)
         return false;
     }
 
-    // Clean up existing devices if present
-    if (icm42688_device_ != nullptr) {
-        delete icm42688_device_;
-        icm42688_device_ = nullptr;
-    }
-    if (mpu6000_device_ != nullptr) {
-        delete mpu6000_device_;
-        mpu6000_device_ = nullptr;
+    // Clean up existing device if present
+    if (device_ != nullptr) {
+        delete device_;
+        device_ = nullptr;
     }
 
     // Handle auto-detection
@@ -89,11 +80,11 @@ bool IMU_BF::begin(ImuType type)
 bool IMU_BF::autoDetect()
 {
     // Try ICM42688 family detection (supports 0x42, 0x47, 0x56)
-    icm42688_device_ = ICM42688_BF::detect(bus_);
+    device_ = ICM42688_BF::detect(bus_);
 
-    if (icm42688_device_ != nullptr) {
+    if (device_ != nullptr) {
         // Map WHO_AM_I to ImuType enum
-        switch (icm42688_device_->whoAmI_) {
+        switch (device_->whoAmI_) {
             case 0x42:
                 detected_type_ = ImuType::ICM42605;
                 break;
@@ -111,8 +102,8 @@ bool IMU_BF::autoDetect()
     }
 
     // Try MPU6000 detection (WHO_AM_I = 0x68)
-    mpu6000_device_ = MPU6000_BF::detect(bus_);
-    if (mpu6000_device_ != nullptr) {
+    device_ = MPU6000_BF::detect(bus_);
+    if (device_ != nullptr) {
         detected_type_ = ImuType::MPU6000;
         return true;
     }
@@ -125,32 +116,24 @@ bool IMU_BF::autoDetect()
 
 bool IMU_BF::read(ImuSample& sample)
 {
+    // Check if device is initialized
+    if (device_ == nullptr) {
+        return false;
+    }
+
     // Read raw data: ax, ay, az, gx, gy, gz (int16_t)
     int16_t rawData[6];
-    float accScale, gyrScale;
-
-    // Dispatch to appropriate device
-    if (icm42688_device_ != nullptr) {
-        icm42688_device_->read(rawData);
-        accScale = icm42688_device_->accScale_;
-        gyrScale = icm42688_device_->gyrScale_;
-    } else if (mpu6000_device_ != nullptr) {
-        mpu6000_device_->read(rawData);
-        accScale = mpu6000_device_->accScale_;
-        gyrScale = mpu6000_device_->gyrScale_;
-    } else {
-        return false;  // No device initialized
-    }
+    device_->read(rawData);  // Polymorphic call
 
     // Convert to physical units using device scales
     // All devices store accScale_ in [G/LSB] and gyrScale_ in [dps/LSB]
-    sample.ax = rawData[0] * accScale * GRAVITY;  // [m/s²]
-    sample.ay = rawData[1] * accScale * GRAVITY;
-    sample.az = rawData[2] * accScale * GRAVITY;
+    sample.ax = rawData[0] * device_->accScale_ * GRAVITY;  // [m/s²]
+    sample.ay = rawData[1] * device_->accScale_ * GRAVITY;
+    sample.az = rawData[2] * device_->accScale_ * GRAVITY;
 
-    sample.gx = rawData[3] * gyrScale * IMU_DEG_TO_RAD;  // [rad/s]
-    sample.gy = rawData[4] * gyrScale * IMU_DEG_TO_RAD;
-    sample.gz = rawData[5] * gyrScale * IMU_DEG_TO_RAD;
+    sample.gx = rawData[3] * device_->gyrScale_ * IMU_DEG_TO_RAD;  // [rad/s]
+    sample.gy = rawData[4] * device_->gyrScale_ * IMU_DEG_TO_RAD;
+    sample.gz = rawData[5] * device_->gyrScale_ * IMU_DEG_TO_RAD;
 
     sample.timestamp_us = micros();
 
@@ -159,15 +142,12 @@ bool IMU_BF::read(ImuSample& sample)
 
 const char* IMU_BF::typeName() const
 {
-    // Return name from active device
-    if (icm42688_device_ != nullptr) {
-        return icm42688_device_->typeName();
-    }
-    if (mpu6000_device_ != nullptr) {
-        return mpu6000_device_->typeName();
+    // Return name from active device (polymorphic call)
+    if (device_ != nullptr) {
+        return device_->typeName();
     }
 
-    // Fallback to detected type
+    // Fallback to detected type (shouldn't happen if device initialized)
     switch (detected_type_) {
         case ImuType::ICM42688P: return "ICM42688P";
         case ImuType::ICM42605:  return "ICM42605";

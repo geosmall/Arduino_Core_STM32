@@ -5,6 +5,7 @@
 #pragma once
 
 #include "../bus/DeviceBus.h"
+#include "DeviceBase.h"
 
 /**
  * @brief ICM42688/ICM42605/IIM42653 IMU driver
@@ -20,7 +21,7 @@
  *       imu->read(data);
  *   }
  */
-class ICM42688_BF {
+class ICM42688_BF : public DeviceBase {
 protected:
     /**
      * @brief Protected constructor - use detect() factory method
@@ -55,17 +56,13 @@ public:
      * Performs single 12-byte burst read from data registers.
      * Data is in sensor frame, little-endian format.
      */
-    void read(int16_t* accgyr);
+    void read(int16_t* accgyr) override;
 
     /**
      * @brief Get human-readable chip name
      * @return Chip name string ("ICM42688P", "ICM42605", etc.)
      */
-    const char* typeName() const;
+    const char* typeName() const override;
 
-    // Public members for easy access
-    uint8_t whoAmI_;           ///< WHO_AM_I register value
-    float accScale_;           ///< Accel scale factor [G/LSB]
-    float gyrScale_;           ///< Gyro scale factor [dps/LSB]
-    uint16_t samplingRateHz_;  ///< Output data rate [Hz]
+    // Note: whoAmI_, accScale_, gyrScale_, samplingRateHz_ inherited from DeviceBase
 };

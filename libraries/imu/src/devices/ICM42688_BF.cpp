@@ -173,7 +173,9 @@ ICM42688_BF* ICM42688_BF::detect(DeviceBus* bus) {
 
 // Protected constructor: Performs full initialization
 ICM42688_BF::ICM42688_BF(DeviceBus* bus, uint8_t whoAmI)
-    : bus_(bus), whoAmI_(whoAmI) {
+    : bus_(bus) {
+
+    whoAmI_ = whoAmI;
 
     // Set scale factors based on chip type
     switch (whoAmI_) {

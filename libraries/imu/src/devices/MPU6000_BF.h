@@ -14,6 +14,7 @@
 #pragma once
 
 #include "../bus/DeviceBus.h"
+#include "DeviceBase.h"
 #include <Arduino.h>
 
 /**
@@ -22,7 +23,7 @@
  * Supports MPU-6000 and MPU-6050 IMUs using Betaflight's proven driver.
  * Uses factory pattern for detection and constructor-based initialization.
  */
-class MPU6000_BF {
+class MPU6000_BF : public DeviceBase {
 protected:
     /**
      * @brief Protected constructor - use detect() factory method
@@ -43,19 +44,15 @@ public:
      * @brief Read gyro and accel data (6 int16_t values)
      * @param accgyr Output array: ax, ay, az, gx, gy, gz (raw LSB)
      */
-    void read(int16_t* accgyr);
+    void read(int16_t* accgyr) override;
 
     /**
      * @brief Get human-readable device name
      * @return C-string with device name
      */
-    const char* typeName() const;
+    const char* typeName() const override;
 
-    // Public device info
-    uint8_t whoAmI_;         // WHO_AM_I register value (0x68)
-    float accScale_;         // Accelerometer scale [G/LSB]
-    float gyrScale_;         // Gyroscope scale [dps/LSB]
-    uint16_t samplingRateHz_;  // Sampling rate [Hz]
+    // Note: whoAmI_, accScale_, gyrScale_, samplingRateHz_ inherited from DeviceBase
 
 private:
     DeviceBus* bus_;         // Bus abstraction (owned by caller)

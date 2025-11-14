@@ -57,8 +57,8 @@
 
 MPU6000_BF::MPU6000_BF(DeviceBus* bus, uint8_t whoAmI)
     : bus_(bus)
-    , whoAmI_(whoAmI)
 {
+    whoAmI_ = whoAmI;
     // Device was already reset during detection
 
     // Clock Source PPL with Z axis gyro reference
