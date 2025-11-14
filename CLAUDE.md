@@ -553,9 +553,12 @@ AVOID documentation duplication across files. Before adding content, check if it
 ```cpp
 CI_LOG(s)              // String literals only (no printf formatting)
 CI_LOGF(...)           // Printf-style formatting (RTT: SEGGER_RTT_printf, Serial: Serial.printf)
+                       // ⚠️ RTT LIMITATION: %f float formatting NOT supported in RTT mode
+                       // ⚠️ Use CI_LOG_FLOAT() for floats instead of CI_LOGF("%f", value)
 CI_BUILD_INFO()        // Shows build SHA + timestamp (RTT only, no-op in Serial mode)
 CI_READY_TOKEN()       // Shows ready token (RTT only, no-op in Serial mode)
 CI_LOG_FLOAT(prefix, value, decimals)  // Float output helper (works in both modes)
+                       // ✅ ALWAYS use this for floats, never CI_LOGF() with %f
 ```
 
 **Correct Usage Pattern**:
@@ -570,8 +573,13 @@ void setup() {
 #endif
 
   CI_LOG("Starting test\n");           // String literal
-  CI_LOGF("Value: %d\n", 123);         // Printf formatting
-  CI_LOG_FLOAT("Temp: ", 23.5, 2);    // Float output
+  CI_LOGF("Value: %d\n", 123);         // Printf formatting (integers OK)
+
+  // Float formatting - MUST use CI_LOG_FLOAT, NOT CI_LOGF with %f
+  float temp = 23.456;
+  CI_LOG_FLOAT("Temp: ", temp, 2);    // ✅ Correct: "Temp: 23.46"
+  // CI_LOGF("Temp: %f\n", temp);     // ❌ WRONG: Shows blank in RTT mode
+
   CI_BUILD_INFO();                     // Build traceability (RTT only)
   CI_READY_TOKEN();                    // Ready signal (RTT only)
 }
@@ -590,7 +598,45 @@ void loop() {
 - ✅ aflash.sh requires `*STOP*` for deterministic test completion
 - ❌ Without `*STOP*`, aflash.sh will timeout after 60 seconds
 - 💡 Can include test status before `*STOP*` (e.g., `*TEST_PASS*` then `*STOP*`)
-- 💡 No delay needed before `*STOP*` - RTT handles buffering automatically 
+- 💡 No delay needed before `*STOP*` - RTT handles buffering automatically
+
+### Arduino Library Include Requirements
+
+**CRITICAL**: Arduino-CLI library compilation requires proper include syntax to trigger library detection and compilation.
+
+**Common Mistake - Relative Path Includes**:
+```cpp
+// ❌ WRONG: This bypasses arduino-cli library detection
+#include "../../src/devices/ICM42688_BF.h"
+// Result: Header found, but .cpp files NOT compiled → linker errors
+```
+
+**Correct Pattern - Angle Bracket Includes**:
+```cpp
+// ✅ CORRECT: This triggers arduino-cli library detection
+#include <LibraryName.h>
+// Result: Library detected, ALL .cpp files in src/ compiled recursively
+```
+
+**Why This Matters**:
+1. **Angle brackets `<>`** trigger arduino-cli library search and compilation
+2. **Quote marks `""`** with relative paths only find headers, NOT .cpp files
+3. Arduino-cli recursively compiles **all .cpp files** in library `src/` folder when library is detected
+4. Relative paths bypass this mechanism, causing "undefined reference" linker errors
+
+**Example - Library Example Sketch**:
+```cpp
+#include <IMU.h>  // ✅ Triggers compilation of ALL .cpp in libraries/imu/src/
+
+// Now you can also access internal headers if needed for advanced usage
+#include "../../src/bus/DeviceBusSPI.h"
+#include "../../src/devices/ICM42688_BF.h"
+```
+
+**Key Insight**:
+- Including the library's main header with `<>` ensures all library .cpp files compile
+- You can then use relative paths `""` to access internal headers for direct testing
+- Without the angle bracket include, the library is NOT detected and .cpp files NOT compiled
 
 ## Clean Repository Policy
 
