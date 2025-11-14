@@ -381,6 +381,76 @@ bool IMU_BF::autoDetect() {
 
 ---
 
-**Status:** Phases 1, 2, and 3 complete ✅ | Phase 4: MPU6000 complete ✅, MPU9250 and ICM206xx pending
-**Next:** Commit MPU6000 work, then refactor to DeviceBase pattern
+### Phase 4b: DeviceBase Refactoring ✅ COMPLETE
+
+**Goal:** Refactor to polymorphic architecture before adding more devices
+
+**Deliverables:**
+1. ✅ **DeviceBase.h** (~45 lines) - Abstract base class with pure virtual interface
+2. ✅ **ICM42688_BF** - Refactored to inherit from DeviceBase
+3. ✅ **MPU6000_BF** - Refactored to inherit from DeviceBase
+4. ✅ **IMU_BF** - Simplified to use single DeviceBase* pointer
+
+**Architecture Improvements:**
+```cpp
+// Before: Multiple device pointers with if/else dispatch
+ICM42688_BF* icm42688_device_;
+MPU6000_BF* mpu6000_device_;
+
+if (icm42688_device_ != nullptr) {
+    icm42688_device_->read(rawData);
+} else if (mpu6000_device_ != nullptr) {
+    mpu6000_device_->read(rawData);
+}
+
+// After: Single polymorphic pointer with virtual dispatch
+DeviceBase* device_;
+device_->read(rawData);  // Polymorphic call
+```
+
+**Code Statistics:**
+- DeviceBase.h: 45 lines (new abstract base class)
+- IMU_BF.cpp: -24 lines (eliminated if/else dispatch chains)
+- Total refactoring: +92 lines, -72 lines (net +20 lines for cleaner architecture)
+
+**Hardware Validation - Both Devices:**
+
+**ICM42688P (NUCLEO_F411RE):**
+```
+✓ Auto-detection: ICM42688P detected (WHO_AM_I=0x47)
+✓ Read rate: 34,939 Hz (174,697 samples in 5s)
+✓ Accel Z-axis: 10.06 m/s² (1.03G - excellent accuracy)
+✓ Gyro drift: ~0.005 rad/s (within noise range)
+✓ Polymorphic dispatch: Working perfectly
+```
+
+**MPU6000 (NUCLEO_F411RE):**
+```
+✓ Auto-detection: MPU6000 detected (WHO_AM_I=0x68)
+✓ Read rate: 30,588 Hz (152,943 samples in 5s)
+✓ Accel Z-axis: 9.95 m/s² (1.01G - excellent accuracy)
+✓ Gyro drift: ~0.009 rad/s (within noise range)
+✓ Polymorphic dispatch: Working perfectly
+```
+
+**Technical Achievements:**
+1. ✅ **Pure virtual interface** - read() and typeName() methods
+2. ✅ **Polymorphic dispatch** - Single code path for all device types
+3. ✅ **Eliminated conditionals** - No device-specific if/else chains in IMU_BF
+4. ✅ **Type-safe** - Virtual function dispatch ensures correctness
+5. ✅ **Scalable** - Adding new devices requires only one line in autoDetect()
+6. ✅ **Backward compatible** - Both existing devices work perfectly
+
+**Benefits for Future Development:**
+- MPU9250 addition: ~1 line change in autoDetect() (vs ~30 lines before)
+- ICM206xx addition: ~1 line change in autoDetect() (vs ~30 lines before)
+- No facade code changes needed for new devices
+- Clean separation: Device logic in device class, dispatch in base class
+
+**Commit:** `8d8fbf689` - "IMU refactor Phase 4b: DeviceBase abstract class refactoring"
+
+---
+
+**Status:** Phases 1, 2, 3, 4a (MPU6000), and 4b (DeviceBase) complete ✅
+**Next:** Phase 4c - Port MPU9250 driver for BlackPill F411CE
 **Blocked:** None
