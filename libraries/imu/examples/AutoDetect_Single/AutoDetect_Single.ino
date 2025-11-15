@@ -3,15 +3,16 @@
  *
  * Demonstrates the high-level IMU_BF facade with auto-detection.
  *
- * Hardware Setup (NUCLEO_F411RE):
- *   - ICM42688P connected via SPI
- *   - CS: PA4
- *   - SCK: PA5
- *   - MISO: PA6
- *   - MOSI: PA7
+ * Hardware Setup:
+ *   - Uses BoardConfig for automatic board detection
+ *   - BlackPill F411CE: SPI2 (PB12/PB13/PB14/PB15) - MPU9250
+ *   - NUCLEO_F411RE: SPI1 (PA4/PA5/PA6/PA7) - ICM42688P or MPU6000
  *
  * Build & Test:
- *   ./system/ci/build.sh libraries/imu/examples/AutoDetect_Single --use-rtt --build-id
+ *   # BlackPill F411CE:
+ *   ./system/ci/aflash.sh libraries/imu/examples/AutoDetect_Single STMicroelectronics:stm32:GenF4:pnum=BLACKPILL_F411CE --use-rtt
+ *
+ *   # NUCLEO_F411RE:
  *   ./system/ci/aflash.sh libraries/imu/examples/AutoDetect_Single --use-rtt
  */
 
@@ -20,9 +21,25 @@
 #include <ci_log.h>
 #include <IMU_BF.h>
 
-// Hardware configuration
-#define IMU_CS_PIN    PA4
-#define IMU_SPI_FREQ  1000000  // 1 MHz
+// Board configuration
+#if defined(ARDUINO_BLACKPILL_F411CE)
+#include "../../../../targets/BLACKPILL_F411CE.h"
+#else
+#include "../../../../targets/NUCLEO_F411RE_JHEF411.h"
+#endif
+
+// BoardConfig integration for dynamic pin configuration
+#define IMU_CS_PIN        BoardConfig::imu.spi.cs_pin
+#define IMU_MOSI_PIN      BoardConfig::imu.spi.mosi_pin
+#define IMU_MISO_PIN      BoardConfig::imu.spi.miso_pin
+#define IMU_SCLK_PIN      BoardConfig::imu.spi.sclk_pin
+#define IMU_SPI_FREQ      BoardConfig::imu.spi.freq_hz
+
+// Create SPI instance using BoardConfig (software CS control)
+SPIClass spi_bus(BoardConfig::imu.spi.mosi_pin,
+                 BoardConfig::imu.spi.miso_pin,
+                 BoardConfig::imu.spi.sclk_pin,
+                 BoardConfig::imu.spi.get_ssel_pin());
 
 // Create IMU facade
 IMU_BF imu;
@@ -39,11 +56,18 @@ void setup()
     CI_BUILD_INFO();
     CI_READY_TOKEN();
 
-    // Initialize SPI
-    SPI.begin();
+    // Display pin configuration from BoardConfig
+    CI_LOG("\nPin Configuration (BoardConfig):\n");
+    CI_LOGF("  CS: 0x%02X, MOSI: 0x%02X, MISO: 0x%02X, SCLK: 0x%02X\n",
+           (int)IMU_CS_PIN, (int)IMU_MOSI_PIN,
+           (int)IMU_MISO_PIN, (int)IMU_SCLK_PIN);
+    CI_LOGF("  SPI Speed: %lu Hz\n\n", (unsigned long)IMU_SPI_FREQ);
+
+    // Initialize SPI with BoardConfig pins
+    spi_bus.begin();
 
     // Attach SPI bus to IMU facade
-    imu.attachSPI(SPI, IMU_CS_PIN, IMU_SPI_FREQ);
+    imu.attachSPI(spi_bus, IMU_CS_PIN, IMU_SPI_FREQ);
 
     // Auto-detect and initialize IMU
     CI_LOG("Attempting auto-detection...\n");

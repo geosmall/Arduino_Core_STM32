@@ -14,6 +14,7 @@
 #include "devices/DeviceBase.h"
 #include "devices/ICM42688_BF.h"
 #include "devices/MPU6000_BF.h"
+#include "devices/MPU9250_BF.h"
 
 /**
  * @brief High-level IMU facade with auto-detection

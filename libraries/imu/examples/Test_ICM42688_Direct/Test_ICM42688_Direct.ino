@@ -4,11 +4,11 @@
  * Tests the ICM42688_BF driver (madflight pattern) with DeviceBus abstraction.
  * Factory pattern: detect() returns nullptr if not found, or initialized instance.
  *
- * Hardware: NUCLEO_F411RE with ICM42688P on breadboard SPI
- * Expected: WHO_AM_I = 0x47, gyro/accel data streaming
+ * Hardware Setup:
+ *   - NUCLEO_F411RE ONLY (with JHEF411 config)
+ *   - ICM42688P on SPI1 (PA4/PA5/PA6/PA7)
  *
  * Build/Flash:
- *   ./system/ci/build.sh libraries/imu/examples/Test_ICM42688_Direct --use-rtt --build-id
  *   ./system/ci/aflash.sh libraries/imu/examples/Test_ICM42688_Direct --use-rtt
  */
 
@@ -20,9 +20,25 @@
 #include "../../src/bus/DeviceBusSPI.h"
 #include "../../src/devices/ICM42688_BF.h"
 
-// Pin configuration for NUCLEO_F411RE
-#define IMU_CS_PIN  PA4
-#define IMU_SPI_FREQ 1000000  // Start at 1MHz for detection
+// Board configuration - NUCLEO_F411RE ONLY
+#if defined(ARDUINO_NUCLEO_F411RE)
+#include "../../../../targets/NUCLEO_F411RE_JHEF411.h"
+#else
+#error "This example requires NUCLEO_F411RE board. Use default FQBN: STMicroelectronics:stm32:Nucleo_64:pnum=NUCLEO_F411RE"
+#endif
+
+// BoardConfig integration for dynamic pin configuration
+#define IMU_CS_PIN        BoardConfig::imu.spi.cs_pin
+#define IMU_MOSI_PIN      BoardConfig::imu.spi.mosi_pin
+#define IMU_MISO_PIN      BoardConfig::imu.spi.miso_pin
+#define IMU_SCLK_PIN      BoardConfig::imu.spi.sclk_pin
+#define IMU_SPI_FREQ      BoardConfig::imu.spi.freq_hz
+
+// Create SPI instance using BoardConfig (software CS control)
+SPIClass spi_bus(BoardConfig::imu.spi.mosi_pin,
+                 BoardConfig::imu.spi.miso_pin,
+                 BoardConfig::imu.spi.sclk_pin,
+                 BoardConfig::imu.spi.get_ssel_pin());
 
 DeviceBusSPI* bus = nullptr;
 ICM42688_BF* imu = nullptr;
@@ -37,12 +53,18 @@ void setup() {
   CI_BUILD_INFO();
   CI_READY_TOKEN();
 
-  // Initialize SPI bus
-  SPI.begin();
-  CI_LOGF("SPI initialized (CS=%d, Freq=%d Hz)\n", IMU_CS_PIN, IMU_SPI_FREQ);
+  // Display pin configuration from BoardConfig
+  CI_LOG("\nPin Configuration (BoardConfig):\n");
+  CI_LOGF("  CS: 0x%02X, MOSI: 0x%02X, MISO: 0x%02X, SCLK: 0x%02X\n",
+         (int)IMU_CS_PIN, (int)IMU_MOSI_PIN,
+         (int)IMU_MISO_PIN, (int)IMU_SCLK_PIN);
+  CI_LOGF("  SPI Speed: %lu Hz\n\n", (unsigned long)IMU_SPI_FREQ);
+
+  // Initialize SPI with BoardConfig pins
+  spi_bus.begin();
 
   // Create bus interface
-  bus = new DeviceBusSPI(&SPI, IMU_CS_PIN);
+  bus = new DeviceBusSPI(&spi_bus, IMU_CS_PIN);
   bus->setFreq(IMU_SPI_FREQ);
   CI_LOG("DeviceBusSPI created\n");
 

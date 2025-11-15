@@ -2,42 +2,11 @@
 // Modified from Betaflight accgyro_spi_mpu6000.c
 
 #include "MPU6000_BF.h"
+#include "MPU_Common.h"
 
 // ============================================================================
-// Register Map (from Betaflight)
+// MPU6000-Specific Product ID Revisions
 // ============================================================================
-
-#define MPU_RA_WHO_AM_I         0x75
-#define MPU_RA_PRODUCT_ID       0x0C
-#define MPU_RA_PWR_MGMT_1       0x6B
-#define MPU_RA_PWR_MGMT_2       0x6C
-#define MPU_RA_SIGNAL_PATH_RESET 0x68
-#define MPU_RA_USER_CTRL        0x6A
-#define MPU_RA_SMPLRT_DIV       0x19
-#define MPU_RA_GYRO_CONFIG      0x1B
-#define MPU_RA_ACCEL_CONFIG     0x1C
-#define MPU_RA_INT_PIN_CFG      0x37
-#define MPU_RA_INT_ENABLE       0x38
-#define MPU_RA_ACCEL_XOUT_H     0x3B
-
-// Bits
-#define BIT_SLEEP               0x40
-#define BIT_H_RESET             0x80
-#define MPU_CLK_SEL_PLLGYROZ    0x03
-#define BIT_I2C_IF_DIS          0x10
-#define BIT_GYRO                0x04
-#define BIT_ACC                 0x02
-#define BIT_TEMP                0x01
-#define MPU_RF_DATA_RDY_EN      (1 << 0)
-
-// Full scale ranges
-#define INV_FSR_2000DPS         0x03  // 2000 dps
-#define INV_FSR_16G             0x03  // ±16g
-
-// WHO_AM_I constant
-#define MPU6000_WHO_AM_I_CONST  0x68
-
-// Product ID revisions
 #define MPU6000ES_REV_C4        0x14
 #define MPU6000ES_REV_C5        0x15
 #define MPU6000ES_REV_D6        0x16

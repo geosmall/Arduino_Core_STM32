@@ -108,7 +108,16 @@ bool IMU_BF::autoDetect()
         return true;
     }
 
-    // Future: Add MPU9250, ICM206xx detection here
+    // Try MPU9250 detection (WHO_AM_I = 0x71 or 0x73)
+    device_ = MPU9250_BF::detect(bus_);
+    if (device_ != nullptr) {
+        // MPU9250_BF distinguishes between MPU9250 (0x71) and MPU9255 (0x73)
+        // For ImuType enum, we use MPU9250 for both
+        detected_type_ = ImuType::MPU9250;
+        return true;
+    }
+
+    // Future: Add ICM206xx detection here
 
     detected_type_ = ImuType::Unknown;
     return false;

@@ -1,15 +1,15 @@
 /*
- * Test_MPU6000_Direct - Direct MPU6000_BF Driver Test
+ * Test_MPU9250_Direct - Direct MPU9250_BF Driver Test
  *
- * Tests MPU6000_BF driver directly (bypassing IMU_BF facade).
+ * Tests MPU9250_BF driver directly (bypassing IMU_BF facade).
  * Validates WHO_AM_I detection, initialization, and data streaming.
  *
  * Hardware Setup:
- *   - NUCLEO_F411RE ONLY (with JHEF411 config)
- *   - MPU6000 on SPI1 (PA4/PA5/PA6/PA7)
+ *   - BlackPill F411CE ONLY
+ *   - MPU9250 on SPI2 (PB12/PB13/PB14/PB15)
  *
  * Build & Test:
- *   ./system/ci/aflash.sh libraries/imu/examples/Test_MPU6000_Direct --use-rtt
+ *   ./system/ci/aflash.sh libraries/imu/examples/Test_MPU9250_Direct STMicroelectronics:stm32:GenF4:pnum=BLACKPILL_F411CE --use-rtt
  */
 
 #include <Arduino.h>
@@ -18,21 +18,21 @@
 #include <IMU_BF.h>  // This will trigger library detection
 // Direct access to internal classes
 #include "../../src/bus/DeviceBusSPI.h"
-#include "../../src/devices/MPU6000_BF.h"
+#include "../../src/devices/MPU9250_BF.h"
 
-// Board configuration - NUCLEO_F411RE ONLY
-#if defined(ARDUINO_NUCLEO_F411RE)
-#include "../../../../targets/NUCLEO_F411RE_JHEF411.h"
+// Board configuration - BlackPill F411CE ONLY
+#if defined(ARDUINO_BLACKPILL_F411CE)
+#include "../../../../targets/BLACKPILL_F411CE.h"
 #else
-#error "This example requires NUCLEO_F411RE board. Use default FQBN: STMicroelectronics:stm32:Nucleo_64:pnum=NUCLEO_F411RE"
+#error "This example requires BLACKPILL_F411CE board. Use FQBN: STMicroelectronics:stm32:GenF4:pnum=BLACKPILL_F411CE"
 #endif
 
 // BoardConfig integration for dynamic pin configuration
-#define MPU6000_CS_PIN        BoardConfig::imu.spi.cs_pin
-#define MPU6000_MOSI_PIN      BoardConfig::imu.spi.mosi_pin
-#define MPU6000_MISO_PIN      BoardConfig::imu.spi.miso_pin
-#define MPU6000_SCLK_PIN      BoardConfig::imu.spi.sclk_pin
-#define MPU6000_SPI_FREQ      BoardConfig::imu.spi.freq_hz
+#define MPU9250_CS_PIN        BoardConfig::imu.spi.cs_pin
+#define MPU9250_MOSI_PIN      BoardConfig::imu.spi.mosi_pin
+#define MPU9250_MISO_PIN      BoardConfig::imu.spi.miso_pin
+#define MPU9250_SCLK_PIN      BoardConfig::imu.spi.sclk_pin
+#define MPU9250_SPI_FREQ      BoardConfig::imu.spi.freq_hz
 
 // Create SPI instance using BoardConfig (software CS control)
 SPIClass spi_bus(BoardConfig::imu.spi.mosi_pin,
@@ -42,7 +42,7 @@ SPIClass spi_bus(BoardConfig::imu.spi.mosi_pin,
 
 // Create SPI bus wrapper
 DeviceBusSPI* bus = nullptr;
-MPU6000_BF* mpu = nullptr;
+MPU9250_BF* mpu = nullptr;
 
 void setup()
 {
@@ -52,36 +52,31 @@ void setup()
     while (!Serial && millis() < 3000);
 #endif
 
-    CI_LOG("=== MPU6000_BF Direct Driver Test ===\n");
+    CI_LOG("=== MPU9250_BF Direct Driver Test ===\n");
     CI_BUILD_INFO();
     CI_READY_TOKEN();
 
     // Display pin configuration from BoardConfig
     CI_LOG("\nPin Configuration (BoardConfig):\n");
     CI_LOGF("  CS: 0x%02X, MOSI: 0x%02X, MISO: 0x%02X, SCLK: 0x%02X\n",
-           (int)MPU6000_CS_PIN, (int)MPU6000_MOSI_PIN,
-           (int)MPU6000_MISO_PIN, (int)MPU6000_SCLK_PIN);
-    CI_LOGF("  SPI Speed: %lu Hz\n\n", (unsigned long)MPU6000_SPI_FREQ);
+           (int)MPU9250_CS_PIN, (int)MPU9250_MOSI_PIN,
+           (int)MPU9250_MISO_PIN, (int)MPU9250_SCLK_PIN);
+    CI_LOGF("  SPI Speed: %lu Hz\n\n", (unsigned long)MPU9250_SPI_FREQ);
 
     // Initialize SPI with BoardConfig pins
     spi_bus.begin();
 
     // Create SPI bus wrapper
-    bus = new DeviceBusSPI(&spi_bus, MPU6000_CS_PIN);
-    bus->setFreq(MPU6000_SPI_FREQ);
+    bus = new DeviceBusSPI(&spi_bus, MPU9250_CS_PIN);
+    bus->setFreq(MPU9250_SPI_FREQ);
 
-    CI_LOG("Attempting MPU6000 detection...\n");
+    CI_LOG("Attempting MPU9250/MPU9255 detection...\n");
 
-    // Detect MPU6000 (factory pattern with 20 retries)
-    for (int attempt = 0; attempt < 20 && !mpu; attempt++) {
-        mpu = MPU6000_BF::detect(bus);
-        if (!mpu) {
-            delay(150);
-        }
-    }
+    // Detect MPU9250 (factory pattern with 20 retries built-in)
+    mpu = MPU9250_BF::detect(bus);
 
     if (!mpu) {
-        CI_LOG("*FAIL* MPU6000 detection failed\n");
+        CI_LOG("*FAIL* MPU9250/MPU9255 detection failed\n");
         CI_LOG("*STOP*\n");
         while (1);
     }
@@ -92,7 +87,7 @@ void setup()
     CI_LOGF("Sampling rate: %u Hz\n", mpu->samplingRateHz_);
 
     CI_LOG("\nStreaming data (5 seconds)...\n");
-    CI_LOG("Format: Raw LSB values\n\n");
+    CI_LOG("Format: Scaled values (G and dps)\n\n");
 }
 
 void loop()
