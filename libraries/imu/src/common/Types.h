@@ -26,5 +26,8 @@ enum class ImuType {
     ICM42605,      // ICM-42605 (0x42)
     IIM42653,      // IIM-42653 (0x56)
     MPU6000,       // MPU-6000 (0x68)
-    MPU9250        // MPU-9250 (0x71)
+    MPU9250,       // MPU-9250 (0x71)
+    ICM20601,      // ICM-20601 (0xAC)
+    ICM20602,      // ICM-20602 (0x12)
+    ICM20689       // ICM-20689 (0x98)
 };

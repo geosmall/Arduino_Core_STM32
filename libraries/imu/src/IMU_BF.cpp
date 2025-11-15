@@ -117,7 +117,26 @@ bool IMU_BF::autoDetect()
         return true;
     }
 
-    // Future: Add ICM206xx detection here
+    // Try ICM206xx family detection (WHO_AM_I = 0xAC, 0x12, 0x98)
+    device_ = ICM206xx_BF::detect(bus_);
+    if (device_ != nullptr) {
+        // Map WHO_AM_I to ImuType enum
+        switch (device_->whoAmI_) {
+            case 0xAC:
+                detected_type_ = ImuType::ICM20601;
+                break;
+            case 0x12:
+                detected_type_ = ImuType::ICM20602;
+                break;
+            case 0x98:
+                detected_type_ = ImuType::ICM20689;
+                break;
+            default:
+                detected_type_ = ImuType::Unknown;
+                break;
+        }
+        return true;
+    }
 
     detected_type_ = ImuType::Unknown;
     return false;

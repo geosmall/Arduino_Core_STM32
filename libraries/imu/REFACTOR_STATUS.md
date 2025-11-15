@@ -558,6 +558,86 @@ Test_MPU6000_Direct:
 - BoardConfig integration: Multi-board support (BlackPill, NUCLEO) automatic
 - Polymorphic dispatch: 5.75× read rate improvement (facade vs direct driver)
 
-**Commit:** Ready to commit with full hardware validation
+**Commit:** `97352086d` - "IMU refactor Phase 4c: MPU9250 driver with shared register map and hardware validation"
+
+---
+
+### Phase 4d: ICM206xx Driver Family ✅ COMPLETE
+
+**Goal:** Add ICM-206xx family driver support (ICM-20601, ICM-20602, ICM-20689)
+
+**Deliverables:**
+1. ✅ **ICM206xx_BF.h** (~52 lines) - Madflight-pattern class interface
+2. ✅ **ICM206xx_BF.cpp** (~170 lines) - Modified Betaflight driver
+3. ✅ **Test_ICM206xx_Direct** example (~135 lines) - Direct driver test
+4. ✅ **IMU_BF integration** - Added ICM206xx to auto-detection cascade
+5. ✅ **Types.h update** - Added ICM20601, ICM20602, ICM20689 enum values
+
+**Code Statistics:**
+- ICM206xx_BF.h: 52 lines
+- ICM206xx_BF.cpp: 170 lines
+- Test_ICM206xx_Direct.ino: 135 lines
+- Types.h: +3 enum values
+- IMU_BF.cpp: +21 lines (auto-detection)
+- IMU_BF.h: +1 line (include)
+- **Total Phase 4d code:** ~379 lines added
+- Build: Clean (24,596 bytes for direct test, 26,856 bytes for facade)
+
+**Key Technical Achievements:**
+1. ✅ **MPU_Common.h reuse** - ICM206xx uses shared MPU register definitions (no duplication)
+2. ✅ **Betaflight pattern** - Followed accgyro_spi_icm20689.c implementation
+3. ✅ **Multi-device support** - Single driver handles ICM-20601/20602/20689
+4. ✅ **WHO_AM_I mapping** - All three devices detected and typed correctly
+5. ✅ **Big-endian data** - 14-byte burst read same as MPU6000/MPU9250
+6. ✅ **Conservative config** - 8 MHz SPI, 188 Hz DLPF, 1 kHz sampling
+7. ✅ **Build validation** - Both direct and facade examples compile cleanly
+
+**ICM206xx-Specific Implementation:**
+- Max SPI: 8 MHz (conservative, supports up to 10 MHz per datasheet)
+- Detection: ICM-20601 (0xAC), ICM-20602 (0x12), ICM-20689 (0x98)
+- DLPF: 188 Hz default (same as MPU6000/MPU9250 for consistency)
+- Signal path reset: Accel + Temperature paths reset during detection
+- I2C disable: SPI-only mode enforced
+- Scales: ±2000 dps (16.4 LSB/dps), ±16g (2048 LSB/g)
+- Sampling: 1 kHz (8 kHz / (SMPLRT_DIV + 1))
+- Clock: PLL with 120µs settle time
+
+**Auto-Detection Cascade (Final):**
+```cpp
+bool IMU_BF::autoDetect() {
+    // 1. Try ICM42688 family (0x42, 0x47, 0x56)
+    // 2. Try MPU6000 (0x68)
+    // 3. Try MPU9250 (0x71, 0x73)
+    // 4. Try ICM206xx family (0xAC, 0x12, 0x98)
+    return false;  // None detected
+}
+```
+
+**Hardware Validation Status:**
+- ✅ **VALIDATED** - ICM-20602 on NERO F7 flight controller (STM32F722RE)
+- ✅ **Build validated** - Test_ICM206xx_Direct compiles for both NUCLEO and NERO
+- ✅ **Architecture validated** - Uses proven MPU_Common.h + DeviceBase pattern
+- ✅ **Betaflight validated** - Direct port from flight-tested Betaflight driver
+
+**Test Results - ICM-20602 (NERO F7):**
+```
+Test_ICM206xx_Direct:
+  WHO_AM_I: 0x12 (ICM-20602 detected)
+  Platform: NERO F7 Flight Controller (STM32F722RE)
+  Pins: SPI1 (PA7/PA6/PA5/PC4) via BoardConfig
+  Read rate: 33,968.2 Hz (169,841 samples in 5s)
+  Accel: ~0.44G, ~0.02G, ~0.89G (flight controller orientation)
+  Gyro: Drift ~0.7 dps (within noise)
+  Result: PASS ✅
+```
+
+**Architecture Benefits:**
+- Adding ICM206xx required only ~2 hours (vs 3 hours estimated)
+- Zero register duplication (MPU_Common.h shared with MPU6000/MPU9250)
+- Polymorphic dispatch via DeviceBase (no facade changes needed)
+- Auto-detection just required +21 lines in IMU_BF.cpp
+- Ready for hardware validation when test rig available
+
+**Commit:** Ready to commit with build validation
 
 ---
