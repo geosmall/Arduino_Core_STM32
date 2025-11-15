@@ -188,15 +188,22 @@ cmake --build <build_folder>
 - **BlackPill F411CE** (Secondary): `STMicroelectronics:stm32:GenF4:pnum=BLACKPILL_F411CE`
   - **CRITICAL**: Must specify FQBN when using `aflash.sh` to ensure correct BoardConfig pin mappings
   - **Example**: `./system/ci/aflash.sh <sketch> STMicroelectronics:stm32:GenF4:pnum=BLACKPILL_F411CE --use-rtt`
+- **NERO F7 Flight Controller**: `STMicroelectronics:stm32:FlightCtr:pnum=BKMN_NERO`
+  - **MCU**: STM32F722RET6
+  - **IMU**: ICM-20602 on SPI1 (PA7/PA6/PA5/PC4)
+  - **Variant**: `variant_BKMN_NERO.h` in `variants/STM32F7xx/F722R(C-E)T_F730R8T_F732RET/`
+  - **BoardConfig**: Available at `targets/BKMN-NERO.h`
+  - **Example**: `./system/ci/aflash.sh <sketch> STMicroelectronics:stm32:FlightCtr:pnum=BKMN_NERO --use-rtt`
 - **Nucleo H753ZI** (High-Performance): `STMicroelectronics:stm32:Nucleo_144:pnum=NUCLEO_H753ZI`
 
-**Important**: Examples using BoardConfig system (e.g., MPU9250, LittleFS) auto-detect board via `ARDUINO_*` defines. The FQBN must match the connected hardware to ensure correct pin assignments and peripheral configurations.
+**Important**: Examples using BoardConfig system (e.g., MPU9250, LittleFS, ICM206xx) auto-detect board via `ARDUINO_*` defines. The FQBN must match the connected hardware to ensure correct pin assignments and peripheral configurations.
 
 ### Target Hardware Platforms
 This repository supports **UAV flight controller boards** with the following STM32 microcontrollers:
 
 - **STM32F411** - Primary target (Nucleo F411RE, BlackPill F411CE for development)
-- **STM32F405** - Secondary target (common in flight controllers) 
+- **STM32F405** - Secondary target (common in flight controllers)
+- **STM32F722** - Validated target (NERO F7 flight controller with ICM-20602)
 - **STM32H743** - Future target (high-performance flight controllers)
 
 ### Example Target Applications

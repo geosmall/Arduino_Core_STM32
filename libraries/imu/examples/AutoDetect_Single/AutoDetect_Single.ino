@@ -7,6 +7,7 @@
  *   - Uses BoardConfig for automatic board detection
  *   - BlackPill F411CE: SPI2 (PB12/PB13/PB14/PB15) - MPU9250
  *   - NUCLEO_F411RE: SPI1 (PA4/PA5/PA6/PA7) - ICM42688P or MPU6000
+ *   - NERO F7: SPI1 (PA7/PA6/PA5/PC4) - ICM20602
  *
  * Build & Test:
  *   # BlackPill F411CE:
@@ -14,6 +15,9 @@
  *
  *   # NUCLEO_F411RE:
  *   ./system/ci/aflash.sh libraries/imu/examples/AutoDetect_Single --use-rtt
+ *
+ *   # NERO F7:
+ *   ./system/ci/aflash.sh libraries/imu/examples/AutoDetect_Single STMicroelectronics:stm32:FlightCtr:pnum=BKMN_NERO --use-rtt
  */
 
 #include <Arduino.h>
@@ -21,8 +25,10 @@
 #include <ci_log.h>
 #include <IMU_BF.h>
 
-// Board configuration
-#if defined(ARDUINO_BLACKPILL_F411CE)
+// Board configuration - Multi-board support
+#if defined(ARDUINO_BKMN_NERO)
+#include "../../../../targets/BKMN-NERO.h"
+#elif defined(ARDUINO_BLACKPILL_F411CE)
 #include "../../../../targets/BLACKPILL_F411CE.h"
 #else
 #include "../../../../targets/NUCLEO_F411RE_JHEF411.h"
