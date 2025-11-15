@@ -1,10 +1,77 @@
 # IMU Library Examples
 
-This folder contains examples demonstrating different approaches to reading data from the ICM-42688-P IMU sensor.
+This folder contains examples demonstrating the IMU_BF facade library for STM32 Arduino.
 
-## Available Examples
+## User-Facing Examples
 
-### 1. imu-raw-data-registers (Interrupt-Driven)
+### 1. AutoDetect_Single - Facade with Auto-Detection
+**Use Case**: High-level IMU abstraction for multi-device support
+
+**Features**:
+- Auto-detects IMU chip type (ICM42688P, MPU6000, MPU9250, ICM206xx families)
+- Unified API across all supported IMUs
+- BoardConfig integration for multi-board support (NUCLEO_F411RE, BlackPill F411CE, NERO F7)
+- Streaming data output with performance metrics
+- Simple facade pattern - single include, automatic device detection
+
+**Supported IMUs**:
+- ICM-42688-P (0x47), ICM-42605 (0x42), IIM-42653 (0x56)
+- MPU-6000 (0x68), MPU-9250 (0x71), MPU-9255 (0x73)
+- ICM-20601 (0xAC), ICM-20602 (0x12), ICM-20689 (0x98)
+
+**When to Use**:
+- Flight controller applications
+- Robotics projects requiring portable IMU access
+- Any application that may use different IMU hardware
+- When you want simple, automatic IMU detection
+
+**Build Commands**:
+```bash
+# NUCLEO_F411RE (default)
+./system/ci/aflash.sh libraries/imu/examples/AutoDetect_Single --use-rtt --build-id
+
+# BlackPill F411CE
+./system/ci/aflash.sh libraries/imu/examples/AutoDetect_Single \
+  STMicroelectronics:stm32:GenF4:pnum=BLACKPILL_F411CE --use-rtt --build-id
+
+# NERO F7 Flight Controller
+./system/ci/aflash.sh libraries/imu/examples/AutoDetect_Single \
+  STMicroelectronics:stm32:FlightCtr:pnum=BKMN_NERO --use-rtt --build-id
+```
+
+---
+
+### 2. Polled_FlightController - Polled Loop Example
+**Use Case**: Fixed-rate control loops like dRehmFlight (2kHz polling)
+
+**Features**:
+- Demonstrates polling-based IMU data acquisition
+- Simulates MPU-6000 DLPF behavior on ICM-42688-P hardware
+- Configuration: Gyro ±250 DPS @ 4kHz, Accel ±2G @ 1kHz
+- AAF: Gyro 258 Hz, Accel 170 Hz (MPU-6000 DLPF parity)
+- No interrupt pin required
+- Matches dRehmFlight flight controller pattern
+
+**When to Use**:
+- Fixed-rate control loops (e.g., 2kHz flight controller)
+- When loop rate matches or is close to IMU ODR
+- Simpler setup for deterministic timing
+- When interrupt pin is not available
+- Learning how dRehmFlight uses the IMU
+
+**Polling Methodology**:
+- Loop rate: 2kHz continuous polling (common flight controller rate)
+- Higher ODRs (4k) provide oversampling opportunity
+- Matches dRehmFlight's approach to IMU data acquisition
+
+**Build Commands**:
+```bash
+./system/ci/aflash.sh libraries/imu/examples/Polled_FlightController --use-rtt --build-id
+```
+
+---
+
+### 3. Interrupt_DataReady - Interrupt-Driven Example
 **Use Case**: Event-driven data acquisition, CPU-efficient for variable-rate loops
 
 **Features**:
@@ -19,60 +86,78 @@ This folder contains examples demonstrating different approaches to reading data
 - When you want to read data only when available
 - When interrupt pin is available
 
-### 2. imu-polled-basic (Polling-Based)
-**Use Case**: Fixed-rate control loops like flight controllers
+**Build Commands**:
+```bash
+./system/ci/aflash.sh libraries/imu/examples/Interrupt_DataReady --use-rtt --build-id
+```
+
+---
+
+### 4. SelfTest - Self-Test Example
+**Use Case**: IMU hardware validation using manufacturer self-test
 
 **Features**:
-- Simple polling without interrupt pin
-- Reads data at fixed rate in main loop
-- No ISR overhead
-- No hardware interrupt pin required
+- Demonstrates manufacturer self-test integration
+- Uses TDK InvenSense factory algorithms (100% preserved)
+- Validates IMU hardware functionality
+- Reports gyro/accel self-test results and bias values
+
+**Supported IMUs**:
+- ✅ ICM-42688-P (fully supported)
+- ❌ MPU-6000, MPU-9250, ICM-206xx (not yet implemented)
 
 **When to Use**:
-- Fixed-rate control loops (e.g., 2kHz flight controller)
-- When loop rate matches or is close to IMU ODR
-- Simpler setup for deterministic timing
-- When interrupt pin is not available
+- Initial hardware validation (ICM-42688-P only)
+- Production testing
+- Troubleshooting IMU hardware issues
+- Learning how self-test works
+
+**Build Commands**:
+```bash
+./system/ci/aflash.sh libraries/imu/examples/SelfTest --use-rtt --build-id
+```
+
+**Note**: Currently only ICM-42688-P is supported. The example will detect other IMU types but exit with an error message.
+
+---
+
+## Development Examples
+
+Low-level driver tests and legacy examples are located in the `dev/` subfolder:
+
+### Driver Hardware Validation Tests
+- **Test_ICM42688_Direct** - ICM42688 Betaflight driver validation (NUCLEO_F411RE)
+- **Test_MPU6000_Direct** - MPU6000 Betaflight driver validation (NUCLEO_F411RE)
+- **Test_MPU9250_Direct** - MPU9250 Betaflight driver validation (BlackPill F411CE)
+- **Test_ICM206xx_Direct** - ICM206xx Betaflight driver validation (NUCLEO_F411RE, NERO F7)
+- **Test_BusOnly** - Low-level SPI bus testing
+
+### Legacy Examples
+- **imu-polled-bf** - Legacy Betaflight-style config example (wide FSR, 8kHz ODR)
+
+These are primarily for driver development and hardware validation. Most users should use the top-level examples instead.
+
+---
 
 ## Performance Comparison
 
-### Hardware Validation Results
+### Facade Performance (AutoDetect_Single)
+Hardware-validated read rates on actual hardware:
 
-Both examples were tested on NUCLEO_F411RE with ICM-42688-P at 1kHz ODR.
+| IMU | Board | CPU | Read Rate |
+|-----|-------|-----|-----------|
+| ICM-42688-P | NUCLEO F411RE | 100 MHz | 34,939 Hz |
+| MPU-6000 | NUCLEO F411RE | 100 MHz | 30,532 Hz |
+| MPU-9250 | BlackPill F411CE | 100 MHz | 30,941 Hz |
+| ICM-20602 | NERO F7 | 216 MHz | 28,231 Hz |
 
-**Sample Data Comparison (First 35 Samples)**:
+### Polling vs Interrupt-Driven (ICM-42688-P @ 1kHz ODR)
 
-```
-Sample  | INTERRUPT-DRIVEN              | POLLED                        | Analysis
---------|-------------------------------|-------------------------------|----------
-5       | Accel[-29,225,8703]          | Accel[-26,172,8627]          |
-        | Gyro[-32768,-32768,-32768]    | Gyro[-32768,-32768,-32768]   | Settling
---------|-------------------------------|-------------------------------|----------
-10      | Accel[-41,186,8532]          | Accel[-54,182,8556]          |
-        | Gyro[-32768,-32768,-32768]    | Gyro[-32768,-32768,-32768]   | Settling
---------|-------------------------------|-------------------------------|----------
-15      | Accel[-56,176,8518]          | Accel[-36,178,8533]          |
-        | Gyro[1,-13,33]                | Gyro[-3,-26,-21]             | 1st Valid
---------|-------------------------------|-------------------------------|----------
-20      | Accel[-42,193,8515]          | Accel[-43,181,8502]          |
-        | Gyro[5,-14,4]                 | Gyro[6,-14,6]                | Stable
---------|-------------------------------|-------------------------------|----------
-25      | Accel[-40,192,8500]          | Accel[-48,189,8496]          |
-        | Gyro[5,-14,2]                 | Gyro[4,-14,4]                | Stable
---------|-------------------------------|-------------------------------|----------
-30      | Accel[-45,185,8492]          | Accel[-46,186,8499]          |
-        | Gyro[6,-15,4]                 | Gyro[5,-13,4]                | Stable
---------|-------------------------------|-------------------------------|----------
-35      | Accel[-46,191,8496]          | Accel[-50,174,8483]          |
-        | Gyro[6,-13,4]                 | Gyro[6,-13,4]                | Stable
-```
-
-### Key Findings
+Both methods were tested on NUCLEO_F411RE and show equivalent data quality:
 
 **✅ Functionally Equivalent Performance**:
 - Both methods show identical settling behavior (~10-15 samples)
 - Data quality is equivalent (within ±1-2 counts for gyro)
-- Independent X/Y/Z axis values confirmed
 - Same noise characteristics for stationary sensor
 
 **✅ Settling Time**:
@@ -80,10 +165,11 @@ Sample  | INTERRUPT-DRIVEN              | POLLED                        | Analys
 - Sample 15: First valid gyro data appears
 - Samples 20+: Fully stable readings
 
-**✅ Steady-State Performance** (Samples 20-35):
+**✅ Steady-State Performance** (Samples 20+):
 - Gyro drift: ±0.04 to ±0.11 deg/sec (both methods)
 - Accelerometer: Z-axis ≈8500 counts ≈ 1g (gravity, as expected)
-- Noise levels: Comparable between both methods
+
+---
 
 ## Polling Considerations for Flight Controllers
 
@@ -91,11 +177,11 @@ Sample  | INTERRUPT-DRIVEN              | POLLED                        | Analys
 
 **Ideal Scenario** (dRehmFlight-style):
 - Main loop: 2000 Hz (500µs period)
-- IMU ODR: 2000 Hz
+- IMU ODR: 2000 Hz (or 4000 Hz for oversampling)
 - Result: Nearly 1:1 correspondence, minimal duplicate/missed reads
 
 **Acceptable Scenarios**:
-- Loop rate slightly faster than ODR: Some duplicate reads (filtered out by control loop)
+- Loop rate slightly faster than ODR: Some duplicate reads (filtered by control loop)
 - Loop rate slightly slower than ODR: Some missed samples (acceptable for control stability)
 
 ### Timing Budget Example (2kHz Loop)
@@ -110,90 +196,163 @@ Total period: 500µs
 └─ Margin: ~100µs
 ```
 
-## Example Output
-
-Both examples produce identical output format for easy comparison:
-
-```
-=== IMU Library - [Mode] Data Example ===
-Build: a1951c086-dirty (2025-10-28T16:46:50Z)
-Pin Configuration (BoardConfig):
-  CS: 194, MOSI: 198, MISO: 199, SCLK: 207
-  SPI Speed: 1000000 Hz
-
-Initializing IMU...
-✓ IMU initialized successfully
-Detected chip: ICM-42688-P (0x47)
-
-Configuring IMU...
-✓ IMU configured for [interrupt-driven/polled] operation
-  Accel ODR: 1kHz, Gyro ODR: 1kHz
-
-Collecting 100 samples...
-
-Sample 5: Accel[   -44,   207,  8654] Gyro[-32768,-32768,-32768]
-Sample 10: Accel[   -32,   177,  8558] Gyro[-32768,-32768,-32768]
-Sample 15: Accel[   -41,   186,  8525] Gyro[     0,   -27,   -19]
-Sample 20: Accel[   -39,   181,  8510] Gyro[     7,   -13,     6]
-...
-Sample 100: Accel[   -34,   204,  8510] Gyro[     6,   -13,     4]
-
-✓ Data collection complete
-```
-
-## Building and Testing
-
-### Arduino IDE
-```bash
-# Open either example in Arduino IDE
-# Select: Tools > Board > STM32 Boards > Nucleo-64
-# Select: Tools > Board part number > Nucleo F411RE
-# Upload to board
-```
-
-### Command Line (arduino-cli)
-```bash
-# Interrupt-driven example
-./system/ci/build.sh libraries/imu/examples/imu-raw-data-registers --use-rtt --build-id
-./system/ci/aflash.sh libraries/imu/examples/imu-raw-data-registers --use-rtt
-
-# Polled example
-./system/ci/build.sh libraries/imu/examples/imu-polled-basic --use-rtt --build-id
-./system/ci/aflash.sh libraries/imu/examples/imu-polled-basic --use-rtt
-```
+---
 
 ## Hardware Setup
 
 ### Required Hardware
-- NUCLEO_F411RE or BLACKPILL_F411CE development board
-- ICM-42688-P breakout board (e.g., Adafruit 4264)
-- Breadboard and jumper wires
+- Development board: NUCLEO_F411RE, BLACKPILL_F411CE, or NERO F7
+- IMU breakout board (any supported chip)
+- Breadboard and jumper wires (for dev boards)
 
 ### Wiring (BoardConfig Automatic)
 
 The examples use BoardConfig for automatic pin assignment:
 
-**NUCLEO_F411RE** (using JHEF411 config):
+**NUCLEO_F411RE** (JHEF411 config):
 ```
-ICM-42688-P  →  NUCLEO_F411RE
+IMU          →  NUCLEO_F411RE
 -----------     --------------
 VIN          →  3.3V
 GND          →  GND
 SCL          →  PA5 (SPI1_SCK)
-SDA (MOSI)   →  PA7 (SPI1_MOSI)
-SDO (MISO)   →  PA6 (SPI1_MISO)
+MOSI         →  PA7 (SPI1_MOSI)
+MISO         →  PA6 (SPI1_MISO)
 CS           →  PA4 (Software CS)
 INT1         →  PC4 (interrupt example only)
 ```
 
-**Note**: Interrupt pin (INT1) is only required for `imu-raw-data-registers` example.
+**BLACKPILL_F411CE**:
+```
+IMU          →  BLACKPILL_F411CE
+-----------     ----------------
+VIN          →  3.3V
+GND          →  GND
+SCL          →  PB13 (SPI2_SCK)
+MOSI         →  PB15 (SPI2_MOSI)
+MISO         →  PB14 (SPI2_MISO)
+CS           →  PB12 (Software CS)
+```
+
+**NERO F7** (integrated):
+- ICM-20602 on SPI1 (PA7/PA6/PA5/PC4)
+- No external wiring required
+
+**Note**: Interrupt pin (INT1) is only required for `Interrupt_DataReady` example.
+
+---
+
+## Example Code Patterns
+
+### Facade Pattern (AutoDetect_Single)
+```cpp
+#include <IMU_BF.h>
+#include <SPI.h>
+
+SPIClass spi_bus(BoardConfig::imu.spi.mosi_pin,
+                 BoardConfig::imu.spi.miso_pin,
+                 BoardConfig::imu.spi.sclk_pin,
+                 BoardConfig::imu.spi.get_ssel_pin());
+IMU_BF imu;
+
+void setup() {
+  spi_bus.begin();
+  imu.attachSPI(spi_bus, BoardConfig::imu.spi.cs_pin,
+                BoardConfig::imu.spi.freq_hz);
+
+  if (!imu.begin(ImuType::Auto)) {
+    CI_LOG("*FAIL* IMU detection failed\n");
+    while(1);
+  }
+
+  CI_LOGF("Detected: %s\n", imu.typeName());
+}
+
+void loop() {
+  ImuSample sample;
+  if (imu.read(sample)) {
+    // sample.ax, sample.ay, sample.az (m/s²)
+    // sample.gx, sample.gy, sample.gz (rad/s)
+  }
+}
+```
+
+### Polling Pattern (Polled_FlightController)
+```cpp
+#include <IMU.h>
+#include <SPI.h>
+
+SPIClass spi_bus(...);
+IMU imu;
+
+void setup() {
+  spi_bus.begin();
+  imu.Init(spi_bus, cs_pin, spi_freq);
+
+  // Configure for MPU-6000 parity
+  imu.SetGyroFsr(IMU::GFS_250DPS);
+  imu.SetAccelFsr(IMU::AFS_2G);
+  imu.SetGyroODR(IMU::GODR_4000Hz);
+  imu.SetAccelODR(IMU::AODR_1000Hz);
+}
+
+void loop() {
+  static uint32_t last_read = micros();
+
+  // 2kHz polling loop (500µs period)
+  if (micros() - last_read >= 500) {
+    int16_t data[6];
+    imu.ReadIMU6(data);
+    last_read = micros();
+
+    // Process data...
+  }
+}
+```
+
+### Interrupt Pattern (Interrupt_DataReady)
+```cpp
+#include <IMU.h>
+#include <SPI.h>
+
+volatile bool data_ready = false;
+
+void imu_data_ready_handler() {
+  data_ready = true;
+}
+
+void setup() {
+  // ... IMU init ...
+
+  // Configure INT1 for data-ready
+  pinMode(interrupt_pin, INPUT);
+  attachInterrupt(digitalPinToInterrupt(interrupt_pin),
+                  imu_data_ready_handler, RISING);
+}
+
+void loop() {
+  if (data_ready) {
+    data_ready = false;
+    int16_t data[6];
+    imu.ReadIMU6(data);
+
+    // Process data...
+  }
+}
+```
+
+---
 
 ## References
 
-- **ICM-42688-P Datasheet**: `doc/ds-000347_icm-42688-p-datasheet.pdf`
-- **Application Note**: TDK InvenSense AN-000157 (IMU Configuration)
-- **Board Configuration**: `targets/NUCLEO_F411RE_JHEF411.h`
+- **IMU_BF Library**: `libraries/imu/src/IMU_BF.h` (facade)
+- **IMU Library**: `libraries/imu/src/IMU.h` (wrapper)
+- **Device Drivers**: `libraries/imu/src/devices/` (Betaflight drivers)
+- **Board Configurations**: `targets/` directory
+- **Refactor Status**: `libraries/imu/REFACTOR_STATUS.md`
 - **Flight Controller Example**: `sketches/dRehmFlight_STM32_BETA_1.3/` (uses polling)
+
+---
 
 ## License
 

@@ -1,9 +1,12 @@
 /*
  * IMU Library Self-Test Example
  *
- * High-level IMU wrapper demonstrating manufacturer self-test integration with
- * TDK InvenSense factory algorithms. Uses IMU library for clean abstraction over
- * hardware-specific details.
+ * Demonstrates manufacturer self-test integration with TDK InvenSense factory
+ * algorithms (100% preserved). Currently supports ICM-42688-P only.
+ *
+ * SUPPORTED IMUs:
+ * - ICM-42688-P (fully supported)
+ * - MPU-6000, MPU-9250, ICM-206xx (not yet implemented)
  *
  * HARDWARE CONFIGURATION:
  * - Uses BoardConfig for automatic board detection (NUCLEO_F411RE / BLACKPILL_F411CE)
