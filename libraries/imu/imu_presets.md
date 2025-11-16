@@ -36,11 +36,20 @@ Choose one of these and you’ll get nearly the same “feel” regardless of IM
 * **Hardware vs software filtering:** Hardware filters (DLPF/AAF/UI) define the front‑end corner and **group delay floor**; software filters finalize noise/phase tradeoffs.
 * **Do not over‑close** the hardware corner near Nyquist of your control loop—leave room for software filters.
 
-### ⚠️ Critical distinction: MPU‑6000 vs. MPU‑9250 / ICM‑20602 sample‑rate divider behavior
+### ⚠️ Critical distinction: MPU-6000 vs. MPU-9250 / ICM-20602 sample-rate divider behavior
 
-* **MPU‑6000 (6000‑class):** `CONFIG.DLPF_CFG=0` selects the **8 kHz** gyro path *and* the **`SMPLRT_DIV` divider still applies** → you can legally get **4 kHz** with `SMPLRT_DIV=1`, or **8 kHz** with `SMPLRT_DIV=0`. There are **no** `FCHOICE_B` bits on MPU‑6000; the DLPF code alone controls the path and bandwidth.
-* **MPU‑9250 / ICM‑20602 (6500‑class):** The divider **only** applies when the **DLPF path is engaged** (`FCHOICE_B=00` and `DLPF_CFG∈{1..6}`), i.e., the **1 kHz internal path**. When you select the **wide/8 kHz** gyro path (`DLPF_CFG=0` or bypass via `FCHOICE_B≠00`), **`SMPLRT_DIV` does not divide**; output remains **8 kHz**. If you want a 4 kHz read cadence in wide mode, **decimate in software**.
-* **Accelerometer (6500‑class):** `ACCEL_CONFIG2` governs accel filtering. With the accel DLPF engaged (`ACCEL_FCHOICE_B=0`), output is **1 kHz** and can be down‑sampled by the system task; with bypass (`ACCEL_FCHOICE_B=1`), accel is very wide (~1 kHz‑class BW) and not rate‑divided by `SMPLRT_DIV`.
+* **MPU-6000 (6000-class):**  
+`CONFIG.DLPF_CFG=0` selects the **8 kHz** gyro path and the **`SMPLRT_DIV` divider still applies** → e.g. `SMPLRT_DIV=1` → **4 kHz**, `=0` → **8 kHz**. There are **no** `FCHOICE_B` bits on the MPU-6000; the DLPF code alone controls path and bandwidth.  
+*Note:* `SMPLRT_DIV` divides the **gyro** output rate; the **accelerometer** path is ~**1 kHz** and not divided by `SMPLRT_DIV`.
+
+* **MPU-9250 / ICM-20602 (6500-class):**  
+The divider **only** applies when the **DLPF path is engaged** (**`FCHOICE_B=00`** and **`DLPF_CFG ∈ {1..6}`**), i.e., the **1 kHz** internal path. When you select the **wide / 8 kHz** gyro path (`DLPF_CFG=0` or bypass via **`FCHOICE_B≠00`**), **`SMPLRT_DIV` does not divide**; output remains **8 kHz**. If you want a **4 kHz** read cadence in wide mode, **decimate in software**.
+
+* **Accelerometer (6500-class, per-chip specifics):**  
+`ACCEL_CONFIG2` governs accel filtering. With the accel DLPF engaged (**`ACCEL_FCHOICE_B=0`**), the accel output is **1 kHz** with selectable LPF codes (e.g., 184/92/41/20/10/5 Hz). With bypass (**`ACCEL_FCHOICE_B=1`**), the accel path is **very wide** and **not** rate-divided by `SMPLRT_DIV`:  
+– **MPU-9250:** accel ODR **4 kHz**, ~**1.13 kHz** 3 dB BW (bypass).  
+– **ICM-20602:** accel ODR **4 kHz**, ~**1.05 kHz** 3 dB BW (bypass).
+
 
 ---
 

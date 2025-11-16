@@ -15,15 +15,29 @@
 #include "DeviceBase.h"
 
 /**
+ * @brief Intent-based preset configurations (imu_hal.md philosophy)
+ *
+ * Four presets abstract hardware differences and provide validated
+ * filter/ODR combinations for common flight controller use cases.
+ */
+enum class ImuPreset : uint8_t {
+    FILTER_SAFE,      ///< Bring-up, very noisy frames (1kHz, tight filtering)
+    FILTER_SMOOTH,    ///< Extra on-chip smoothing (4kHz, moderate filtering)
+    FILTER_BALANCED,  ///< Default for 2kHz PID (4kHz, balanced filtering)
+    FILTER_ACRO       ///< Minimum phase lag (8kHz, wide filtering)
+};
+
+/**
  * @brief ICM42688/ICM42605/IIM42653 IMU driver
  *
  * Factory-pattern C++ class wrapper over Betaflight ICM426xx driver.
  * Constructor performs full initialization - no separate begin() needed.
  *
- * Usage:
+ * Usage (with presets):
  *   DeviceBusSPI bus(&SPI, CS_PIN);
  *   ICM42688_BF* imu = ICM42688_BF::detect(&bus);
  *   if (imu) {
+ *       imu->applyPreset(ImuPreset::FILTER_BALANCED);  // Configure for 2kHz PID
  *       int16_t data[6];  // ax,ay,az,gx,gy,gz
  *       imu->read(data);
  *   }
@@ -45,6 +59,27 @@ protected:
 
     DeviceBus* bus_;  ///< Bus interface pointer
 
+    /**
+     * @brief AAF (Anti-Alias Filter) configuration structure
+     */
+    struct AAFConfig {
+        uint8_t  delt;
+        uint16_t deltsqr;
+        uint8_t  bitshift;
+    };
+
+    /**
+     * @brief Low-level configuration methods (used internally by applyPreset)
+     */
+    void setAccelFSR(uint16_t fsr_g);
+    void setGyroFSR(uint16_t fsr_dps);
+    void setAccelODR(uint16_t odr_hz);
+    void setGyroODR(uint16_t odr_hz);
+    void setGyroAAF(const AAFConfig& config);
+    void setAccelAAF(const AAFConfig& config);
+    void setUIFilters(uint8_t gyro_bw, uint8_t accel_bw, uint8_t gyro_order, uint8_t accel_order);
+    void disableAFSR();
+
 public:
     /**
      * @brief Factory method to detect and initialize IMU
@@ -55,6 +90,15 @@ public:
      * On success, creates instance and performs full initialization.
      */
     static ICM42688_BF* detect(DeviceBus* bus);
+
+    /**
+     * @brief Apply intent-based preset configuration
+     * @param preset Preset configuration (SAFE, SMOOTH, BALANCED, ACRO)
+     *
+     * Configures ODR, FSR, AAF filters, and UI filters per imu_hal.md specification.
+     * All presets use ±2000dps/±16g FSR.
+     */
+    void applyPreset(ImuPreset preset);
 
     /**
      * @brief Read 6-axis gyro/accel data

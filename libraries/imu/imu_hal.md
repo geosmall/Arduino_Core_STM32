@@ -1,14 +1,14 @@
 # IMU Hardware Abstraction — Filter Presets for Flight Controllers
 
 **Target audience:** Flight controller firmware developers
-**Scope:** Unified configuration for ICM-42688-P, MPU-6000, MPU-9250
+**Scope:** Unified configuration for ICM-42688-P, MPU-6000, MPU-9250, ICM-20602
 **Goal:** Intent-based presets with single-source-of-truth LUT
 
 ---
 
 ## Design Philosophy
 
-Four **intent-based presets** abstract hardware differences across three IMU families:
+Four **intent-based presets** abstract hardware differences across four IMU families:
 
 | Preset | Intent | Use Case |
 |--------|--------|----------|
@@ -191,17 +191,117 @@ void main_loop_4khz(void) {  // Called at 4 kHz by scheduler
 
 ---
 
+## ICM-20602 Configuration
+
+**Architecture:** MPU-6500-class with separate gyro/accel DLPF paths and wide bypass option
+
+### Rate Calculation Rules
+
+**DLPF_CFG determines base rate:**
+- `DLPF_CFG = 0 or 7` (or bypass via `FCHOICE_B ≠ 00`) → Internal rate: **~8 kHz** wide path
+- `DLPF_CFG = 1..6` → Internal rate: **1 kHz** → `Gyro SR = 1 kHz / (1 + SMPLRT_DIV)`
+
+**Accel path:** Configured separately via ACCEL_CONFIG2.A_DLPF_CFG (1 kHz update when DLPF active)
+
+### ⚠️ CRITICAL HARDWARE LIMITATION
+
+**SMPLRT_DIV prerequisites (Same as MPU-9250 - MPU-6500-class behavior):**
+
+The SMPLRT_DIV register is **only effective when**:
+1. `FCHOICE_B[1:0] = 00` (DLPF enabled), **AND**
+2. **`0 < DLPF_CFG < 7`** (DLPF_CFG must be 1-6, **NOT 0 or 7**)
+
+**Impact:** When using wide/bypass mode (DLPF_CFG=0/7 or FCHOICE_B≠00), the divider is ignored. Output remains at ~8 kHz and requires **software decimation** for 4 kHz operation.
+
+### Preset Table
+
+| Preset | Gyro DLPF_CFG | Gyro BW (Hz) | SMPLRT_DIV | On-Sensor Rate | Effective Rate | Accel DLPF_CFG | Accel BW (Hz) |
+|--------|---------------|--------------|------------|----------------|----------------|----------------|---------------|
+| **SAFE** | 2 | ~92 | 0 | 1 kHz | 1 kHz | 2 | ~92 |
+| **SMOOTH** | 1 | ~176 | 0 | 1 kHz | 1 kHz | 1 | ~184 |
+| **BALANCED** | 0 (wide) | Wide | 0 | ~8 kHz | 4 kHz (SW decimate ×2) | 1 | ~184 |
+| **ACRO** | 0 (wide) | Wide | 0 | ~8 kHz | 8 kHz | 1 | ~184 |
+
+**Implementation notes:**
+- **SAFE/SMOOTH:** Use DLPF_CFG=1-2 to enable SMPLRT_DIV functionality (hardware divides to 1 kHz)
+- **BALANCED:** Uses DLPF_CFG=0 (wide bypass filter) at ~8 kHz on-sensor. **Driver must read every 2nd sample** to achieve 4 kHz effective rate.
+- **ACRO:** Uses DLPF_CFG=0 (wide bypass filter) at ~8 kHz, driver reads every sample for full ~8 kHz effective rate.
+- **Software decimation:** SMPLRT_DIV is non-functional with DLPF_CFG=0 (same behavior as MPU-9250), so rate control must be implemented in software for BALANCED.
+
+**Register locations:**
+- CONFIG (0x1A): DLPF_CFG bits[2:0]
+- SMPLRT_DIV (0x19): Sample rate divider (0-255) - only functional when DLPF_CFG=1-6
+- GYRO_CONFIG (0x1B): FCHOICE_B bits[1:0] (must be 00 for DLPF), FS_SEL bits[4:3] (3 = ±2000 dps)
+- ACCEL_CONFIG (0x1C): AFS_SEL bits[4:3] (3 = ±16 g)
+- ACCEL_CONFIG2 (0x1D): ACCEL_FCHOICE_B bit[3] (must be 0), A_DLPF_CFG bits[2:0]
+
+### Software Decimation Example (BALANCED Preset)
+
+Same pattern as MPU-9250 - see MPU-9250 section for decimation implementation.
+
+**Rationale:** ICM-20602 follows the same MPU-6500-class architecture as MPU-9250, requiring software decimation when using the wide filter path for BALANCED/ACRO presets.
+
+---
+
 ## Chip Comparison Summary
 
-| Feature | ICM-42688-P | MPU-6000 | MPU-9250 |
-|---------|-------------|----------|----------|
-| **Filter architecture** | AAF + UI (dual-stage) | DLPF (single-stage) | DLPF gyro/accel (split) |
-| **DLPF_CFG=0 + divider** | N/A (no DLPF_CFG) | ✅ Works correctly | ❌ Divider ignored (use SW decimation) |
-| **Max gyro ODR** | 8 kHz (ACRO) | 8 kHz (ACRO) | 8 kHz (ACRO with DLPF_CFG=0) |
-| **Accel ODR** | Configurable (1 kHz typical) | Fixed 1 kHz | 1 kHz (when DLPF active) |
-| **Separate accel filter** | Yes (AAF) | No (shares DLPF) | Yes (A_DLPF_CFG) |
-| **Flexible rate control** | Yes (via ODR regs) | Yes (HW: DLPF_CFG + DIV) | Hybrid (HW for 1kHz, SW for 4k/8k) |
-| **Wide filter + 4kHz** | Yes (AAF 258 Hz @ 4kHz ODR) | Yes (DLPF_CFG=0, DIV=1) | Requires SW decimation from 8kHz |
+| Feature | ICM-42688-P | MPU-6000 | MPU-9250 | ICM-20602 |
+|---------|-------------|----------|----------|-----------|
+| **Filter architecture** | AAF + UI (dual-stage) | DLPF (single-stage) | DLPF gyro/accel (split) | DLPF gyro/accel (split, 6500-class) |
+| **DLPF_CFG=0 + divider** | N/A (no DLPF_CFG) | ✅ Works correctly | ❌ Divider ignored (use SW decimation) | ❌ Divider ignored (use SW decimation) |
+| **Max gyro ODR** | 8 kHz (ACRO) | 8 kHz (ACRO) | 8 kHz (ACRO with DLPF_CFG=0) | ~8 kHz (ACRO with wide/bypass) |
+| **Accel ODR** | Configurable (1 kHz typical) | Fixed 1 kHz | 1 kHz (when DLPF active) | 1 kHz (when DLPF active) |
+| **Separate accel filter** | Yes (AAF) | No (shares DLPF) | Yes (A_DLPF_CFG) | Yes (A_DLPF_CFG) |
+| **Flexible rate control** | Yes (via ODR regs) | Yes (HW: DLPF_CFG + DIV) | Hybrid (HW for 1kHz, SW for 4k/8k) | Hybrid (HW for 1kHz, SW for 4k/8k) |
+| **Wide filter + 4kHz** | Yes (AAF 258 Hz @ 4kHz ODR) | Yes (DLPF_CFG=0, DIV=1) | Requires SW decimation from 8kHz | Requires SW decimation from ~8kHz |
+
+### Understanding "DLPF_CFG=0 + divider" Behavior
+
+**The critical difference** between MPU-6000 and MPU-6500-class chips (MPU-9250, ICM-20602):
+
+**What the notation means:**
+- **"DLPF_CFG=0"** = Wide filter path selected (minimal filtering, ~8 kHz gyro output)
+- **"+ divider"** = Attempting to use `SMPLRT_DIV` register to divide the sample rate
+- **"✅ Works correctly"** (MPU-6000) = Hardware divider functions as expected
+- **"❌ Divider ignored"** (MPU-9250, ICM-20602) = Hardware ignores `SMPLRT_DIV` register
+
+**Practical example - Achieving 4 kHz with wide filter:**
+
+| Chip | Configuration | Expected Result | Actual Result |
+|------|---------------|-----------------|---------------|
+| **MPU-6000** | `DLPF_CFG=0` + `SMPLRT_DIV=1` | 8 kHz / (1+1) = 4 kHz | ✅ **4 kHz** (hardware divider works) |
+| **MPU-9250** | `DLPF_CFG=0` + `SMPLRT_DIV=1` | 8 kHz / (1+1) = 4 kHz | ❌ **8 kHz** (divider has no effect) |
+| **ICM-20602** | `DLPF_CFG=0` + `SMPLRT_DIV=1` | ~8 kHz / (1+1) = 4 kHz | ❌ **~8 kHz** (divider has no effect) |
+
+**Root cause:**
+- **MPU-6000 (6000-class):** `SMPLRT_DIV` divider is **always active** regardless of DLPF setting
+- **MPU-9250/ICM-20602 (6500-class):** `SMPLRT_DIV` divider **only functions when DLPF is engaged** (`DLPF_CFG=1-6`)
+  - When `DLPF_CFG=0` (wide path), the divider circuit is bypassed
+  - Register write succeeds and reads back correctly, but hardware ignores the value
+
+**Solution for MPU-9250/ICM-20602:**
+To achieve 4 kHz effective rate with wide filter, use **software decimation**:
+```c
+// Hardware configuration: DLPF_CFG=0, SMPLRT_DIV=0 → 8 kHz output
+static uint8_t sample_counter = 0;
+
+void imu_data_ready_interrupt(void) {
+  sample_counter++;
+  if (sample_counter >= 2) {  // Process every 2nd sample
+    sample_counter = 0;
+    imu_read_and_process();   // 4 kHz effective rate
+  }
+  // Odd samples are ignored, achieving 2× decimation
+}
+```
+
+**Why this matters for BALANCED preset:**
+- **BALANCED** requires 4 kHz gyro rate with wide filter (~250 Hz corner)
+- **MPU-6000:** Achieved in hardware (`DLPF_CFG=0`, `SMPLRT_DIV=1`)
+- **MPU-9250/ICM-20602:** Requires software decimation from 8 kHz to 4 kHz
+
+**Hardware validation:**
+This behavior was confirmed on MPU-9250 using timer input capture to measure actual DRDY interrupt rate. The `SMPLRT_DIV` register accepted writes and read back correctly, but DRDY remained at 8 kHz regardless of divider value when `DLPF_CFG=0`.
 
 ---
 
@@ -209,7 +309,7 @@ void main_loop_4khz(void) {  // Called at 4 kHz by scheduler
 
 ```c
 typedef enum { FILTER_SAFE, FILTER_SMOOTH, FILTER_BALANCED, FILTER_ACRO } ImuPreset;
-typedef enum { IMU_ICM42688P, IMU_MPU6000, IMU_MPU9250 } ImuModel;
+typedef enum { IMU_ICM42688P, IMU_MPU6000, IMU_MPU9250, IMU_ICM20602 } ImuModel;
 
 typedef struct {
   ImuPreset preset;
@@ -282,6 +382,23 @@ const ImuConfig IMU_PRESETS[] = {
   // NOTE: MPU-9250 BALANCED/ACRO use DLPF_CFG=0 for wide 250 Hz filter bandwidth.
   //       SMPLRT_DIV is non-functional with DLPF_CFG=0 (hardware-validated).
   //       BALANCED requires software decimation (×2) to achieve 4 kHz effective rate.
+
+  // ICM-20602 (MPU-6500-class, same divider behavior as MPU-9250)
+  {FILTER_SAFE, IMU_ICM20602, 1000, 1000, 2000, 16,
+   {0,0,0, 0,0,0, 0,0, 0,0}, {2,2,0}},  // Gyro DLPF=2 (~92Hz), Accel DLPF=2 (~92Hz), DIV=0 → 1kHz
+
+  {FILTER_SMOOTH, IMU_ICM20602, 1000, 1000, 2000, 16,
+   {0,0,0, 0,0,0, 0,0, 0,0}, {1,1,0}},  // Gyro DLPF=1 (~176Hz), Accel DLPF=1 (~184Hz), DIV=0 → 1kHz
+
+  {FILTER_BALANCED, IMU_ICM20602, 8000, 1000, 2000, 16,
+   {0,0,0, 0,0,0, 0,0, 0,0}, {0,1,0}},  // Gyro DLPF=0 (wide), Accel DLPF=1 (~184Hz), DIV=0 → ~8kHz (SW decimate to 4kHz)
+
+  {FILTER_ACRO, IMU_ICM20602, 8000, 1000, 2000, 16,
+   {0,0,0, 0,0,0, 0,0, 0,0}, {0,1,0}},  // Gyro DLPF=0 (wide), Accel DLPF=1 (~184Hz), DIV=0 → ~8kHz
+
+  // NOTE: ICM-20602 BALANCED/ACRO use DLPF_CFG=0 for wide bypass filter.
+  //       SMPLRT_DIV is non-functional with DLPF_CFG=0 (same as MPU-9250).
+  //       BALANCED requires software decimation (×2) to achieve 4 kHz effective rate.
 };
 ```
 
@@ -290,7 +407,7 @@ const ImuConfig IMU_PRESETS[] = {
 ## Validation Checklist
 
 ### Basic Sanity
-- [ ] WHO_AM_I matches expected value (0x47=ICM-42688-P, 0x68=MPU-6000, 0x71=MPU-9250)
+- [ ] WHO_AM_I matches expected value (0x47=ICM-42688-P, 0x68=MPU-6000, 0x71=MPU-9250, 0x12=ICM-20602)
 - [ ] FSRs configured correctly (±2000 dps gyro, ±16 g accel)
 - [ ] No SPI communication errors during init
 
@@ -301,9 +418,13 @@ const ImuConfig IMU_PRESETS[] = {
   - SAFE/SMOOTH (DLPF_CFG≥1): Verify 1 kHz DRDY rate
   - BALANCED/ACRO (DLPF_CFG=0): **Expect 8 kHz DRDY rate** (this is correct behavior)
   - Verify software decimation achieves target effective rate (4 kHz for BALANCED, 8 kHz for ACRO)
+- [ ] **ICM-20602:**
+  - SAFE/SMOOTH (DLPF_CFG≥1): Verify 1 kHz DRDY rate
+  - BALANCED/ACRO (DLPF_CFG=0/wide): **Expect ~8 kHz DRDY rate** (this is correct behavior)
+  - Verify software decimation achieves target effective rate (4 kHz for BALANCED, ~8 kHz for ACRO)
 
-### Register Read-Back (MPU-9250 Debug)
-For MPU-9250, read back critical registers to verify configuration:
+### Register Read-Back (MPU-9250 / ICM-20602 Debug)
+For MPU-9250 and ICM-20602, read back critical registers to verify configuration:
 ```c
 uint8_t config = readReg(0x1A);          // Should show DLPF_CFG in bits[2:0]
 uint8_t smplrt_div = readReg(0x19);      // Should show divider value
@@ -311,7 +432,7 @@ uint8_t gyro_config = readReg(0x1B);     // FCHOICE_B[1:0] should be 00
 uint8_t int_enable = readReg(0x38);      // DATA_RDY_EN (bit 0) should be 1
 ```
 
-**Key insight:** For BALANCED/ACRO with DLPF_CFG=0, CONFIG should read 0x00 and SMPLRT_DIV should read 0x00. The hardware correctly produces 8 kHz output - this is expected behavior. SMPLRT_DIV is only functional with DLPF_CFG=1-6.
+**Key insight:** For BALANCED/ACRO with DLPF_CFG=0, CONFIG should read 0x00 and SMPLRT_DIV should read 0x00. The hardware correctly produces ~8 kHz output - this is expected behavior. SMPLRT_DIV is only functional with DLPF_CFG=1-6.
 
 ### Filter Performance
 - [ ] FFT shows expected filter corner (e.g., ~258 Hz for BALANCED on ICM-42688-P)
@@ -339,10 +460,10 @@ uint8_t int_enable = readReg(0x38);      // DATA_RDY_EN (bit 0) should be 1
 - UI BW: code 15 (wide)
 - UI order: 2nd (reset default)
 
-**Betaflight parity (MPU-9250):**
-- **SMOOTH preset:** Gyro DLPF_CFG=1 (184 Hz), Accel DLPF_CFG=1 (184 Hz), SMPLRT_DIV=0 → 1 kHz
-- **BALANCED/ACRO:** Use DLPF_CFG=0 (250 Hz wide) with software decimation for 4kHz/8kHz rates
-- Note: Betaflight typically runs MPU-9250 at 1 kHz (SMOOTH-equivalent), not 4kHz/8kHz
+**Betaflight parity (MPU-9250 / ICM-20602):**
+- **SMOOTH preset:** Gyro DLPF_CFG=1 (~184/176 Hz), Accel DLPF_CFG=1 (~184 Hz), SMPLRT_DIV=0 → 1 kHz
+- **BALANCED/ACRO:** Use DLPF_CFG=0 (wide/bypass) with software decimation for 4kHz/8kHz rates
+- Note: Betaflight typically runs MPU-9250/ICM-20602 at 1 kHz (SMOOTH-equivalent), not 4kHz/8kHz
 
 ---
 
