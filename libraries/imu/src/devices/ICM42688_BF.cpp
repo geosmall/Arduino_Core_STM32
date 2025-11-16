@@ -1,16 +1,32 @@
 /*
- * Modified from Betaflight for Arduino integration
- * Original: https://github.com/betaflight/betaflight/blob/master/src/main/drivers/accgyro/accgyro_spi_icm426xx.c
- * Pattern: Madflight ICM426XX wrapper (https://github.com/qqqlab/madflight)
+ * This file is part of Arduino_Core_STM32 IMU library.
  *
- * Modifications applied (systematic find-replace):
- * 1. "spiWriteReg(dev, " → "bus_->writeReg("
- * 2. "spiReadRegMsk(dev, " → "bus_->readReg("
- * 3. "setUserBank(dev, " → "setUserBank("
- * 4. "extDevice_t" → "DeviceBus"
- * 5. C++ class with factory pattern
- * 6. Constructor-based initialization (no separate begin())
- * 7. Removed: External clock support, soft reset, Betaflight framework dependencies
+ * This software is derived from Betaflight and is subject to the
+ * GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option)
+ * any later version.
+ *
+ * Original Betaflight source:
+ * https://github.com/betaflight/betaflight/blob/master/src/main/drivers/accgyro/accgyro_spi_icm426xx.c
+ * Copyright: Betaflight contributors
+ * License: GPLv3
+ *
+ * Arduino integration pattern from Madflight (MIT):
+ * https://github.com/qqqlab/madflight
+ *
+ * Modifications for Arduino (2024):
+ * - C++ class with factory pattern (madflight approach)
+ * - DeviceBus abstraction for SPI/I2C portability
+ * - Constructor-based initialization
+ * - Removed Betaflight framework dependencies
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this software. If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <Arduino.h>

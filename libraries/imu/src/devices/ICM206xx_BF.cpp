@@ -1,13 +1,21 @@
 /*
- * ICM206xx_BF.cpp - ICM-206xx IMU Driver Implementation
+ * This file is part of Arduino_Core_STM32 IMU library.
  *
- * Adapted from Betaflight: src/main/drivers/accgyro/accgyro_spi_icm20689.c
- * Original: https://github.com/betaflight/betaflight
+ * This software is derived from Betaflight and is subject to the
+ * GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option)
+ * any later version.
+ *
+ * Original Betaflight source:
+ * https://github.com/betaflight/betaflight/blob/master/src/main/drivers/accgyro/accgyro_spi_icm20689.c
+ * Copyright: Betaflight contributors
  * License: GPLv3
  *
- * Changes from Betaflight:
- * 1. Removed framework dependencies (gyroDev_t, accDev_t, extDevice_t)
- * 2. Uses DeviceBus abstraction instead of direct SPI calls
+ * Modifications for Arduino (2024):
+ * - C++ class with factory pattern
+ * - DeviceBus abstraction for portability
+ * - Shared register map (MPU_Common.h)
+ * - Support for ICM-20601, ICM-20602, ICM-20689
  * 3. Factory pattern: detect() with retry logic
  * 4. Constructor-based initialization (no separate init function)
  * 5. Uses MPU_Common.h for shared register definitions

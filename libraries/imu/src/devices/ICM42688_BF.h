@@ -1,6 +1,13 @@
-// Arduino_Core_STM32 IMU Library - ICM42688 Driver
-// Based on madflight ICM426XX pattern
-// https://github.com/qqqlab/madflight
+/*
+ * This file is part of Arduino_Core_STM32 IMU library.
+ *
+ * This software is derived from Betaflight and is subject to the
+ * GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option)
+ * any later version.
+ *
+ * See ICM42688_BF.cpp for full license text and attribution.
+ */
 
 #pragma once
 

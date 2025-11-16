@@ -1,5 +1,29 @@
-// Arduino_Core_STM32 IMU Library - MPU6000 Betaflight Driver Implementation
-// Modified from Betaflight accgyro_spi_mpu6000.c
+/*
+ * This file is part of Arduino_Core_STM32 IMU library.
+ *
+ * This software is derived from Betaflight and is subject to the
+ * GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option)
+ * any later version.
+ *
+ * Original Betaflight source:
+ * https://github.com/betaflight/betaflight/blob/master/src/main/drivers/accgyro/accgyro_spi_mpu6000.c
+ * Copyright: Betaflight contributors
+ * License: GPLv3
+ *
+ * Modifications for Arduino (2024):
+ * - C++ class with factory pattern
+ * - DeviceBus abstraction for portability
+ * - Shared register map (MPU_Common.h)
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this software. If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #include "MPU6000_BF.h"
 #include "MPU_Common.h"
