@@ -59,6 +59,15 @@ protected:
 
     DeviceBus* bus_;  ///< Bus interface pointer
 
+    /**
+     * @brief Current register bank (0xFF = unknown, forces first write)
+     *
+     * ISR Safety: Configuration functions (applyPreset, setGyroFSR, etc.)
+     * must NOT be called from interrupt context. Only read() is ISR-safe
+     * due to its defensive setUserBank(0) call.
+     */
+    volatile uint8_t currentBank_ = 0xFF;
+
 public:
     /**
      * @brief AAF (Anti-Alias Filter) configuration structure
@@ -97,11 +106,29 @@ public:
     /**
      * @brief Apply intent-based preset configuration
      * @param preset Preset configuration (SAFE, SMOOTH, BALANCED, ACRO)
+     * @return true if configuration verified successfully, false if verification failed
      *
      * Configures ODR, FSR, AAF filters, and UI filters per imu_hal.md specification.
      * All presets use ±2000dps/±16g FSR.
+     *
+     * After writing registers, reads back critical values to verify:
+     * - GYRO_CONFIG0/ACCEL_CONFIG0 (FSR + ODR)
+     * - INTF_CONFIG1 (AFSR disable)
+     * - AAF enable bits (Bank 1 and Bank 2)
      */
-    void applyPreset(ImuPreset preset);
+    bool applyPreset(ImuPreset preset);
+
+    /**
+     * @brief Verify current register configuration matches expected preset
+     * @param preset Expected preset configuration
+     * @return true if all critical registers match expected values
+     *
+     * Reads back and verifies:
+     * - FSR and ODR in GYRO_CONFIG0/ACCEL_CONFIG0
+     * - AFSR disable in INTF_CONFIG1
+     * - AAF enable bits in Bank 1 (0x0B) and Bank 2 (0x03)
+     */
+    bool verifyConfiguration(ImuPreset preset) const;
 
     /**
      * @brief Read 6-axis gyro/accel data

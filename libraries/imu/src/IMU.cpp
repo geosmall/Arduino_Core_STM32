@@ -64,7 +64,11 @@ IMU::Result IMU::ApplyPreset(Preset preset)
 
     // Map IMU::Preset to ImuPreset (same order)
     ImuPreset driver_preset = static_cast<ImuPreset>(preset);
-    bf_driver_->applyPreset(driver_preset);
+
+    // Apply preset and verify configuration (returns false if verification fails)
+    if (!bf_driver_->applyPreset(driver_preset)) {
+        return Result::ERR;
+    }
 
     // All presets use ±2000dps/±16g FSR
     gyro_sensitivity_ = ICM42688P_GYRO_SENS_2000;

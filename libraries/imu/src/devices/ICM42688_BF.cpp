@@ -212,7 +212,11 @@ static const ICM42688PresetConfig ICM42688_PRESETS[] = {
 
 // Helper function: Select register bank
 void ICM42688_BF::setUserBank(uint8_t bank) {
-    bus_->writeReg(ICM426XX_RA_REG_BANK_SEL, bank & 7);
+    bank &= 7;
+    if (bank != currentBank_) {
+        bus_->writeReg(ICM426XX_RA_REG_BANK_SEL, bank);
+        currentBank_ = bank;
+    }
 }
 
 // Get human-readable chip name
@@ -342,6 +346,8 @@ ICM42688_BF::ICM42688_BF(DeviceBus* bus, uint8_t whoAmI)
 
 // Read 6-axis gyro/accel data
 void ICM42688_BF::read(int16_t* accgyr) {
+    // Ensure we're on Bank 0 where data registers live
+    setUserBank(ICM426XX_BANK_SELECT0);
     // Read 12 bytes: ax,ay,az,gx,gy,gz (little endian)
     bus_->readRegs(ICM426XX_RA_ACCEL_DATA_X1, (uint8_t*)accgyr, 12);
 }
@@ -355,8 +361,10 @@ void ICM42688_BF::read(int16_t* accgyr) {
  *
  * Configures ODR, FSR, AAF, and UI filters per imu_hal.md specification.
  * All presets use ±2000dps/±16g FSR per imu_hal.md lines 20-21.
+ *
+ * @return true if configuration verified successfully, false if verification failed
  */
-void ICM42688_BF::applyPreset(ImuPreset preset) {
+bool ICM42688_BF::applyPreset(ImuPreset preset) {
     const ICM42688PresetConfig& cfg = ICM42688_PRESETS[static_cast<uint8_t>(preset)];
 
     // 1. Set ODR (order matters - do this first)
@@ -377,8 +385,102 @@ void ICM42688_BF::applyPreset(ImuPreset preset) {
     setUIFilters(cfg.ui_bw_code_gyro, cfg.ui_bw_code_accel,
                  cfg.ui_order_gyro, cfg.ui_order_accel);
 
+    // 5. Ensure AFSR is disabled (prevents gyro stalls per ArduPilot PR #25332)
+    disableAFSR();
+
+    // 6. Ensure sensors are enabled in Low Noise mode after configuration
+    // This is required per ICM-42688-P datasheet section 12.9
+    setUserBank(ICM426XX_BANK_SELECT0);
+    bus_->writeReg(ICM426XX_RA_PWR_MGMT0,
+                   ICM426XX_PWR_MGMT0_TEMP_DISABLE_OFF |
+                   ICM426XX_PWR_MGMT0_ACCEL_MODE_LN |
+                   ICM426XX_PWR_MGMT0_GYRO_MODE_LN);
+    delay(50);  // Wait for gyro startup (datasheet: 45ms typical)
+
     // Store effective sampling rate
     samplingRateHz_ = cfg.gyro_odr_hz;
+
+    // 7. Verify critical registers were written correctly
+    return verifyConfiguration(preset);
+}
+
+/**
+ * @brief Verify current register configuration matches expected preset
+ *
+ * Reads back critical registers and compares to expected values.
+ * Verifies FSR, ODR, AFSR disable, and AAF enable bits.
+ *
+ * @param preset Expected preset configuration
+ * @return true if all critical registers match expected values
+ */
+bool ICM42688_BF::verifyConfiguration(ImuPreset preset) const {
+    const ICM42688PresetConfig& cfg = ICM42688_PRESETS[static_cast<uint8_t>(preset)];
+
+    // Cast away const for bank switching (read-only operation, but needs bank select)
+    ICM42688_BF* self = const_cast<ICM42688_BF*>(this);
+
+    // Expected ODR codes
+    uint8_t expected_gyro_odr, expected_accel_odr;
+    switch(cfg.gyro_odr_hz) {
+        case 8000: expected_gyro_odr = 0x03; break;
+        case 4000: expected_gyro_odr = 0x05; break;
+        case 2000: expected_gyro_odr = 0x06; break;
+        case 1000: expected_gyro_odr = 0x07; break;
+        default: return false;
+    }
+    switch(cfg.accel_odr_hz) {
+        case 8000: expected_accel_odr = 0x03; break;
+        case 4000: expected_accel_odr = 0x05; break;
+        case 2000: expected_accel_odr = 0x06; break;
+        case 1000: expected_accel_odr = 0x07; break;
+        default: return false;
+    }
+
+    // Expected FSR codes (always 0 for ±2000dps/±16g)
+    uint8_t expected_gyro_fsr = 0;  // ±2000 dps
+    uint8_t expected_accel_fsr = 0; // ±16g
+
+    // 1. Verify GYRO_CONFIG0 (Bank 0): FSR[7:5] + ODR[3:0]
+    self->setUserBank(ICM426XX_BANK_SELECT0);
+    uint8_t gyro_config0 = bus_->readReg(ICM426XX_RA_GYRO_CONFIG0);
+    uint8_t actual_gyro_fsr = (gyro_config0 >> 5) & 0x07;
+    uint8_t actual_gyro_odr = gyro_config0 & 0x0F;
+    if (actual_gyro_fsr != expected_gyro_fsr || actual_gyro_odr != expected_gyro_odr) {
+        return false;
+    }
+
+    // 2. Verify ACCEL_CONFIG0 (Bank 0): FSR[7:5] + ODR[3:0]
+    uint8_t accel_config0 = bus_->readReg(ICM426XX_RA_ACCEL_CONFIG0);
+    uint8_t actual_accel_fsr = (accel_config0 >> 5) & 0x07;
+    uint8_t actual_accel_odr = accel_config0 & 0x0F;
+    if (actual_accel_fsr != expected_accel_fsr || actual_accel_odr != expected_accel_odr) {
+        return false;
+    }
+
+    // 3. Verify INTF_CONFIG1 (Bank 0): AFSR disable bit[6] should be set
+    uint8_t intf_config1 = bus_->readReg(ICM426XX_INTF_CONFIG1);
+    if ((intf_config1 & ICM426XX_INTF_CONFIG1_AFSR_DISABLE) != ICM426XX_INTF_CONFIG1_AFSR_DISABLE) {
+        return false;
+    }
+
+    // 4. Verify Gyro AAF enable (Bank 1, reg 0x0B, bit 0)
+    self->setUserBank(ICM426XX_BANK_SELECT1);
+    uint8_t gyro_aaf_enable = bus_->readReg(0x0B);
+    if ((gyro_aaf_enable & 0x01) != 0x01) {
+        return false;
+    }
+
+    // 5. Verify Accel AAF enable (Bank 2, reg 0x03, bit 0)
+    self->setUserBank(ICM426XX_BANK_SELECT2);
+    uint8_t accel_aaf_enable = bus_->readReg(0x03);
+    if ((accel_aaf_enable & 0x01) != 0x01) {
+        return false;
+    }
+
+    // Restore to Bank 0
+    self->setUserBank(ICM426XX_BANK_SELECT0);
+
+    return true;
 }
 
 // =============================================================================

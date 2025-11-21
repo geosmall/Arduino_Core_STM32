@@ -113,10 +113,11 @@ void setup() {
     // BALANCED: 4kHz gyro, 1kHz accel, ±2000dps/±16g, optimized for 2kHz PID loop
     CI_LOG("Applying BALANCED preset...\n");
     if (imu.ApplyPreset(IMU::Preset::BALANCED) != IMU::Result::OK) {
-        CI_LOG("ERROR: Failed to apply preset!\n");
+        CI_LOG("ERROR: Preset apply/verify failed!\n");
         CI_LOG("*STOP*\n");
         while (1) delay(1000);
     }
+    CI_LOG("Preset verified OK\n");
 
     CI_LOG("✓ IMU configured for polled operation\n");
     CI_LOG("  Preset: BALANCED (recommended for 2kHz PID loop)\n");

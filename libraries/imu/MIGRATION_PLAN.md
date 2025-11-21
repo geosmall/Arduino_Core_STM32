@@ -1,8 +1,8 @@
 # IMU Library TDK Driver Migration Plan
 
-**Status**: Planning
+**Status**: In Progress
 **Last Updated**: 2025-11-21
-**Tracking**: Phase 0 (Planning Complete)
+**Tracking**: Phase 2 Complete → Hardware Validation Next
 
 ---
 
@@ -324,7 +324,15 @@ void ICM42688_BF::reset() {
 
 ---
 
-### Phase 2: Update IMU.cpp/.h to Preset-Based API (2-3 days)
+### Phase 2: Update IMU.cpp/.h to Preset-Based API (2-3 days) ✅ COMPLETE
+
+**Completed 2025-11-21** (Commit: `0b2c58e13`)
+- Removed TDK driver dependency from IMU.cpp/.h
+- Added preset-based API: `ApplyPreset(SAFE|SMOOTH|BALANCED|ACRO)`
+- Retained fine-grained filter APIs for advanced users: `SetGyroAAF()`, `SetAccelAAF()`, `SetUIFilters()`
+- Updated Polled_FlightController example for preset API
+- Removed obsolete SelfTest example
+- Binary reduction: ~546 lines removed
 
 #### 2.1 Remove TDK Driver Dependencies (1 day)
 
@@ -477,6 +485,39 @@ bool IMU::ApplyPreset(Preset preset) {
 - Delete `RunSelfTest()` method from IMU.h/cpp (self-test not included per decision above)
 
 **Update ReadIMU6()** - No changes needed (already uses DeviceBase::read())
+
+---
+
+### Phase 2.5: ICM-42688-P Hardware Validation (0.5 days)
+
+**Goal**: Validate Phase 2 migration on hardware before proceeding to other chips.
+
+#### 2.5.1 Hardware Test on NUCLEO_F411RE
+
+**Test Command**:
+```bash
+./system/ci/aflash.sh libraries/imu/examples/Polled_FlightController --use-rtt --build-id
+```
+
+**Validation Criteria**:
+- [ ] WHO_AM_I returns 0x47 (ICM-42688-P detected)
+- [ ] BALANCED preset applied successfully
+- [ ] 2kHz polling loop runs without errors
+- [ ] Gyro/Accel data within expected range (stationary: gyro ~0 dps, accel ~1g on Z)
+- [ ] 20 samples printed over ~10 seconds
+- [ ] Clean exit with "*STOP*" token
+
+#### 2.5.2 Binary Size Verification
+
+**Expected**:
+- Polled_FlightController: ~31KB (vs ~56KB with TDK driver)
+- Savings: ~25KB from TDK driver removal
+
+#### 2.5.3 Sign-off
+
+Once hardware validation passes:
+- [ ] Push Phase 2 commit to origin/dev
+- [ ] Proceed to Phase 3 (other chip drivers)
 
 ---
 
@@ -728,13 +769,14 @@ imu.ApplyPreset(IMU::Preset::BALANCED);  // All config in one call
 
 ## Timeline
 
-| Phase | Duration | Key Deliverables |
-|-------|----------|------------------|
-| **Phase 1** | 3-4 days | ICM42688_BF with preset API |
-| **Phase 2** | 2-3 days | IMU.cpp/.h migrated to preset-based API |
-| **Phase 3** | 1-2 days | MPU6000/MPU9250/ICM206xx preset support |
-| **Phase 4** | 1-2 days | Testing and validation |
-| **TOTAL** | **7-11 days** | Complete TDK driver elimination |
+| Phase | Duration | Key Deliverables | Status |
+|-------|----------|------------------|--------|
+| **Phase 1** | 3-4 days | ICM42688_BF with preset API | ✅ Complete |
+| **Phase 2** | 2-3 days | IMU.cpp/.h migrated to preset-based API | ✅ Complete |
+| **Phase 2.5** | 0.5 days | ICM-42688-P hardware validation | 🔄 In Progress |
+| **Phase 3** | 1-2 days | MPU6000/MPU9250/ICM206xx preset support | 📋 Pending |
+| **Phase 4** | 1-2 days | Final integration testing (all chips) | 📋 Pending |
+| **TOTAL** | **7-11 days** | Complete TDK driver elimination | |
 
 **Reduced from original 11-16 days** due to:
 - Self-test removed (saves 3-4 days - not used by major FC stacks)
