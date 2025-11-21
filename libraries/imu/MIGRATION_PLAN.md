@@ -1,7 +1,7 @@
 # IMU Library TDK Driver Migration Plan
 
 **Status**: Planning
-**Last Updated**: 2025-11-16
+**Last Updated**: 2025-11-21
 **Tracking**: Phase 0 (Planning Complete)
 
 ---
@@ -15,13 +15,36 @@
 - ✅ Implement **single-source-of-truth LUT** from imu_hal.md specification
 - ✅ Keep low-level config methods **protected/internal** for preset implementation
 - ✅ Expose high-level `applyPreset()` API to users
-- ✅ **Preserve self-test** (extract from TDK, adapt to BF driver)
 - ✅ **Clean break for enums** (replace TDK constants with numeric values)
 - ✅ **Remove FIFO support** (breaking change, acceptable since ReadIMU6 doesn't use it)
+- ❌ **Self-test NOT included** - see "Self-Test Decision" section below
 
-**Timeline**: 11-16 days total
+**Timeline**: 7-10 days total (reduced from 11-16 days)
 
 **Binary Size Impact**: ~25KB savings (TDK driver removal)
+
+---
+
+## Self-Test Decision
+
+**Decision**: Self-test functionality is **NOT included** in this migration.
+
+**Research Findings** (2025-11-21):
+All major flight controller firmware stacks (Betaflight, iNav, ArduPilot, PX4) **do not run IMU self-test at startup**:
+
+| Firmware | Self-Test at Boot? | Validation Method |
+|----------|-------------------|-------------------|
+| Betaflight | No | WHO_AM_I only |
+| iNav | No | Gyro bias recording |
+| ArduPilot | No | Sensor detection + calibration |
+| PX4 | No | EKF alignment + health monitoring |
+
+**Why self-test is skipped in production:**
+1. **Boot latency**: Adds ~200ms startup time
+2. **Motion sensitivity**: Fails if device isn't perfectly still/level at boot
+4. **Manufacturing focus**: Self-test is designed for factory QC, not runtime validation
+
+**Conclusion**: Self-test adds complexity (~570 lines of TDK code to port) for a feature that professional firmware intentionally skips. Focus effort on preset-based configuration instead.
 
 ---
 
@@ -61,7 +84,7 @@
 
 ## Migration Phases
 
-### Phase 1: Extend ICM42688_BF Driver with Preset-Based Configuration (5-7 days)
+### Phase 1: Extend ICM42688_BF Driver with Preset-Based Configuration (3-4 days)
 
 #### 1.1 Add Preset Infrastructure (1-2 days)
 
@@ -299,52 +322,6 @@ void ICM42688_BF::reset() {
 }
 ```
 
-#### 1.4 Extract and Adapt TDK Self-Test (3-4 days)
-
-**Objective**: Port TDK `Icm426xxSelfTest.c` (~570 lines) to use DeviceBus abstraction while preserving production-grade self-test algorithm.
-
-**Create ICM42688_BF_SelfTest.cpp/.h**:
-
-**Key Adaptations**:
-- Replace `inv_icm426xx_read_reg(&driver, bank, reg, &data, 1)` → `bus_->readReg(reg)`
-- Replace `inv_icm426xx_write_reg(&driver, bank, reg, data, 1)` → `bus_->writeReg(reg, data)`
-- Replace `inv_icm426xx_set_reg_bank(&driver, bank)` → `setUserBank(bank)`
-- Replace `inv_icm426xx_sleep_us(delay)` → `delayMicroseconds(delay)`
-
-**Self-Test Algorithm** (preserve TDK logic):
-1. Save current configuration (FSR, ODR, power mode, offsets)
-2. Apply self-test configuration (±2000dps/±16g, 1kHz ODR, low-noise mode)
-3. Collect baseline samples (no stimulus)
-4. Enable self-test stimulus (gyro/accel excitation)
-5. Collect self-test samples (with stimulus)
-6. Calculate factory bias: `bias = (stimulus_samples - baseline_samples) / sensitivity`
-7. Validate against factory limits (gyro: ±60 dps, accel: ±500 mg)
-8. Restore original configuration
-
-**Add to ICM42688_BF.h**:
-```cpp
-class ICM42688_BF : public DeviceBase {
-public:
-    // Self-test functionality
-    bool selfTest(int* result, int bias[6]);  // result: 0=pass, 1=fail; bias[6]: gx,gy,gz,ax,ay,az
-
-private:
-    // Self-test helper methods
-    bool runGyroSelfTest(int bias[3]);
-    bool runAccelSelfTest(int bias[3]);
-    void saveConfiguration();
-    void restoreConfiguration();
-    void applySelfTestConfiguration();
-};
-```
-
-**Implementation Reference**: TDK `Icm426xxSelfTest.c` functions:
-- `inv_icm426xx_run_selftest()` → `ICM42688_BF::selfTest()`
-- `inv_icm426xx_get_st_bias()` → Returns bias via `bias[6]` parameter
-- Factory limits: Gyro ±60 dps offset, Accel ±500 mg offset
-
-**Validation**: Hardware test on NUCLEO_F411RE, compare bias values against TDK driver baseline.
-
 ---
 
 ### Phase 2: Update IMU.cpp/.h to Preset-Based API (2-3 days)
@@ -496,16 +473,8 @@ bool IMU::ApplyPreset(Preset preset) {
 }
 ```
 
-**Update self-test**:
-```cpp
-bool IMU::RunSelfTest(int* result, int bias[6]) {
-    if (chip_type_ == ChipType::ICM42688_P) {
-        return bf_driver_icm42688_->selfTest(result, bias);
-    }
-    // Other chips: self-test not implemented
-    return false;
-}
-```
+**Remove self-test API**:
+- Delete `RunSelfTest()` method from IMU.h/cpp (self-test not included per decision above)
 
 **Update ReadIMU6()** - No changes needed (already uses DeviceBase::read())
 
@@ -608,7 +577,7 @@ static const ICM20602PresetConfig ICM20602_PRESETS[] = {
 
 ---
 
-### Phase 4: Testing and Validation (2-3 days)
+### Phase 4: Testing and Validation (1-2 days)
 
 #### 4.1 Preset Validation (1 day)
 
@@ -654,31 +623,7 @@ void setup() {
 - BALANCED: ODR=4kHz (0x05), AAF 258/170Hz, UI code 15, 1st-order
 - ACRO: ODR=8kHz (0x03), AAF 303/170Hz, UI code 15, 1st-order
 
-#### 4.2 Self-Test Validation (1 day)
-
-**Hardware validation on NUCLEO_F411RE**:
-```cpp
-int result;
-int bias[6];  // gx, gy, gz, ax, ay, az
-
-if (imu.RunSelfTest(&result, bias)) {
-    if (result == 0) {
-        CI_LOG("Self-test PASSED\n");
-        CI_LOGF("Gyro bias: %d, %d, %d dps\n", bias[0], bias[1], bias[2]);
-        CI_LOGF("Accel bias: %d, %d, %d mg\n", bias[3], bias[4], bias[5]);
-    } else {
-        CI_LOG("Self-test FAILED\n");
-    }
-}
-```
-
-**Validation criteria**:
-- Gyro bias within ±60 dps (factory limits)
-- Accel bias within ±500 mg (factory limits)
-- Settings restored after self-test (non-destructive)
-- Compare bias values against TDK driver baseline (should match within tolerance)
-
-#### 4.3 Integration Testing (1 day)
+#### 4.2 Integration Testing (1 day)
 
 **Test dRehmFlight** with preset API:
 ```cpp
@@ -785,15 +730,15 @@ imu.ApplyPreset(IMU::Preset::BALANCED);  // All config in one call
 
 | Phase | Duration | Key Deliverables |
 |-------|----------|------------------|
-| **Phase 1** | 5-7 days | ICM42688_BF with preset API + self-test |
+| **Phase 1** | 3-4 days | ICM42688_BF with preset API |
 | **Phase 2** | 2-3 days | IMU.cpp/.h migrated to preset-based API |
-| **Phase 3** | 2-3 days | MPU6000/MPU9250/ICM206xx preset support |
-| **Phase 4** | 2-3 days | Testing and validation |
-| **TOTAL** | **11-16 days** | Complete TDK driver elimination |
+| **Phase 3** | 1-2 days | MPU6000/MPU9250/ICM206xx preset support |
+| **Phase 4** | 1-2 days | Testing and validation |
+| **TOTAL** | **7-11 days** | Complete TDK driver elimination |
 
-**Reduced from original 12-17 days** due to:
+**Reduced from original 11-16 days** due to:
+- Self-test removed (saves 3-4 days - not used by major FC stacks)
 - Simpler preset-based API vs. individual runtime config methods
-- Less configuration code to write and test
 - Clearer validation criteria (preset register values from imu_hal.md)
 
 ---
@@ -803,7 +748,6 @@ imu.ApplyPreset(IMU::Preset::BALANCED);  // All config in one call
 ✅ Zero TDK driver includes in IMU.cpp/.h
 ✅ Preset-based API working: ApplyPreset(SAFE/SMOOTH/BALANCED/ACRO)
 ✅ All preset register values match imu_hal.md specification
-✅ Self-test passes on ICM-42688-P hardware
 ✅ dRehmFlight compiles and flies with BALANCED preset
 ✅ Binary size reduced by ~25KB
 ✅ All 4 BF drivers support common ImuPreset enum
@@ -818,7 +762,7 @@ imu.ApplyPreset(IMU::Preset::BALANCED);  // All config in one call
 ✅ **Hardcoded FSR**: ±2000dps/±16g per imu_hal.md lines 20-21
 ✅ **Chip abstraction**: Common preset enum across all IMU chips
 ✅ **Register-level implementation**: Low-level methods protected, high-level preset public
-✅ **Hardware validation**: Self-test preserved per embedded standards
+❌ **Self-test omitted**: Professional FC stacks (Betaflight, iNav, ArduPilot, PX4) skip self-test - validates via WHO_AM_I + gyro bias instead
 
 ---
 
@@ -826,6 +770,6 @@ imu.ApplyPreset(IMU::Preset::BALANCED);  // All config in one call
 
 - **imu_hal.md**: Filter presets and register configuration specification
 - **imu_presets.md**: Betaflight-oriented preset guide (reference only)
-- **TDK ICM-42688-P Datasheet**: DS-000347 Rev 1.7 (register map, self-test)
+- **TDK ICM-42688-P Datasheet**: DS-000347 Rev 1.7 (register map)
 - **Betaflight Source**: Original driver reference (accgyro_spi_icm426xx.c)
 - **CLAUDE.md**: Embedded hardware validation standards
