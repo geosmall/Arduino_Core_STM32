@@ -59,8 +59,10 @@ protected:
 
     DeviceBus* bus_;  ///< Bus interface pointer
 
+public:
     /**
      * @brief AAF (Anti-Alias Filter) configuration structure
+     * Public for advanced users who need fine-grained filter control.
      */
     struct AAFConfig {
         uint8_t  delt;
@@ -69,7 +71,9 @@ protected:
     };
 
     /**
-     * @brief Low-level configuration methods (used internally by applyPreset)
+     * @brief Low-level configuration methods
+     * Primarily used internally by applyPreset(), but available for advanced users.
+     * For most use cases, prefer applyPreset() for validated configurations.
      */
     void setAccelFSR(uint16_t fsr_g);
     void setGyroFSR(uint16_t fsr_dps);
@@ -80,7 +84,6 @@ protected:
     void setUIFilters(uint8_t gyro_bw, uint8_t accel_bw, uint8_t gyro_order, uint8_t accel_order);
     void disableAFSR();
 
-public:
     /**
      * @brief Factory method to detect and initialize IMU
      * @param bus Pointer to DeviceBus instance

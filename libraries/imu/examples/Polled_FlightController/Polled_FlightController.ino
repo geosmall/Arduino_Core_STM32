@@ -1,19 +1,11 @@
 /*
- * IMU Library - MPU-6000 DLPF Simulation Example
+ * IMU Library - Polled Flight Controller Example
  *
- * Demonstrates polling-based IMU data acquisition that simulates MPU-6000 DLPF behavior:
- * - Gyro: ±250 DPS @ 4kHz ODR (high resolution for precise flight control)
- * - Accel: ±2G @ 1kHz ODR (sufficient for orientation/level flight)
- * - AAF: Gyro 258 Hz, Accel 170 Hz (matches MPU-6000 DLPF 260/256 Hz feel)
- * - UI Filters: Code 0 (ODR/2), 1st-order (minimal phase lag, lets AAF dominate)
- *
- * This configuration mimics the MPU-6000 DLPF approach where the anti-alias filter
- * defines the primary corner frequency and the UI filter stays wide with minimal
- * phase lag. This balances resolution, noise rejection, and latency for stable
- * flight applications like dRehmFlight.
- *
- * For Betaflight-style configuration (wider FSR, low-latency UI filters),
- * see imu-polled-bf.ino example.
+ * Demonstrates polling-based IMU data acquisition using the preset API:
+ * - Uses ApplyPreset(BALANCED) for validated 2kHz PID loop configuration
+ * - Gyro: 4kHz ODR, ±2000 DPS
+ * - Accel: 1kHz ODR, ±16G
+ * - AAF/UI filters: Configured per imu_hal.md BALANCED preset
  *
  * WHEN TO USE POLLING vs INTERRUPTS:
  * - Use polling when your main loop runs at a fixed rate (e.g., 2kHz flight controller)
@@ -21,19 +13,10 @@
  * - Polling is simpler and requires no interrupt pin
  * - Interrupts are more efficient for variable-rate or slow loops
  *
- * POLLING CONSIDERATIONS:
- * - If loop rate matches IMU ODR: Minimal duplicate/missed reads
- * - If loop faster than ODR: May read same data multiple times
- * - If loop slower than ODR: May miss data samples
- * - This example: 2kHz loop with 4kHz gyro, 1kHz accel
- *
  * HARDWARE CONFIGURATION:
  * - Uses BoardConfig for automatic board detection (NUCLEO_F411RE / BLACKPILL_F411CE)
  * - Pin assignments and SPI frequency from board configuration
  * - No interrupt pin required
- *
- * REFERENCE:
- * - Icm42688p Analysis & Guidance.md - MPU-6000 parity (Section 10)
  *
  * CI/HIL INTEGRATION:
  * - RTT output for automated testing
@@ -43,10 +26,19 @@
  */
 
 #include <IMU.h>
-#include <icm42688p.h>
 #include <ci_log.h>
 #include <SPI.h>
 #include <libPrintf.h>
+
+// libPrintf requires putchar_() for output routing
+extern "C" void putchar_(char c) {
+#ifdef USE_RTT
+    char buf[2] = {c, '\0'};
+    SEGGER_RTT_WriteString(0, buf);
+#else
+    Serial.write(c);
+#endif
+}
 
 // Board configuration
 #if defined(ARDUINO_BLACKPILL_F411CE)
@@ -71,7 +63,7 @@ void setup() {
     while (!Serial) delay(10);
 #endif
 
-    CI_LOG("\n=== IMU Library - Polled ODR/2 1st-Order Filter Example ===\n");
+    CI_LOG("\n=== IMU Library - Polled Flight Controller Example ===\n");
     CI_BUILD_INFO();
     CI_READY_TOKEN();
 
@@ -88,7 +80,7 @@ void setup() {
     // Give IMU time to stabilize
     delay(5);
 
-    // Initialize IMU
+    // Initialize IMU (applies BALANCED preset by default)
     CI_LOG("Initializing IMU...\n");
     if (imu.Init(spi_bus, BoardConfig::imu.spi.cs_pin, BoardConfig::imu.spi.freq_hz) != IMU::Result::OK) {
         CI_LOG("ERROR: Failed to initialize IMU!\n");
@@ -117,70 +109,22 @@ void setup() {
     }
     CI_LOG("\n");
 
-    // Configure IMU for polled operation
-    CI_LOG("Configuring IMU...\n");
-
-    // Set full-scale range (matching dRehmFlight: ±250 DPS gyro, ±2G accel)
-    if (imu.SetGyroFSR(IMU::GyroFS::dps250) != 0 ||
-        imu.SetAccelFSR(IMU::AccelFS::gpm2) != 0) {
-        CI_LOG("ERROR: Failed to set FSR!\n");
+    // Apply BALANCED preset (already default, but explicit for demonstration)
+    // BALANCED: 4kHz gyro, 1kHz accel, ±2000dps/±16g, optimized for 2kHz PID loop
+    CI_LOG("Applying BALANCED preset...\n");
+    if (imu.ApplyPreset(IMU::Preset::BALANCED) != IMU::Result::OK) {
+        CI_LOG("ERROR: Failed to apply preset!\n");
         CI_LOG("*STOP*\n");
         while (1) delay(1000);
     }
-
-    // Enable sensors for continuous data acquisition
-    if (imu.EnableAccelLNMode() != 0 || imu.EnableGyroLNMode() != 0) {
-        CI_LOG("ERROR: Failed to enable sensors!\n");
-        CI_LOG("*STOP*\n");
-        while (1) delay(1000);
-    }
-
-    // Set sample rates (Gyro 4kHz, Accel 1kHz - matching dRehmFlight)
-    // Higher gyro ODR provides better resolution for fast movements
-    // Lower accel ODR sufficient for orientation/level flight
-    if (imu.SetAccelODR(IMU::AccelODR::accel_odr1k) != 0 ||
-        imu.SetGyroODR(IMU::GyroODR::gyr_odr4k) != 0) {
-        CI_LOG("ERROR: Failed to set ODR!\n");
-        CI_LOG("*STOP*\n");
-        while (1) delay(1000);
-    }
-
-    // Configure IMU filters (AAF + UI) - MPU-6000 DLPF simulation
-    // AAF (Anti-Alias Filter): Protects against aliasing at sensor front-end
-    //   Gyro: 258 Hz (matches MPU-6000 DLPF 260 Hz)
-    //   Accel: 170 Hz (good vibration rejection for level mode)
-    imu.SetGyroFilterHz(ICM42688P_AAF_258HZ);
-    imu.SetAccelFilterHz(ICM42688P_AAF_170HZ);
-
-    // UI Filter: MPU-6000 DLPF simulation (ODR/2, 1st-order)
-    //   Reference: Icm42688p Analysis & Guidance.md Section 10 (FAQ - MPU-6000 parity)
-    //   Lets AAF define the corner frequency with minimal phase lag from UI stage
-    //   Using macro: ICM42688P_SET_UI_FILTERS_MPU6000_SIM (BW=0, order=1,1)
-    if (imu.SetUiFilters(0, 1, 1) != 0) {
-        CI_LOG("ERROR: Failed to set UI filters!\n");
-        CI_LOG("*STOP*\n");
-        while (1) delay(1000);
-    }
-
-    // Verify filter configuration by reading back registers
-    CI_LOG("Verifying filter configuration...\n");
-    if (imu.VerifyAafConfig(ICM42688P_AAF_258HZ, ICM42688P_AAF_170HZ) != 0) {
-        CI_LOG("ERROR: AAF verification failed!\n");
-        CI_LOG("*STOP*\n");
-        while (1) delay(1000);
-    }
-    if (imu.VerifyUiFilters(0, 1, 1) != 0) {
-        CI_LOG("ERROR: UI filter verification failed!\n");
-        CI_LOG("*STOP*\n");
-        while (1) delay(1000);
-    }
-    CI_LOG("✓ Filter configuration verified by hardware readback\n\n");
 
     CI_LOG("✓ IMU configured for polled operation\n");
-    CI_LOG("  Accel: ±2G, 1kHz ODR\n");
-    CI_LOG("  Gyro: ±250 DPS, 4kHz ODR\n");
-    CI_LOG("  Filters: AAF (Gyro 258 Hz, Accel 170 Hz), UI (1st-order, ODR/2)\n");
-    CI_LOG("  Mode: Continuous 2kHz loop (matching dRehmFlight)\n\n");
+    CI_LOG("  Preset: BALANCED (recommended for 2kHz PID loop)\n");
+    CI_LOG("  Gyro: ±2000 DPS, 4kHz ODR\n");
+    CI_LOG("  Accel: ±16G, 1kHz ODR\n");
+    CI_LOG("  AAF: Gyro 258 Hz, Accel 170 Hz\n");
+    CI_LOG("  UI Filters: Code 15, 1st-order\n");
+    CI_LOG("  Mode: Continuous 2kHz polling loop\n\n");
 
     CI_LOG("Starting continuous 2kHz polling loop...\n");
     CI_LOG("Will print 20 samples over ~10 seconds\n\n");
@@ -200,48 +144,28 @@ void loop() {
     if (imu.ReadIMU6(imu_data) == 0) {
         sample_count++;
 
-        // Print every 500 samples (~4Hz at 2kHz loop, matching dRehmFlight debug rate)
-        if (sample_count % 500 == 0) {
-            printf("Sample %lu: ", sample_count);
-            printf("Accel[%6d,%6d,%6d] ",
-                   imu_data[0], imu_data[1], imu_data[2]);
-            printf("Gyro[%6d,%6d,%6d]\n",
-                   imu_data[3], imu_data[4], imu_data[5]);
+        // Print every 500ms (every 1000 samples at 2kHz)
+        if (sample_count % 1000 == 0) {
+            // Convert raw values to physical units
+            float ax = imu_data[0] / imu.GetAccelSensitivity();
+            float ay = imu_data[1] / imu.GetAccelSensitivity();
+            float az = imu_data[2] / imu.GetAccelSensitivity();
+            float gx = imu_data[3] / imu.GetGyroSensitivity();
+            float gy = imu_data[4] / imu.GetGyroSensitivity();
+            float gz = imu_data[5] / imu.GetGyroSensitivity();
+
+            printf("[%lu] Accel(g): %.3f, %.3f, %.3f | Gyro(dps): %.2f, %.2f, %.2f\n",
+                   sample_count, ax, ay, az, gx, gy, gz);
         }
 
-        // Exit after 20 samples (~10 seconds)
-        if (sample_count >= 10000) {
-            CI_LOG("\n✓ Data collection complete\n");
-            CI_LOG("\n=== Test Complete ===\n");
+        // Stop after 20 prints (10 seconds)
+        if (sample_count >= 20000) {
+            printf("\n✓ Completed %lu samples\n", (unsigned long)sample_count);
             CI_LOG("*STOP*\n");
-            while(1); // Halt
+            while (1) delay(1000);
         }
     }
 
-    // Regulate loop rate to 2kHz (like dRehmFlight's loopRate function)
-    loop_timer = micros();
-    while (inv_freq > (loop_timer - current_time)) {
-        loop_timer = micros();
-    }
+    // Maintain 2kHz loop rate (500us period)
+    while (micros() - current_time < inv_freq);
 }
-
-/* --------------------------------------------------------------------------------------
- *  libPrintf putchar_ implementation for RTT/Serial routing
- * -------------------------------------------------------------------------------------- */
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-void putchar_(char c) {
-#ifdef USE_RTT
-    char buf[2] = {c, '\0'};
-    SEGGER_RTT_WriteString(0, buf);
-#else
-    Serial.print(c);
-#endif
-}
-
-#ifdef __cplusplus
-}
-#endif

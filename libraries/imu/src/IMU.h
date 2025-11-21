@@ -6,7 +6,8 @@
 #include <array>
 #include <SPI.h>
 #include <Arduino.h>
-#include "icm42688p.h"  // ICM-42688-P C driver + C++ filter API
+#include "bus/DeviceBusSPI.h"     // DeviceBusSPI for SPI communication
+#include "devices/ICM42688_BF.h"  // Betaflight-based ICM42688 driver with preset API
 
 /*
  * ============================================================
@@ -61,38 +62,55 @@ public:
         POWER_ON = true,
     };
 
-    enum AccelFS : uint8_t // G's plus and minus
+    // Accelerometer Full-Scale Range (register encoding)
+    // ACCEL_CONFIG0 bits[6:5]: 00=±16g, 01=±8g, 10=±4g, 11=±2g
+    enum AccelFS : uint8_t
     {
-        gpm16 = ICM426XX_ACCEL_CONFIG0_FS_SEL_16g, // (default)
-        gpm8 = ICM426XX_ACCEL_CONFIG0_FS_SEL_8g,
-        gpm4 = ICM426XX_ACCEL_CONFIG0_FS_SEL_4g,
-        gpm2 = ICM426XX_ACCEL_CONFIG0_FS_SEL_2g
+        gpm16 = 0,  // ±16g (default)
+        gpm8  = 1,  // ±8g
+        gpm4  = 2,  // ±4g
+        gpm2  = 3   // ±2g
     };
 
-    enum GyroFS : uint8_t // degrees per second
+    // Gyroscope Full-Scale Range (register encoding)
+    // GYRO_CONFIG0 bits[6:5]: 00=±2000dps, 01=±1000dps, 10=±500dps, 11=±250dps
+    enum GyroFS : uint8_t
     {
-        dps2000 = ICM426XX_GYRO_CONFIG0_FS_SEL_2000dps, // (default)
-        dps1000 = ICM426XX_GYRO_CONFIG0_FS_SEL_1000dps,
-        dps500 = ICM426XX_GYRO_CONFIG0_FS_SEL_500dps,
-        dps250 = ICM426XX_GYRO_CONFIG0_FS_SEL_250dps
+        dps2000 = 0,  // ±2000 dps (default)
+        dps1000 = 1,  // ±1000 dps
+        dps500  = 2,  // ±500 dps
+        dps250  = 3   // ±250 dps
     };
 
-    enum AccelODR : uint8_t // Output data rate
+    // Output Data Rate (register encoding)
+    // CRITICAL: ODR encoding is non-sequential per datasheet
+    // CONFIG0 bits[3:0]: 3=8kHz, 5=4kHz, 6=2kHz, 7=1kHz, 9=500Hz
+    enum AccelODR : uint8_t
     {
-        accel_odr500 = ICM426XX_ACCEL_CONFIG0_ODR_500_HZ, /*!< 500 Hz (2 ms)*/
-        accel_odr1k = ICM426XX_ACCEL_CONFIG0_ODR_1_KHZ, /*!< 1 KHz (1 ms)*/
-        accel_odr2k = ICM426XX_ACCEL_CONFIG0_ODR_2_KHZ, /*!< 2 KHz (500 us)*/
-        accel_odr4k = ICM426XX_ACCEL_CONFIG0_ODR_4_KHZ, /*!< 4 KHz (250 us)*/
-        accel_odr8k = ICM426XX_ACCEL_CONFIG0_ODR_8_KHZ, /*!< 8 KHz (125 us)*/
+        accel_odr500 = 9,  // 500 Hz (2 ms)
+        accel_odr1k  = 7,  // 1 kHz (1 ms) - NOT 6!
+        accel_odr2k  = 6,  // 2 kHz (500 us)
+        accel_odr4k  = 5,  // 4 kHz (250 us) - NOT 4!
+        accel_odr8k  = 3,  // 8 kHz (125 us)
     };
 
-    enum GyroODR : uint8_t // Output data rate
+    enum GyroODR : uint8_t
     {
-        gyr_odr500 = ICM426XX_GYRO_CONFIG0_ODR_500_HZ, /*!< 500 Hz (2 ms)*/
-        gyr_odr1k = ICM426XX_GYRO_CONFIG0_ODR_1_KHZ, /*!< 1 KHz (1 ms)*/
-        gyr_odr2k = ICM426XX_GYRO_CONFIG0_ODR_2_KHZ, /*!< 2 KHz (500 us)*/
-        gyr_odr4k = ICM426XX_GYRO_CONFIG0_ODR_4_KHZ, /*!< 4 KHz (250 us)*/
-        gyr_odr8k = ICM426XX_GYRO_CONFIG0_ODR_8_KHZ, /*!< 8 KHz (125 us)*/
+        gyr_odr500 = 9,  // 500 Hz (2 ms)
+        gyr_odr1k  = 7,  // 1 kHz (1 ms) - NOT 6!
+        gyr_odr2k  = 6,  // 2 kHz (500 us)
+        gyr_odr4k  = 5,  // 4 kHz (250 us) - NOT 4!
+        gyr_odr8k  = 3,  // 8 kHz (125 us)
+    };
+
+    // Intent-based preset configurations (imu_hal.md philosophy)
+    // Recommended API: use ApplyPreset() instead of individual FSR/ODR setters
+    enum class Preset : uint8_t
+    {
+        SAFE,      // Bring-up, very noisy frames (1kHz, tight filtering)
+        SMOOTH,    // Extra on-chip smoothing (4kHz, moderate filtering)
+        BALANCED,  // Default for 2kHz PID (4kHz, balanced filtering)
+        ACRO       // Minimum phase lag (8kHz, wide filtering)
     };
 
     enum class Result
@@ -146,8 +164,19 @@ public:
      * @param acc_freq Accelerometer Output Data Rate.
      * @param gyr_freq Gyroscope Output Data Rate.
      * @return IMU::Result::OK on success, IMU::Result::ERR on failure.
+     * @deprecated Use ApplyPreset() instead for validated filter configurations
      */
     Result ConfigureInvDevice(AccelFS acc_fsr_g, GyroFS gyr_fsr_dps, AccelODR acc_freq, GyroODR gyr_freq);
+
+    /**
+     * @brief Apply intent-based preset configuration (recommended API)
+     * @param preset Preset configuration (SAFE, SMOOTH, BALANCED, ACRO)
+     * @return IMU::Result::OK on success, IMU::Result::ERR on failure.
+     *
+     * Configures ODR, FSR, AAF filters, and UI filters per imu_hal.md specification.
+     * All presets use ±2000dps/±16g FSR. BALANCED is recommended default.
+     */
+    Result ApplyPreset(Preset preset);
 
     /**
      * @brief Perform a soft reset of the device.
@@ -213,92 +242,42 @@ public:
      */
     int SetGyroFSR(GyroFS fsr);
 
-    /**
-     * @brief Configure gyroscope Anti-Alias Filter (AAF) bandwidth.
-     * @param bandwidth Desired AAF bandwidth from icm42688p_aaf_bandwidth_t enum
-     * @return 0 on success, negative error code on failure.
-     *
-     * @note ICM-42688-P only. Configures AAF using datasheet presets.
-     *       Common values: ICM42688P_AAF_258HZ (Betaflight standard), ICM42688P_AAF_213HZ (tighter), ICM42688P_AAF_303HZ (looser).
-     *       Full range: ICM42688P_AAF_42HZ to ICM42688P_AAF_1051HZ (22 presets).
-     */
-    int SetGyroFilterHz(icm42688p_aaf_bandwidth_t bandwidth);
+    // ========================================================================
+    // Advanced Filter Configuration (for power users)
+    // For most use cases, prefer ApplyPreset() for validated configurations.
+    // ========================================================================
 
     /**
-     * @brief Configure accelerometer Anti-Alias Filter (AAF) bandwidth.
-     * @param bandwidth Desired AAF bandwidth from icm42688p_aaf_bandwidth_t enum
-     * @return 0 on success, negative error code on failure.
+     * @brief Configure gyroscope Anti-Alias Filter (AAF) using preset index
+     * @param aaf_index Index into AAF lookup table (0-3):
+     *                  0=258Hz (Betaflight default), 1=536Hz, 2=997Hz, 3=1962Hz
+     * @return 0 on success, -1 on failure or unsupported chip
      *
-     * @note ICM-42688-P only. Configures AAF using datasheet presets.
-     *       Common values: ICM42688P_AAF_170HZ (default), ICM42688P_AAF_126HZ (tighter), ICM42688P_AAF_213HZ (looser).
-     *       Full range: ICM42688P_AAF_42HZ to ICM42688P_AAF_1051HZ (22 presets).
+     * @note ICM-42688-P only. For validated configurations, use ApplyPreset().
      */
-    int SetAccelFilterHz(icm42688p_aaf_bandwidth_t bandwidth);
+    int SetGyroAAF(uint8_t aaf_index);
 
     /**
-     * @brief Verify AAF (Anti-Alias Filter) configuration by reading back registers
+     * @brief Configure accelerometer Anti-Alias Filter (AAF) using preset index
+     * @param aaf_index Index into AAF lookup table (0-3):
+     *                  0=258Hz (Betaflight default), 1=536Hz, 2=997Hz, 3=1962Hz
+     * @return 0 on success, -1 on failure or unsupported chip
      *
-     * @param gyro_bandwidth Expected gyro AAF bandwidth
-     * @param accel_bandwidth Expected accel AAF bandwidth
-     * @return 0 if verified, -1 if mismatch or unsupported chip
-     *
-     * Reads back AAF registers from hardware and verifies they match the
-     * expected configuration. Only supported on ICM-42688-P.
+     * @note ICM-42688-P only. For validated configurations, use ApplyPreset().
      */
-    int VerifyAafConfig(icm42688p_aaf_bandwidth_t gyro_bandwidth,
-                        icm42688p_aaf_bandwidth_t accel_bandwidth);
+    int SetAccelAAF(uint8_t aaf_index);
 
     /**
-     * @brief Configure UI (User Interface) filters with custom bandwidth code and filter order
-     * @param bw_code Filter bandwidth code (0-15):
-     *                - 0: ODR/2 (widest, lowest delay)
-     *                - 1-14: Progressively narrower bandwidths
-     *                - 15: Low-latency path (trivial decimation, Betaflight default)
-     * @param gyro_order Gyro filter order (1-3, or -1 to skip):
-     *                - 1: 1st order
-     *                - 2: 2nd order
-     *                - 3: 3rd order
-     *                - -1: Skip gyro order configuration (leave existing setting)
-     * @param accel_order Accel filter order (1-3, or -1 to skip):
-     *                - 1: 1st order
-     *                - 2: 2nd order
-     *                - 3: 3rd order
-     *                - -1: Skip accel order configuration (leave existing setting)
-     * @return 0 on success, negative error code on failure.
+     * @brief Configure UI (User Interface) filters
+     * @param gyro_bw Gyro bandwidth code (0-15, 15=low-latency Betaflight default)
+     * @param accel_bw Accel bandwidth code (0-15)
+     * @param gyro_order Gyro filter order (1-3)
+     * @param accel_order Accel filter order (1-3)
+     * @return 0 on success, -1 on failure or unsupported chip
      *
-     * @note ICM-42688-P only. General-purpose UI filter configuration.
-     *       For Betaflight defaults, use SetUiFiltersBetaflight() instead.
+     * @note ICM-42688-P only. For validated configurations, use ApplyPreset().
      */
-    int SetUiFilters(uint8_t bw_code, int8_t gyro_order, int8_t accel_order);
-
-    /**
-     * @brief Configure UI filters to Betaflight defaults (code 15, 2nd-order)
-     * @return 0 on success, negative error code on failure.
-     *
-     * @note ICM-42688-P only. Sets both gyro and accel UI filters to:
-     *       - BW Code 15: Low-latency path (trivial decimation, minimal delay)
-     *       - Filter order: 2nd order (balance between noise and phase lag)
-     *       Betaflight relies on software filters for fine control, so hardware
-     *       UI filters are kept minimal to reduce delay.
-     */
-    int SetUiFiltersBetaflight();
-
-    /**
-     * @brief Verify UI filter configuration by reading back registers
-     *
-     * @param expected_bw_code Expected bandwidth code (0-15)
-     * @param expected_gyro_order Expected gyro filter order (1-3, or -1 to skip verification):
-     *                            - 1-3: Verify gyro order matches this value
-     *                            - -1: Skip gyro order verification
-     * @param expected_accel_order Expected accel filter order (1-3, or -1 to skip verification):
-     *                            - 1-3: Verify accel order matches this value
-     *                            - -1: Skip accel order verification
-     * @return 0 if verified, -1 if mismatch or unsupported chip
-     *
-     * Reads back UI filter registers from hardware and verifies they match the
-     * expected configuration. Only supported on ICM-42688-P.
-     */
-    int VerifyUiFilters(uint8_t expected_bw_code, int8_t expected_gyro_order, int8_t expected_accel_order);
+    int SetUIFilters(uint8_t gyro_bw, uint8_t accel_bw, uint8_t gyro_order, uint8_t accel_order);
 
     /**
      * @brief Get the accelerometer full-scale range.
@@ -330,19 +309,9 @@ public:
      */
     int DisableDataReadyInt1();
 
-    /**
-     * @brief Perform IMU self-test.
-     * @param result (ACCEL_SUCCESS<<1 | GYRO_SUCCESS), 3 means both passed.
-     * @param bias Optional array of 6 int, stores bias values (3 for accel, 3 for gyro).
-     * @return 0 on success, negative error code on failure.
-     */
-    int RunSelfTest(int* result, std::array<int, 6>* bias = nullptr);
-
-    /**
-     * @brief Read sensor data from registers (bypassing FIFO).
-     * @return 0 on success, negative error code on failure.
-     */
-    int ReadDataFromRegisters();
+    // Note: RunSelfTest() removed - major FC stacks (Betaflight, iNav, ArduPilot, PX4)
+    // skip self-test at startup. Use WHO_AM_I + gyro bias calibration instead.
+    // See MIGRATION_PLAN.md "Self-Test Decision" section.
 
     /**
      * @brief Read Acc/Gyro data direct from registers (bypassing transport read for speed).
@@ -361,35 +330,28 @@ public:
     int getMotion6(int16_t* ax, int16_t* ay, int16_t* az,
                    int16_t* gx, int16_t* gy, int16_t* gz);
 
-    /**
-     * @brief Read sensor data from FIFO.
-     * @return Number of FIFO packets read on success, or negative error code on failure.
-     */
-    int ReadDataFromFifo();
-
-    /**
-     * @brief Provide a user callback for sensor events. This is called by the TDK driver
-     *        whenever data is read from registers or FIFO.
-     *
-     * @param userCb The function pointer for your callback, or nullptr to disable.
-     */
-    void SetSensorEventCallback(void (*userCb)(inv_icm426xx_sensor_event_t *event));
-
-    // Define maximum read and write sizes for IMU as private static constants
-    static constexpr uint32_t IMU_MAX_READ = 255;
-    static constexpr uint32_t IMU_MAX_WRITE = 255;
-    static constexpr uint32_t NUM_DATA_BYTES = (ACCEL_DATA_SIZE + GYRO_DATA_SIZE);
+    // Note: ReadDataFromFifo() and SetSensorEventCallback() removed.
+    // FIFO support eliminated in Phase 2 migration - use ReadIMU6() for polling.
+    // See MIGRATION_PLAN.md for rationale.
 
 private:
-    /**
-     * @brief TDK driver instance for this IMU.
-     */
-    struct inv_icm426xx driver_{};
+    // IMU data sizes (6 bytes accel + 6 bytes gyro)
+    static constexpr uint32_t ACCEL_DATA_SIZE = 6;
+    static constexpr uint32_t GYRO_DATA_SIZE = 6;
+    static constexpr uint32_t NUM_DATA_BYTES = (ACCEL_DATA_SIZE + GYRO_DATA_SIZE);
+
+    // Register addresses for direct SPI access
+    static constexpr uint8_t REG_ACCEL_DATA_X0 = 0x1F;  // ICM426xx ACCEL_DATA_X0_UI
 
     /**
-     * @brief TDK serif (serial interface) structure for communication callbacks.
+     * @brief Betaflight-based ICM42688 driver instance
      */
-    struct inv_icm426xx_serif serif_{};
+    ICM42688_BF* bf_driver_ = nullptr;
+
+    /**
+     * @brief DeviceBus for SPI communication (used by BF driver)
+     */
+    DeviceBusSPI* device_bus_ = nullptr;
 
     /**
      * @brief Pointer to the Arduino SPI instance used for IMU SPI transactions.
@@ -430,45 +392,6 @@ private:
     void DeselectDevice();
 
     void DelayNs(uint32_t delay_ns);
-
-    /**
-     * @brief The TDK driver calls this function when new sensor data arrives.
-     */
-    static void DriverEventCb(inv_icm426xx_sensor_event_t *event);
-
-    /**
-     * @brief User-defined callback pointer (per-instance via driver_.transport.context)
-     */
-    void (*user_event_cb_)(inv_icm426xx_sensor_event_t *event) = nullptr;
-
-    // -------------------------------------------------------------------------
-    // The TDK transport layer requires read_reg, write_reg, configure
-    // function pointers with the following signatures:
-    //   int foo(struct inv_icm426xx_serif *serif, uint8_t reg, ..., uint32_t len);
-    // We'll implement them as static methods. We retrieve the IMU instance via
-    //   (IMU*)serif->context.
-    // -------------------------------------------------------------------------
-
-    /**
-     * @brief  TDK read callback for SPI-based register reads.
-     */
-    static int spiReadRegs(struct inv_icm426xx_serif *serif,
-                           uint8_t                    reg,
-                           uint8_t                   *buf,
-                           uint32_t                   len);
-
-    /**
-     * @brief  TDK write callback for SPI-based register writes.
-     */
-    static int spiWriteRegs(struct inv_icm426xx_serif *serif,
-                            uint8_t                    reg,
-                            const uint8_t             *buf,
-                            uint32_t                   len);
-
-    /**
-     * @brief  TDK configure callback, if used. Often a no-op for many systems.
-     */
-    static int spiConfigure(struct inv_icm426xx_serif *serif);
 };
 
 #endif // IMU_H
