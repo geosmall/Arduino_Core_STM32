@@ -12,20 +12,7 @@
 #pragma once
 
 #include "../bus/DeviceBus.h"
-#include "DeviceBase.h"
-
-/**
- * @brief Intent-based preset configurations (imu_hal.md philosophy)
- *
- * Four presets abstract hardware differences and provide validated
- * filter/ODR combinations for common flight controller use cases.
- */
-enum class ImuPreset : uint8_t {
-    FILTER_SAFE,      ///< Bring-up, very noisy frames (1kHz, tight filtering)
-    FILTER_SMOOTH,    ///< Extra on-chip smoothing (4kHz, moderate filtering)
-    FILTER_BALANCED,  ///< Default for 2kHz PID (4kHz, balanced filtering)
-    FILTER_ACRO       ///< Minimum phase lag (8kHz, wide filtering)
-};
+#include "DeviceBase.h"  // ImuPreset enum defined here
 
 /**
  * @brief ICM42688/ICM42605/IIM42653 IMU driver
@@ -116,7 +103,7 @@ public:
      * - INTF_CONFIG1 (AFSR disable)
      * - AAF enable bits (Bank 1 and Bank 2)
      */
-    bool applyPreset(ImuPreset preset);
+    bool applyPreset(ImuPreset preset) override;
 
     /**
      * @brief Verify current register configuration matches expected preset
@@ -151,12 +138,12 @@ public:
      * Configures INT1 as push-pull, active-high, pulsed output.
      * Interrupt fires when new gyro/accel data is available.
      */
-    void enableDataReadyInt1();
+    void enableDataReadyInt1() override;
 
     /**
      * @brief Disable data ready interrupt on INT1 pin
      */
-    void disableDataReadyInt1();
+    void disableDataReadyInt1() override;
 
     // Note: whoAmI_, accScale_, gyrScale_, samplingRateHz_ inherited from DeviceBase
 };

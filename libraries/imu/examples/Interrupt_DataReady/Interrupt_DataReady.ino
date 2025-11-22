@@ -21,8 +21,10 @@
 #include <SPI.h>
 #include <libPrintf.h>
 
-// Board configuration
-#if defined(ARDUINO_BLACKPILL_F411CE)
+// Board configuration - Multi-board support
+#if defined(ARDUINO_BKMN_NERO)
+#include "../../../../targets/BKMN-NERO.h"
+#elif defined(ARDUINO_BLACKPILL_F411CE)
 #include "../../../../targets/BLACKPILL_F411CE.h"
 #else
 #include "../../../../targets/NUCLEO_F411RE_JHEF411.h"
@@ -93,41 +95,22 @@ void setup() {
         case IMU::ChipType::ICM42688_P: chip_name = "ICM-42688-P"; break;
         case IMU::ChipType::MPU_6000:   chip_name = "MPU-6000"; break;
         case IMU::ChipType::MPU_9250:   chip_name = "MPU-9250"; break;
+        case IMU::ChipType::ICM20601:   chip_name = "ICM-20601"; break;
+        case IMU::ChipType::ICM20602:   chip_name = "ICM-20602"; break;
+        case IMU::ChipType::ICM20689:   chip_name = "ICM-20689"; break;
         default: break;
     }
     printf("Detected chip: %s (0x%02X)\n", chip_name, static_cast<uint8_t>(chip));
-
-    // Verify chip is supported by this library version
-    if (chip != IMU::ChipType::ICM42688_P) {
-        CI_LOG("ERROR: This library currently only supports ICM-42688-P!\n");
-        printf("Detected: %s (0x%02X)\n", chip_name, static_cast<uint8_t>(chip));
-        CI_LOG("*STOP*\n");
-        while (1) delay(1000);
-    }
     CI_LOG("\n");
 
     // Configure IMU for interrupt-driven operation
     CI_LOG("Configuring IMU...\n");
 
-    // Set full-scale range (±250 DPS gyro, ±2G accel for consistency across examples)
-    if (imu.SetGyroFSR(IMU::GyroFS::dps250) != 0 ||
-        imu.SetAccelFSR(IMU::AccelFS::gpm2) != 0) {
-        CI_LOG("ERROR: Failed to set FSR!\n");
-        CI_LOG("*STOP*\n");
-        while (1) delay(1000);
-    }
-
-    // Set accelerometer and gyro to low noise mode
-    if (imu.EnableAccelLNMode() != 0 || imu.EnableGyroLNMode() != 0) {
-        CI_LOG("ERROR: Failed to enable sensors!\n");
-        CI_LOG("*STOP*\n");
-        while (1) delay(1000);
-    }
-
-    // Set sample rates (1kHz for both)
-    if (imu.SetAccelODR(IMU::AccelODR::accel_odr1k) != 0 ||
-        imu.SetGyroODR(IMU::GyroODR::gyr_odr1k) != 0) {
-        CI_LOG("ERROR: Failed to set ODR!\n");
+    // Apply SAFE preset for interrupt mode (1kHz with DLPF enabled)
+    // Note: SAFE preset uses DLPF which is required for proper data-ready interrupts
+    // on MPU-6000, MPU-9250, and ICM-206xx (DLPF=0 bypass mode has irregular interrupts)
+    if (imu.ApplyPreset(IMU::Preset::SAFE) != IMU::Result::OK) {
+        CI_LOG("ERROR: Failed to apply SAFE preset!\n");
         CI_LOG("*STOP*\n");
         while (1) delay(1000);
     }
@@ -145,8 +128,9 @@ void setup() {
     }
 
     CI_LOG("✓ IMU configured for interrupt-driven operation\n");
-    CI_LOG("  Accel: ±2G, 1kHz ODR\n");
-    CI_LOG("  Gyro: ±250 DPS, 1kHz ODR\n");
+    CI_LOG("  Preset: SAFE (1kHz with DLPF filtering)\n");
+    CI_LOG("  Gyro: ±2000 DPS, 1kHz ODR\n");
+    CI_LOG("  Accel: ±16G, 1kHz ODR\n");
     CI_LOG("  INT1: Data Ready enabled\n\n");
 
     // Collect 100 samples

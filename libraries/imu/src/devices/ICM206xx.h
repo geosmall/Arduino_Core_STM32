@@ -38,11 +38,27 @@ public:
     void read(int16_t* accgyr) override;
     const char* typeName() const override;
 
-    // Public member variables for configuration readout
-    uint8_t whoAmI_;        // Detected WHO_AM_I value
-    float accScale_;        // Accelerometer scale factor (G/LSB)
-    float gyrScale_;        // Gyroscope scale factor (dps/LSB)
-    uint16_t samplingRateHz_; // Sampling rate (Hz)
+    /**
+     * @brief Apply intent-based preset configuration
+     * @param preset Preset configuration (SAFE, SMOOTH, BALANCED, ACRO)
+     * @return true (always succeeds for ICM206xx)
+     *
+     * Configures DLPF and sample rate divider per imu_hal.md specification.
+     * All presets use ±2000dps/±16g FSR.
+     */
+    bool applyPreset(ImuPreset preset) override;
+
+    /**
+     * @brief Enable data ready interrupt on INT pin
+     */
+    void enableDataReadyInt1() override;
+
+    /**
+     * @brief Disable data ready interrupt on INT pin
+     */
+    void disableDataReadyInt1() override;
+
+    // Note: whoAmI_, accScale_, gyrScale_, samplingRateHz_ inherited from DeviceBase
 
 private:
     DeviceBus* bus_;

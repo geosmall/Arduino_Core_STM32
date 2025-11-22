@@ -52,8 +52,9 @@
 
 // Protected constructor - performs full initialization
 ICM206xx::ICM206xx(DeviceBus* bus, uint8_t whoAmI)
-    : bus_(bus), whoAmI_(whoAmI)
+    : bus_(bus)
 {
+    whoAmI_ = whoAmI;  // Set base class member
     // Set max SPI frequency
     bus_->setFreq(ICM206XX_MAX_SPI_HZ);
 
@@ -154,4 +155,62 @@ const char* ICM206xx::typeName() const
         default:
             return "ICM206xx";
     }
+}
+
+// ============================================================================
+// Preset Configuration (imu_hal.md specification)
+// ============================================================================
+
+// ICM206xx preset configuration structure (MPU6500-class behavior)
+struct ICM206xxPresetConfig {
+    uint8_t  dlpf_cfg_gyro;   // CONFIG.DLPF_CFG (0-7)
+    uint8_t  dlpf_cfg_accel;  // ACCEL_CONFIG2.A_DLPF_CFG (0-7)
+    uint8_t  smplrt_div;      // SMPLRT_DIV (only for DLPF_CFG=1-6)
+    uint16_t gyro_odr_hz;     // Effective rate
+};
+
+// Preset LUT from imu_hal.md
+// ICM206xx (MPU6500-class): DLPF_CFG=0 bypasses divider → 8kHz, DLPF_CFG=1-6 uses divider
+static const ICM206xxPresetConfig ICM206xx_PRESETS[] = {
+    {2, 2, 0, 1000},  // SAFE: DLPF=2 (~92Hz), DIV=0 → 1kHz
+    {1, 1, 0, 1000},  // SMOOTH: DLPF=1 (~176Hz), DIV=0 → 1kHz
+    {0, 0, 0, 8000},  // BALANCED: DLPF=0 (bypass), 8kHz (SW decimate if needed)
+    {0, 0, 0, 8000}   // ACRO: DLPF=0 (bypass), 8kHz
+};
+
+// ACCEL_CONFIG2 register address
+#define ICM206XX_RA_ACCEL_CONFIG2    0x1D
+
+bool ICM206xx::applyPreset(ImuPreset preset)
+{
+    const ICM206xxPresetConfig& cfg = ICM206xx_PRESETS[static_cast<uint8_t>(preset)];
+
+    // Set gyro DLPF configuration
+    bus_->writeReg(MPU_RA_CONFIG, cfg.dlpf_cfg_gyro);
+    delayMicroseconds(15);
+
+    // Set accel DLPF configuration
+    bus_->writeReg(ICM206XX_RA_ACCEL_CONFIG2, cfg.dlpf_cfg_accel);
+    delayMicroseconds(15);
+
+    // Set sample rate divider (only effective when DLPF_CFG=1-6)
+    bus_->writeReg(MPU_RA_SMPLRT_DIV, cfg.smplrt_div);
+    delayMicroseconds(15);
+
+    // Update sampling rate for user reference
+    samplingRateHz_ = cfg.gyro_odr_hz;
+
+    return true;
+}
+
+void ICM206xx::enableDataReadyInt1()
+{
+    bus_->writeReg(MPU_RA_INT_ENABLE, MPU_RF_DATA_RDY_EN);
+    delayMicroseconds(15);
+}
+
+void ICM206xx::disableDataReadyInt1()
+{
+    bus_->writeReg(MPU_RA_INT_ENABLE, 0x00);
+    delayMicroseconds(15);
 }

@@ -33,24 +33,55 @@ IMU::Result IMU::Init(SPIClass& spi, uint32_t cs_pin, uint32_t spi_freq_hz)
     }
     device_bus_->setFreq(spi_freq_hz);
 
-    // Detect and initialize ICM42688 using driver
+    // Try detecting each supported IMU in order of preference
+    // ICM42688 first (most capable), then MPU6000, MPU9250, ICM206xx
+
+    // 1. Try ICM-42688-P (best filter options, newest chip)
     driver_ = ICM42688::detect(device_bus_);
-    if (!driver_) {
-        delete device_bus_;
-        device_bus_ = nullptr;
-        return Result::ERR;
+    if (driver_) {
+        // Apply default BALANCED preset
+        driver_->applyPreset(ImuPreset::FILTER_BALANCED);
+        gyro_odr_hz_ = 4000;
+        accel_odr_hz_ = 1000;
+        goto detected;
     }
 
-    // Apply default BALANCED preset (recommended for 2kHz PID loop)
-    driver_->applyPreset(ImuPreset::FILTER_BALANCED);
+    // 2. Try MPU-6000 (classic, widely used)
+    driver_ = MPU6000::detect(device_bus_);
+    if (driver_) {
+        driver_->applyPreset(ImuPreset::FILTER_BALANCED);
+        gyro_odr_hz_ = 4000;
+        accel_odr_hz_ = 1000;
+        goto detected;
+    }
 
-    // Set default sensitivity values for ±2000dps/±16g (preset default)
+    // 3. Try MPU-9250/9255 (9-axis, MPU6500-class)
+    driver_ = MPU9250::detect(device_bus_);
+    if (driver_) {
+        driver_->applyPreset(ImuPreset::FILTER_BALANCED);
+        gyro_odr_hz_ = 8000;  // MPU9250 BALANCED uses bypass mode
+        accel_odr_hz_ = 8000;
+        goto detected;
+    }
+
+    // 4. Try ICM-206xx family (ICM-20601, ICM-20602, ICM-20689)
+    driver_ = ICM206xx::detect(device_bus_);
+    if (driver_) {
+        driver_->applyPreset(ImuPreset::FILTER_BALANCED);
+        gyro_odr_hz_ = 8000;  // ICM206xx BALANCED uses bypass mode
+        accel_odr_hz_ = 8000;
+        goto detected;
+    }
+
+    // No IMU detected
+    delete device_bus_;
+    device_bus_ = nullptr;
+    return Result::ERR;
+
+detected:
+    // Set default sensitivity values for ±2000dps/±16g (all presets use this)
     gyro_sensitivity_ = ICM42688P_GYRO_SENS_2000;
     accel_sensitivity_ = ICM42688P_ACCEL_SENS_16G;
-
-    // Track ODR from BALANCED preset (4kHz gyro, 1kHz accel)
-    gyro_odr_hz_ = 4000;
-    accel_odr_hz_ = 1000;
 
     initialized_ = true;
     return Result::OK;
@@ -269,7 +300,11 @@ int IMU::SetGyroAAF(uint8_t aaf_index)
     if (!initialized_ || !driver_) return -1;
     if (aaf_index >= AAF_PRESET_COUNT) return -1;
 
-    driver_->setGyroAAF(aafPresets[aaf_index]);
+    // AAF only supported on ICM-42688-P (use WHO_AM_I to check)
+    if (driver_->whoAmI_ != 0x47) return -1;  // Not ICM42688
+
+    // Safe cast since we verified chip type
+    static_cast<ICM42688*>(driver_)->setGyroAAF(aafPresets[aaf_index]);
     return 0;
 }
 
@@ -278,7 +313,11 @@ int IMU::SetAccelAAF(uint8_t aaf_index)
     if (!initialized_ || !driver_) return -1;
     if (aaf_index >= AAF_PRESET_COUNT) return -1;
 
-    driver_->setAccelAAF(aafPresets[aaf_index]);
+    // AAF only supported on ICM-42688-P (use WHO_AM_I to check)
+    if (driver_->whoAmI_ != 0x47) return -1;  // Not ICM42688
+
+    // Safe cast since we verified chip type
+    static_cast<ICM42688*>(driver_)->setAccelAAF(aafPresets[aaf_index]);
     return 0;
 }
 
@@ -291,7 +330,11 @@ int IMU::SetUIFilters(uint8_t gyro_bw, uint8_t accel_bw, uint8_t gyro_order, uin
     if (gyro_order < 1 || gyro_order > 3) return -1;
     if (accel_order < 1 || accel_order > 3) return -1;
 
-    driver_->setUIFilters(gyro_bw, accel_bw, gyro_order, accel_order);
+    // UI filters only supported on ICM-42688-P (use WHO_AM_I to check)
+    if (driver_->whoAmI_ != 0x47) return -1;  // Not ICM42688
+
+    // Safe cast since we verified chip type
+    static_cast<ICM42688*>(driver_)->setUIFilters(gyro_bw, accel_bw, gyro_order, accel_order);
     return 0;
 }
 
@@ -306,9 +349,12 @@ IMU::ChipType IMU::GetChipType()
 
     // Map WHO_AM_I value to ChipType enum
     switch (who_am_i) {
+        case 0x12: return ChipType::ICM20602;
         case 0x47: return ChipType::ICM42688_P;
         case 0x68: return ChipType::MPU_6000;
         case 0x71: return ChipType::MPU_9250;
+        case 0x98: return ChipType::ICM20689;
+        case 0xAC: return ChipType::ICM20601;
         default:   return ChipType::UNKNOWN;
     }
 }

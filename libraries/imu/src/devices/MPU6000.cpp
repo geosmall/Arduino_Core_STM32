@@ -166,3 +166,54 @@ const char* MPU6000::typeName() const
 {
     return "MPU6000";
 }
+
+// ============================================================================
+// Preset Configuration (imu_hal.md specification)
+// ============================================================================
+
+// MPU6000 preset configuration structure
+struct MPU6000PresetConfig {
+    uint8_t  dlpf_cfg;      // CONFIG.DLPF_CFG (0-6)
+    uint8_t  smplrt_div;    // SMPLRT_DIV register (0-255)
+    uint16_t gyro_odr_hz;   // Effective gyro ODR
+};
+
+// Preset LUT from imu_hal.md
+// MPU6000: DLPF always active, divider = Gyro ODR / (1 + SMPLRT_DIV)
+// Base rate is 8kHz when DLPF disabled (DLPF_CFG=0/7), 1kHz when DLPF enabled (DLPF_CFG=1-6)
+static const MPU6000PresetConfig MPU6000_PRESETS[] = {
+    {2, 0, 1000},  // SAFE: DLPF=2 (98Hz gyro, 94Hz accel), DIV=0 → 1kHz
+    {1, 0, 1000},  // SMOOTH: DLPF=1 (188Hz gyro, 184Hz accel), DIV=0 → 1kHz
+    {0, 1, 4000},  // BALANCED: DLPF=0 (256Hz), 8kHz / (1+1) = 4kHz
+    {0, 0, 8000}   // ACRO: DLPF=0 (256Hz), 8kHz / (1+0) = 8kHz
+};
+
+bool MPU6000::applyPreset(ImuPreset preset)
+{
+    const MPU6000PresetConfig& cfg = MPU6000_PRESETS[static_cast<uint8_t>(preset)];
+
+    // Set DLPF configuration
+    bus_->writeReg(MPU_RA_CONFIG, cfg.dlpf_cfg);
+    delayMicroseconds(15);
+
+    // Set sample rate divider
+    bus_->writeReg(MPU_RA_SMPLRT_DIV, cfg.smplrt_div);
+    delayMicroseconds(15);
+
+    // Update sampling rate for user reference
+    samplingRateHz_ = cfg.gyro_odr_hz;
+
+    return true;  // MPU6000 doesn't have read-back verification like ICM42688
+}
+
+void MPU6000::enableDataReadyInt1()
+{
+    bus_->writeReg(MPU_RA_INT_ENABLE, MPU_RF_DATA_RDY_EN);
+    delayMicroseconds(15);
+}
+
+void MPU6000::disableDataReadyInt1()
+{
+    bus_->writeReg(MPU_RA_INT_ENABLE, 0x00);
+    delayMicroseconds(15);
+}

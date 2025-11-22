@@ -7,7 +7,11 @@
 #include <SPI.h>
 #include <Arduino.h>
 #include "bus/DeviceBusSPI.h"     // DeviceBusSPI for SPI communication
-#include "devices/ICM42688.h"  // Betaflight-based ICM42688 driver with preset API
+#include "devices/DeviceBase.h"   // Base class with ImuPreset enum
+#include "devices/ICM42688.h"     // ICM-42688-P driver
+#include "devices/MPU6000.h"      // MPU-6000 driver
+#include "devices/MPU9250.h"      // MPU-9250/9255 driver
+#include "devices/ICM206xx.h"     // ICM-20601/20602/20689 driver
 
 /*
  * ============================================================
@@ -122,9 +126,12 @@ public:
     enum class ChipType : uint8_t
     {
         UNKNOWN = 0x00,
+        ICM20602 = 0x12,
         ICM42688_P = 0x47,
         MPU_6000 = 0x68,
         MPU_9250 = 0x71,
+        ICM20689 = 0x98,
+        ICM20601 = 0xAC,
     };
 
     // ========================================================================
@@ -344,9 +351,9 @@ private:
     static constexpr uint8_t REG_ACCEL_DATA_X0 = 0x1F;  // ICM426xx ACCEL_DATA_X0_UI
 
     /**
-     * @brief Betaflight-based ICM42688 driver instance
+     * @brief IMU driver instance (polymorphic - ICM42688, MPU6000, MPU9250, or ICM206xx)
      */
-    ICM42688* driver_ = nullptr;
+    DeviceBase* driver_ = nullptr;
 
     /**
      * @brief DeviceBus for SPI communication (used by driver)

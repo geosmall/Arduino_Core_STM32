@@ -56,6 +56,26 @@ public:
      */
     const char* typeName() const override;
 
+    /**
+     * @brief Apply intent-based preset configuration
+     * @param preset Preset configuration (SAFE, SMOOTH, BALANCED, ACRO)
+     * @return true (always succeeds for MPU9250)
+     *
+     * Configures DLPF and sample rate divider per imu_hal.md specification.
+     * All presets use ±2000dps/±16g FSR.
+     */
+    bool applyPreset(ImuPreset preset) override;
+
+    /**
+     * @brief Enable data ready interrupt on INT pin
+     */
+    void enableDataReadyInt1() override;
+
+    /**
+     * @brief Disable data ready interrupt on INT pin
+     */
+    void disableDataReadyInt1() override;
+
     // Note: whoAmI_, accScale_, gyrScale_, samplingRateHz_ inherited from DeviceBase
 
 private:

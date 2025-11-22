@@ -139,3 +139,61 @@ const char* MPU9250::typeName() const
     }
     return "MPU9250";
 }
+
+// ============================================================================
+// Preset Configuration (imu_hal.md specification)
+// ============================================================================
+
+// MPU9250 preset configuration structure
+struct MPU9250PresetConfig {
+    uint8_t  dlpf_cfg_gyro;   // CONFIG.DLPF_CFG (0-7)
+    uint8_t  dlpf_cfg_accel;  // ACCEL_CONFIG2.A_DLPF_CFG (0-7)
+    uint8_t  smplrt_div;      // SMPLRT_DIV (only for DLPF_CFG=1-6)
+    uint16_t gyro_odr_hz;     // Effective rate
+};
+
+// Preset LUT from imu_hal.md
+// MPU9250 (MPU6500-class): DLPF_CFG=0 bypasses divider → 8kHz, DLPF_CFG=1-6 uses divider
+static const MPU9250PresetConfig MPU9250_PRESETS[] = {
+    {2, 2, 0, 1000},  // SAFE: DLPF=2 (92Hz gyro, 94Hz accel), DIV=0 → 1kHz
+    {1, 1, 0, 1000},  // SMOOTH: DLPF=1 (184Hz gyro, 184Hz accel), DIV=0 → 1kHz
+    {0, 0, 0, 8000},  // BALANCED: DLPF=0 (bypass), 8kHz (SW decimate to 4kHz if needed)
+    {0, 0, 0, 8000}   // ACRO: DLPF=0 (bypass), 8kHz
+};
+
+// ACCEL_CONFIG2 register address (MPU9250-specific)
+#define MPU_RA_ACCEL_CONFIG2    0x1D
+
+bool MPU9250::applyPreset(ImuPreset preset)
+{
+    const MPU9250PresetConfig& cfg = MPU9250_PRESETS[static_cast<uint8_t>(preset)];
+
+    // Set gyro DLPF configuration
+    bus_->writeReg(MPU_RA_CONFIG, cfg.dlpf_cfg_gyro);
+    delayMicroseconds(15);
+
+    // Set accel DLPF configuration (MPU9250 has separate accel filter)
+    bus_->writeReg(MPU_RA_ACCEL_CONFIG2, cfg.dlpf_cfg_accel);
+    delayMicroseconds(15);
+
+    // Set sample rate divider (only effective when DLPF_CFG=1-6)
+    bus_->writeReg(MPU_RA_SMPLRT_DIV, cfg.smplrt_div);
+    delayMicroseconds(15);
+
+    // Update sampling rate for user reference
+    samplingRateHz_ = cfg.gyro_odr_hz;
+
+    return true;
+}
+
+void MPU9250::enableDataReadyInt1()
+{
+    bus_->writeReg(MPU_RA_INT_ENABLE, MPU_RF_DATA_RDY_EN);
+    delayMicroseconds(15);
+}
+
+void MPU9250::disableDataReadyInt1()
+{
+    bus_->writeReg(MPU_RA_INT_ENABLE, 0x00);
+    delayMicroseconds(15);
+}
