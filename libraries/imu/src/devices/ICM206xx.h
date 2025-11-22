@@ -51,12 +51,22 @@ public:
     /**
      * @brief Enable data ready interrupt on INT pin
      */
-    void enableDataReadyInt1() override;
+    void enableDataReadyInt() override;
 
     /**
      * @brief Disable data ready interrupt on INT pin
      */
-    void disableDataReadyInt1() override;
+    void disableDataReadyInt() override;
+
+    // ========================================================================
+    // DeviceBase Tier 2/3 Extended API Overrides
+    // ========================================================================
+
+    bool setGyroFSR(GyroFSR fsr) override;
+    bool setAccelFSR(AccelFSR fsr) override;
+    uint8_t readReg(uint8_t reg) override;
+    bool writeReg(uint8_t reg, uint8_t value) override;
+    bool writeRegVerify(uint8_t reg, uint8_t value) override;
 
     // Note: whoAmI_, accScale_, gyrScale_, samplingRateHz_ inherited from DeviceBase
 

@@ -120,8 +120,8 @@ void setup() {
     attachInterrupt(digitalPinToInterrupt(BoardConfig::imu.int_pin),
                     imu_data_ready_handler, RISING);
 
-    // Enable data ready interrupt on INT1
-    if (imu.EnableDataReadyInt1() != 0) {
+    // Enable data ready interrupt on INT
+    if (imu.EnableDataReadyInt() != 0) {
         CI_LOG("ERROR: Failed to enable data ready interrupt!\n");
         CI_LOG("*STOP*\n");
         while (1) delay(1000);
@@ -163,7 +163,7 @@ void setup() {
     CI_LOG("\n✓ Data collection complete\n");
 
     // Disable interrupt
-    imu.DisableDataReadyInt1();
+    imu.DisableDataReadyInt();
     detachInterrupt(digitalPinToInterrupt(BoardConfig::imu.int_pin));
 
     CI_LOG("\n=== Test Complete ===\n");

@@ -125,219 +125,6 @@ IMU::Result IMU::ApplyPreset(Preset preset)
     return Result::OK;
 }
 
-IMU::Result IMU::ConfigureInvDevice(AccelFS acc_fsr_g, GyroFS gyr_fsr_dps,
-                                     AccelODR acc_freq, GyroODR gyr_freq)
-{
-    // Legacy API - deprecated, use ApplyPreset() instead
-    // This method is kept for backward compatibility but does minimal configuration
-    if (!initialized_) {
-        return Result::ERR;
-    }
-
-    // Update sensitivity values based on FSR selection
-    switch (acc_fsr_g) {
-        case gpm2:  accel_sensitivity_ = ICM42688P_ACCEL_SENS_2G;  break;
-        case gpm4:  accel_sensitivity_ = ICM42688P_ACCEL_SENS_4G;  break;
-        case gpm8:  accel_sensitivity_ = ICM42688P_ACCEL_SENS_8G;  break;
-        case gpm16: accel_sensitivity_ = ICM42688P_ACCEL_SENS_16G; break;
-    }
-
-    switch (gyr_fsr_dps) {
-        case dps250:  gyro_sensitivity_ = ICM42688P_GYRO_SENS_250;  break;
-        case dps500:  gyro_sensitivity_ = ICM42688P_GYRO_SENS_500;  break;
-        case dps1000: gyro_sensitivity_ = ICM42688P_GYRO_SENS_1000; break;
-        case dps2000: gyro_sensitivity_ = ICM42688P_GYRO_SENS_2000; break;
-    }
-
-    // Track ODR for filter validation
-    switch (acc_freq) {
-        case accel_odr500: accel_odr_hz_ = 500; break;
-        case accel_odr1k:  accel_odr_hz_ = 1000; break;
-        case accel_odr2k:  accel_odr_hz_ = 2000; break;
-        case accel_odr4k:  accel_odr_hz_ = 4000; break;
-        case accel_odr8k:  accel_odr_hz_ = 8000; break;
-        default: accel_odr_hz_ = 0; break;
-    }
-
-    switch (gyr_freq) {
-        case gyr_odr500: gyro_odr_hz_ = 500; break;
-        case gyr_odr1k:  gyro_odr_hz_ = 1000; break;
-        case gyr_odr2k:  gyro_odr_hz_ = 2000; break;
-        case gyr_odr4k:  gyro_odr_hz_ = 4000; break;
-        case gyr_odr8k:  gyro_odr_hz_ = 8000; break;
-        default: gyro_odr_hz_ = 0; break;
-    }
-
-    // Note: Actual register configuration now handled by preset system
-    // This legacy API updates tracking only - use ApplyPreset() for full config
-    return Result::OK;
-}
-
-int IMU::Reset()
-{
-    // Reset not implemented in driver - use Init() for full re-initialization
-    if (!initialized_) return -1;
-    return 0;
-}
-
-int IMU::SetPwrState(PwrState state)
-{
-    // Power state management handled internally by driver
-    // Sensors are enabled during detect() and preset application
-    if (!initialized_) return -1;
-    (void)state;
-    return 0;
-}
-
-int IMU::EnableAccelLNMode()
-{
-    // Accel is enabled in Low Noise mode by default
-    if (!initialized_) return -1;
-    return 0;
-}
-
-int IMU::DisableAccel()
-{
-    // Not implemented - use power management at application level
-    if (!initialized_) return -1;
-    return 0;
-}
-
-int IMU::EnableGyroLNMode()
-{
-    // Gyro is enabled in Low Noise mode by default
-    if (!initialized_) return -1;
-    return 0;
-}
-
-int IMU::DisableGyro()
-{
-    // Not implemented - use power management at application level
-    if (!initialized_) return -1;
-    return 0;
-}
-
-int IMU::SetAccelODR(AccelODR frequency)
-{
-    // Legacy API - ODR now set via ApplyPreset()
-    if (!initialized_) return -1;
-
-    // Track ODR for reference
-    switch (frequency) {
-        case accel_odr500: accel_odr_hz_ = 500; break;
-        case accel_odr1k:  accel_odr_hz_ = 1000; break;
-        case accel_odr2k:  accel_odr_hz_ = 2000; break;
-        case accel_odr4k:  accel_odr_hz_ = 4000; break;
-        case accel_odr8k:  accel_odr_hz_ = 8000; break;
-        default: accel_odr_hz_ = 0; break;
-    }
-    return 0;
-}
-
-int IMU::SetGyroODR(GyroODR frequency)
-{
-    // Legacy API - ODR now set via ApplyPreset()
-    if (!initialized_) return -1;
-
-    // Track ODR for reference
-    switch (frequency) {
-        case gyr_odr500: gyro_odr_hz_ = 500; break;
-        case gyr_odr1k:  gyro_odr_hz_ = 1000; break;
-        case gyr_odr2k:  gyro_odr_hz_ = 2000; break;
-        case gyr_odr4k:  gyro_odr_hz_ = 4000; break;
-        case gyr_odr8k:  gyro_odr_hz_ = 8000; break;
-        default: gyro_odr_hz_ = 0; break;
-    }
-    return 0;
-}
-
-int IMU::SetAccelFSR(AccelFS fsr)
-{
-    // Legacy API - FSR now fixed at ±16g via ApplyPreset()
-    if (!initialized_) return -1;
-
-    // Update sensitivity tracking
-    switch (fsr) {
-        case gpm2:  accel_sensitivity_ = ICM42688P_ACCEL_SENS_2G;  break;
-        case gpm4:  accel_sensitivity_ = ICM42688P_ACCEL_SENS_4G;  break;
-        case gpm8:  accel_sensitivity_ = ICM42688P_ACCEL_SENS_8G;  break;
-        case gpm16: accel_sensitivity_ = ICM42688P_ACCEL_SENS_16G; break;
-    }
-    return 0;
-}
-
-int IMU::SetGyroFSR(GyroFS fsr)
-{
-    // Legacy API - FSR now fixed at ±2000dps via ApplyPreset()
-    if (!initialized_) return -1;
-
-    // Update sensitivity tracking
-    switch (fsr) {
-        case dps250:  gyro_sensitivity_ = ICM42688P_GYRO_SENS_250;  break;
-        case dps500:  gyro_sensitivity_ = ICM42688P_GYRO_SENS_500;  break;
-        case dps1000: gyro_sensitivity_ = ICM42688P_GYRO_SENS_1000; break;
-        case dps2000: gyro_sensitivity_ = ICM42688P_GYRO_SENS_2000; break;
-    }
-    return 0;
-}
-
-// ============================================================================
-// Advanced Filter Configuration (ICM-42688-P only)
-// ============================================================================
-
-// AAF lookup table for ICM-42688-P (from Betaflight)
-// Index: 0=258Hz, 1=536Hz, 2=997Hz, 3=1962Hz
-static const ICM42688::AAFConfig aafPresets[] = {
-    {  6,   36, 10 },  // 0: 258 Hz (Betaflight default)
-    { 12,  144,  8 },  // 1: 536 Hz
-    { 21,  440,  6 },  // 2: 997 Hz
-    { 37, 1376,  4 },  // 3: 1962 Hz
-};
-static constexpr uint8_t AAF_PRESET_COUNT = sizeof(aafPresets) / sizeof(aafPresets[0]);
-
-int IMU::SetGyroAAF(uint8_t aaf_index)
-{
-    if (!initialized_ || !driver_) return -1;
-    if (aaf_index >= AAF_PRESET_COUNT) return -1;
-
-    // AAF only supported on ICM-42688-P (use WHO_AM_I to check)
-    if (driver_->whoAmI_ != 0x47) return -1;  // Not ICM42688
-
-    // Safe cast since we verified chip type
-    static_cast<ICM42688*>(driver_)->setGyroAAF(aafPresets[aaf_index]);
-    return 0;
-}
-
-int IMU::SetAccelAAF(uint8_t aaf_index)
-{
-    if (!initialized_ || !driver_) return -1;
-    if (aaf_index >= AAF_PRESET_COUNT) return -1;
-
-    // AAF only supported on ICM-42688-P (use WHO_AM_I to check)
-    if (driver_->whoAmI_ != 0x47) return -1;  // Not ICM42688
-
-    // Safe cast since we verified chip type
-    static_cast<ICM42688*>(driver_)->setAccelAAF(aafPresets[aaf_index]);
-    return 0;
-}
-
-int IMU::SetUIFilters(uint8_t gyro_bw, uint8_t accel_bw, uint8_t gyro_order, uint8_t accel_order)
-{
-    if (!initialized_ || !driver_) return -1;
-
-    // Validate parameters
-    if (gyro_bw > 15 || accel_bw > 15) return -1;
-    if (gyro_order < 1 || gyro_order > 3) return -1;
-    if (accel_order < 1 || accel_order > 3) return -1;
-
-    // UI filters only supported on ICM-42688-P (use WHO_AM_I to check)
-    if (driver_->whoAmI_ != 0x47) return -1;  // Not ICM42688
-
-    // Safe cast since we verified chip type
-    static_cast<ICM42688*>(driver_)->setUIFilters(gyro_bw, accel_bw, gyro_order, accel_order);
-    return 0;
-}
-
 IMU::ChipType IMU::GetChipType()
 {
     if (!initialized_ || !driver_) {
@@ -359,18 +146,80 @@ IMU::ChipType IMU::GetChipType()
     }
 }
 
-int IMU::EnableDataReadyInt1()
+int IMU::EnableDataReadyInt()
 {
     if (!initialized_ || !driver_) return -1;
-    driver_->enableDataReadyInt1();
+    driver_->enableDataReadyInt();
     return 0;
 }
 
-int IMU::DisableDataReadyInt1()
+int IMU::DisableDataReadyInt()
 {
     if (!initialized_ || !driver_) return -1;
-    driver_->disableDataReadyInt1();
+    driver_->disableDataReadyInt();
     return 0;
+}
+
+// ============================================================================
+// Tier 2 Extended API: FSR Configuration
+// ============================================================================
+
+IMU::Result IMU::SetGyroFSR_Ex(GyroFSR fsr)
+{
+    if (!initialized_ || !driver_) return Result::ERR;
+
+    if (!driver_->setGyroFSR(fsr)) {
+        return Result::ERR;
+    }
+
+    // Update sensitivity tracking based on FSR
+    switch(fsr) {
+        case GyroFSR::DPS_250:  gyro_sensitivity_ = ICM42688P_GYRO_SENS_250;  break;
+        case GyroFSR::DPS_500:  gyro_sensitivity_ = ICM42688P_GYRO_SENS_500;  break;
+        case GyroFSR::DPS_1000: gyro_sensitivity_ = ICM42688P_GYRO_SENS_1000; break;
+        case GyroFSR::DPS_2000: gyro_sensitivity_ = ICM42688P_GYRO_SENS_2000; break;
+    }
+    return Result::OK;
+}
+
+IMU::Result IMU::SetAccelFSR_Ex(AccelFSR fsr)
+{
+    if (!initialized_ || !driver_) return Result::ERR;
+
+    if (!driver_->setAccelFSR(fsr)) {
+        return Result::ERR;
+    }
+
+    // Update sensitivity tracking based on FSR
+    switch(fsr) {
+        case AccelFSR::G_2:  accel_sensitivity_ = ICM42688P_ACCEL_SENS_2G;  break;
+        case AccelFSR::G_4:  accel_sensitivity_ = ICM42688P_ACCEL_SENS_4G;  break;
+        case AccelFSR::G_8:  accel_sensitivity_ = ICM42688P_ACCEL_SENS_8G;  break;
+        case AccelFSR::G_16: accel_sensitivity_ = ICM42688P_ACCEL_SENS_16G; break;
+    }
+    return Result::OK;
+}
+
+// ============================================================================
+// Tier 3 Extended API: Direct Register Access
+// ============================================================================
+
+uint8_t IMU::ReadReg_Ex(uint8_t reg)
+{
+    if (!initialized_ || !driver_) return 0;
+    return driver_->readReg(reg);
+}
+
+IMU::Result IMU::WriteReg_Ex(uint8_t reg, uint8_t value)
+{
+    if (!initialized_ || !driver_) return Result::ERR;
+    return driver_->writeReg(reg, value) ? Result::OK : Result::ERR;
+}
+
+IMU::Result IMU::WriteRegVerify_Ex(uint8_t reg, uint8_t value)
+{
+    if (!initialized_ || !driver_) return Result::ERR;
+    return driver_->writeRegVerify(reg, value) ? Result::OK : Result::ERR;
 }
 
 int IMU::ReadIMU6(std::array<int16_t, 6>& buf)

@@ -60,55 +60,8 @@ class IMU
 {
 public:
 
-    enum PwrState : bool
-    {
-        POWER_OFF = false,
-        POWER_ON = true,
-    };
-
-    // Accelerometer Full-Scale Range (register encoding)
-    // ACCEL_CONFIG0 bits[6:5]: 00=±16g, 01=±8g, 10=±4g, 11=±2g
-    enum AccelFS : uint8_t
-    {
-        gpm16 = 0,  // ±16g (default)
-        gpm8  = 1,  // ±8g
-        gpm4  = 2,  // ±4g
-        gpm2  = 3   // ±2g
-    };
-
-    // Gyroscope Full-Scale Range (register encoding)
-    // GYRO_CONFIG0 bits[6:5]: 00=±2000dps, 01=±1000dps, 10=±500dps, 11=±250dps
-    enum GyroFS : uint8_t
-    {
-        dps2000 = 0,  // ±2000 dps (default)
-        dps1000 = 1,  // ±1000 dps
-        dps500  = 2,  // ±500 dps
-        dps250  = 3   // ±250 dps
-    };
-
-    // Output Data Rate (register encoding)
-    // CRITICAL: ODR encoding is non-sequential per datasheet
-    // CONFIG0 bits[3:0]: 3=8kHz, 5=4kHz, 6=2kHz, 7=1kHz, 9=500Hz
-    enum AccelODR : uint8_t
-    {
-        accel_odr500 = 9,  // 500 Hz (2 ms)
-        accel_odr1k  = 7,  // 1 kHz (1 ms) - NOT 6!
-        accel_odr2k  = 6,  // 2 kHz (500 us)
-        accel_odr4k  = 5,  // 4 kHz (250 us) - NOT 4!
-        accel_odr8k  = 3,  // 8 kHz (125 us)
-    };
-
-    enum GyroODR : uint8_t
-    {
-        gyr_odr500 = 9,  // 500 Hz (2 ms)
-        gyr_odr1k  = 7,  // 1 kHz (1 ms) - NOT 6!
-        gyr_odr2k  = 6,  // 2 kHz (500 us)
-        gyr_odr4k  = 5,  // 4 kHz (250 us) - NOT 4!
-        gyr_odr8k  = 3,  // 8 kHz (125 us)
-    };
-
     // Intent-based preset configurations (imu_hal.md philosophy)
-    // Recommended API: use ApplyPreset() instead of individual FSR/ODR setters
+    // Recommended API: use ApplyPreset() for validated configurations
     enum class Preset : uint8_t
     {
         SAFE,      // Bring-up, very noisy frames (1kHz, tight filtering)
@@ -165,126 +118,15 @@ public:
     Result Init(SPIClass& spi, uint32_t cs_pin, uint32_t spi_freq_hz);
 
     /**
-     * @brief Configure the device full scales and output frequencies.
-     * @param acc_fsr_g Accelerometer full-scale range.
-     * @param gyr_fsr_dps Gyroscope full-scale range.
-     * @param acc_freq Accelerometer Output Data Rate.
-     * @param gyr_freq Gyroscope Output Data Rate.
-     * @return IMU::Result::OK on success, IMU::Result::ERR on failure.
-     * @deprecated Use ApplyPreset() instead for validated filter configurations
-     */
-    Result ConfigureInvDevice(AccelFS acc_fsr_g, GyroFS gyr_fsr_dps, AccelODR acc_freq, GyroODR gyr_freq);
-
-    /**
      * @brief Apply intent-based preset configuration (recommended API)
      * @param preset Preset configuration (SAFE, SMOOTH, BALANCED, ACRO)
      * @return IMU::Result::OK on success, IMU::Result::ERR on failure.
      *
      * Configures ODR, FSR, AAF filters, and UI filters per imu_hal.md specification.
      * All presets use ±2000dps/±16g FSR. BALANCED is recommended default.
+     * Works on all supported IMU chips.
      */
     Result ApplyPreset(Preset preset);
-
-    /**
-     * @brief Perform a soft reset of the device.
-     * @return 0 on success, negative error code on failure.
-     */
-    int Reset();
-
-    /**
-     * @brief Set power state of device on or off.
-     * @return 0 on success, negative error code on failure.
-     */
-    int SetPwrState(PwrState state);
-
-    /**
-     * @brief Enable accelerometer in Low Noise mode.
-     * @return 0 on success, negative error code on failure.
-     */
-    int EnableAccelLNMode();
-
-    /**
-     * @brief Disable accelerometer.
-     * @return 0 on success, negative error code on failure.
-     */
-    int DisableAccel();
-
-    /**
-     * @brief Enable gyroscope in Low Noise mode.
-     * @return 0 on success, negative error code on failure.
-     */
-    int EnableGyroLNMode();
-
-    /**
-     * @brief Disable gyroscope.
-     * @return 0 on success, negative error code on failure.
-     */
-    int DisableGyro();
-
-    /**
-     * @brief Configure the accelerometer Output Data Rate.
-     * @param frequency e.g. ICM426XX_ACCEL_CONFIG0_ODR_1_KHZ
-     * @return 0 on success, negative error code on failure.
-     */
-    int SetAccelODR(AccelODR frequency);
-
-    /**
-     * @brief Configure the gyroscope Output Data Rate.
-     * @param frequency e.g. ICM426XX_GYRO_CONFIG0_ODR_1_KHZ
-     * @return 0 on success, negative error code on failure.
-     */
-    int SetGyroODR(GyroODR frequency);
-
-    /**
-     * @brief Set the accelerometer full-scale range.
-     * @param fsr e.g. ICM426XX_ACCEL_CONFIG0_FS_SEL_4g
-     * @return 0 on success, negative error code on failure.
-     */
-    int SetAccelFSR(AccelFS fsr);
-
-    /**
-     * @brief Set the gyroscope full-scale range.
-     * @param fsr e.g. ICM426XX_GYRO_CONFIG0_FS_SEL_2000dps
-     * @return 0 on success, negative error code on failure.
-     */
-    int SetGyroFSR(GyroFS fsr);
-
-    // ========================================================================
-    // Advanced Filter Configuration (for power users)
-    // For most use cases, prefer ApplyPreset() for validated configurations.
-    // ========================================================================
-
-    /**
-     * @brief Configure gyroscope Anti-Alias Filter (AAF) using preset index
-     * @param aaf_index Index into AAF lookup table (0-3):
-     *                  0=258Hz (Betaflight default), 1=536Hz, 2=997Hz, 3=1962Hz
-     * @return 0 on success, -1 on failure or unsupported chip
-     *
-     * @note ICM-42688-P only. For validated configurations, use ApplyPreset().
-     */
-    int SetGyroAAF(uint8_t aaf_index);
-
-    /**
-     * @brief Configure accelerometer Anti-Alias Filter (AAF) using preset index
-     * @param aaf_index Index into AAF lookup table (0-3):
-     *                  0=258Hz (Betaflight default), 1=536Hz, 2=997Hz, 3=1962Hz
-     * @return 0 on success, -1 on failure or unsupported chip
-     *
-     * @note ICM-42688-P only. For validated configurations, use ApplyPreset().
-     */
-    int SetAccelAAF(uint8_t aaf_index);
-
-    /**
-     * @brief Configure UI (User Interface) filters
-     * @param gyro_bw Gyro bandwidth code (0-15, 15=low-latency Betaflight default)
-     * @param accel_bw Accel bandwidth code (0-15)
-     * @param gyro_order Gyro filter order (1-3)
-     * @param accel_order Accel filter order (1-3)
-     * @return 0 on success, -1 on failure or unsupported chip
-     *
-     * @note ICM-42688-P only. For validated configurations, use ApplyPreset().
-     */
-    int SetUIFilters(uint8_t gyro_bw, uint8_t accel_bw, uint8_t gyro_order, uint8_t accel_order);
 
     /**
      * @brief Get the accelerometer full-scale range.
@@ -305,16 +147,71 @@ public:
     ChipType GetChipType();
 
     /**
-     * @brief Enable the data ready interrupt on INT1 pin.
+     * @brief Enable the data ready interrupt on INT pin.
      * @return 0 on success, negative error code on failure.
      */
-    int EnableDataReadyInt1();
+    int EnableDataReadyInt();
 
     /**
-     * @brief Disable the data ready interrupt on INT1 pin.
+     * @brief Disable the data ready interrupt on INT pin.
      * @return 0 on success, negative error code on failure.
      */
-    int DisableDataReadyInt1();
+    int DisableDataReadyInt();
+
+    // ========================================================================
+    // Tier 2 Extended API: FSR Configuration (works on all chips)
+    // ========================================================================
+
+    /**
+     * @brief Set gyroscope full-scale range (Extended API)
+     * @param fsr Full-scale range (DPS_250, DPS_500, DPS_1000, DPS_2000)
+     * @return Result::OK on success, Result::ERR on failure
+     *
+     * Updates both the hardware register and sensitivity tracking.
+     * Works on all supported IMU chips.
+     */
+    Result SetGyroFSR_Ex(GyroFSR fsr);
+
+    /**
+     * @brief Set accelerometer full-scale range (Extended API)
+     * @param fsr Full-scale range (G_2, G_4, G_8, G_16)
+     * @return Result::OK on success, Result::ERR on failure
+     *
+     * Updates both the hardware register and sensitivity tracking.
+     * Works on all supported IMU chips.
+     */
+    Result SetAccelFSR_Ex(AccelFSR fsr);
+
+    // ========================================================================
+    // Tier 3 Extended API: Direct Register Access (power users)
+    // ========================================================================
+
+    /**
+     * @brief Read register directly (Extended API)
+     * @param reg Register address
+     * @return Register value
+     *
+     * For ICM-42688-P, reads from Bank 0 only.
+     */
+    uint8_t ReadReg_Ex(uint8_t reg);
+
+    /**
+     * @brief Write register directly (Extended API)
+     * @param reg Register address
+     * @param value Value to write
+     * @return Result::OK on success
+     *
+     * For ICM-42688-P, writes to Bank 0 only.
+     */
+    Result WriteReg_Ex(uint8_t reg, uint8_t value);
+
+    /**
+     * @brief Write register and verify (Extended API)
+     * @param reg Register address
+     * @param value Value to write
+     * @return Result::OK if write verified, Result::ERR if verification failed
+     */
+    Result WriteRegVerify_Ex(uint8_t reg, uint8_t value);
 
     // Note: RunSelfTest() removed - major FC stacks (Betaflight, iNav, ArduPilot, PX4)
     // skip self-test at startup. Use WHO_AM_I + gyro bias calibration instead.

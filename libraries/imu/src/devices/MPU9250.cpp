@@ -186,14 +186,73 @@ bool MPU9250::applyPreset(ImuPreset preset)
     return true;
 }
 
-void MPU9250::enableDataReadyInt1()
+void MPU9250::enableDataReadyInt()
 {
     bus_->writeReg(MPU_RA_INT_ENABLE, MPU_RF_DATA_RDY_EN);
     delayMicroseconds(15);
 }
 
-void MPU9250::disableDataReadyInt1()
+void MPU9250::disableDataReadyInt()
 {
     bus_->writeReg(MPU_RA_INT_ENABLE, 0x00);
     delayMicroseconds(15);
+}
+
+// ============================================================================
+// DeviceBase Tier 2/3 Extended API Implementation
+// ============================================================================
+
+bool MPU9250::setGyroFSR(GyroFSR fsr)
+{
+    uint8_t fsr_code;
+    float scale;
+    switch(fsr) {
+        case GyroFSR::DPS_250:  fsr_code = INV_FSR_250DPS;  scale = 1.0f / 131.0f; break;
+        case GyroFSR::DPS_500:  fsr_code = INV_FSR_500DPS;  scale = 1.0f / 65.5f;  break;
+        case GyroFSR::DPS_1000: fsr_code = INV_FSR_1000DPS; scale = 1.0f / 32.8f;  break;
+        case GyroFSR::DPS_2000: fsr_code = INV_FSR_2000DPS; scale = 1.0f / 16.4f;  break;
+        default: return false;
+    }
+
+    bus_->writeReg(MPU_RA_GYRO_CONFIG, fsr_code << 3);
+    delayMicroseconds(15);
+    gyrScale_ = scale;
+    return true;
+}
+
+bool MPU9250::setAccelFSR(AccelFSR fsr)
+{
+    uint8_t fsr_code;
+    float scale;
+    switch(fsr) {
+        case AccelFSR::G_2:  fsr_code = INV_FSR_2G;  scale = 1.0f / 16384.0f; break;
+        case AccelFSR::G_4:  fsr_code = INV_FSR_4G;  scale = 1.0f / 8192.0f;  break;
+        case AccelFSR::G_8:  fsr_code = INV_FSR_8G;  scale = 1.0f / 4096.0f;  break;
+        case AccelFSR::G_16: fsr_code = INV_FSR_16G; scale = 1.0f / 2048.0f;  break;
+        default: return false;
+    }
+
+    bus_->writeReg(MPU_RA_ACCEL_CONFIG, fsr_code << 3);
+    delayMicroseconds(15);
+    accScale_ = scale;
+    return true;
+}
+
+uint8_t MPU9250::readReg(uint8_t reg)
+{
+    return bus_->readReg(reg);
+}
+
+bool MPU9250::writeReg(uint8_t reg, uint8_t value)
+{
+    bus_->writeReg(reg, value);
+    return true;
+}
+
+bool MPU9250::writeRegVerify(uint8_t reg, uint8_t value)
+{
+    bus_->writeReg(reg, value);
+    delayMicroseconds(15);
+    uint8_t readback = bus_->readReg(reg);
+    return (readback == value);
 }

@@ -312,7 +312,7 @@ ICM42688::ICM42688(DeviceBus* bus, uint8_t whoAmI)
     bus_->writeReg(ICM426XX_RA_INT_CONFIG, ICM426XX_INT1_MODE_PULSED | ICM426XX_INT1_DRIVE_CIRCUIT_PP | ICM426XX_INT1_POLARITY_ACTIVE_HIGH);
     bus_->writeReg(ICM426XX_RA_INT_CONFIG0, ICM426XX_UI_DRDY_INT_CLEAR_ON_SBR);
     // Note: INT_SOURCE0 NOT written here - DRDY disabled by default
-    // Call enableDataReadyInt1() to enable interrupt
+    // Call enableDataReadyInt() to enable interrupt
 
     uint8_t intConfig1Value = bus_->readReg(ICM426XX_RA_INT_CONFIG1);
     // Datasheet: "User should change setting to 0 from default setting of 1"
@@ -374,8 +374,8 @@ bool ICM42688::applyPreset(ImuPreset preset) {
     setAccelODR(cfg.accel_odr_hz);
 
     // 2. Set FSR (always ±2000dps/±16g per imu_hal.md)
-    setGyroFSR(cfg.gyro_fsr_dps);
-    setAccelFSR(cfg.accel_fsr_g);
+    setGyroFSR_internal(cfg.gyro_fsr_dps);
+    setAccelFSR_internal(cfg.accel_fsr_g);
 
     // 3. Configure AAF filters (bank switching required)
     AAFConfig gyro_aaf = {cfg.gyro_aaf_delt, cfg.gyro_aaf_deltsqr, cfg.gyro_aaf_bitshift};
@@ -538,10 +538,10 @@ void ICM42688::setAccelODR(uint16_t odr_hz) {
 }
 
 /**
- * @brief Set gyro full-scale range (FSR)
+ * @brief Set gyro full-scale range (FSR) - internal method
  * @param fsr_dps FSR in dps (250, 500, 1000, or 2000)
  */
-void ICM42688::setGyroFSR(uint16_t fsr_dps) {
+void ICM42688::setGyroFSR_internal(uint16_t fsr_dps) {
     uint8_t fsr_code;
     float scale;
     switch(fsr_dps) {
@@ -563,10 +563,10 @@ void ICM42688::setGyroFSR(uint16_t fsr_dps) {
 }
 
 /**
- * @brief Set accel full-scale range (FSR)
+ * @brief Set accel full-scale range (FSR) - internal method
  * @param fsr_g FSR in g (2, 4, 8, or 16)
  */
-void ICM42688::setAccelFSR(uint16_t fsr_g) {
+void ICM42688::setAccelFSR_internal(uint16_t fsr_g) {
     uint8_t fsr_code;
     float scale;
     switch(fsr_g) {
@@ -673,22 +673,86 @@ void ICM42688::disableAFSR() {
 // =============================================================================
 
 /**
- * @brief Enable data ready interrupt on INT1 pin
+ * @brief Enable data ready interrupt on INT pin
  *
  * INT_SOURCE0 register bit 3 enables UI data ready interrupt routing to INT1.
  * Pin characteristics (push-pull, active-high, pulsed) configured in constructor.
  */
-void ICM42688::enableDataReadyInt1() {
+void ICM42688::enableDataReadyInt() {
     setUserBank(ICM426XX_BANK_SELECT0);
     bus_->writeReg(ICM426XX_RA_INT_SOURCE0, ICM426XX_UI_DRDY_INT1_EN_ENABLED);
 }
 
 /**
- * @brief Disable data ready interrupt on INT1 pin
+ * @brief Disable data ready interrupt on INT pin
  *
  * Clears INT_SOURCE0 to disable all interrupt sources on INT1.
  */
-void ICM42688::disableDataReadyInt1() {
+void ICM42688::disableDataReadyInt() {
     setUserBank(ICM426XX_BANK_SELECT0);
     bus_->writeReg(ICM426XX_RA_INT_SOURCE0, 0x00);
+}
+
+// =============================================================================
+// DeviceBase Tier 2/3 Extended API Implementation
+// =============================================================================
+
+/**
+ * @brief Set gyroscope FSR (DeviceBase interface)
+ */
+bool ICM42688::setGyroFSR(GyroFSR fsr) {
+    uint16_t fsr_dps;
+    switch(fsr) {
+        case GyroFSR::DPS_250:  fsr_dps = 250;  break;
+        case GyroFSR::DPS_500:  fsr_dps = 500;  break;
+        case GyroFSR::DPS_1000: fsr_dps = 1000; break;
+        case GyroFSR::DPS_2000: fsr_dps = 2000; break;
+        default: return false;
+    }
+    setGyroFSR_internal(fsr_dps);
+    return true;
+}
+
+/**
+ * @brief Set accelerometer FSR (DeviceBase interface)
+ */
+bool ICM42688::setAccelFSR(AccelFSR fsr) {
+    uint16_t fsr_g;
+    switch(fsr) {
+        case AccelFSR::G_2:  fsr_g = 2;  break;
+        case AccelFSR::G_4:  fsr_g = 4;  break;
+        case AccelFSR::G_8:  fsr_g = 8;  break;
+        case AccelFSR::G_16: fsr_g = 16; break;
+        default: return false;
+    }
+    setAccelFSR_internal(fsr_g);
+    return true;
+}
+
+/**
+ * @brief Read register directly (Bank 0 only)
+ * @note For multi-bank access, use setUserBank() first (internal method)
+ */
+uint8_t ICM42688::readReg(uint8_t reg) {
+    setUserBank(ICM426XX_BANK_SELECT0);
+    return bus_->readReg(reg);
+}
+
+/**
+ * @brief Write register directly (Bank 0 only)
+ */
+bool ICM42688::writeReg(uint8_t reg, uint8_t value) {
+    setUserBank(ICM426XX_BANK_SELECT0);
+    bus_->writeReg(reg, value);
+    return true;
+}
+
+/**
+ * @brief Write register and verify (Bank 0 only)
+ */
+bool ICM42688::writeRegVerify(uint8_t reg, uint8_t value) {
+    setUserBank(ICM426XX_BANK_SELECT0);
+    bus_->writeReg(reg, value);
+    uint8_t readback = bus_->readReg(reg);
+    return (readback == value);
 }

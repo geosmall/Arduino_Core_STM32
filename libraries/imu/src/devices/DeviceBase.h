@@ -19,6 +19,32 @@ enum class ImuPreset : uint8_t {
 };
 
 /**
+ * @brief Gyroscope Full-Scale Range (common across all supported IMUs)
+ *
+ * All supported IMU chips (ICM-42688-P, MPU-6000, MPU-9250, ICM-206xx)
+ * share the same gyroscope FSR options. Register encoding varies by chip.
+ */
+enum class GyroFSR : uint8_t {
+    DPS_250  = 0,   ///< ±250 degrees/sec (high resolution, aerobatic)
+    DPS_500  = 1,   ///< ±500 degrees/sec
+    DPS_1000 = 2,   ///< ±1000 degrees/sec
+    DPS_2000 = 3    ///< ±2000 degrees/sec (default, widest range)
+};
+
+/**
+ * @brief Accelerometer Full-Scale Range (common across all supported IMUs)
+ *
+ * All supported IMU chips share the same accelerometer FSR options.
+ * Register encoding varies by chip.
+ */
+enum class AccelFSR : uint8_t {
+    G_2  = 0,   ///< ±2g (highest resolution)
+    G_4  = 1,   ///< ±4g
+    G_8  = 2,   ///< ±8g
+    G_16 = 3    ///< ±16g (default, widest range)
+};
+
+/**
  * @brief Abstract base class for IMU device drivers
  *
  * Provides common interface for all device types (ICM42688, MPU6000, etc.)
@@ -55,16 +81,69 @@ public:
     }
 
     /**
-     * @brief Enable data ready interrupt on INT1 pin
+     * @brief Enable data ready interrupt on INT pin
      * Default implementation is no-op (not all chips support interrupts).
      */
-    virtual void enableDataReadyInt1() {}
+    virtual void enableDataReadyInt() {}
 
     /**
-     * @brief Disable data ready interrupt on INT1 pin
+     * @brief Disable data ready interrupt on INT pin
      * Default implementation is no-op.
      */
-    virtual void disableDataReadyInt1() {}
+    virtual void disableDataReadyInt() {}
+
+    // ========================================================================
+    // Tier 2 Extended API: FSR Configuration (works on all chips)
+    // ========================================================================
+
+    /**
+     * @brief Set gyroscope full-scale range
+     * @param fsr Full-scale range (DPS_250, DPS_500, DPS_1000, DPS_2000)
+     * @return true on success, false on failure
+     *
+     * Updates both the hardware register and gyrScale_ tracking value.
+     */
+    virtual bool setGyroFSR(GyroFSR fsr) { (void)fsr; return false; }
+
+    /**
+     * @brief Set accelerometer full-scale range
+     * @param fsr Full-scale range (G_2, G_4, G_8, G_16)
+     * @return true on success, false on failure
+     *
+     * Updates both the hardware register and accScale_ tracking value.
+     */
+    virtual bool setAccelFSR(AccelFSR fsr) { (void)fsr; return false; }
+
+    // ========================================================================
+    // Tier 3 Extended API: Direct Register Access (power users)
+    // ========================================================================
+
+    /**
+     * @brief Read register directly
+     * @param reg Register address
+     * @return Register value
+     */
+    virtual uint8_t readReg(uint8_t reg) { (void)reg; return 0; }
+
+    /**
+     * @brief Write register directly
+     * @param reg Register address
+     * @param value Value to write
+     * @return true on success
+     */
+    virtual bool writeReg(uint8_t reg, uint8_t value) {
+        (void)reg; (void)value; return false;
+    }
+
+    /**
+     * @brief Write register and verify
+     * @param reg Register address
+     * @param value Value to write
+     * @return true if write verified successfully
+     */
+    virtual bool writeRegVerify(uint8_t reg, uint8_t value) {
+        (void)reg; (void)value; return false;
+    }
 
     // Public scale factors for data conversion
     uint8_t whoAmI_;         // WHO_AM_I register value

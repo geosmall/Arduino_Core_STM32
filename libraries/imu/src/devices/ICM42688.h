@@ -66,13 +66,41 @@ public:
         uint8_t  bitshift;
     };
 
+    // ========================================================================
+    // DeviceBase Tier 2/3 Extended API Overrides
+    // ========================================================================
+
     /**
-     * @brief Low-level configuration methods
-     * Primarily used internally by applyPreset(), but available for advanced users.
-     * For most use cases, prefer applyPreset() for validated configurations.
+     * @brief Set gyroscope FSR (DeviceBase interface)
      */
-    void setAccelFSR(uint16_t fsr_g);
-    void setGyroFSR(uint16_t fsr_dps);
+    bool setGyroFSR(GyroFSR fsr) override;
+
+    /**
+     * @brief Set accelerometer FSR (DeviceBase interface)
+     */
+    bool setAccelFSR(AccelFSR fsr) override;
+
+    /**
+     * @brief Read register directly
+     */
+    uint8_t readReg(uint8_t reg) override;
+
+    /**
+     * @brief Write register directly
+     */
+    bool writeReg(uint8_t reg, uint8_t value) override;
+
+    /**
+     * @brief Write register and verify
+     */
+    bool writeRegVerify(uint8_t reg, uint8_t value) override;
+
+    // ========================================================================
+    // ICM42688-specific Low-level Methods (internal use)
+    // ========================================================================
+
+    void setAccelFSR_internal(uint16_t fsr_g);
+    void setGyroFSR_internal(uint16_t fsr_dps);
     void setAccelODR(uint16_t odr_hz);
     void setGyroODR(uint16_t odr_hz);
     void setGyroAAF(const AAFConfig& config);
@@ -133,17 +161,17 @@ public:
     const char* typeName() const override;
 
     /**
-     * @brief Enable data ready interrupt on INT1 pin
+     * @brief Enable data ready interrupt on INT pin
      *
      * Configures INT1 as push-pull, active-high, pulsed output.
      * Interrupt fires when new gyro/accel data is available.
      */
-    void enableDataReadyInt1() override;
+    void enableDataReadyInt() override;
 
     /**
-     * @brief Disable data ready interrupt on INT1 pin
+     * @brief Disable data ready interrupt on INT pin
      */
-    void disableDataReadyInt1() override;
+    void disableDataReadyInt() override;
 
     // Note: whoAmI_, accScale_, gyrScale_, samplingRateHz_ inherited from DeviceBase
 };
