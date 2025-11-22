@@ -6,7 +6,7 @@
  * Foundation, either version 3 of the License, or (at your option)
  * any later version.
  *
- * See ICM42688_BF.cpp for full license text and attribution.
+ * See ICM42688.cpp for full license text and attribution.
  */
 
 #pragma once
@@ -35,21 +35,21 @@ enum class ImuPreset : uint8_t {
  *
  * Usage (with presets):
  *   DeviceBusSPI bus(&SPI, CS_PIN);
- *   ICM42688_BF* imu = ICM42688_BF::detect(&bus);
+ *   ICM42688* imu = ICM42688::detect(&bus);
  *   if (imu) {
  *       imu->applyPreset(ImuPreset::FILTER_BALANCED);  // Configure for 2kHz PID
  *       int16_t data[6];  // ax,ay,az,gx,gy,gz
  *       imu->read(data);
  *   }
  */
-class ICM42688_BF : public DeviceBase {
+class ICM42688 : public DeviceBase {
 protected:
     /**
      * @brief Protected constructor - use detect() factory method
      * @param bus Pointer to DeviceBus (SPI or I2C)
      * @param whoAmI WHO_AM_I register value (chip identification)
      */
-    ICM42688_BF(DeviceBus* bus, uint8_t whoAmI);
+    ICM42688(DeviceBus* bus, uint8_t whoAmI);
 
     /**
      * @brief Select register bank (ICM426xx has 5 banks: 0-4)
@@ -96,12 +96,12 @@ public:
     /**
      * @brief Factory method to detect and initialize IMU
      * @param bus Pointer to DeviceBus instance
-     * @return Pointer to ICM42688_BF instance, or nullptr if not detected
+     * @return Pointer to ICM42688 instance, or nullptr if not detected
      *
      * Attempts detection up to 20 times with delays.
      * On success, creates instance and performs full initialization.
      */
-    static ICM42688_BF* detect(DeviceBus* bus);
+    static ICM42688* detect(DeviceBus* bus);
 
     /**
      * @brief Apply intent-based preset configuration
@@ -144,6 +144,19 @@ public:
      * @return Chip name string ("ICM42688P", "ICM42605", etc.)
      */
     const char* typeName() const override;
+
+    /**
+     * @brief Enable data ready interrupt on INT1 pin
+     *
+     * Configures INT1 as push-pull, active-high, pulsed output.
+     * Interrupt fires when new gyro/accel data is available.
+     */
+    void enableDataReadyInt1();
+
+    /**
+     * @brief Disable data ready interrupt on INT1 pin
+     */
+    void disableDataReadyInt1();
 
     // Note: whoAmI_, accScale_, gyrScale_, samplingRateHz_ inherited from DeviceBase
 };

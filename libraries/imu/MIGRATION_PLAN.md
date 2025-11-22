@@ -84,14 +84,14 @@ All major flight controller firmware stacks (Betaflight, iNav, ArduPilot, PX4) *
 
 ## Migration Phases
 
-### Phase 1: Extend ICM42688_BF Driver with Preset-Based Configuration (3-4 days)
+### Phase 1: Extend ICM42688 Driver with Preset-Based Configuration (3-4 days)
 
 #### 1.1 Add Preset Infrastructure (1-2 days)
 
 **Create preset types and LUT** (align with imu_hal.md lines 311-354):
 
 ```cpp
-// Add to ICM42688_BF.h
+// Add to ICM42688.h
 enum class ImuPreset : uint8_t {
     FILTER_SAFE,      // Bring-up, very noisy frames (1kHz, tight filtering)
     FILTER_SMOOTH,    // Extra on-chip smoothing (4kHz, moderate filtering)
@@ -143,9 +143,9 @@ static const ICM42688PresetConfig ICM42688_PRESETS[] = {
 
 #### 1.2 Add Public Preset API (1 day)
 
-**Add to ICM42688_BF.h public methods**:
+**Add to ICM42688.h public methods**:
 ```cpp
-class ICM42688_BF : public DeviceBase {
+class ICM42688 : public DeviceBase {
 public:
     // Preset-based configuration (imu_hal.md approach)
     void applyPreset(ImuPreset preset);
@@ -170,9 +170,9 @@ protected:
 };
 ```
 
-**Implement applyPreset()** in ICM42688_BF.cpp:
+**Implement applyPreset()** in ICM42688.cpp:
 ```cpp
-void ICM42688_BF::applyPreset(ImuPreset preset) {
+void ICM42688::applyPreset(ImuPreset preset) {
     const ICM42688PresetConfig& cfg = ICM42688_PRESETS[static_cast<uint8_t>(preset)];
 
     // 1. Set ODR (order matters - do this first)
@@ -201,7 +201,7 @@ void ICM42688_BF::applyPreset(ImuPreset preset) {
 
 **ODR Configuration** (per imu_hal.md lines 60-63):
 ```cpp
-void ICM42688_BF::setGyroODR(uint16_t odr_hz) {
+void ICM42688::setGyroODR(uint16_t odr_hz) {
     uint8_t odr_code;
     switch(odr_hz) {
         case 8000: odr_code = 0x03; break;  // 8kHz
@@ -216,7 +216,7 @@ void ICM42688_BF::setGyroODR(uint16_t odr_hz) {
     bus_->writeReg(ICM426XX_RA_GYRO_CONFIG0, reg_val);
 }
 
-void ICM42688_BF::setAccelODR(uint16_t odr_hz) {
+void ICM42688::setAccelODR(uint16_t odr_hz) {
     uint8_t odr_code;
     switch(odr_hz) {
         case 8000: odr_code = 0x03; break;  // 8kHz
@@ -234,7 +234,7 @@ void ICM42688_BF::setAccelODR(uint16_t odr_hz) {
 
 **FSR Configuration**:
 ```cpp
-void ICM42688_BF::setGyroFSR(uint16_t fsr_dps) {
+void ICM42688::setGyroFSR(uint16_t fsr_dps) {
     uint8_t fsr_code;
     float scale;
     switch(fsr_dps) {
@@ -251,7 +251,7 @@ void ICM42688_BF::setGyroFSR(uint16_t fsr_dps) {
     gyrScale_ = scale;  // Update scale factor for read() method
 }
 
-void ICM42688_BF::setAccelFSR(uint8_t fsr_g) {
+void ICM42688::setAccelFSR(uint8_t fsr_g) {
     uint8_t fsr_code;
     float scale;
     switch(fsr_g) {
@@ -271,7 +271,7 @@ void ICM42688_BF::setAccelFSR(uint8_t fsr_g) {
 
 **AAF Filter Configuration** (per imu_hal.md lines 64-67):
 ```cpp
-void ICM42688_BF::setGyroAAF(const AAFConfig& config) {
+void ICM42688::setGyroAAF(const AAFConfig& config) {
     setUserBank(1);  // Switch to Bank 1
     bus_->writeReg(0x0B, 0x01);  // Enable AAF
     bus_->writeReg(0x0C, config.delt);
@@ -280,7 +280,7 @@ void ICM42688_BF::setGyroAAF(const AAFConfig& config) {
     setUserBank(0);  // Return to Bank 0
 }
 
-void ICM42688_BF::setAccelAAF(const AAFConfig& config) {
+void ICM42688::setAccelAAF(const AAFConfig& config) {
     setUserBank(2);  // Switch to Bank 2
     bus_->writeReg(0x03, (config.delt << 1) | 0x01);  // DELT[6:1] + enable bit[0]
     bus_->writeReg(0x04, config.deltsqr & 0xFF);  // DELTSQR[7:0]
@@ -291,7 +291,7 @@ void ICM42688_BF::setAccelAAF(const AAFConfig& config) {
 
 **UI Filter Configuration** (per imu_hal.md lines 68-71):
 ```cpp
-void ICM42688_BF::setUIFilters(uint8_t gyro_bw, uint8_t accel_bw, uint8_t gyro_order, uint8_t accel_order) {
+void ICM42688::setUIFilters(uint8_t gyro_bw, uint8_t accel_bw, uint8_t gyro_order, uint8_t accel_order) {
     // BW codes: 0-15 (15 = wide/low-latency)
     // Order: 1 = 1st-order, 2 = 2nd-order (encoded as 3, 2 in register)
 
@@ -314,7 +314,7 @@ void ICM42688_BF::setUIFilters(uint8_t gyro_bw, uint8_t accel_bw, uint8_t gyro_o
 
 **Device Reset**:
 ```cpp
-void ICM42688_BF::reset() {
+void ICM42688::reset() {
     bus_->writeReg(ICM426XX_RA_PWR_MGMT0, 0x00);  // Power off
     delay(10);
     bus_->writeReg(ICM426XX_RA_DEVICE_CONFIG, 0x01);  // Soft reset
@@ -349,8 +349,8 @@ bool ReadDataFromFifo(...);                      // FIFO API (unused)
 **Add to IMU.h**:
 ```cpp
 // ADD these lines
-#include "devices/ICM42688_BF.h"                 // Internal BF driver
-ICM42688_BF* bf_driver_icm42688_;                // BF driver instance (for ICM-42688-P)
+#include "devices/ICM42688.h"                 // Internal driver
+ICM42688* driver_;                // driver instance (for ICM-42688-P)
 DeviceBusSPI* bus_;                              // Bus abstraction
 ```
 
@@ -436,11 +436,11 @@ bool IMU::Init(...) {
 
     // Auto-detect IMU chip (existing logic)
     if (type == ImuType::ICM42688P || type == ImuType::Auto) {
-        bf_driver_icm42688_ = ICM42688_BF::detect(bus_);
-        if (bf_driver_icm42688_) {
+        driver_ = ICM42688::detect(bus_);
+        if (driver_) {
             chip_type_ = ChipType::ICM42688_P;
             // Apply default BALANCED preset
-            bf_driver_icm42688_->applyPreset(ImuPreset::FILTER_BALANCED);
+            driver_->applyPreset(ImuPreset::FILTER_BALANCED);
             return true;
         }
     }
@@ -457,22 +457,22 @@ bool IMU::ApplyPreset(Preset preset) {
 
     switch(chip_type_) {
         case ChipType::ICM42688_P:
-            bf_driver_icm42688_->applyPreset(driver_preset);
+            driver_->applyPreset(driver_preset);
             return true;
 
         case ChipType::MPU6000:
-            bf_driver_mpu6000_->applyPreset(driver_preset);
+            driver_->applyPreset(driver_preset);
             return true;
 
         case ChipType::MPU9250:
         case ChipType::MPU9255:
-            bf_driver_mpu9250_->applyPreset(driver_preset);
+            driver_->applyPreset(driver_preset);
             return true;
 
         case ChipType::ICM20601:
         case ChipType::ICM20602:
         case ChipType::ICM20689:
-            bf_driver_icm206xx_->applyPreset(driver_preset);
+            driver_->applyPreset(driver_preset);
             return true;
 
         default:
@@ -527,7 +527,7 @@ Once hardware validation passes:
 
 **Add preset LUT** (from imu_hal.md lines 90-96):
 ```cpp
-// Add to MPU6000_BF.cpp
+// Add to MPU6000.cpp
 struct MPU6000PresetConfig {
     uint8_t  dlpf_cfg;      // CONFIG.DLPF_CFG (0-6)
     uint8_t  smplrt_div;    // SMPLRT_DIV register (0-255)
@@ -544,7 +544,7 @@ static const MPU6000PresetConfig MPU6000_PRESETS[] = {
 
 **Implement applyPreset()**:
 ```cpp
-void MPU6000_BF::applyPreset(ImuPreset preset) {
+void MPU6000::applyPreset(ImuPreset preset) {
     const MPU6000PresetConfig& cfg = MPU6000_PRESETS[static_cast<uint8_t>(preset)];
 
     bus_->writeReg(MPU_RA_CONFIG, cfg.dlpf_cfg);
@@ -561,7 +561,7 @@ void MPU6000_BF::applyPreset(ImuPreset preset) {
 
 **Add preset LUT** (from imu_hal.md lines 140-145):
 ```cpp
-// Add to MPU9250_BF.cpp
+// Add to MPU9250.cpp
 struct MPU9250PresetConfig {
     uint8_t  dlpf_cfg_gyro;   // CONFIG.DLPF_CFG (0-6)
     uint8_t  dlpf_cfg_accel;  // ACCEL_CONFIG2.A_DLPF_CFG
@@ -580,7 +580,7 @@ static const MPU9250PresetConfig MPU9250_PRESETS[] = {
 
 **Implement applyPreset()**:
 ```cpp
-void MPU9250_BF::applyPreset(ImuPreset preset) {
+void MPU9250::applyPreset(ImuPreset preset) {
     const MPU9250PresetConfig& cfg = MPU9250_PRESETS[static_cast<uint8_t>(preset)];
 
     // Gyro DLPF
@@ -605,7 +605,7 @@ void MPU9250_BF::applyPreset(ImuPreset preset) {
 
 **Add preset LUT** (from imu_hal.md lines 218-223):
 ```cpp
-// Add to ICM206xx_BF.cpp (same structure as MPU9250, 6500-class)
+// Add to ICM206xx.cpp (same structure as MPU9250, 6500-class)
 static const ICM20602PresetConfig ICM20602_PRESETS[] = {
     {2, 2, 0, 1000, 1000},  // SAFE: DLPF=2 (~92Hz), DIV=0 → 1kHz
     {1, 1, 0, 1000, 1000},  // SMOOTH: DLPF=1 (~176/184Hz), DIV=0 → 1kHz
@@ -626,11 +626,11 @@ static const ICM20602PresetConfig ICM20602_PRESETS[] = {
 
 Create test sketch: `PresetValidation.ino`
 ```cpp
-#include <IMU_BF.h>
+#include <IMU_Driver.h>
 #include <SPI.h>
 
 SPIClass spi_bus(MOSI, MISO, SCK);
-IMU_BF imu;
+IMU_Driver imu;
 
 void verifyPreset(IMU::Preset preset, const char* name) {
     CI_LOGF("Testing %s preset...\n", name);
@@ -684,7 +684,7 @@ imu.ApplyPreset(IMU::Preset::BALANCED);  // Default for 2kHz PID loop
 
 **Binary size validation**:
 - Compile dRehmFlight before migration (with TDK driver)
-- Compile dRehmFlight after migration (BF drivers only)
+- Compile dRehmFlight after migration (drivers only)
 - Expected savings: ~25KB
 
 ---
@@ -771,7 +771,7 @@ imu.ApplyPreset(IMU::Preset::BALANCED);  // All config in one call
 
 | Phase | Duration | Key Deliverables | Status |
 |-------|----------|------------------|--------|
-| **Phase 1** | 3-4 days | ICM42688_BF with preset API | ✅ Complete |
+| **Phase 1** | 3-4 days | ICM42688 with preset API | ✅ Complete |
 | **Phase 2** | 2-3 days | IMU.cpp/.h migrated to preset-based API | ✅ Complete |
 | **Phase 2.5** | 0.5 days | ICM-42688-P hardware validation | 🔄 In Progress |
 | **Phase 3** | 1-2 days | MPU6000/MPU9250/ICM206xx preset support | 📋 Pending |
@@ -792,7 +792,7 @@ imu.ApplyPreset(IMU::Preset::BALANCED);  // All config in one call
 ✅ All preset register values match imu_hal.md specification
 ✅ dRehmFlight compiles and flies with BALANCED preset
 ✅ Binary size reduced by ~25KB
-✅ All 4 BF drivers support common ImuPreset enum
+✅ All 4 drivers support common ImuPreset enum
 ✅ Individual config APIs preserved (protected) for backward compatibility
 
 ---

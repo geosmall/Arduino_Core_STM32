@@ -25,7 +25,7 @@
  * along with this software. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "MPU9250_BF.h"
+#include "MPU9250.h"
 #include "MPU_Common.h"
 
 // ============================================================================
@@ -39,10 +39,10 @@
 #define MPU9250_CONFIG  0x1A
 
 // ============================================================================
-// MPU9250_BF Implementation
+// MPU9250 Implementation
 // ============================================================================
 
-MPU9250_BF::MPU9250_BF(DeviceBus* bus, uint8_t whoAmI)
+MPU9250::MPU9250(DeviceBus* bus, uint8_t whoAmI)
     : bus_(bus)
 {
     whoAmI_ = whoAmI;
@@ -86,7 +86,7 @@ MPU9250_BF::MPU9250_BF(DeviceBus* bus, uint8_t whoAmI)
     samplingRateHz_ = 1000;       // 1 kHz
 }
 
-MPU9250_BF* MPU9250_BF::detect(DeviceBus* bus)
+MPU9250* MPU9250::detect(DeviceBus* bus)
 {
     if (!bus) {
         return nullptr;
@@ -104,7 +104,7 @@ MPU9250_BF* MPU9250_BF::detect(DeviceBus* bus)
         // Check for MPU9250 (0x71) or MPU9255 (0x73)
         if (whoAmI == MPU9250_WHO_AM_I_CONST || whoAmI == MPU9255_WHO_AM_I_CONST) {
             // Device detected - create and initialize instance
-            return new MPU9250_BF(bus, whoAmI);
+            return new MPU9250(bus, whoAmI);
         }
 
         if (!attemptsRemaining) {
@@ -115,7 +115,7 @@ MPU9250_BF* MPU9250_BF::detect(DeviceBus* bus)
     return nullptr;
 }
 
-void MPU9250_BF::read(int16_t* accgyr)
+void MPU9250::read(int16_t* accgyr)
 {
     // Read 14 bytes: AX_H, AX_L, AY_H, AY_L, AZ_H, AZ_L, TEMP_H, TEMP_L, GX_H, GX_L, GY_H, GY_L, GZ_H, GZ_L
     uint8_t buf[14];
@@ -131,7 +131,7 @@ void MPU9250_BF::read(int16_t* accgyr)
     accgyr[5] = (int16_t)((buf[12] << 8) | buf[13]); // Gyro Z
 }
 
-const char* MPU9250_BF::typeName() const
+const char* MPU9250::typeName() const
 {
     // Distinguish between MPU9250 and MPU9255 based on WHO_AM_I
     if (whoAmI_ == MPU9255_WHO_AM_I_CONST) {

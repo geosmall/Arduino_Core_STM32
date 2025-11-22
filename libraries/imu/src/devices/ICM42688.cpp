@@ -30,7 +30,7 @@
  */
 
 #include <Arduino.h>
-#include "ICM42688_BF.h"
+#include "ICM42688.h"
 
 // Register definitions and constants
 #define ICM426XX_MAX_SPI_CLK_HZ 24000000
@@ -211,7 +211,7 @@ static const ICM42688PresetConfig ICM42688_PRESETS[] = {
 };
 
 // Helper function: Select register bank
-void ICM42688_BF::setUserBank(uint8_t bank) {
+void ICM42688::setUserBank(uint8_t bank) {
     bank &= 7;
     if (bank != currentBank_) {
         bus_->writeReg(ICM426XX_RA_REG_BANK_SEL, bank);
@@ -220,7 +220,7 @@ void ICM42688_BF::setUserBank(uint8_t bank) {
 }
 
 // Get human-readable chip name
-const char* ICM42688_BF::typeName() const {
+const char* ICM42688::typeName() const {
     switch (whoAmI_) {
     case ICM_42605_SPI:
         return "ICM42605";
@@ -233,7 +233,7 @@ const char* ICM42688_BF::typeName() const {
 }
 
 // Factory method: Detect and initialize IMU
-ICM42688_BF* ICM42688_BF::detect(DeviceBus* bus) {
+ICM42688* ICM42688::detect(DeviceBus* bus) {
     bus->setFreq(ICM426XX_MAX_SPI_CLK_HZ);
 
     uint8_t attemptsRemaining = 20;
@@ -243,7 +243,7 @@ ICM42688_BF* ICM42688_BF::detect(DeviceBus* bus) {
         case ICM42605_WHO_AM_I_CONST:
         case ICM42688P_WHO_AM_I_CONST:
         case IIM42653_WHO_AM_I_CONST: {
-            auto icm = new ICM42688_BF(bus, whoAmI);
+            auto icm = new ICM42688(bus, whoAmI);
             return icm;
         }
         }
@@ -254,7 +254,7 @@ ICM42688_BF* ICM42688_BF::detect(DeviceBus* bus) {
 }
 
 // Protected constructor: Performs full initialization
-ICM42688_BF::ICM42688_BF(DeviceBus* bus, uint8_t whoAmI)
+ICM42688::ICM42688(DeviceBus* bus, uint8_t whoAmI)
     : bus_(bus) {
 
     whoAmI_ = whoAmI;
@@ -307,10 +307,12 @@ ICM42688_BF::ICM42688_BF(DeviceBus* bus, uint8_t whoAmI)
     setUserBank(ICM426XX_BANK_SELECT0);
     bus_->writeReg(ICM426XX_RA_GYRO_ACCEL_CONFIG0, ICM426XX_ACCEL_UI_FILT_BW_LOW_LATENCY | ICM426XX_GYRO_UI_FILT_BW_LOW_LATENCY);
 
-    // Configure interrupt pin
+    // Configure interrupt pin characteristics (but don't enable DRDY yet)
+    // INT1: push-pull, active-high, pulsed output
     bus_->writeReg(ICM426XX_RA_INT_CONFIG, ICM426XX_INT1_MODE_PULSED | ICM426XX_INT1_DRIVE_CIRCUIT_PP | ICM426XX_INT1_POLARITY_ACTIVE_HIGH);
     bus_->writeReg(ICM426XX_RA_INT_CONFIG0, ICM426XX_UI_DRDY_INT_CLEAR_ON_SBR);
-    bus_->writeReg(ICM426XX_RA_INT_SOURCE0, ICM426XX_UI_DRDY_INT1_EN_ENABLED);
+    // Note: INT_SOURCE0 NOT written here - DRDY disabled by default
+    // Call enableDataReadyInt1() to enable interrupt
 
     uint8_t intConfig1Value = bus_->readReg(ICM426XX_RA_INT_CONFIG1);
     // Datasheet: "User should change setting to 0 from default setting of 1"
@@ -345,7 +347,7 @@ ICM42688_BF::ICM42688_BF(DeviceBus* bus, uint8_t whoAmI)
 }
 
 // Read 6-axis gyro/accel data
-void ICM42688_BF::read(int16_t* accgyr) {
+void ICM42688::read(int16_t* accgyr) {
     // Ensure we're on Bank 0 where data registers live
     setUserBank(ICM426XX_BANK_SELECT0);
     // Read 12 bytes: ax,ay,az,gx,gy,gz (little endian)
@@ -364,7 +366,7 @@ void ICM42688_BF::read(int16_t* accgyr) {
  *
  * @return true if configuration verified successfully, false if verification failed
  */
-bool ICM42688_BF::applyPreset(ImuPreset preset) {
+bool ICM42688::applyPreset(ImuPreset preset) {
     const ICM42688PresetConfig& cfg = ICM42688_PRESETS[static_cast<uint8_t>(preset)];
 
     // 1. Set ODR (order matters - do this first)
@@ -413,11 +415,11 @@ bool ICM42688_BF::applyPreset(ImuPreset preset) {
  * @param preset Expected preset configuration
  * @return true if all critical registers match expected values
  */
-bool ICM42688_BF::verifyConfiguration(ImuPreset preset) const {
+bool ICM42688::verifyConfiguration(ImuPreset preset) const {
     const ICM42688PresetConfig& cfg = ICM42688_PRESETS[static_cast<uint8_t>(preset)];
 
     // Cast away const for bank switching (read-only operation, but needs bank select)
-    ICM42688_BF* self = const_cast<ICM42688_BF*>(this);
+    ICM42688* self = const_cast<ICM42688*>(this);
 
     // Expected ODR codes
     uint8_t expected_gyro_odr, expected_accel_odr;
@@ -497,7 +499,7 @@ bool ICM42688_BF::verifyConfiguration(ImuPreset preset) const {
  *   2kHz = 0x06
  *   1kHz = 0x07 (NOT 0x06!)
  */
-void ICM42688_BF::setGyroODR(uint16_t odr_hz) {
+void ICM42688::setGyroODR(uint16_t odr_hz) {
     uint8_t odr_code;
     switch(odr_hz) {
         case 8000: odr_code = 0x03; break;  // 8kHz
@@ -518,7 +520,7 @@ void ICM42688_BF::setGyroODR(uint16_t odr_hz) {
  * @brief Set accel output data rate (ODR)
  * @param odr_hz ODR in Hz (1000, 4000, or 8000)
  */
-void ICM42688_BF::setAccelODR(uint16_t odr_hz) {
+void ICM42688::setAccelODR(uint16_t odr_hz) {
     uint8_t odr_code;
     switch(odr_hz) {
         case 8000: odr_code = 0x03; break;  // 8kHz
@@ -539,7 +541,7 @@ void ICM42688_BF::setAccelODR(uint16_t odr_hz) {
  * @brief Set gyro full-scale range (FSR)
  * @param fsr_dps FSR in dps (250, 500, 1000, or 2000)
  */
-void ICM42688_BF::setGyroFSR(uint16_t fsr_dps) {
+void ICM42688::setGyroFSR(uint16_t fsr_dps) {
     uint8_t fsr_code;
     float scale;
     switch(fsr_dps) {
@@ -564,7 +566,7 @@ void ICM42688_BF::setGyroFSR(uint16_t fsr_dps) {
  * @brief Set accel full-scale range (FSR)
  * @param fsr_g FSR in g (2, 4, 8, or 16)
  */
-void ICM42688_BF::setAccelFSR(uint16_t fsr_g) {
+void ICM42688::setAccelFSR(uint16_t fsr_g) {
     uint8_t fsr_code;
     float scale;
     switch(fsr_g) {
@@ -595,7 +597,7 @@ void ICM42688_BF::setAccelFSR(uint16_t fsr_g) {
  *   0x0D: DELTSQR[7:0]
  *   0x0E: BITSHIFT[7:4] + DELTSQR[11:8]
  */
-void ICM42688_BF::setGyroAAF(const AAFConfig& config) {
+void ICM42688::setGyroAAF(const AAFConfig& config) {
     setUserBank(ICM426XX_BANK_SELECT1);  // Switch to Bank 1
     bus_->writeReg(0x0B, 0x01);  // Enable AAF
     bus_->writeReg(0x0C, config.delt);
@@ -613,7 +615,7 @@ void ICM42688_BF::setGyroAAF(const AAFConfig& config) {
  *   0x04: DELTSQR[7:0]
  *   0x05: BITSHIFT[7:4] + DELTSQR[11:8]
  */
-void ICM42688_BF::setAccelAAF(const AAFConfig& config) {
+void ICM42688::setAccelAAF(const AAFConfig& config) {
     setUserBank(ICM426XX_BANK_SELECT2);  // Switch to Bank 2
     bus_->writeReg(0x03, (config.delt << 1) | 0x01);  // DELT[6:1] + enable bit[0]
     bus_->writeReg(0x04, config.deltsqr & 0xFF);  // DELTSQR[7:0]
@@ -633,7 +635,7 @@ void ICM42688_BF::setAccelAAF(const AAFConfig& config) {
  *   0x51: GYRO_CONFIG1 - gyro order bits[3:2] (3=1st, 2=2nd)
  *   0x53: ACCEL_CONFIG1 - accel order bits[4:3] (3=1st, 2=2nd)
  */
-void ICM42688_BF::setUIFilters(uint8_t gyro_bw, uint8_t accel_bw, uint8_t gyro_order, uint8_t accel_order) {
+void ICM42688::setUIFilters(uint8_t gyro_bw, uint8_t accel_bw, uint8_t gyro_order, uint8_t accel_order) {
     setUserBank(ICM426XX_BANK_SELECT0);
 
     // GYRO_ACCEL_CONFIG0 (0x52): gyro BW[3:0], accel BW[7:4]
@@ -658,10 +660,35 @@ void ICM42688_BF::setUIFilters(uint8_t gyro_bw, uint8_t accel_bw, uint8_t gyro_o
  * Fix for stalls in gyro output per ArduPilot PR #25332.
  * AFSR causes sticky samples during internal range switching.
  */
-void ICM42688_BF::disableAFSR() {
+void ICM42688::disableAFSR() {
     setUserBank(ICM426XX_BANK_SELECT0);
     uint8_t intfConfig1 = bus_->readReg(ICM426XX_INTF_CONFIG1);
     intfConfig1 &= ~ICM426XX_INTF_CONFIG1_AFSR_MASK;
     intfConfig1 |= ICM426XX_INTF_CONFIG1_AFSR_DISABLE;
     bus_->writeReg(ICM426XX_INTF_CONFIG1, intfConfig1);
+}
+
+// =============================================================================
+// Interrupt Configuration
+// =============================================================================
+
+/**
+ * @brief Enable data ready interrupt on INT1 pin
+ *
+ * INT_SOURCE0 register bit 3 enables UI data ready interrupt routing to INT1.
+ * Pin characteristics (push-pull, active-high, pulsed) configured in constructor.
+ */
+void ICM42688::enableDataReadyInt1() {
+    setUserBank(ICM426XX_BANK_SELECT0);
+    bus_->writeReg(ICM426XX_RA_INT_SOURCE0, ICM426XX_UI_DRDY_INT1_EN_ENABLED);
+}
+
+/**
+ * @brief Disable data ready interrupt on INT1 pin
+ *
+ * Clears INT_SOURCE0 to disable all interrupt sources on INT1.
+ */
+void ICM42688::disableDataReadyInt1() {
+    setUserBank(ICM426XX_BANK_SELECT0);
+    bus_->writeReg(ICM426XX_RA_INT_SOURCE0, 0x00);
 }

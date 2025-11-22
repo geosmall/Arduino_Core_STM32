@@ -9,7 +9,7 @@
  * @brief Abstract base class for IMU device drivers
  *
  * Provides common interface for all device types (ICM42688, MPU6000, etc.)
- * Enables polymorphic device handling in IMU_BF facade.
+ * Enables polymorphic device handling in IMU_Driver facade.
  */
 class DeviceBase
 {

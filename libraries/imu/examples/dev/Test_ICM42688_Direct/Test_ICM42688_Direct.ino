@@ -1,7 +1,7 @@
 /*
- * ICM42688_BF Driver Test - Direct Device Access
+ * ICM42688 Driver Test - Direct Device Access
  *
- * Tests the ICM42688_BF driver (madflight pattern) with DeviceBus abstraction.
+ * Tests the ICM42688 driver (madflight pattern) with DeviceBus abstraction.
  * Factory pattern: detect() returns nullptr if not found, or initialized instance.
  *
  * Hardware Setup:
@@ -17,8 +17,8 @@
 #include <IMU.h>  // This triggers compilation of all imu library .cpp files
 
 // Direct access to internal components (normally not needed by users)
-#include "../../src/bus/DeviceBusSPI.h"
-#include "../../src/devices/ICM42688_BF.h"
+#include "../../../src/bus/DeviceBusSPI.h"
+#include "../../../src/devices/ICM42688.h"
 
 // Board configuration - NUCLEO_F411RE ONLY
 #if defined(ARDUINO_NUCLEO_F411RE)
@@ -41,7 +41,7 @@ SPIClass spi_bus(BoardConfig::imu.spi.mosi_pin,
                  BoardConfig::imu.spi.get_ssel_pin());
 
 DeviceBusSPI* bus = nullptr;
-ICM42688_BF* imu = nullptr;
+ICM42688* imu = nullptr;
 
 void setup() {
 #ifndef USE_RTT
@@ -49,7 +49,7 @@ void setup() {
   while (!Serial && millis() < 3000);
 #endif
 
-  CI_LOG("=== ICM42688_BF Driver Test ===\n");
+  CI_LOG("=== ICM42688 Driver Test ===\n");
   CI_BUILD_INFO();
   CI_READY_TOKEN();
 
@@ -72,7 +72,7 @@ void setup() {
 
   // Detect IMU (factory pattern)
   CI_LOG("Detecting IMU...\n");
-  imu = ICM42688_BF::detect(bus);
+  imu = ICM42688::detect(bus);
 
   if (!imu) {
     CI_LOG("✗ IMU detection failed\n");

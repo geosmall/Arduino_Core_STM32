@@ -26,23 +26,23 @@ IMU::Result IMU::Init(SPIClass& spi, uint32_t cs_pin, uint32_t spi_freq_hz)
     // Initialize SPI
     p_spi_->begin();
 
-    // Create DeviceBus for BF driver
+    // Create DeviceBus for driver
     device_bus_ = new DeviceBusSPI(&spi, cs_pin);
     if (!device_bus_) {
         return Result::ERR;
     }
     device_bus_->setFreq(spi_freq_hz);
 
-    // Detect and initialize ICM42688 using BF driver
-    bf_driver_ = ICM42688_BF::detect(device_bus_);
-    if (!bf_driver_) {
+    // Detect and initialize ICM42688 using driver
+    driver_ = ICM42688::detect(device_bus_);
+    if (!driver_) {
         delete device_bus_;
         device_bus_ = nullptr;
         return Result::ERR;
     }
 
     // Apply default BALANCED preset (recommended for 2kHz PID loop)
-    bf_driver_->applyPreset(ImuPreset::FILTER_BALANCED);
+    driver_->applyPreset(ImuPreset::FILTER_BALANCED);
 
     // Set default sensitivity values for ±2000dps/±16g (preset default)
     gyro_sensitivity_ = ICM42688P_GYRO_SENS_2000;
@@ -58,7 +58,7 @@ IMU::Result IMU::Init(SPIClass& spi, uint32_t cs_pin, uint32_t spi_freq_hz)
 
 IMU::Result IMU::ApplyPreset(Preset preset)
 {
-    if (!initialized_ || !bf_driver_) {
+    if (!initialized_ || !driver_) {
         return Result::ERR;
     }
 
@@ -66,7 +66,7 @@ IMU::Result IMU::ApplyPreset(Preset preset)
     ImuPreset driver_preset = static_cast<ImuPreset>(preset);
 
     // Apply preset and verify configuration (returns false if verification fails)
-    if (!bf_driver_->applyPreset(driver_preset)) {
+    if (!driver_->applyPreset(driver_preset)) {
         return Result::ERR;
     }
 
@@ -144,14 +144,14 @@ IMU::Result IMU::ConfigureInvDevice(AccelFS acc_fsr_g, GyroFS gyr_fsr_dps,
 
 int IMU::Reset()
 {
-    // Reset not implemented in BF driver - use Init() for full re-initialization
+    // Reset not implemented in driver - use Init() for full re-initialization
     if (!initialized_) return -1;
     return 0;
 }
 
 int IMU::SetPwrState(PwrState state)
 {
-    // Power state management handled internally by BF driver
+    // Power state management handled internally by driver
     // Sensors are enabled during detect() and preset application
     if (!initialized_) return -1;
     (void)state;
@@ -256,7 +256,7 @@ int IMU::SetGyroFSR(GyroFS fsr)
 
 // AAF lookup table for ICM-42688-P (from Betaflight)
 // Index: 0=258Hz, 1=536Hz, 2=997Hz, 3=1962Hz
-static const ICM42688_BF::AAFConfig aafPresets[] = {
+static const ICM42688::AAFConfig aafPresets[] = {
     {  6,   36, 10 },  // 0: 258 Hz (Betaflight default)
     { 12,  144,  8 },  // 1: 536 Hz
     { 21,  440,  6 },  // 2: 997 Hz
@@ -266,43 +266,43 @@ static constexpr uint8_t AAF_PRESET_COUNT = sizeof(aafPresets) / sizeof(aafPrese
 
 int IMU::SetGyroAAF(uint8_t aaf_index)
 {
-    if (!initialized_ || !bf_driver_) return -1;
+    if (!initialized_ || !driver_) return -1;
     if (aaf_index >= AAF_PRESET_COUNT) return -1;
 
-    bf_driver_->setGyroAAF(aafPresets[aaf_index]);
+    driver_->setGyroAAF(aafPresets[aaf_index]);
     return 0;
 }
 
 int IMU::SetAccelAAF(uint8_t aaf_index)
 {
-    if (!initialized_ || !bf_driver_) return -1;
+    if (!initialized_ || !driver_) return -1;
     if (aaf_index >= AAF_PRESET_COUNT) return -1;
 
-    bf_driver_->setAccelAAF(aafPresets[aaf_index]);
+    driver_->setAccelAAF(aafPresets[aaf_index]);
     return 0;
 }
 
 int IMU::SetUIFilters(uint8_t gyro_bw, uint8_t accel_bw, uint8_t gyro_order, uint8_t accel_order)
 {
-    if (!initialized_ || !bf_driver_) return -1;
+    if (!initialized_ || !driver_) return -1;
 
     // Validate parameters
     if (gyro_bw > 15 || accel_bw > 15) return -1;
     if (gyro_order < 1 || gyro_order > 3) return -1;
     if (accel_order < 1 || accel_order > 3) return -1;
 
-    bf_driver_->setUIFilters(gyro_bw, accel_bw, gyro_order, accel_order);
+    driver_->setUIFilters(gyro_bw, accel_bw, gyro_order, accel_order);
     return 0;
 }
 
 IMU::ChipType IMU::GetChipType()
 {
-    if (!initialized_ || !bf_driver_) {
+    if (!initialized_ || !driver_) {
         return ChipType::UNKNOWN;
     }
 
-    // BF driver stores WHO_AM_I in base class
-    uint8_t who_am_i = bf_driver_->whoAmI_;
+    // driver stores WHO_AM_I in base class
+    uint8_t who_am_i = driver_->whoAmI_;
 
     // Map WHO_AM_I value to ChipType enum
     switch (who_am_i) {
@@ -315,25 +315,24 @@ IMU::ChipType IMU::GetChipType()
 
 int IMU::EnableDataReadyInt1()
 {
-    // Interrupt configuration not implemented in simplified BF driver
-    // Use polling with ReadIMU6() instead
-    if (!initialized_) return -1;
-    return -1;  // Not supported
+    if (!initialized_ || !driver_) return -1;
+    driver_->enableDataReadyInt1();
+    return 0;
 }
 
 int IMU::DisableDataReadyInt1()
 {
-    // Interrupt configuration not implemented in simplified BF driver
-    if (!initialized_) return -1;
-    return -1;  // Not supported
+    if (!initialized_ || !driver_) return -1;
+    driver_->disableDataReadyInt1();
+    return 0;
 }
 
 int IMU::ReadIMU6(std::array<int16_t, 6>& buf)
 {
-    if (!initialized_ || !bf_driver_) return -1;
+    if (!initialized_ || !driver_) return -1;
 
-    // Use BF driver's read method
-    bf_driver_->read(buf.data());
+    // Use driver's read method
+    driver_->read(buf.data());
     return 0;
 }
 

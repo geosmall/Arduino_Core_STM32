@@ -52,11 +52,11 @@ This library contains code derived from [Betaflight](https://github.com/betaflig
 ## Usage
 
 ```cpp
-#include <IMU_BF.h>
+#include <IMU_Driver.h>
 #include <SPI.h>
 
 SPIClass spi_bus(MOSI, MISO, SCK);
-IMU_BF imu;
+IMU_Driver imu;
 
 void setup() {
   spi_bus.begin();

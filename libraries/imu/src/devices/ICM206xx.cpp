@@ -21,7 +21,7 @@
  * 5. Uses MPU_Common.h for shared register definitions
  */
 
-#include "ICM206xx_BF.h"
+#include "ICM206xx.h"
 #include "MPU_Common.h"
 #include <Arduino.h>
 
@@ -51,7 +51,7 @@
 #define ACCEL_SCALE_16G             (1.0f / 2048.0f)  // G/LSB
 
 // Protected constructor - performs full initialization
-ICM206xx_BF::ICM206xx_BF(DeviceBus* bus, uint8_t whoAmI)
+ICM206xx::ICM206xx(DeviceBus* bus, uint8_t whoAmI)
     : bus_(bus), whoAmI_(whoAmI)
 {
     // Set max SPI frequency
@@ -85,7 +85,7 @@ ICM206xx_BF::ICM206xx_BF(DeviceBus* bus, uint8_t whoAmI)
 }
 
 // Factory pattern detect() - returns nullptr if not detected
-ICM206xx_BF* ICM206xx_BF::detect(DeviceBus* bus)
+ICM206xx* ICM206xx::detect(DeviceBus* bus)
 {
     // Reset the device (Betaflight: icm20689SpiDetect)
     bus->writeReg(MPU_RA_PWR_MGMT_1, MPU9250_BIT_RESET);
@@ -110,7 +110,7 @@ ICM206xx_BF* ICM206xx_BF::detect(DeviceBus* bus)
                 delay(ICM20689_PATH_RESET_DELAY_MS);
 
                 // Create and return device instance
-                return new ICM206xx_BF(bus, whoAmI);
+                return new ICM206xx(bus, whoAmI);
 
             default:
                 // Not recognized, try again
@@ -124,7 +124,7 @@ ICM206xx_BF* ICM206xx_BF::detect(DeviceBus* bus)
 }
 
 // Read gyro and accel data (DeviceBase interface)
-void ICM206xx_BF::read(int16_t* accgyr)
+void ICM206xx::read(int16_t* accgyr)
 {
     // Read 14 bytes: ax, ay, az, temp, gx, gy, gz (big-endian)
     // Same format as MPU6000/MPU9250
@@ -142,7 +142,7 @@ void ICM206xx_BF::read(int16_t* accgyr)
 }
 
 // Type name (DeviceBase interface)
-const char* ICM206xx_BF::typeName() const
+const char* ICM206xx::typeName() const
 {
     switch (whoAmI_) {
         case ICM20601_WHO_AM_I_CONST:

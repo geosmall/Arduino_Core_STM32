@@ -25,7 +25,7 @@
  * along with this software. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "MPU6000_BF.h"
+#include "MPU6000.h"
 #include "MPU_Common.h"
 
 // ============================================================================
@@ -45,10 +45,10 @@
 #define MPU6000_REV_D10         0x5A
 
 // ============================================================================
-// MPU6000_BF Implementation
+// MPU6000 Implementation
 // ============================================================================
 
-MPU6000_BF::MPU6000_BF(DeviceBus* bus, uint8_t whoAmI)
+MPU6000::MPU6000(DeviceBus* bus, uint8_t whoAmI)
     : bus_(bus)
 {
     whoAmI_ = whoAmI;
@@ -94,7 +94,7 @@ MPU6000_BF::MPU6000_BF(DeviceBus* bus, uint8_t whoAmI)
     samplingRateHz_ = 1000;       // 1 kHz
 }
 
-MPU6000_BF* MPU6000_BF::detect(DeviceBus* bus)
+MPU6000* MPU6000::detect(DeviceBus* bus)
 {
     if (!bus) {
         return nullptr;
@@ -143,10 +143,10 @@ MPU6000_BF* MPU6000_BF::detect(DeviceBus* bus)
     }
 
     // Create and initialize device
-    return new MPU6000_BF(bus, whoAmI);
+    return new MPU6000(bus, whoAmI);
 }
 
-void MPU6000_BF::read(int16_t* accgyr)
+void MPU6000::read(int16_t* accgyr)
 {
     // Read 14 bytes: AX_H, AX_L, AY_H, AY_L, AZ_H, AZ_L, TEMP_H, TEMP_L, GX_H, GX_L, GY_H, GY_L, GZ_H, GZ_L
     uint8_t buf[14];
@@ -162,7 +162,7 @@ void MPU6000_BF::read(int16_t* accgyr)
     accgyr[5] = (int16_t)((buf[12] << 8) | buf[13]); // Gyro Z
 }
 
-const char* MPU6000_BF::typeName() const
+const char* MPU6000::typeName() const
 {
     return "MPU6000";
 }

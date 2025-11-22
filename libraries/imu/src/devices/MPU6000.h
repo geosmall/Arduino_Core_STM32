@@ -23,22 +23,22 @@
  * Supports MPU-6000 and MPU-6050 IMUs using Betaflight's proven driver.
  * Uses factory pattern for detection and constructor-based initialization.
  */
-class MPU6000_BF : public DeviceBase {
+class MPU6000 : public DeviceBase {
 protected:
     /**
      * @brief Protected constructor - use detect() factory method
      * @param bus Pointer to DeviceBus instance
      * @param whoAmI WHO_AM_I register value (0x68)
      */
-    MPU6000_BF(DeviceBus* bus, uint8_t whoAmI);
+    MPU6000(DeviceBus* bus, uint8_t whoAmI);
 
 public:
     /**
      * @brief Factory method - detect and initialize MPU6000
      * @param bus Pointer to DeviceBus instance
-     * @return Pointer to MPU6000_BF instance or nullptr if not detected
+     * @return Pointer to MPU6000 instance or nullptr if not detected
      */
-    static MPU6000_BF* detect(DeviceBus* bus);
+    static MPU6000* detect(DeviceBus* bus);
 
     /**
      * @brief Read gyro and accel data (6 int16_t values)

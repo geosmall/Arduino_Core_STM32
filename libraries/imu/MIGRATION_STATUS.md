@@ -4,21 +4,21 @@
 
 **Goal**: Eliminate TDK driver dependency from IMU.cpp/.h, use only internal Betaflight-based drivers with preset-based configuration.
 
-**Current Phase**: Phase 1 - ICM42688_BF Extension (75% complete)
+**Current Phase**: Phase 1 - ICM42688 Extension (75% complete)
 
 **Timeline**: 11-16 days total, ~3 days elapsed
 
 ## Completed Work
 
 ### ✅ Phase 1.1: Preset Infrastructure (COMPLETED)
-- Added `ImuPreset` enum to ICM42688_BF.h (SAFE/SMOOTH/BALANCED/ACRO)
-- Created `ICM42688PresetConfig` structure in ICM42688_BF.cpp
+- Added `ImuPreset` enum to ICM42688.h (SAFE/SMOOTH/BALANCED/ACRO)
+- Created `ICM42688PresetConfig` structure in ICM42688.cpp
 - Implemented preset LUT with 4 configurations matching imu_hal.md specification
 - All presets use ±2000dps/±16g FSR per imu_hal.md lines 20-21
 
 ### ✅ Phase 1.2: Public Preset API (COMPLETED)
-- Added public `applyPreset(ImuPreset preset)` method to ICM42688_BF.h
-- Implemented `applyPreset()` in ICM42688_BF.cpp with proper sequencing:
+- Added public `applyPreset(ImuPreset preset)` method to ICM42688.h
+- Implemented `applyPreset()` in ICM42688.cpp with proper sequencing:
   1. Set ODR (gyro + accel)
   2. Set FSR (gyro + accel)
   3. Configure AAF filters (gyro + accel, bank switching)
@@ -26,7 +26,7 @@
   5. Update samplingRateHz_ member
 
 ### ✅ Phase 1.3: Protected Low-Level Config Methods (COMPLETED)
-Implemented 8 protected configuration methods in ICM42688_BF.cpp:
+Implemented 8 protected configuration methods in ICM42688.cpp:
 
 1. **`setGyroODR(uint16_t odr_hz)`** - Gyro ODR with non-sequential encoding
    - 8kHz=0x03, 4kHz=0x05, 2kHz=0x06, 1kHz=0x07
@@ -93,7 +93,7 @@ Implemented 8 protected configuration methods in ICM42688_BF.cpp:
 1. Analyze TDK self-test implementation structure
 2. Extract factory algorithm functions
 3. Adapt to Betaflight DeviceBus abstraction
-4. Create `runSelfTest()` method in ICM42688_BF
+4. Create `runSelfTest()` method in ICM42688
 5. Add self-test example sketch
 6. Validate against TDK reference output
 
@@ -106,7 +106,7 @@ Implemented 8 protected configuration methods in ICM42688_BF.cpp:
 **Objective**: Replace TDK driver calls with Betaflight driver + preset API.
 
 **Key Changes**:
-- Replace TDK `inv_icm426xx_*` calls with BF driver methods
+- Replace TDK `inv_icm426xx_*` calls with driver methods
 - Update `Init()` to use `applyPreset()`
 - Remove TDK-specific enums, replace with numeric constants
 - Update `RunSelfTest()` to call BF self-test method
@@ -116,14 +116,14 @@ Implemented 8 protected configuration methods in ICM42688_BF.cpp:
 
 ### 📋 Phase 3: Add Preset Support to Other Drivers (2-3 days)
 
-**Objective**: Extend MPU6000_BF, MPU9250_BF, ICM206xx_BF with preset support.
+**Objective**: Extend MPU6000, MPU9250, ICM206xx with preset support.
 
 **Drivers to Update**:
-1. **MPU6000_BF** - Classic DLPF, divider always active
-2. **MPU9250_BF** - MPU-6500-class, divider only with DLPF engaged
-3. **ICM206xx_BF** - Wide/bypass mode, software decimation required
+1. **MPU6000** - Classic DLPF, divider always active
+2. **MPU9250** - MPU-6500-class, divider only with DLPF engaged
+3. **ICM206xx** - Wide/bypass mode, software decimation required
 
-**Pattern**: Apply same LUT-based preset approach as ICM42688_BF
+**Pattern**: Apply same LUT-based preset approach as ICM42688
 
 **Not Started**
 
@@ -180,7 +180,7 @@ imu.Init(spi, cs_pin, 1000000);
 // TDK driver auto-configures with hardcoded settings
 ```
 
-**After** (BF driver + presets):
+**After** (driver + presets):
 ```cpp
 IMU imu;
 imu.Init(spi, cs_pin, 1000000);
@@ -202,8 +202,8 @@ libraries/imu/
 ├── MIGRATION_PLAN.md                 # NEW: Complete migration plan
 ├── MIGRATION_STATUS.md               # NEW: This status document
 └── src/devices/
-    ├── ICM42688_BF.h                 # Added ImuPreset enum, applyPreset(), protected methods
-    └── ICM42688_BF.cpp               # Added preset LUT, applyPreset(), 8 config methods
+    ├── ICM42688.h                 # Added ImuPreset enum, applyPreset(), protected methods
+    └── ICM42688.cpp               # Added preset LUT, applyPreset(), 8 config methods
 ```
 
 ### Pending Changes (Phase 2+)
@@ -211,11 +211,11 @@ libraries/imu/
 libraries/imu/
 ├── src/
 │   ├── IMU.h                         # Remove TDK includes, add preset API
-│   ├── IMU.cpp                       # Replace TDK calls with BF driver
+│   ├── IMU.cpp                       # Replace TDK calls with driver
 │   └── devices/
-│       ├── MPU6000_BF.h/.cpp         # Add preset support
-│       ├── MPU9250_BF.h/.cpp         # Add preset support
-│       └── ICM206xx_BF.h/.cpp        # Add preset support
+│       ├── MPU6000.h/.cpp         # Add preset support
+│       ├── MPU9250.h/.cpp         # Add preset support
+│       └── ICM206xx.h/.cpp        # Add preset support
 └── examples/
     ├── AutoDetect_Single/            # Update to use presets
     ├── AutoDetect_Multiple/          # Update to use presets
@@ -256,7 +256,7 @@ libraries/imu/
 | 1.3 | Protected config methods | 1 day | ✅ COMPLETED |
 | 1.4 | Extract/adapt self-test | 3-4 days | 🔄 IN PROGRESS |
 | 2 | Update IMU.cpp/.h | 2-3 days | 📋 PENDING |
-| 3 | Extend other BF drivers | 2-3 days | 📋 PENDING |
+| 3 | Extend other drivers | 2-3 days | 📋 PENDING |
 | 4 | Testing and validation | 2-3 days | 📋 PENDING |
 | **Total** | | **11-16 days** | **~20% complete** |
 
@@ -267,11 +267,11 @@ libraries/imu/
 **Context**:
 - TDK self-test source: `libraries/ICM42688P/src/Invn/Drivers/Icm426xx/Icm426xxSelfTest.c`
 - Reference example: `libraries/ICM42688P/examples/example-selftest/example-selftest.c`
-- Goal: Port factory algorithms to BF driver while preserving 100% test logic
+- Goal: Port factory algorithms to driver while preserving 100% test logic
 
 **Immediate Next Steps**:
 1. Read and analyze TDK self-test implementation
 2. Identify factory algorithm functions to preserve
-3. Design BF driver integration (DeviceBus abstraction)
-4. Implement `runSelfTest()` method in ICM42688_BF
+3. Design driver integration (DeviceBus abstraction)
+4. Implement `runSelfTest()` method in ICM42688
 5. Create validation example sketch

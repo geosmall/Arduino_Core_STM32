@@ -1,7 +1,7 @@
 /*
  * AutoDetect_Single - IMU Facade API Example
  *
- * Demonstrates the high-level IMU_BF facade with auto-detection.
+ * Demonstrates the high-level IMU_Driver facade with auto-detection.
  *
  * Hardware Setup:
  *   - Uses BoardConfig for automatic board detection
@@ -23,7 +23,7 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <ci_log.h>
-#include <IMU_BF.h>
+#include <IMU_Driver.h>
 
 // Board configuration - Multi-board support
 #if defined(ARDUINO_BKMN_NERO)
@@ -48,7 +48,7 @@ SPIClass spi_bus(BoardConfig::imu.spi.mosi_pin,
                  BoardConfig::imu.spi.get_ssel_pin());
 
 // Create IMU facade
-IMU_BF imu;
+IMU_Driver imu;
 
 void setup()
 {
@@ -58,7 +58,7 @@ void setup()
     while (!Serial && millis() < 3000);
 #endif
 
-    CI_LOG("=== IMU_BF Facade Test ===\n");
+    CI_LOG("=== IMU_Driver Facade Test ===\n");
     CI_BUILD_INFO();
     CI_READY_TOKEN();
 

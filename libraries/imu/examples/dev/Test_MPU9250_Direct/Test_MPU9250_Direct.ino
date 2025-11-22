@@ -1,7 +1,7 @@
 /*
- * Test_MPU9250_Direct - Direct MPU9250_BF Driver Test
+ * Test_MPU9250_Direct - Direct MPU9250 Driver Test
  *
- * Tests MPU9250_BF driver directly (bypassing IMU_BF facade).
+ * Tests MPU9250 driver directly (bypassing IMU_Driver facade).
  * Validates WHO_AM_I detection, initialization, and data streaming.
  *
  * Hardware Setup:
@@ -15,10 +15,10 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <ci_log.h>
-#include <IMU_BF.h>  // This will trigger library detection
+#include <IMU_Driver.h>  // This will trigger library detection
 // Direct access to internal classes
-#include "../../src/bus/DeviceBusSPI.h"
-#include "../../src/devices/MPU9250_BF.h"
+#include "../../../src/bus/DeviceBusSPI.h"
+#include "../../../src/devices/MPU9250.h"
 
 // Board configuration - BlackPill F411CE ONLY
 #if defined(ARDUINO_BLACKPILL_F411CE)
@@ -42,7 +42,7 @@ SPIClass spi_bus(BoardConfig::imu.spi.mosi_pin,
 
 // Create SPI bus wrapper
 DeviceBusSPI* bus = nullptr;
-MPU9250_BF* mpu = nullptr;
+MPU9250* mpu = nullptr;
 
 void setup()
 {
@@ -52,7 +52,7 @@ void setup()
     while (!Serial && millis() < 3000);
 #endif
 
-    CI_LOG("=== MPU9250_BF Direct Driver Test ===\n");
+    CI_LOG("=== MPU9250 Direct Driver Test ===\n");
     CI_BUILD_INFO();
     CI_READY_TOKEN();
 
@@ -73,7 +73,7 @@ void setup()
     CI_LOG("Attempting MPU9250/MPU9255 detection...\n");
 
     // Detect MPU9250 (factory pattern with 20 retries built-in)
-    mpu = MPU9250_BF::detect(bus);
+    mpu = MPU9250::detect(bus);
 
     if (!mpu) {
         CI_LOG("*FAIL* MPU9250/MPU9255 detection failed\n");

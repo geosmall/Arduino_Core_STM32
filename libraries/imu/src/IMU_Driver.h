@@ -12,10 +12,10 @@
 #include "bus/DeviceBusSPI.h"
 #include "bus/DeviceBusI2C.h"
 #include "devices/DeviceBase.h"
-#include "devices/ICM42688_BF.h"
-#include "devices/MPU6000_BF.h"
-#include "devices/MPU9250_BF.h"
-#include "devices/ICM206xx_BF.h"
+#include "devices/ICM42688.h"
+#include "devices/MPU6000.h"
+#include "devices/MPU9250.h"
+#include "devices/ICM206xx.h"
 
 /**
  * @brief High-level IMU facade with auto-detection
@@ -24,7 +24,7 @@
  * Supports auto-detection and multiple device families.
  *
  * Usage:
- *   IMU_BF imu;
+ *   IMU_Driver imu;
  *   imu.attachSPI(SPI, PA4);
  *   if (imu.begin()) {
  *     ImuSample sample;
@@ -33,18 +33,18 @@
  *     }
  *   }
  */
-class IMU_BF
+class IMU_Driver
 {
 public:
     /**
      * @brief Construct IMU facade
      */
-    IMU_BF();
+    IMU_Driver();
 
     /**
      * @brief Destructor - cleanup bus and device
      */
-    ~IMU_BF();
+    ~IMU_Driver();
 
     /**
      * @brief Attach SPI bus for communication
@@ -107,6 +107,6 @@ private:
     bool autoDetect();
 
     // Prevent copying
-    IMU_BF(const IMU_BF&) = delete;
-    IMU_BF& operator=(const IMU_BF&) = delete;
+    IMU_Driver(const IMU_Driver&) = delete;
+    IMU_Driver& operator=(const IMU_Driver&) = delete;
 };

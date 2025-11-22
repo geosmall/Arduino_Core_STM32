@@ -1,7 +1,7 @@
 /*
- * Test_MPU6000_Direct - Direct MPU6000_BF Driver Test
+ * Test_MPU6000_Direct - Direct MPU6000 Driver Test
  *
- * Tests MPU6000_BF driver directly (bypassing IMU_BF facade).
+ * Tests MPU6000 driver directly (bypassing IMU_Driver facade).
  * Validates WHO_AM_I detection, initialization, and data streaming.
  *
  * Hardware Setup:
@@ -15,10 +15,10 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <ci_log.h>
-#include <IMU_BF.h>  // This will trigger library detection
+#include <IMU_Driver.h>  // This will trigger library detection
 // Direct access to internal classes
-#include "../../src/bus/DeviceBusSPI.h"
-#include "../../src/devices/MPU6000_BF.h"
+#include "../../../src/bus/DeviceBusSPI.h"
+#include "../../../src/devices/MPU6000.h"
 
 // Board configuration - NUCLEO_F411RE ONLY
 #if defined(ARDUINO_NUCLEO_F411RE)
@@ -42,7 +42,7 @@ SPIClass spi_bus(BoardConfig::imu.spi.mosi_pin,
 
 // Create SPI bus wrapper
 DeviceBusSPI* bus = nullptr;
-MPU6000_BF* mpu = nullptr;
+MPU6000* mpu = nullptr;
 
 void setup()
 {
@@ -52,7 +52,7 @@ void setup()
     while (!Serial && millis() < 3000);
 #endif
 
-    CI_LOG("=== MPU6000_BF Direct Driver Test ===\n");
+    CI_LOG("=== MPU6000 Direct Driver Test ===\n");
     CI_BUILD_INFO();
     CI_READY_TOKEN();
 
@@ -74,7 +74,7 @@ void setup()
 
     // Detect MPU6000 (factory pattern with 20 retries)
     for (int attempt = 0; attempt < 20 && !mpu; attempt++) {
-        mpu = MPU6000_BF::detect(bus);
+        mpu = MPU6000::detect(bus);
         if (!mpu) {
             delay(150);
         }

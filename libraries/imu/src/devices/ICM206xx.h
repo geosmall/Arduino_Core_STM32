@@ -1,5 +1,5 @@
 /*
- * ICM206xx_BF.h - ICM-206xx IMU Driver (Betaflight-based, Madflight pattern)
+ * ICM206xx.h - ICM-206xx IMU Driver (Betaflight-based, Madflight pattern)
  *
  * Supports: ICM-20601, ICM-20602, ICM-20608G, ICM-20689
  *
@@ -25,14 +25,14 @@
 #include "DeviceBase.h"
 #include <stdint.h>
 
-class ICM206xx_BF : public DeviceBase {
+class ICM206xx : public DeviceBase {
 protected:
     // Protected constructor - initialization happens here
-    ICM206xx_BF(DeviceBus* bus, uint8_t whoAmI);
+    ICM206xx(DeviceBus* bus, uint8_t whoAmI);
 
 public:
     // Factory pattern - returns nullptr if not detected
-    static ICM206xx_BF* detect(DeviceBus* bus);
+    static ICM206xx* detect(DeviceBus* bus);
 
     // DeviceBase interface implementation
     void read(int16_t* accgyr) override;

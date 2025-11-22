@@ -1,7 +1,7 @@
 // Arduino_Core_STM32 IMU Library - Betaflight Driver Facade
 // Implementation of high-level API
 
-#include "IMU_BF.h"
+#include "IMU_Driver.h"
 
 // Gravity constant for m/s² conversion
 static constexpr float GRAVITY = 9.80665f;
@@ -9,14 +9,14 @@ static constexpr float GRAVITY = 9.80665f;
 // Degrees to radians conversion (renamed to avoid Arduino core conflict)
 static constexpr float IMU_DEG_TO_RAD = 0.017453292519943295f;
 
-IMU_BF::IMU_BF()
+IMU_Driver::IMU_Driver()
     : bus_(nullptr)
     , device_(nullptr)
     , detected_type_(ImuType::Unknown)
 {
 }
 
-IMU_BF::~IMU_BF()
+IMU_Driver::~IMU_Driver()
 {
     // Delete device first (uses bus)
     if (device_ != nullptr) {
@@ -31,7 +31,7 @@ IMU_BF::~IMU_BF()
     }
 }
 
-void IMU_BF::attachSPI(SPIClass& spi, uint8_t csPin, uint32_t freq_hz)
+void IMU_Driver::attachSPI(SPIClass& spi, uint8_t csPin, uint32_t freq_hz)
 {
     // Clean up existing bus if present
     if (bus_ != nullptr) {
@@ -43,7 +43,7 @@ void IMU_BF::attachSPI(SPIClass& spi, uint8_t csPin, uint32_t freq_hz)
     bus_->setFreq(freq_hz);
 }
 
-void IMU_BF::attachI2C(TwoWire& wire, uint8_t addr)
+void IMU_Driver::attachI2C(TwoWire& wire, uint8_t addr)
 {
     // Clean up existing bus if present
     if (bus_ != nullptr) {
@@ -54,7 +54,7 @@ void IMU_BF::attachI2C(TwoWire& wire, uint8_t addr)
     bus_ = new DeviceBusI2C(&wire, addr);
 }
 
-bool IMU_BF::begin(ImuType type)
+bool IMU_Driver::begin(ImuType type)
 {
     // Validate bus is attached
     if (bus_ == nullptr) {
@@ -77,10 +77,10 @@ bool IMU_BF::begin(ImuType type)
     return autoDetect();
 }
 
-bool IMU_BF::autoDetect()
+bool IMU_Driver::autoDetect()
 {
     // Try ICM42688 family detection (supports 0x42, 0x47, 0x56)
-    device_ = ICM42688_BF::detect(bus_);
+    device_ = ICM42688::detect(bus_);
 
     if (device_ != nullptr) {
         // Map WHO_AM_I to ImuType enum
@@ -102,23 +102,23 @@ bool IMU_BF::autoDetect()
     }
 
     // Try MPU6000 detection (WHO_AM_I = 0x68)
-    device_ = MPU6000_BF::detect(bus_);
+    device_ = MPU6000::detect(bus_);
     if (device_ != nullptr) {
         detected_type_ = ImuType::MPU6000;
         return true;
     }
 
     // Try MPU9250 detection (WHO_AM_I = 0x71 or 0x73)
-    device_ = MPU9250_BF::detect(bus_);
+    device_ = MPU9250::detect(bus_);
     if (device_ != nullptr) {
-        // MPU9250_BF distinguishes between MPU9250 (0x71) and MPU9255 (0x73)
+        // MPU9250 distinguishes between MPU9250 (0x71) and MPU9255 (0x73)
         // For ImuType enum, we use MPU9250 for both
         detected_type_ = ImuType::MPU9250;
         return true;
     }
 
     // Try ICM206xx family detection (WHO_AM_I = 0xAC, 0x12, 0x98)
-    device_ = ICM206xx_BF::detect(bus_);
+    device_ = ICM206xx::detect(bus_);
     if (device_ != nullptr) {
         // Map WHO_AM_I to ImuType enum
         switch (device_->whoAmI_) {
@@ -142,7 +142,7 @@ bool IMU_BF::autoDetect()
     return false;
 }
 
-bool IMU_BF::read(ImuSample& sample)
+bool IMU_Driver::read(ImuSample& sample)
 {
     // Check if device is initialized
     if (device_ == nullptr) {
@@ -168,7 +168,7 @@ bool IMU_BF::read(ImuSample& sample)
     return true;
 }
 
-const char* IMU_BF::typeName() const
+const char* IMU_Driver::typeName() const
 {
     // Return name from active device (polymorphic call)
     if (device_ != nullptr) {

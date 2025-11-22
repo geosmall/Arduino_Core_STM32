@@ -1,6 +1,6 @@
 # IMU Library Examples
 
-This folder contains examples demonstrating the IMU_BF facade library for STM32 Arduino.
+This folder contains examples demonstrating the IMU_Driver facade library for STM32 Arduino.
 
 ## User-Facing Examples
 
@@ -246,14 +246,14 @@ CS           →  PB12 (Software CS)
 
 ### Facade Pattern (AutoDetect_Single)
 ```cpp
-#include <IMU_BF.h>
+#include <IMU_Driver.h>
 #include <SPI.h>
 
 SPIClass spi_bus(BoardConfig::imu.spi.mosi_pin,
                  BoardConfig::imu.spi.miso_pin,
                  BoardConfig::imu.spi.sclk_pin,
                  BoardConfig::imu.spi.get_ssel_pin());
-IMU_BF imu;
+IMU_Driver imu;
 
 void setup() {
   spi_bus.begin();
@@ -345,7 +345,7 @@ void loop() {
 
 ## References
 
-- **IMU_BF Library**: `libraries/imu/src/IMU_BF.h` (facade)
+- **IMU_Driver Library**: `libraries/imu/src/IMU_Driver.h` (facade)
 - **IMU Library**: `libraries/imu/src/IMU.h` (wrapper)
 - **Device Drivers**: `libraries/imu/src/devices/` (Betaflight drivers)
 - **Board Configurations**: `targets/` directory

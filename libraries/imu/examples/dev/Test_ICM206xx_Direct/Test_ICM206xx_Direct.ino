@@ -1,7 +1,7 @@
 /*
- * Test_ICM206xx_Direct - Direct ICM206xx_BF Driver Test
+ * Test_ICM206xx_Direct - Direct ICM206xx Driver Test
  *
- * Tests ICM206xx_BF driver directly (bypassing IMU_BF facade).
+ * Tests ICM206xx driver directly (bypassing IMU_Driver facade).
  * Validates WHO_AM_I detection, initialization, and data streaming.
  *
  * Supported Devices:
@@ -21,10 +21,10 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <ci_log.h>
-#include <IMU_BF.h>  // This will trigger library detection
+#include <IMU_Driver.h>  // This will trigger library detection
 // Direct access to internal classes
-#include "../../src/bus/DeviceBusSPI.h"
-#include "../../src/devices/ICM206xx_BF.h"
+#include "../../../src/bus/DeviceBusSPI.h"
+#include "../../../src/devices/ICM206xx.h"
 
 // Board configuration - Multi-board support
 #if defined(STM32F722xx)
@@ -52,7 +52,7 @@ SPIClass spi_bus(BoardConfig::imu.spi.mosi_pin,
 
 // Create SPI bus wrapper
 DeviceBusSPI* bus = nullptr;
-ICM206xx_BF* imu = nullptr;
+ICM206xx* imu = nullptr;
 
 void setup()
 {
@@ -62,7 +62,7 @@ void setup()
     while (!Serial && millis() < 3000);
 #endif
 
-    CI_LOG("=== ICM206xx_BF Direct Driver Test ===\n");
+    CI_LOG("=== ICM206xx Direct Driver Test ===\n");
     CI_BUILD_INFO();
     CI_READY_TOKEN();
 
@@ -83,7 +83,7 @@ void setup()
     CI_LOG("Attempting ICM206xx detection...\n");
 
     // Detect ICM206xx (factory pattern with 20 retries)
-    imu = ICM206xx_BF::detect(bus);
+    imu = ICM206xx::detect(bus);
 
     if (!imu) {
         CI_LOG("*FAIL* ICM206xx detection failed\n");

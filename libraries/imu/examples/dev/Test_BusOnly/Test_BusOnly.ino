@@ -16,7 +16,7 @@
 #include <ci_log.h>
 
 // Include bus abstraction from library src
-#include "../../src/bus/DeviceBusSPI.h"
+#include "../../../src/bus/DeviceBusSPI.h"
 
 // Pin configuration for NUCLEO_F411RE
 namespace BoardConfig {

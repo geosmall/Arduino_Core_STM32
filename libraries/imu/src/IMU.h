@@ -7,7 +7,7 @@
 #include <SPI.h>
 #include <Arduino.h>
 #include "bus/DeviceBusSPI.h"     // DeviceBusSPI for SPI communication
-#include "devices/ICM42688_BF.h"  // Betaflight-based ICM42688 driver with preset API
+#include "devices/ICM42688.h"  // Betaflight-based ICM42688 driver with preset API
 
 /*
  * ============================================================
@@ -346,10 +346,10 @@ private:
     /**
      * @brief Betaflight-based ICM42688 driver instance
      */
-    ICM42688_BF* bf_driver_ = nullptr;
+    ICM42688* driver_ = nullptr;
 
     /**
-     * @brief DeviceBus for SPI communication (used by BF driver)
+     * @brief DeviceBus for SPI communication (used by driver)
      */
     DeviceBusSPI* device_bus_ = nullptr;
 

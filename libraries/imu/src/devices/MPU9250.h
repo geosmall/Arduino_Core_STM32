@@ -27,22 +27,22 @@
  * Note: This driver handles the 6-axis gyro/accel only. Magnetometer access
  * would require additional I2C auxiliary bus implementation.
  */
-class MPU9250_BF : public DeviceBase {
+class MPU9250 : public DeviceBase {
 protected:
     /**
      * @brief Protected constructor - use detect() factory method
      * @param bus Pointer to DeviceBus instance
      * @param whoAmI WHO_AM_I register value (0x71 or 0x73)
      */
-    MPU9250_BF(DeviceBus* bus, uint8_t whoAmI);
+    MPU9250(DeviceBus* bus, uint8_t whoAmI);
 
 public:
     /**
      * @brief Factory method - detect and initialize MPU9250
      * @param bus Pointer to DeviceBus instance
-     * @return Pointer to MPU9250_BF instance or nullptr if not detected
+     * @return Pointer to MPU9250 instance or nullptr if not detected
      */
-    static MPU9250_BF* detect(DeviceBus* bus);
+    static MPU9250* detect(DeviceBus* bus);
 
     /**
      * @brief Read gyro and accel data (6 int16_t values)
