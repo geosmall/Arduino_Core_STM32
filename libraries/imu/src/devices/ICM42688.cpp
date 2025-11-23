@@ -187,26 +187,29 @@ struct ICM42688PresetConfig {
  *
  * Four intent-based presets provide validated filter/ODR combinations.
  * Reference: imu_hal.md lines 42-58 (preset table + AAF register values)
+ *
+ * All presets use AAF 258Hz (Betaflight default) with UI filter code 15 (low-latency).
+ * AAF register values from datasheet Table 15 - DELT, DELTSQR, and BITSHIFT must match.
  */
 static const ICM42688PresetConfig ICM42688_PRESETS[] = {
-    // SAFE: 1kHz ODR, AAF 126/84Hz, UI code 1, 2nd-order
-    // Gyro AAF 126Hz: delt=4, deltsqr=0x0010, bitshift=12
-    // Accel AAF 84Hz: delt=3, deltsqr=0x0009, bitshift=12
-    {1000, 1000, 2000, 16,  4,12,0x0010,  3,12,0x0009,  1,1, 2,2},
+    // SAFE: 1kHz ODR, AAF 258/170Hz, UI code 15 (low-latency), 1st-order
+    // Gyro AAF 258Hz: delt=6, deltsqr=36, bitshift=10 (datasheet Table 15)
+    // Accel AAF 170Hz: delt=4, deltsqr=16, bitshift=11
+    {1000, 1000, 2000, 16,  6,10,0x0024,  4,11,0x0010,  15,15, 1,1},
 
-    // SMOOTH: 4kHz ODR, AAF 213/126Hz, UI code 1, 2nd-order
-    // Gyro AAF 213Hz: delt=5, deltsqr=0x0019, bitshift=11
-    // Accel AAF 126Hz: delt=4, deltsqr=0x0010, bitshift=12
-    {4000, 1000, 2000, 16,  5,11,0x0019,  4,12,0x0010,  1,1, 2,2},
+    // SMOOTH: 4kHz ODR, AAF 258/170Hz, UI code 15 (low-latency), 1st-order
+    // Gyro AAF 258Hz: delt=6, deltsqr=36, bitshift=10 (datasheet Table 15)
+    // Accel AAF 170Hz: delt=4, deltsqr=16, bitshift=11
+    {4000, 1000, 2000, 16,  6,10,0x0024,  4,11,0x0010,  15,15, 1,1},
 
     // BALANCED: 4kHz ODR, AAF 258/170Hz, UI code 15, 1st-order
-    // Gyro AAF 258Hz: delt=6, deltsqr=0x0024, bitshift=10
-    // Accel AAF 170Hz: delt=4, deltsqr=0x0010, bitshift=11
+    // Gyro AAF 258Hz: delt=6, deltsqr=36, bitshift=10 (datasheet Table 15)
+    // Accel AAF 170Hz: delt=4, deltsqr=16, bitshift=11
     {4000, 1000, 2000, 16,  6,10,0x0024,  4,11,0x0010,  15,15, 1,1},
 
     // ACRO: 8kHz ODR, AAF 303/170Hz, UI code 15, 1st-order
-    // Gyro AAF 303Hz: delt=7, deltsqr=0x0031, bitshift=10
-    // Accel AAF 170Hz: delt=4, deltsqr=0x0010, bitshift=11
+    // Gyro AAF 303Hz: delt=7, deltsqr=49, bitshift=10 (datasheet Table 15)
+    // Accel AAF 170Hz: delt=4, deltsqr=16, bitshift=11
     {8000, 1000, 2000, 16,  7,10,0x0031,  4,11,0x0010,  15,15, 1,1}
 };
 
@@ -369,40 +372,48 @@ void ICM42688::read(int16_t* accgyr) {
 bool ICM42688::applyPreset(ImuPreset preset) {
     const ICM42688PresetConfig& cfg = ICM42688_PRESETS[static_cast<uint8_t>(preset)];
 
-    // 1. Set ODR (order matters - do this first)
-    setGyroODR(cfg.gyro_odr_hz);
-    setAccelODR(cfg.accel_odr_hz);
+    // 1. Turn OFF gyro and accel before configuration changes
+    // CRITICAL: Per ICM-42688-P datasheet section 12.9, sensors must be OFF
+    // when modifying filter configuration registers (AAF, UI filters)
+    // This matches Betaflight's initialization sequence
+    setUserBank(ICM426XX_BANK_SELECT0);
+    bus_->writeReg(ICM426XX_RA_PWR_MGMT0, ICM426XX_PWR_MGMT0_GYRO_ACCEL_MODE_OFF);
+    delay(1);  // Allow power-down to complete
 
-    // 2. Set FSR (always ±2000dps/±16g per imu_hal.md)
-    setGyroFSR_internal(cfg.gyro_fsr_dps);
-    setAccelFSR_internal(cfg.accel_fsr_g);
-
-    // 3. Configure AAF filters (bank switching required)
+    // 2. Configure AAF filters (bank switching required) - do this FIRST while sensors off
     AAFConfig gyro_aaf = {cfg.gyro_aaf_delt, cfg.gyro_aaf_deltsqr, cfg.gyro_aaf_bitshift};
     AAFConfig accel_aaf = {cfg.accel_aaf_delt, cfg.accel_aaf_deltsqr, cfg.accel_aaf_bitshift};
     setGyroAAF(gyro_aaf);
     setAccelAAF(accel_aaf);
 
-    // 4. Configure UI filters
+    // 3. Configure UI filters (Bank 0) - while sensors off
     setUIFilters(cfg.ui_bw_code_gyro, cfg.ui_bw_code_accel,
                  cfg.ui_order_gyro, cfg.ui_order_accel);
 
-    // 5. Ensure AFSR is disabled (prevents gyro stalls per ArduPilot PR #25332)
+    // 4. Ensure AFSR is disabled (prevents gyro stalls per ArduPilot PR #25332)
     disableAFSR();
 
-    // 6. Ensure sensors are enabled in Low Noise mode after configuration
-    // This is required per ICM-42688-P datasheet section 12.9
+    // 5. Turn sensors back ON in Low Noise mode
     setUserBank(ICM426XX_BANK_SELECT0);
     bus_->writeReg(ICM426XX_RA_PWR_MGMT0,
                    ICM426XX_PWR_MGMT0_TEMP_DISABLE_OFF |
                    ICM426XX_PWR_MGMT0_ACCEL_MODE_LN |
                    ICM426XX_PWR_MGMT0_GYRO_MODE_LN);
-    delay(50);  // Wait for gyro startup (datasheet: 45ms typical)
+    delay(1);  // Per Betaflight: 1ms after power-on before ODR/FSR config
+
+    // 6. Set ODR and FSR (sensors must be ON for these registers)
+    setGyroODR(cfg.gyro_odr_hz);
+    setAccelODR(cfg.accel_odr_hz);
+    setGyroFSR_internal(cfg.gyro_fsr_dps);
+    setAccelFSR_internal(cfg.accel_fsr_g);
+
+    // 7. Wait for gyro startup (datasheet: 45ms typical)
+    delay(50);
 
     // Store effective sampling rate
     samplingRateHz_ = cfg.gyro_odr_hz;
 
-    // 7. Verify critical registers were written correctly
+    // 8. Verify critical registers were written correctly
     return verifyConfiguration(preset);
 }
 
@@ -630,10 +641,10 @@ void ICM42688::setAccelAAF(const AAFConfig& config) {
  * @param gyro_order Gyro filter order (1=1st-order, 2=2nd-order)
  * @param accel_order Accel filter order (1=1st-order, 2=2nd-order)
  *
- * Register locations per imu_hal.md lines 68-71 (Bank 0):
+ * Register locations per ICM-42688-P datasheet (Bank 0):
  *   0x52: GYRO_ACCEL_CONFIG0 - gyro BW[3:0], accel BW[7:4]
- *   0x51: GYRO_CONFIG1 - gyro order bits[3:2] (3=1st, 2=2nd)
- *   0x53: ACCEL_CONFIG1 - accel order bits[4:3] (3=1st, 2=2nd)
+ *   0x51: GYRO_CONFIG1 - gyro order bits[3:2] (0=1st, 1=2nd, 2=3rd)
+ *   0x53: ACCEL_CONFIG1 - accel order bits[4:3] (0=1st, 1=2nd, 2=3rd)
  */
 void ICM42688::setUIFilters(uint8_t gyro_bw, uint8_t accel_bw, uint8_t gyro_order, uint8_t accel_order) {
     setUserBank(ICM426XX_BANK_SELECT0);
@@ -641,14 +652,14 @@ void ICM42688::setUIFilters(uint8_t gyro_bw, uint8_t accel_bw, uint8_t gyro_orde
     // GYRO_ACCEL_CONFIG0 (0x52): gyro BW[3:0], accel BW[7:4]
     bus_->writeReg(0x52, (accel_bw << 4) | gyro_bw);
 
-    // GYRO_CONFIG1 (0x51): gyro order bits[3:2] (3=1st-order, 2=2nd-order)
-    uint8_t gyro_order_code = (gyro_order == 1) ? 3 : 2;
+    // GYRO_CONFIG1 (0x51): gyro order bits[3:2] (0=1st-order, 1=2nd-order, 2=3rd-order)
+    uint8_t gyro_order_code = (gyro_order == 1) ? 0 : 1;  // 1st-order=0, 2nd-order=1
     uint8_t reg_val = bus_->readReg(0x51);
     reg_val = (reg_val & ~0x0C) | (gyro_order_code << 2);
     bus_->writeReg(0x51, reg_val);
 
-    // ACCEL_CONFIG1 (0x53): accel order bits[4:3] (3=1st-order, 2=2nd-order)
-    uint8_t accel_order_code = (accel_order == 1) ? 3 : 2;
+    // ACCEL_CONFIG1 (0x53): accel order bits[4:3] (0=1st-order, 1=2nd-order, 2=3rd-order)
+    uint8_t accel_order_code = (accel_order == 1) ? 0 : 1;  // 1st-order=0, 2nd-order=1
     reg_val = bus_->readReg(0x53);
     reg_val = (reg_val & ~0x18) | (accel_order_code << 3);
     bus_->writeReg(0x53, reg_val);

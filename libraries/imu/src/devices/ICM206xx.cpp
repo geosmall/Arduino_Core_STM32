@@ -200,6 +200,10 @@ bool ICM206xx::applyPreset(ImuPreset preset)
     // Update sampling rate for user reference
     samplingRateHz_ = cfg.gyro_odr_hz;
 
+    // Wait for gyro digital filter to stabilize after DLPF mode change
+    // ICM-206xx datasheet: gyro startup time 30ms typical
+    delay(50);
+
     return true;
 }
 

@@ -183,6 +183,10 @@ bool MPU9250::applyPreset(ImuPreset preset)
     // Update sampling rate for user reference
     samplingRateHz_ = cfg.gyro_odr_hz;
 
+    // Wait for gyro digital filter to stabilize after DLPF mode change
+    // MPU-9250 datasheet: gyro startup time 35ms typical
+    delay(50);
+
     return true;
 }
 

@@ -1,8 +1,8 @@
 # IMU Library TDK Driver Migration Plan
 
 **Status**: In Progress
-**Last Updated**: 2025-11-21
-**Tracking**: Phase 2 Complete → Hardware Validation Next
+**Last Updated**: 2025-11-22
+**Tracking**: Phase 3.5 Complete (API cleanup + ICM-42688-P AAF fix) → Full Chip Validation Next
 
 ---
 
@@ -293,19 +293,19 @@ void ICM42688::setAccelAAF(const AAFConfig& config) {
 ```cpp
 void ICM42688::setUIFilters(uint8_t gyro_bw, uint8_t accel_bw, uint8_t gyro_order, uint8_t accel_order) {
     // BW codes: 0-15 (15 = wide/low-latency)
-    // Order: 1 = 1st-order, 2 = 2nd-order (encoded as 3, 2 in register)
+    // Order: 1 = 1st-order, 2 = 2nd-order (encoded as 0, 1 in register per TDK datasheet)
 
     // GYRO_ACCEL_CONFIG0 (0x52): gyro BW[3:0], accel BW[7:4]
     bus_->writeReg(0x52, (accel_bw << 4) | gyro_bw);
 
-    // GYRO_CONFIG1 (0x51): gyro order bits[3:2] (3=1st, 2=2nd)
-    uint8_t gyro_order_code = (gyro_order == 1) ? 3 : 2;
+    // GYRO_CONFIG1 (0x51): gyro order bits[3:2] (0=1st, 1=2nd, 2=3rd)
+    uint8_t gyro_order_code = (gyro_order == 1) ? 0 : 1;  // 1st-order=0, 2nd-order=1
     uint8_t reg_val = bus_->readReg(0x51);
     reg_val = (reg_val & ~0x0C) | (gyro_order_code << 2);
     bus_->writeReg(0x51, reg_val);
 
-    // ACCEL_CONFIG1 (0x53): accel order bits[4:3] (3=1st, 2=2nd)
-    uint8_t accel_order_code = (accel_order == 1) ? 3 : 2;
+    // ACCEL_CONFIG1 (0x53): accel order bits[4:3] (0=1st, 1=2nd, 2=3rd)
+    uint8_t accel_order_code = (accel_order == 1) ? 0 : 1;  // 1st-order=0, 2nd-order=1
     reg_val = bus_->readReg(0x53);
     reg_val = (reg_val & ~0x18) | (accel_order_code << 3);
     bus_->writeReg(0x53, reg_val);
@@ -773,8 +773,9 @@ imu.ApplyPreset(IMU::Preset::BALANCED);  // All config in one call
 |-------|----------|------------------|--------|
 | **Phase 1** | 3-4 days | ICM42688 with preset API | ✅ Complete |
 | **Phase 2** | 2-3 days | IMU.cpp/.h migrated to preset-based API | ✅ Complete |
-| **Phase 2.5** | 0.5 days | ICM-42688-P hardware validation | 🔄 In Progress |
-| **Phase 3** | 1-2 days | MPU6000/MPU9250/ICM206xx preset support | 📋 Pending |
+| **Phase 2.5** | 0.5 days | ICM-42688-P hardware validation | ✅ Complete |
+| **Phase 3** | 1-2 days | MPU6000/MPU9250/ICM206xx preset support | ✅ Complete |
+| **Phase 3.5** | 0.5 days | API cleanup + ICM-42688-P AAF fix | ✅ Complete |
 | **Phase 4** | 1-2 days | Final integration testing (all chips) | 📋 Pending |
 | **TOTAL** | **7-11 days** | Complete TDK driver elimination | |
 
@@ -805,6 +806,48 @@ imu.ApplyPreset(IMU::Preset::BALANCED);  // All config in one call
 ✅ **Chip abstraction**: Common preset enum across all IMU chips
 ✅ **Register-level implementation**: Low-level methods protected, high-level preset public
 ❌ **Self-test omitted**: Professional FC stacks (Betaflight, iNav, ArduPilot, PX4) skip self-test - validates via WHO_AM_I + gyro bias instead
+
+---
+
+## ICM-42688-P SAFE Preset Gyro Bias Issue (2025-11-22)
+
+**Problem**: ICM-42688-P SAFE preset exhibited large gyro DC offset (~12-30 DPS) while BALANCED preset worked correctly.
+
+**Root Cause Analysis**:
+Investigation isolated the issue through systematic testing:
+
+| Configuration | AAF | UI Code | Gyro DPS | Result |
+|--------------|-----|---------|----------|--------|
+| Original SAFE | 126Hz | 1 | 12.12, -28.84, 1.51 | BIAS |
+| AAF 126Hz + UI=15 | 126Hz | 15 | 12.12, -28.84, 1.49 | BIAS |
+| AAF 258Hz + UI=1 | 258Hz | 1 | 0.32, -0.84, 0.23 | OK |
+| Current Fix | 258Hz | 15 | 0.32, -0.84, 0.21 | OK |
+
+**True Root Cause**: The original SAFE preset had **incorrect AAF register values**.
+
+Per ICM-42688-P datasheet Table 15, the AAF register values are:
+| Bandwidth | DELT | DELTSQR | BITSHIFT |
+|-----------|------|---------|----------|
+| 126 Hz | 3 | 9 | 12 |
+| 170 Hz | 4 | 16 | 11 |
+| 258 Hz | 6 | 36 | 10 |
+
+Original SAFE preset used: `delt=4, deltsqr=16, bitshift=12` (commented as "126Hz")
+- This is **an invalid configuration**: DELT=4/DELTSQR=16 are for 170Hz, but BITSHIFT=12 is for 126Hz
+- The mismatch caused undefined behavior in the chip's internal DSP, producing DC offset
+
+**Key Learning**: A low-pass filter cannot physically introduce DC offset (0 Hz passes through).
+When large DC offsets appear, look for register misconfiguration, not filter bandwidth limits.
+
+**Solution Applied**:
+All presets now use AAF 258Hz (Betaflight default) with verified register values:
+- Gyro AAF 258Hz: `delt=6, deltsqr=0x0024 (36), bitshift=10`
+- This matches Betaflight's proven configuration
+
+**References**:
+- Betaflight PR #12444: Fix ICM426XX AA filter
+- Betaflight issue #12970: Artefacts in ICM-42688-P gyro output
+- ArduPilot issue #25025: ICM42688 "stuck" gyro values
 
 ---
 
