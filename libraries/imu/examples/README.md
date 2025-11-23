@@ -93,31 +93,57 @@ This folder contains examples demonstrating the IMU_Driver facade library for ST
 
 ---
 
-### 4. SelfTest - Self-Test Example
-**Use Case**: IMU hardware validation using manufacturer self-test
+### 4. ICM42688P_Advanced - ICM-42688-P Advanced Configuration
+**Use Case**: Advanced register-level configuration for ICM-42688-P
 
 **Features**:
-- Demonstrates manufacturer self-test integration
-- Uses TDK InvenSense factory algorithms (100% preserved)
-- Validates IMU hardware functionality
-- Reports gyro/accel self-test results and bias values
+- Direct register access via _Ex APIs (ReadReg_Ex, WriteReg_Ex, WriteRegVerify_Ex)
+- Custom ODR configuration (1kHz, 2kHz, 4kHz, 8kHz)
+- Anti-Alias Filter (AAF) configuration with datasheet LUT values
+- UI Filter bandwidth configuration
+- FSR configuration (SetGyroFSR_Ex, SetAccelFSR_Ex)
+- Register bank switching demonstration
 
-**Supported IMUs**:
-- ✅ ICM-42688-P (fully supported)
-- ❌ MPU-6000, MPU-9250, ICM-206xx (not yet implemented)
+**Target Hardware**: NUCLEO_F411RE with JHEF411 breakout (ICM-42688-P)
 
 **When to Use**:
-- Initial hardware validation (ICM-42688-P only)
-- Production testing
-- Troubleshooting IMU hardware issues
-- Learning how self-test works
+- Learning ICM-42688-P register architecture
+- Custom filter configurations beyond presets
+- Direct hardware register manipulation
+- Advanced tuning for specific applications
 
 **Build Commands**:
 ```bash
-./system/ci/aflash.sh libraries/imu/examples/SelfTest --use-rtt --build-id
+./system/ci/aflash.sh libraries/imu/examples/ICM42688P_Advanced --use-rtt --build-id
 ```
 
-**Note**: Currently only ICM-42688-P is supported. The example will detect other IMU types but exit with an error message.
+---
+
+### 5. ICM20602_Advanced - ICM-20602 Advanced Configuration
+**Use Case**: Advanced register-level configuration for ICM-206xx family
+
+**Features**:
+- Direct register access via _Ex APIs (ReadReg_Ex, WriteReg_Ex, WriteRegVerify_Ex)
+- DLPF configuration (Digital Low Pass Filter) with bandwidth tables
+- Sample rate divider configuration with rate calculations
+- FSR configuration (SetGyroFSR_Ex, SetAccelFSR_Ex)
+- Demonstrates DLPF/ODR interaction (8kHz bypass vs 1kHz with divider)
+
+**Target Hardware**: NERO F7 flight controller (STM32F722, ICM-20602)
+
+**Supported IMUs**: ICM-20601, ICM-20602, ICM-20689
+
+**When to Use**:
+- Learning ICM-206xx register architecture
+- Custom DLPF/rate configurations
+- Direct hardware register manipulation
+- Flight controller tuning
+
+**Build Commands**:
+```bash
+./system/ci/aflash.sh libraries/imu/examples/ICM20602_Advanced \
+  STMicroelectronics:stm32:FlightCtr:pnum=BKMN_NERO --use-rtt --build-id
+```
 
 ---
 

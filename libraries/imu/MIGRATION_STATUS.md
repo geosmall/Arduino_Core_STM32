@@ -4,173 +4,163 @@
 
 **Goal**: Eliminate TDK driver dependency from IMU.cpp/.h, use only internal Betaflight-based drivers with preset-based configuration.
 
-**Current Phase**: Phase 1 - ICM42688 Extension (75% complete)
+**Current Status**: Phase 4 - Final Validation (Pending)
 
-**Timeline**: 11-16 days total, ~3 days elapsed
+**Timeline**: 7-11 days total, ~6-8 days elapsed
+
+**Completion**: ~90% complete
+
+---
 
 ## Completed Work
 
-### ✅ Phase 1.1: Preset Infrastructure (COMPLETED)
+### Phase 1: ICM42688 Preset Infrastructure
+
+**Status**: COMPLETED (2025-11-21)
+
 - Added `ImuPreset` enum to ICM42688.h (SAFE/SMOOTH/BALANCED/ACRO)
-- Created `ICM42688PresetConfig` structure in ICM42688.cpp
-- Implemented preset LUT with 4 configurations matching imu_hal.md specification
-- All presets use ±2000dps/±16g FSR per imu_hal.md lines 20-21
+- Created `ICM42688PresetConfig` structure with LUT
+- Implemented preset configurations matching imu_hal.md specification
+- All presets use 2000dps/16g FSR per imu_hal.md
+- Protected low-level config methods (ODR, FSR, AAF, UI filters)
+- Compilation verified on AutoDetect_Single example
 
-### ✅ Phase 1.2: Public Preset API (COMPLETED)
-- Added public `applyPreset(ImuPreset preset)` method to ICM42688.h
-- Implemented `applyPreset()` in ICM42688.cpp with proper sequencing:
-  1. Set ODR (gyro + accel)
-  2. Set FSR (gyro + accel)
-  3. Configure AAF filters (gyro + accel, bank switching)
-  4. Configure UI filters (BW codes + filter order)
-  5. Update samplingRateHz_ member
+### Phase 2: IMU.cpp/.h Migration to Preset-Based API
 
-### ✅ Phase 1.3: Protected Low-Level Config Methods (COMPLETED)
-Implemented 8 protected configuration methods in ICM42688.cpp:
+**Status**: COMPLETED (2025-11-21, Commit: `0b2c58e13`)
 
-1. **`setGyroODR(uint16_t odr_hz)`** - Gyro ODR with non-sequential encoding
-   - 8kHz=0x03, 4kHz=0x05, 2kHz=0x06, 1kHz=0x07
-   - Read-modify-write to preserve FSR bits
+- Removed TDK driver dependency from IMU.cpp/.h
+- Added preset-based API: `ApplyPreset(SAFE|SMOOTH|BALANCED|ACRO)`
+- Retained fine-grained filter APIs for advanced users
+- Updated Polled_FlightController example for preset API
+- Removed obsolete SelfTest example
+- Binary reduction: ~546 lines removed
 
-2. **`setAccelODR(uint16_t odr_hz)`** - Accel ODR configuration
-   - Always 1kHz per imu_hal.md specification
+### Phase 2.5: ICM-42688-P Hardware Validation
 
-3. **`setGyroFSR(uint16_t fsr_dps)`** - Gyro full-scale range
-   - Hardcoded to ±2000dps per imu_hal.md
-   - Updates gyrScale_ for correct conversion
+**Status**: COMPLETED (2025-11-21)
 
-4. **`setAccelFSR(uint16_t fsr_g)`** - Accel full-scale range
-   - Hardcoded to ±16g per imu_hal.md
-   - Updates accScale_ for correct conversion
+- WHO_AM_I verified (0x47)
+- BALANCED preset applied successfully
+- Gyro/Accel data within expected range
+- Hardware validation on NUCLEO_F411RE passed
 
-5. **`setGyroAAF(const AAFConfig& config)`** - Gyro anti-alias filter
-   - Bank 1 register writes (DELT, DELTSQR, BITSHIFT)
+### Phase 3: Multi-Driver Preset Support
 
-6. **`setAccelAAF(const AAFConfig& config)`** - Accel anti-alias filter
-   - Bank 2 register writes (DELT, DELTSQR, BITSHIFT)
+**Status**: COMPLETED (2025-11-22, Commit: `d015d9863`)
 
-7. **`setUIFilters()`** - UI filter BW codes and order
-   - BW code: 0-15 (15=wide/low-latency)
-   - Order: 1st-order=3, 2nd-order=2
+- MPU6000, MPU9250, ICM206xx drivers updated with preset support
+- Common `ImuPreset` enum across all drivers
+- LUT-based configuration matching imu_hal.md specification
+- All 4 drivers now support `applyPreset()` API
 
-8. **`disableAFSR()`** - Auto-FSR workaround
-   - Prevents sticky samples during range switching
+### Phase 3.5: 3-Tier API Cleanup + AAF Fix
 
-### ✅ Compilation Testing (COMPLETED)
-- Built AutoDetect_Single example successfully
-- Binary size: 26.8KB (5% of flash)
-- No compilation errors or warnings
-- Preset infrastructure ready for use
+**Status**: COMPLETED (2025-11-22, Commits: `753df4fc4`, `fdeba6de7`)
 
-### ✅ Documentation Updates (COMPLETED)
+**3-Tier API Architecture**:
+- **Tier 1 (Core)**: `Init()`, `ReadIMU6()`, `ApplyPreset()` - Primary user API
+- **Tier 2 (Extended)**: `SetGyroFSR_Ex()`, `SetAccelFSR_Ex()` - FSR configuration
+- **Tier 3 (Direct)**: `ReadReg_Ex()`, `WriteReg_Ex()`, `WriteRegVerify_Ex()` - Power users
 
-**imu_hal.md**:
-- Added complete ICM-20602 configuration section
-- Added ICM-20602 column to chip comparison table
-- Added "Understanding DLPF_CFG=0 + divider Behavior" section
-- Updated LUT implementation examples to include ICM-20602
+**ICM-42688-P SAFE Preset AAF Fix**:
+- Root cause: Invalid AAF register configuration (mismatched DELT/DELTSQR/BITSHIFT)
+- Original SAFE preset used DELT=4/DELTSQR=16 (170Hz values) with BITSHIFT=12 (126Hz value)
+- This caused undefined behavior in chip DSP, producing ~12-30 DPS gyro offset
+- Fix: All presets now use AAF 258Hz (Betaflight default) with verified register values
+- Gyro AAF 258Hz: `delt=6, deltsqr=0x0024 (36), bitshift=10`
 
-**imu_presets.md**:
-- Minor formatting improvements for consistency
+**File Renames** (Commit: `c037199e1`):
+- Removed `_BF` suffix from device files
+- `ICM42688_BF.h/cpp` ICM42688.h/cpp
+- `MPU6000_BF.h/cpp` MPU6000.h/cpp
+- `MPU9250_BF.h/cpp` MPU9250.h/cpp
+- `ICM206xx_BF.h/cpp` ICM206xx.h/cpp
 
-**MIGRATION_PLAN.md**:
-- Created comprehensive 4-phase migration plan
-- Detailed timeline (11-16 days)
-- User decisions documented (self-test preserve, FIFO remove, etc.)
-- Complete code examples for all methods
+---
 
-## In Progress
+## Remaining Work
 
-### 🔄 Phase 1.4: Extract and Adapt TDK Self-Test (IN PROGRESS)
+### Phase 4: Final Integration Testing
 
-**Objective**: Port TDK InvenSense factory self-test algorithms to Betaflight driver while preserving 100% factory test logic.
+**Status**: PENDING
 
-**TDK Source Files Identified**:
-- `libraries/ICM42688P/src/Invn/Drivers/Icm426xx/Icm426xxSelfTest.c` - Factory algorithms
-- `libraries/ICM42688P/examples/example-selftest/example-selftest.c` - Reference integration
-
-**Next Steps**:
-1. Analyze TDK self-test implementation structure
-2. Extract factory algorithm functions
-3. Adapt to Betaflight DeviceBus abstraction
-4. Create `runSelfTest()` method in ICM42688
-5. Add self-test example sketch
-6. Validate against TDK reference output
-
-**Estimated Time Remaining**: 3-4 days
-
-## Pending Phases
-
-### 📋 Phase 2: Update IMU.cpp/.h to Preset-Based API (2-3 days)
-
-**Objective**: Replace TDK driver calls with Betaflight driver + preset API.
-
-**Key Changes**:
-- Replace TDK `inv_icm426xx_*` calls with driver methods
-- Update `Init()` to use `applyPreset()`
-- Remove TDK-specific enums, replace with numeric constants
-- Update `RunSelfTest()` to call BF self-test method
-- Remove `ReadDataFromFifo()` (breaking change - acceptable per user decision)
-
-**Not Started**
-
-### 📋 Phase 3: Add Preset Support to Other Drivers (2-3 days)
-
-**Objective**: Extend MPU6000, MPU9250, ICM206xx with preset support.
-
-**Drivers to Update**:
-1. **MPU6000** - Classic DLPF, divider always active
-2. **MPU9250** - MPU-6500-class, divider only with DLPF engaged
-3. **ICM206xx** - Wide/bypass mode, software decimation required
-
-**Pattern**: Apply same LUT-based preset approach as ICM42688
-
-**Not Started**
-
-### 📋 Phase 4: Testing and Validation (2-3 days)
-
-**Objective**: Verify migration correctness and update all examples.
+**Objective**: Comprehensive validation across all supported chips.
 
 **Test Plan**:
 1. Compile all IMU examples
-2. Hardware validation on NUCLEO_F411RE
-3. Compare preset output vs TDK driver (WHO_AM_I, gyro/accel data)
-4. Verify self-test pass/fail matches TDK reference
-5. Update all example sketches to use preset API
-6. Binary size comparison (expect ~25KB reduction)
+2. Hardware validation on NUCLEO_F411RE (ICM-42688-P)
+3. Register read-back verification for all presets
+4. Binary size measurement and comparison
+5. dRehmFlight integration test (if applicable)
 
-**Not Started**
+**Validation Criteria**:
+- All 4 drivers (ICM42688, MPU6000, MPU9250, ICM206xx) detect and configure correctly
+- All presets produce expected register values
+- Binary size reduction ~25KB vs TDK driver baseline
+- No regressions in existing functionality
+
+---
+
+## Self-Test Decision
+
+**Decision**: Self-test functionality NOT included in migration.
+
+**Rationale** (2025-11-21):
+Major flight controller firmware stacks (Betaflight, iNav, ArduPilot, PX4) do NOT run IMU self-test at startup:
+
+| Firmware | Self-Test at Boot? | Validation Method |
+|----------|-------------------|-------------------|
+| Betaflight | No | WHO_AM_I only |
+| iNav | No | Gyro bias recording |
+| ArduPilot | No | Sensor detection + calibration |
+| PX4 | No | EKF alignment + health monitoring |
+
+**Why self-test is skipped in production:**
+1. Boot latency: Adds ~200ms startup time
+2. Motion sensitivity: Fails if device isn't perfectly still/level at boot
+3. Manufacturing focus: Self-test is designed for factory QC, not runtime validation
+
+**Conclusion**: Self-test adds complexity (~570 lines of TDK code) for a feature that professional firmware intentionally skips.
+
+---
 
 ## User Decisions (Confirmed)
 
-1. **Self-test**: ✅ Preserve - Extract and adapt TDK self-test algorithms
-2. **Enum migration**: ✅ Clean break - Replace all TDK enums with numeric constants
-3. **Runtime config**: ✅ Full support via preset-based API (SAFE/SMOOTH/BALANCED/ACRO)
-4. **FIFO support**: ✅ Remove - Delete `ReadDataFromFifo()` API (acceptable breaking change)
+1. **Self-test**: NOT included (professional FC stacks skip self-test)
+2. **Enum migration**: Clean break - TDK enums replaced with numeric constants
+3. **Runtime config**: Full support via preset-based API (SAFE/SMOOTH/BALANCED/ACRO)
+4. **FIFO support**: Removed - `ReadDataFromFifo()` API deleted (acceptable breaking change)
+5. **3-tier API**: Implemented - Core/Extended/Direct access levels
+
+---
 
 ## Key Architectural Decisions
 
 ### Preset-Based Configuration Philosophy
 - **User Intent**: Users select preset by intent (SAFE/SMOOTH/BALANCED/ACRO), not individual registers
-- **Single Source of Truth**: All register values from imu_hal.md specification (lines 42-58)
+- **Single Source of Truth**: All register values from imu_hal.md specification
 - **Consistent Across Chips**: Same intent produces equivalent behavior on all IMUs
-- **Protected Low-Level Methods**: Individual config methods exist but are internal implementation details
+- **Protected Low-Level Methods**: Individual config methods internal implementation details
 
 ### FSR Standardization
-- **All presets**: ±2000dps gyro, ±16g accel (per imu_hal.md lines 20-21)
+- **All presets**: 2000dps gyro, 16g accel (per imu_hal.md)
 - **Rationale**: Flight controller standard, good resolution without clipping
-- **Future**: Could add separate FSR preset enum if needed
+- **Extended API**: `SetGyroFSR_Ex()` / `SetAccelFSR_Ex()` available for custom FSR
 
-### ODR Encoding Quirk
-- **Non-sequential values**: 8kHz=0x03, 4kHz=0x05 (NOT 0x04!), 2kHz=0x06, 1kHz=0x07
-- **Source**: ICM-42688-P datasheet register map
-- **Handled**: Switch statement in `setGyroODR()` maps Hz to register codes
+### 3-Tier API Design
+- **Tier 1**: Core flight controller API (Init, ReadIMU6, ApplyPreset)
+- **Tier 2**: Extended configuration (FSR changes, filter tuning)
+- **Tier 3**: Direct register access for debugging and advanced use
+
+---
 
 ## Breaking Changes
 
-### Removed APIs (Phase 2)
-- `ReadDataFromFifo()` - FIFO support removed per user decision
-- All TDK enum types replaced with numeric constants
+### Removed APIs
+- `ReadDataFromFifo()` - FIFO support eliminated
+- `SetSensorEventCallback()` - TDK-specific callback removed
+- `RunSelfTest()` - Self-test not included (see decision above)
 
 ### Migration Path for Users
 **Before** (TDK driver):
@@ -180,98 +170,92 @@ imu.Init(spi, cs_pin, 1000000);
 // TDK driver auto-configures with hardcoded settings
 ```
 
-**After** (driver + presets):
+**After** (BF drivers + presets):
 ```cpp
 IMU imu;
 imu.Init(spi, cs_pin, 1000000);
-imu.ApplyPreset(ImuPreset::FILTER_BALANCED);  // Explicit preset selection
+imu.ApplyPreset(IMU::Preset::BALANCED);  // Explicit preset selection
 ```
 
-### Binary Size Impact
-- **Expected reduction**: ~25KB (TDK driver removal)
-- **Current baseline**: 26.8KB (AutoDetect_Single with TDK)
-- **Validation**: Will measure in Phase 4
+---
 
 ## Files Modified
 
-### Phase 1 Changes
+### Completed Changes
 ```
 libraries/imu/
-├── imu_hal.md                        # Added ICM-20602, DLPF divider explanation
-├── imu_presets.md                    # Minor formatting improvements
-├── MIGRATION_PLAN.md                 # NEW: Complete migration plan
-├── MIGRATION_STATUS.md               # NEW: This status document
-└── src/devices/
-    ├── ICM42688.h                 # Added ImuPreset enum, applyPreset(), protected methods
-    └── ICM42688.cpp               # Added preset LUT, applyPreset(), 8 config methods
+src/
+    IMU.h                        # 3-tier API, preset support, TDK removed
+    IMU.cpp                      # BF driver integration, preset dispatch
+    devices/
+        DeviceBase.h             # ImuPreset enum, GyroFSR/AccelFSR enums
+        ICM42688.h/.cpp          # Preset LUT, AAF fix, config methods
+        MPU6000.h/.cpp           # Preset support added
+        MPU9250.h/.cpp           # Preset support added
+        ICM206xx.h/.cpp          # Preset support added
+examples/
+    AutoDetect_Single/           # Updated for new API
+    Polled_FlightController/     # Updated for preset API
+    ICM42688P_Advanced/          # Advanced configuration example
+    Interrupt_DataReady/         # Data ready interrupt example
+imu_hal.md                       # Filter specification (reference)
+imu_presets.md                   # Preset guide (reference)
+MIGRATION_PLAN.md                # Migration plan (this update)
+MIGRATION_STATUS.md              # Status tracking (this file)
 ```
 
-### Pending Changes (Phase 2+)
-```
-libraries/imu/
-├── src/
-│   ├── IMU.h                         # Remove TDK includes, add preset API
-│   ├── IMU.cpp                       # Replace TDK calls with driver
-│   └── devices/
-│       ├── MPU6000.h/.cpp         # Add preset support
-│       ├── MPU9250.h/.cpp         # Add preset support
-│       └── ICM206xx.h/.cpp        # Add preset support
-└── examples/
-    ├── AutoDetect_Single/            # Update to use presets
-    ├── AutoDetect_Multiple/          # Update to use presets
-    └── [all other examples]          # Update to use presets
-```
+---
 
 ## Success Criteria
 
-### Phase 1 (Current) ✅
-- ✅ ImuPreset enum defined
-- ✅ Preset LUT matches imu_hal.md specification
-- ✅ applyPreset() method implemented
-- ✅ 8 protected config methods implemented
-- ✅ Compiles without errors
-- 🔄 Self-test extraction (in progress)
+### Completed
+- [x] Zero TDK driver includes in IMU.cpp/.h
+- [x] Preset-based API working: ApplyPreset(SAFE/SMOOTH/BALANCED/ACRO)
+- [x] All preset register values match imu_hal.md specification
+- [x] All 4 drivers support common ImuPreset enum
+- [x] 3-tier API implemented (Core/Extended/Direct)
+- [x] AAF register misconfiguration fixed
+- [x] File naming cleanup (_BF suffix removed)
 
-### Phase 2 (Pending)
-- IMU.cpp/IMU.h compile without TDK includes
-- All TDK function calls replaced
-- Preset API integrated into IMU class
+### Pending (Phase 4)
+- [ ] All examples compile and run
+- [ ] Hardware validation on all supported chips
+- [ ] Binary size reduction measured (~25KB expected)
+- [ ] dRehmFlight integration verified
 
-### Phase 3 (Pending)
-- MPU6000/MPU9250/ICM206xx have preset support
-- All 4 drivers use consistent LUT approach
-
-### Phase 4 (Pending)
-- All examples compile and run
-- Hardware validation confirms correct operation
-- Binary size reduction measured (~25KB expected)
-- Documentation updated
+---
 
 ## Timeline
 
 | Phase | Task | Duration | Status |
 |-------|------|----------|--------|
-| 1.1 | Preset infrastructure | 0.5 days | ✅ COMPLETED |
-| 1.2 | Public preset API | 0.5 days | ✅ COMPLETED |
-| 1.3 | Protected config methods | 1 day | ✅ COMPLETED |
-| 1.4 | Extract/adapt self-test | 3-4 days | 🔄 IN PROGRESS |
-| 2 | Update IMU.cpp/.h | 2-3 days | 📋 PENDING |
-| 3 | Extend other drivers | 2-3 days | 📋 PENDING |
-| 4 | Testing and validation | 2-3 days | 📋 PENDING |
-| **Total** | | **11-16 days** | **~20% complete** |
+| 1 | ICM42688 preset infrastructure | 2 days | COMPLETED |
+| 2 | IMU.cpp/.h migration | 2 days | COMPLETED |
+| 2.5 | ICM-42688-P hardware validation | 0.5 days | COMPLETED |
+| 3 | Multi-driver preset support | 1.5 days | COMPLETED |
+| 3.5 | 3-tier API cleanup + AAF fix | 0.5 days | COMPLETED |
+| 4 | Final integration testing | 1-2 days | PENDING |
+| **Total** | | **7-11 days** | **~90% complete** |
+
+---
 
 ## Next Session
 
-**Resume Point**: Phase 1.4 - Extract and adapt TDK self-test
-
-**Context**:
-- TDK self-test source: `libraries/ICM42688P/src/Invn/Drivers/Icm426xx/Icm426xxSelfTest.c`
-- Reference example: `libraries/ICM42688P/examples/example-selftest/example-selftest.c`
-- Goal: Port factory algorithms to driver while preserving 100% test logic
+**Resume Point**: Phase 4 - Final Integration Testing
 
 **Immediate Next Steps**:
-1. Read and analyze TDK self-test implementation
-2. Identify factory algorithm functions to preserve
-3. Design driver integration (DeviceBus abstraction)
-4. Implement `runSelfTest()` method in ICM42688
-5. Create validation example sketch
+1. Compile all IMU examples (AutoDetect_Single, Polled_FlightController, etc.)
+2. Hardware validation on NUCLEO_F411RE
+3. Register read-back verification for all presets
+4. Binary size measurement
+5. Update documentation if needed
+
+---
+
+## References
+
+- **imu_hal.md**: Filter presets and register configuration specification
+- **imu_presets.md**: Betaflight-oriented preset guide
+- **MIGRATION_PLAN.md**: Complete migration plan with code examples
+- **TDK ICM-42688-P Datasheet**: DS-000347 Rev 1.7 (register map)
+- **Betaflight Source**: Original driver reference (accgyro_spi_icm426xx.c)

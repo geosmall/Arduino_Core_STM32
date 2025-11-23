@@ -1,8 +1,8 @@
 # IMU Library TDK Driver Migration Plan
 
-**Status**: In Progress
-**Last Updated**: 2025-11-22
-**Tracking**: Phase 3.5 Complete (API cleanup + ICM-42688-P AAF fix) → Full Chip Validation Next
+**Status**: ~90% Complete (Phase 4 Pending)
+**Last Updated**: 2025-11-23
+**Tracking**: Phases 1-3.5 Complete → Phase 4 (Final Validation) Pending
 
 ---
 
@@ -84,7 +84,7 @@ All major flight controller firmware stacks (Betaflight, iNav, ArduPilot, PX4) *
 
 ## Migration Phases
 
-### Phase 1: Extend ICM42688 Driver with Preset-Based Configuration (3-4 days)
+### Phase 1: Extend ICM42688 Driver with Preset-Based Configuration (3-4 days) COMPLETE
 
 #### 1.1 Add Preset Infrastructure (1-2 days)
 
@@ -324,7 +324,7 @@ void ICM42688::reset() {
 
 ---
 
-### Phase 2: Update IMU.cpp/.h to Preset-Based API (2-3 days) ✅ COMPLETE
+### Phase 2: Update IMU.cpp/.h to Preset-Based API (2-3 days) COMPLETE
 
 **Completed 2025-11-21** (Commit: `0b2c58e13`)
 - Removed TDK driver dependency from IMU.cpp/.h
@@ -488,7 +488,7 @@ bool IMU::ApplyPreset(Preset preset) {
 
 ---
 
-### Phase 2.5: ICM-42688-P Hardware Validation (0.5 days)
+### Phase 2.5: ICM-42688-P Hardware Validation (0.5 days) COMPLETE
 
 **Goal**: Validate Phase 2 migration on hardware before proceeding to other chips.
 
@@ -500,12 +500,12 @@ bool IMU::ApplyPreset(Preset preset) {
 ```
 
 **Validation Criteria**:
-- [ ] WHO_AM_I returns 0x47 (ICM-42688-P detected)
-- [ ] BALANCED preset applied successfully
-- [ ] 2kHz polling loop runs without errors
-- [ ] Gyro/Accel data within expected range (stationary: gyro ~0 dps, accel ~1g on Z)
-- [ ] 20 samples printed over ~10 seconds
-- [ ] Clean exit with "*STOP*" token
+- [x] WHO_AM_I returns 0x47 (ICM-42688-P detected)
+- [x] BALANCED preset applied successfully
+- [x] 2kHz polling loop runs without errors
+- [x] Gyro/Accel data within expected range (stationary: gyro ~0 dps, accel ~1g on Z)
+- [x] 20 samples printed over ~10 seconds
+- [x] Clean exit with "*STOP*" token
 
 #### 2.5.2 Binary Size Verification
 
@@ -515,13 +515,13 @@ bool IMU::ApplyPreset(Preset preset) {
 
 #### 2.5.3 Sign-off
 
-Once hardware validation passes:
-- [ ] Push Phase 2 commit to origin/dev
-- [ ] Proceed to Phase 3 (other chip drivers)
+Hardware validation passed:
+- [x] Push Phase 2 commit to origin/dev
+- [x] Proceed to Phase 3 (other chip drivers)
 
 ---
 
-### Phase 3: Add Preset Support to MPU6000/MPU9250/ICM206xx Drivers (2-3 days)
+### Phase 3: Add Preset Support to MPU6000/MPU9250/ICM206xx Drivers (2-3 days) COMPLETE
 
 #### 3.1 MPU6000 Preset Implementation (1 day)
 
@@ -618,7 +618,7 @@ static const ICM20602PresetConfig ICM20602_PRESETS[] = {
 
 ---
 
-### Phase 4: Testing and Validation (1-2 days)
+### Phase 4: Testing and Validation (1-2 days) PENDING
 
 #### 4.1 Preset Validation (1 day)
 
@@ -771,13 +771,13 @@ imu.ApplyPreset(IMU::Preset::BALANCED);  // All config in one call
 
 | Phase | Duration | Key Deliverables | Status |
 |-------|----------|------------------|--------|
-| **Phase 1** | 3-4 days | ICM42688 with preset API | ✅ Complete |
-| **Phase 2** | 2-3 days | IMU.cpp/.h migrated to preset-based API | ✅ Complete |
-| **Phase 2.5** | 0.5 days | ICM-42688-P hardware validation | ✅ Complete |
-| **Phase 3** | 1-2 days | MPU6000/MPU9250/ICM206xx preset support | ✅ Complete |
-| **Phase 3.5** | 0.5 days | API cleanup + ICM-42688-P AAF fix | ✅ Complete |
-| **Phase 4** | 1-2 days | Final integration testing (all chips) | 📋 Pending |
-| **TOTAL** | **7-11 days** | Complete TDK driver elimination | |
+| **Phase 1** | 3-4 days | ICM42688 with preset API | COMPLETE |
+| **Phase 2** | 2-3 days | IMU.cpp/.h migrated to preset-based API | COMPLETE |
+| **Phase 2.5** | 0.5 days | ICM-42688-P hardware validation | COMPLETE |
+| **Phase 3** | 1-2 days | MPU6000/MPU9250/ICM206xx preset support | COMPLETE |
+| **Phase 3.5** | 0.5 days | API cleanup + ICM-42688-P AAF fix | COMPLETE |
+| **Phase 4** | 1-2 days | Final integration testing (all chips) | PENDING |
+| **TOTAL** | **7-11 days** | Complete TDK driver elimination | ~90% |
 
 **Reduced from original 11-16 days** due to:
 - Self-test removed (saves 3-4 days - not used by major FC stacks)
@@ -788,13 +788,20 @@ imu.ApplyPreset(IMU::Preset::BALANCED);  // All config in one call
 
 ## Success Criteria
 
-✅ Zero TDK driver includes in IMU.cpp/.h
-✅ Preset-based API working: ApplyPreset(SAFE/SMOOTH/BALANCED/ACRO)
-✅ All preset register values match imu_hal.md specification
-✅ dRehmFlight compiles and flies with BALANCED preset
-✅ Binary size reduced by ~25KB
-✅ All 4 drivers support common ImuPreset enum
-✅ Individual config APIs preserved (protected) for backward compatibility
+### Completed
+- [x] Zero TDK driver includes in IMU.cpp/.h
+- [x] Preset-based API working: ApplyPreset(SAFE/SMOOTH/BALANCED/ACRO)
+- [x] All preset register values match imu_hal.md specification
+- [x] All 4 drivers support common ImuPreset enum
+- [x] 3-tier API implemented (Core/Extended/Direct)
+- [x] AAF register misconfiguration fixed
+- [x] File naming cleanup (_BF suffix removed)
+
+### Pending (Phase 4)
+- [ ] All examples compile and run
+- [ ] Hardware validation on all supported chips
+- [ ] Binary size reduction measured (~25KB expected)
+- [ ] dRehmFlight integration verified
 
 ---
 
