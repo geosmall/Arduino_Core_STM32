@@ -199,6 +199,11 @@ Nucleo_144.menu.upload_method.dfuMethod.upload.protocol=2
 Nucleo_144.menu.upload_method.dfuMethod.upload.options=
 Nucleo_144.menu.upload_method.dfuMethod.upload.tool=stm32CubeProg
 
+Nucleo_144.menu.upload_method.jlinkMethod=STM32CubeProgrammer (J-Link)
+Nucleo_144.menu.upload_method.jlinkMethod.upload.protocol=3
+Nucleo_144.menu.upload_method.jlinkMethod.upload.options=
+Nucleo_144.menu.upload_method.jlinkMethod.upload.tool=stm32CubeProg
+
 Nucleo_144.menu.upload_method.clipboard=Clipboard (Copy Path)
 Nucleo_144.menu.upload_method.clipboard.upload.protocol=0
 Nucleo_144.menu.upload_method.clipboard.upload.options=-g
@@ -298,6 +303,11 @@ Nucleo_64.menu.upload_method.dfuMethod.upload.protocol=2
 Nucleo_64.menu.upload_method.dfuMethod.upload.options=
 Nucleo_64.menu.upload_method.dfuMethod.upload.tool=stm32CubeProg
 
+Nucleo_64.menu.upload_method.jlinkMethod=STM32CubeProgrammer (J-Link)
+Nucleo_64.menu.upload_method.jlinkMethod.upload.protocol=3
+Nucleo_64.menu.upload_method.jlinkMethod.upload.options=
+Nucleo_64.menu.upload_method.jlinkMethod.upload.tool=stm32CubeProg
+
 Nucleo_64.menu.upload_method.clipboard=Clipboard (Copy Path)
 Nucleo_64.menu.upload_method.clipboard.upload.protocol=0
 Nucleo_64.menu.upload_method.clipboard.upload.options=-g
@@ -344,6 +354,11 @@ Nucleo_32.menu.upload_method.dfuMethod=STM32CubeProgrammer (DFU)
 Nucleo_32.menu.upload_method.dfuMethod.upload.protocol=2
 Nucleo_32.menu.upload_method.dfuMethod.upload.options=
 Nucleo_32.menu.upload_method.dfuMethod.upload.tool=stm32CubeProg
+
+Nucleo_32.menu.upload_method.jlinkMethod=STM32CubeProgrammer (J-Link)
+Nucleo_32.menu.upload_method.jlinkMethod.upload.protocol=3
+Nucleo_32.menu.upload_method.jlinkMethod.upload.options=
+Nucleo_32.menu.upload_method.jlinkMethod.upload.tool=stm32CubeProg
 
 Nucleo_32.menu.upload_method.clipboard=Clipboard (Copy Path)
 Nucleo_32.menu.upload_method.clipboard.upload.protocol=0
@@ -448,6 +463,11 @@ Disco.menu.upload_method.dfuMethod=STM32CubeProgrammer (DFU)
 Disco.menu.upload_method.dfuMethod.upload.protocol=2
 Disco.menu.upload_method.dfuMethod.upload.options=
 Disco.menu.upload_method.dfuMethod.upload.tool=stm32CubeProg
+
+Disco.menu.upload_method.jlinkMethod=STM32CubeProgrammer (J-Link)
+Disco.menu.upload_method.jlinkMethod.upload.protocol=3
+Disco.menu.upload_method.jlinkMethod.upload.options=
+Disco.menu.upload_method.jlinkMethod.upload.tool=stm32CubeProg
 
 Disco.menu.upload_method.clipboard=Clipboard (Copy Path)
 Disco.menu.upload_method.clipboard.upload.protocol=0
@@ -1341,6 +1361,11 @@ GenF4.menu.upload_method.dfuMethod.upload.protocol=2
 GenF4.menu.upload_method.dfuMethod.upload.options=
 GenF4.menu.upload_method.dfuMethod.upload.tool=stm32CubeProg
 
+GenF4.menu.upload_method.jlinkMethod=STM32CubeProgrammer (J-Link)
+GenF4.menu.upload_method.jlinkMethod.upload.protocol=3
+GenF4.menu.upload_method.jlinkMethod.upload.options=
+GenF4.menu.upload_method.jlinkMethod.upload.tool=stm32CubeProg
+
 GenF4.menu.upload_method.bmpMethod=BMP (Black Magic Probe)
 GenF4.menu.upload_method.bmpMethod.upload.protocol=gdb_bmp
 GenF4.menu.upload_method.bmpMethod.upload.tool=bmp_upload
@@ -1827,6 +1852,11 @@ GenF7.menu.upload_method.dfuMethod=STM32CubeProgrammer (DFU)
 GenF7.menu.upload_method.dfuMethod.upload.protocol=2
 GenF7.menu.upload_method.dfuMethod.upload.options=
 GenF7.menu.upload_method.dfuMethod.upload.tool=stm32CubeProg
+
+GenF7.menu.upload_method.jlinkMethod=STM32CubeProgrammer (J-Link)
+GenF7.menu.upload_method.jlinkMethod.upload.protocol=3
+GenF7.menu.upload_method.jlinkMethod.upload.options=
+GenF7.menu.upload_method.jlinkMethod.upload.tool=stm32CubeProg
 
 GenF7.menu.upload_method.clipboard=Clipboard (Copy Path)
 GenF7.menu.upload_method.clipboard.upload.protocol=0
@@ -2872,6 +2902,11 @@ GenG4.menu.upload_method.dfuMethod.upload.protocol=2
 GenG4.menu.upload_method.dfuMethod.upload.options=
 GenG4.menu.upload_method.dfuMethod.upload.tool=stm32CubeProg
 
+GenG4.menu.upload_method.jlinkMethod=STM32CubeProgrammer (J-Link)
+GenG4.menu.upload_method.jlinkMethod.upload.protocol=3
+GenG4.menu.upload_method.jlinkMethod.upload.options=
+GenG4.menu.upload_method.jlinkMethod.upload.tool=stm32CubeProg
+
 GenG4.menu.upload_method.clipboard=Clipboard (Copy Path)
 GenG4.menu.upload_method.clipboard.upload.protocol=0
 GenG4.menu.upload_method.clipboard.upload.options=-g
@@ -3389,6 +3424,11 @@ GenH7.menu.upload_method.dfuMethod.upload.protocol=2
 GenH7.menu.upload_method.dfuMethod.upload.options=
 GenH7.menu.upload_method.dfuMethod.upload.tool=stm32CubeProg
 
+GenH7.menu.upload_method.jlinkMethod=STM32CubeProgrammer (J-Link)
+GenH7.menu.upload_method.jlinkMethod.upload.protocol=3
+GenH7.menu.upload_method.jlinkMethod.upload.options=
+GenH7.menu.upload_method.jlinkMethod.upload.tool=stm32CubeProg
+
 GenH7.menu.upload_method.clipboard=Clipboard (Copy Path)
 GenH7.menu.upload_method.clipboard.upload.protocol=0
 GenH7.menu.upload_method.clipboard.upload.options=-g
@@ -3458,6 +3498,11 @@ FlightCtr.menu.upload_method.dfuMethod=STM32CubeProgrammer (DFU)
 FlightCtr.menu.upload_method.dfuMethod.upload.protocol=2
 FlightCtr.menu.upload_method.dfuMethod.upload.options=
 FlightCtr.menu.upload_method.dfuMethod.upload.tool=stm32CubeProg
+
+FlightCtr.menu.upload_method.jlinkMethod=STM32CubeProgrammer (J-Link)
+FlightCtr.menu.upload_method.jlinkMethod.upload.protocol=3
+FlightCtr.menu.upload_method.jlinkMethod.upload.options=
+FlightCtr.menu.upload_method.jlinkMethod.upload.tool=stm32CubeProg
 
 FlightCtr.menu.upload_method.clipboard=Clipboard (Copy Path)
 FlightCtr.menu.upload_method.clipboard.upload.protocol=0

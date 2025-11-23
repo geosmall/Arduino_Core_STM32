@@ -47,6 +47,15 @@ This repository contains a **fork of the STM32 Arduino Core** with simplified va
   - `JLinkRTTClient` - Real-time terminal client
   - Installation: https://www.segger.com/downloads/jlink/
   - Note: Requires ST-Link V2.1 reflashed to J-Link firmware for NUCLEO boards
+- **STM32CubeProgrammer** v2.20.0+ (for Arduino IDE J-Link uploads)
+  - Required for "STM32CubeProgrammer (J-Link)" upload method in Arduino IDE
+  - Installation: https://www.st.com/en/development-tools/stm32cubeprog.html
+  - **J-Link Library Path Fix**: STM32CubeProgrammer v2.20.0 has a bug with J-Link library path resolution. Create this symlink:
+    ```bash
+    mkdir -p ~/STMicroelectronics/lib
+    ln -s ~/STMicroelectronics/STM32Cube/STM32CubeProgrammer/lib/libjlinkarm.so \
+          ~/STMicroelectronics/lib/libjlinkarm.so
+    ```
 
 ### System Tools (Linux/macOS)
 
