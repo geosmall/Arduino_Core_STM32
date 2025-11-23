@@ -554,6 +554,7 @@ AVOID documentation duplication across files. Before adding content, check if it
 **CRITICAL**: Always use the correct ci_log.h macros. Common mistakes to avoid:
 - ❌ `CI_LOG_INIT()` does NOT exist - there is no init macro
 - ❌ `CI_LOG()` does NOT support printf formatting - use `CI_LOGF()` instead
+- ❌ **NEVER** use direct `printf()` or `Serial.print()` - use `CI_PRINTF()` or `CI_LOG()` instead
 - ✅ **YOU MUST** call `Serial.begin()` when NOT using RTT mode - ci_log.h does NOT initialize Serial
 
 **Available Macros** (`Arduino_Core_STM32/cores/arduino/ci_log.h`):
@@ -561,16 +562,25 @@ AVOID documentation duplication across files. Before adding content, check if it
 CI_LOG(s)              // String literals only (no printf formatting)
 CI_LOGF(...)           // Printf-style formatting (RTT: SEGGER_RTT_printf, Serial: Serial.printf)
                        // ⚠️ RTT LIMITATION: %f float formatting NOT supported in RTT mode
-                       // ⚠️ Use CI_LOG_FLOAT() for floats instead of CI_LOGF("%f", value)
+CI_PRINTF(...)         // Full printf with float support via libPrintf (requires putchar_())
+                       // ✅ RECOMMENDED for formatted output including floats
 CI_BUILD_INFO()        // Shows build SHA + timestamp (RTT only, no-op in Serial mode)
 CI_READY_TOKEN()       // Shows ready token (RTT only, no-op in Serial mode)
 CI_LOG_FLOAT(prefix, value, decimals)  // Float output helper (works in both modes)
-                       // ✅ ALWAYS use this for floats, never CI_LOGF() with %f
 ```
 
 **Correct Usage Pattern**:
 ```cpp
 #include <ci_log.h>
+
+// CI_PRINTF requires putchar_() for libPrintf output routing
+extern "C" void putchar_(char c) {
+#ifdef USE_RTT
+    SEGGER_RTT_PutChar(0, c);
+#else
+    Serial.write(c);
+#endif
+}
 
 void setup() {
   // Initialize Serial for non-RTT mode (Arduino IDE)
@@ -580,12 +590,11 @@ void setup() {
 #endif
 
   CI_LOG("Starting test\n");           // String literal
-  CI_LOGF("Value: %d\n", 123);         // Printf formatting (integers OK)
+  CI_LOGF("Value: %d\n", 123);         // Printf formatting (integers OK in RTT)
 
-  // Float formatting - MUST use CI_LOG_FLOAT, NOT CI_LOGF with %f
+  // Float formatting - use CI_PRINTF for full printf support including floats
   float temp = 23.456;
-  CI_LOG_FLOAT("Temp: ", temp, 2);    // ✅ Correct: "Temp: 23.46"
-  // CI_LOGF("Temp: %f\n", temp);     // ❌ WRONG: Shows blank in RTT mode
+  CI_PRINTF("Temp: %.2f\n", temp);     // ✅ Works in both RTT and Serial modes
 
   CI_BUILD_INFO();                     // Build traceability (RTT only)
   CI_READY_TOKEN();                    // Ready signal (RTT only)

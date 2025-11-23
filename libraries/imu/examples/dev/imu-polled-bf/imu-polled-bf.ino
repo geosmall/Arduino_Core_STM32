@@ -15,9 +15,6 @@
  * Betaflight relies on robust software filters (gyro LPF, D-term, dynamic notch,
  * RPM) for fine noise control, so hardware filters are kept minimal to reduce delay.
  *
- * For MPU-6000 DLPF simulation (narrower FSR, optimized accel filtering),
- * see imu-polled-mpu6000-sim.ino example.
- *
  * BETAFLIGHT ODR SELECTION:
  * Uncomment ONE of the BF_ODR_* defines below to set the output data rate.
  * Betaflight uses 8kHz on capable targets, with fallback to 4k/2k/1k on others.
@@ -53,16 +50,82 @@
 // #define BF_ODR_1K   // 1kHz gyro + accel
 
 #include <IMU.h>
-#include <icm42688p.h>
 #include <ci_log.h>
 #include <SPI.h>
-#include <libPrintf.h>
+
+// CI_PRINTF requires putchar_() for libPrintf output routing
+extern "C" void putchar_(char c) {
+#ifdef USE_RTT
+    SEGGER_RTT_PutChar(0, c);
+#else
+    Serial.write(c);
+#endif
+}
 
 // Board configuration
 #if defined(ARDUINO_BLACKPILL_F411CE)
 #include "../../../../targets/BLACKPILL_F411CE.h"
 #else
 #include "../../../../targets/NUCLEO_F411RE_JHEF411.h"
+#endif
+
+// ============================================================================
+// ICM-42688-P Register Definitions (Bank 0 unless noted)
+// ============================================================================
+
+// Bank selection
+#define REG_BANK_SEL            0x76
+
+// Gyro/Accel configuration (Bank 0)
+#define REG_GYRO_CONFIG0        0x4F    // [7:5]=FSR, [3:0]=ODR
+#define REG_ACCEL_CONFIG0       0x50    // [7:5]=FSR, [3:0]=ODR
+#define REG_GYRO_ACCEL_CONFIG0  0x52    // UI filter bandwidth
+
+// ODR codes (for GYRO_CONFIG0[3:0] and ACCEL_CONFIG0[3:0])
+#define ODR_8KHZ                0x03
+#define ODR_4KHZ                0x04
+#define ODR_2KHZ                0x05
+#define ODR_1KHZ                0x06
+
+// UI Filter bandwidth codes (GYRO_ACCEL_CONFIG0)
+#define UI_BW_LOW_LATENCY_X2    0x0F    // Extra low latency (Betaflight default)
+
+// AAF register addresses (require bank switching)
+// Bank 1: Gyro AAF
+#define BANK1_GYRO_CONFIG3      0x0C    // GYRO_CONFIG_STATIC3: delt
+#define BANK1_GYRO_CONFIG4      0x0D    // GYRO_CONFIG_STATIC4: deltSqr[7:0]
+#define BANK1_GYRO_CONFIG5      0x0E    // GYRO_CONFIG_STATIC5: deltSqr[11:8], bitshift[7:4]
+
+// Bank 2: Accel AAF
+#define BANK2_ACCEL_CONFIG2     0x03    // ACCEL_CONFIG_STATIC2: delt << 1
+#define BANK2_ACCEL_CONFIG3     0x04    // ACCEL_CONFIG_STATIC3: deltSqr[7:0]
+#define BANK2_ACCEL_CONFIG4     0x05    // ACCEL_CONFIG_STATIC4: deltSqr[11:8], bitshift[7:4]
+
+// Bank numbers
+#define BANK_0                  0x00
+#define BANK_1                  0x01
+#define BANK_2                  0x02
+
+// AAF 258 Hz configuration (Betaflight default) - from ICM-42688-P datasheet Table 15
+#define AAF_258HZ_DELT          6
+#define AAF_258HZ_DELTSQR       36
+#define AAF_258HZ_BITSHIFT      10
+
+// Determine ODR based on configuration
+#if defined(BF_ODR_8K)
+    #define ODR_CODE ODR_8KHZ
+    #define ODR_STRING "8kHz"
+#elif defined(BF_ODR_4K)
+    #define ODR_CODE ODR_4KHZ
+    #define ODR_STRING "4kHz"
+#elif defined(BF_ODR_2K)
+    #define ODR_CODE ODR_2KHZ
+    #define ODR_STRING "2kHz"
+#elif defined(BF_ODR_1K)
+    #define ODR_CODE ODR_1KHZ
+    #define ODR_STRING "1kHz"
+#else
+    #error "No BF_ODR_* defined! Uncomment one of: BF_ODR_8K, BF_ODR_4K, BF_ODR_2K, BF_ODR_1K"
 #endif
 
 // Create SPI instance using BoardConfig (software CS control)
@@ -74,26 +137,102 @@ SPIClass spi_bus(BoardConfig::imu.spi.mosi_pin,
 // Create IMU instance
 IMU imu;
 
-// Determine ODR based on configuration
-#if defined(BF_ODR_8K)
-    #define GYRO_ODR IMU::GyroODR::gyr_odr8k
-    #define ACCEL_ODR IMU::AccelODR::accel_odr8k
-    #define ODR_STRING "8kHz"
-#elif defined(BF_ODR_4K)
-    #define GYRO_ODR IMU::GyroODR::gyr_odr4k
-    #define ACCEL_ODR IMU::AccelODR::accel_odr4k
-    #define ODR_STRING "4kHz"
-#elif defined(BF_ODR_2K)
-    #define GYRO_ODR IMU::GyroODR::gyr_odr2k
-    #define ACCEL_ODR IMU::AccelODR::accel_odr2k
-    #define ODR_STRING "2kHz"
-#elif defined(BF_ODR_1K)
-    #define GYRO_ODR IMU::GyroODR::gyr_odr1k
-    #define ACCEL_ODR IMU::AccelODR::accel_odr1k
-    #define ODR_STRING "1kHz"
-#else
-    #error "No BF_ODR_* defined! Uncomment one of: BF_ODR_8K, BF_ODR_4K, BF_ODR_2K, BF_ODR_1K"
-#endif
+// ============================================================================
+// Helper Functions for Direct Register Access
+// ============================================================================
+
+/**
+ * @brief Select register bank (ICM-42688-P has banks 0-4)
+ */
+void selectBank(uint8_t bank) {
+    imu.WriteReg_Ex(REG_BANK_SEL, bank);
+    delayMicroseconds(20);
+}
+
+/**
+ * @brief Configure gyro ODR using direct register access
+ */
+void setGyroODR(uint8_t odr_code) {
+    selectBank(BANK_0);
+    uint8_t reg = imu.ReadReg_Ex(REG_GYRO_CONFIG0);
+    reg = (reg & 0xF0) | (odr_code & 0x0F);  // Preserve FSR, set ODR
+    imu.WriteRegVerify_Ex(REG_GYRO_CONFIG0, reg);
+}
+
+/**
+ * @brief Configure accel ODR using direct register access
+ */
+void setAccelODR(uint8_t odr_code) {
+    selectBank(BANK_0);
+    uint8_t reg = imu.ReadReg_Ex(REG_ACCEL_CONFIG0);
+    reg = (reg & 0xF0) | (odr_code & 0x0F);  // Preserve FSR, set ODR
+    imu.WriteRegVerify_Ex(REG_ACCEL_CONFIG0, reg);
+}
+
+/**
+ * @brief Configure UI filter bandwidth
+ */
+void setUIFilters(uint8_t gyro_bw, uint8_t accel_bw) {
+    selectBank(BANK_0);
+    uint8_t reg = (accel_bw << 4) | (gyro_bw & 0x0F);
+    imu.WriteRegVerify_Ex(REG_GYRO_ACCEL_CONFIG0, reg);
+}
+
+/**
+ * @brief Configure gyro Anti-Alias Filter (requires Bank 1)
+ */
+void setGyroAAF(uint8_t delt, uint16_t deltSqr, uint8_t bitshift) {
+    selectBank(BANK_1);
+    imu.WriteReg_Ex(BANK1_GYRO_CONFIG3, delt);
+    imu.WriteReg_Ex(BANK1_GYRO_CONFIG4, deltSqr & 0xFF);
+    imu.WriteReg_Ex(BANK1_GYRO_CONFIG5, (deltSqr >> 8) | (bitshift << 4));
+    selectBank(BANK_0);
+}
+
+/**
+ * @brief Configure accel Anti-Alias Filter (requires Bank 2)
+ */
+void setAccelAAF(uint8_t delt, uint16_t deltSqr, uint8_t bitshift) {
+    selectBank(BANK_2);
+    imu.WriteReg_Ex(BANK2_ACCEL_CONFIG2, delt << 1);  // Note: shifted by 1
+    imu.WriteReg_Ex(BANK2_ACCEL_CONFIG3, deltSqr & 0xFF);
+    imu.WriteReg_Ex(BANK2_ACCEL_CONFIG4, (deltSqr >> 8) | (bitshift << 4));
+    selectBank(BANK_0);
+}
+
+/**
+ * @brief Dump current register configuration
+ */
+void dumpConfiguration() {
+    selectBank(BANK_0);
+    uint8_t gyro_cfg = imu.ReadReg_Ex(REG_GYRO_CONFIG0);
+    uint8_t accel_cfg = imu.ReadReg_Ex(REG_ACCEL_CONFIG0);
+    uint8_t ui_cfg = imu.ReadReg_Ex(REG_GYRO_ACCEL_CONFIG0);
+
+    CI_PRINTF("  GYRO_CONFIG0:       0x%02X (FSR=%d, ODR=%d)\n",
+              gyro_cfg, (gyro_cfg >> 5) & 0x07, gyro_cfg & 0x0F);
+    CI_PRINTF("  ACCEL_CONFIG0:      0x%02X (FSR=%d, ODR=%d)\n",
+              accel_cfg, (accel_cfg >> 5) & 0x07, accel_cfg & 0x0F);
+    CI_PRINTF("  GYRO_ACCEL_CONFIG0: 0x%02X (Gyro UI=%d, Accel UI=%d)\n",
+              ui_cfg, ui_cfg & 0x0F, (ui_cfg >> 4) & 0x0F);
+
+    // Read AAF config from Bank 1
+    selectBank(BANK_1);
+    uint8_t gyro_aaf3 = imu.ReadReg_Ex(BANK1_GYRO_CONFIG3);
+    uint8_t gyro_aaf4 = imu.ReadReg_Ex(BANK1_GYRO_CONFIG4);
+    uint8_t gyro_aaf5 = imu.ReadReg_Ex(BANK1_GYRO_CONFIG5);
+    CI_PRINTF("  Gyro AAF:           delt=%d, deltSqr=%d, bitshift=%d\n",
+              gyro_aaf3, gyro_aaf4 | ((gyro_aaf5 & 0x0F) << 8), gyro_aaf5 >> 4);
+
+    selectBank(BANK_2);
+    uint8_t accel_aaf2 = imu.ReadReg_Ex(BANK2_ACCEL_CONFIG2);
+    uint8_t accel_aaf3 = imu.ReadReg_Ex(BANK2_ACCEL_CONFIG3);
+    uint8_t accel_aaf4 = imu.ReadReg_Ex(BANK2_ACCEL_CONFIG4);
+    CI_PRINTF("  Accel AAF:          delt=%d, deltSqr=%d, bitshift=%d\n",
+              accel_aaf2 >> 1, accel_aaf3 | ((accel_aaf4 & 0x0F) << 8), accel_aaf4 >> 4);
+
+    selectBank(BANK_0);
+}
 
 void setup() {
     // Initialize communication (Serial or RTT)
@@ -109,18 +248,18 @@ void setup() {
     // Display configuration
     CI_LOG("Betaflight ICM-42688-P Configuration:\n");
     CI_LOG("  ODR: " ODR_STRING " (gyro + accel)\n");
-    CI_LOG("  FSR: ±2000 DPS gyro, ±16G accel\n");
+    CI_LOG("  FSR: +/-2000 DPS gyro, +/-16G accel\n");
     CI_LOG("  AAF: 258 Hz (both)\n");
     CI_LOG("  UI: Code 15 (low-latency), 2nd-order\n\n");
 
     // Display pin configuration
     CI_LOG("Pin Configuration (BoardConfig):\n");
-    printf("  CS: %d, MOSI: %d, MISO: %d, SCLK: %d\n",
-           (int)BoardConfig::imu.spi.cs_pin,
-           (int)BoardConfig::imu.spi.mosi_pin,
-           (int)BoardConfig::imu.spi.miso_pin,
-           (int)BoardConfig::imu.spi.sclk_pin);
-    printf("  SPI Speed: %lu Hz\n", (unsigned long)BoardConfig::imu.spi.freq_hz);
+    CI_PRINTF("  CS: %d, MOSI: %d, MISO: %d, SCLK: %d\n",
+              (int)BoardConfig::imu.spi.cs_pin,
+              (int)BoardConfig::imu.spi.mosi_pin,
+              (int)BoardConfig::imu.spi.miso_pin,
+              (int)BoardConfig::imu.spi.sclk_pin);
+    CI_PRINTF("  SPI Speed: %lu Hz\n", (unsigned long)BoardConfig::imu.spi.freq_hz);
     CI_LOG("  Polling Mode: No interrupt pin required\n\n");
 
     // Give IMU time to stabilize
@@ -133,7 +272,7 @@ void setup() {
         CI_LOG("*STOP*\n");
         while (1) delay(1000);
     }
-    CI_LOG("✓ IMU initialized successfully\n");
+    CI_LOG("IMU initialized successfully\n");
 
     // Detect chip type
     IMU::ChipType chip = imu.GetChipType();
@@ -144,80 +283,53 @@ void setup() {
         case IMU::ChipType::MPU_9250:   chip_name = "MPU-9250"; break;
         default: break;
     }
-    printf("Detected chip: %s (0x%02X)\n", chip_name, static_cast<uint8_t>(chip));
+    CI_PRINTF("Detected chip: %s (0x%02X)\n", chip_name, static_cast<uint8_t>(chip));
 
-    // Verify chip is supported by this library version
+    // Verify chip is ICM-42688-P (this example uses chip-specific register access)
     if (chip != IMU::ChipType::ICM42688_P) {
-        CI_LOG("ERROR: This library currently only supports ICM-42688-P!\n");
-        printf("Detected: %s (0x%02X)\n", chip_name, static_cast<uint8_t>(chip));
+        CI_LOG("ERROR: This example requires ICM-42688-P!\n");
+        CI_PRINTF("Detected: %s (0x%02X)\n", chip_name, static_cast<uint8_t>(chip));
         CI_LOG("*STOP*\n");
         while (1) delay(1000);
     }
     CI_LOG("\n");
 
-    // Configure IMU - Betaflight defaults
-    CI_LOG("Configuring IMU (Betaflight defaults)...\n");
-
-    // 1. Set full-scale range (BF: ±2000 DPS gyro, ±16G accel)
-    if (imu.SetGyroFSR(IMU::GyroFS::dps2000) != 0 ||
-        imu.SetAccelFSR(IMU::AccelFS::gpm16) != 0) {
-        CI_LOG("ERROR: Failed to set FSR!\n");
+    // Configure IMU using ACRO preset as baseline (8kHz, +/-2000dps, +/-16g)
+    CI_LOG("Applying ACRO preset as baseline...\n");
+    if (imu.ApplyPreset(IMU::Preset::ACRO) != IMU::Result::OK) {
+        CI_LOG("ERROR: Failed to apply ACRO preset!\n");
         CI_LOG("*STOP*\n");
         while (1) delay(1000);
     }
+    CI_LOG("ACRO preset applied\n\n");
 
-    // 2. Enable sensors for continuous data acquisition
-    if (imu.EnableAccelLNMode() != 0 || imu.EnableGyroLNMode() != 0) {
-        CI_LOG("ERROR: Failed to enable sensors!\n");
-        CI_LOG("*STOP*\n");
-        while (1) delay(1000);
-    }
+    // Apply Betaflight-specific configuration via direct register access
+    CI_LOG("Applying Betaflight configuration...\n");
 
-    // 3. Set output data rates (configured via #define above)
-    if (imu.SetAccelODR(ACCEL_ODR) != 0 ||
-        imu.SetGyroODR(GYRO_ODR) != 0) {
-        CI_LOG("ERROR: Failed to set ODR!\n");
-        CI_LOG("*STOP*\n");
-        while (1) delay(1000);
-    }
+    // 1. Set ODR (configurable via #define)
+    CI_LOG("  Setting ODR to " ODR_STRING "...\n");
+    setGyroODR(ODR_CODE);
+    setAccelODR(ODR_CODE);
 
-    // 4. Configure AAF (Anti-Alias Filter) - BF: 258 Hz for both
-    //    Reference: Betaflight_Filtering.md Section 3
-    imu.SetGyroFilterHz(ICM42688P_AAF_258HZ);
-    imu.SetAccelFilterHz(ICM42688P_AAF_258HZ);
+    // 2. Set AAF to 258 Hz (Betaflight default)
+    CI_LOG("  Setting AAF to 258 Hz...\n");
+    setGyroAAF(AAF_258HZ_DELT, AAF_258HZ_DELTSQR, AAF_258HZ_BITSHIFT);
+    setAccelAAF(AAF_258HZ_DELT, AAF_258HZ_DELTSQR, AAF_258HZ_BITSHIFT);
 
-    // 5. Configure UI filters - BF: Code 15 (low-latency), leave order at reset default
-    //    Reference: Icm42688p Analysis & Guidance.md Section 2, 9
-    //    Betaflight does NOT write order registers - relies on chip reset default (2nd order)
-    //    Using macro: ICM42688P_SET_UI_FILTERS_BETAFLIGHT (BW=15, order=-1,-1)
-    if (imu.SetUiFilters(15, -1, -1) != 0) {
-        CI_LOG("ERROR: Failed to set UI filters!\n");
-        CI_LOG("*STOP*\n");
-        while (1) delay(1000);
-    }
+    // 3. Set UI filters to code 15 (low-latency) - Betaflight default
+    CI_LOG("  Setting UI filters to low-latency mode...\n");
+    setUIFilters(UI_BW_LOW_LATENCY_X2, UI_BW_LOW_LATENCY_X2);
 
-    // Verify all filter settings by reading back registers
-    CI_LOG("Verifying filter configuration...\n");
+    // Wait for configuration to stabilize
+    delay(10);
 
-    // Verify AAF
-    if (imu.VerifyAafConfig(ICM42688P_AAF_258HZ, ICM42688P_AAF_258HZ) != 0) {
-        CI_LOG("ERROR: AAF verification failed!\n");
-        CI_LOG("*STOP*\n");
-        while (1) delay(1000);
-    }
+    CI_LOG("\nBetaflight configuration complete.\n");
+    CI_LOG("Final register state:\n");
+    dumpConfiguration();
 
-    // Verify UI filters (code 15, skip order verification with -1 since BF doesn't write them)
-    if (imu.VerifyUiFilters(15, -1, -1) != 0) {
-        CI_LOG("ERROR: UI filter verification failed!\n");
-        CI_LOG("*STOP*\n");
-        while (1) delay(1000);
-    }
-
-    CI_LOG("✓ Filter configuration verified by hardware readback\n\n");
-
-    CI_LOG("✓ IMU configured for Betaflight operation\n");
-    CI_LOG("  Gyro: ±2000 DPS, " ODR_STRING " ODR\n");
-    CI_LOG("  Accel: ±16G, " ODR_STRING " ODR\n");
+    CI_LOG("\nIMU configured for Betaflight operation\n");
+    CI_LOG("  Gyro: +/-2000 DPS, " ODR_STRING " ODR\n");
+    CI_LOG("  Accel: +/-16G, " ODR_STRING " ODR\n");
     CI_LOG("  AAF: 258 Hz (both)\n");
     CI_LOG("  UI: Code 15 (low-latency), 2nd-order\n");
     CI_LOG("  Mode: Continuous 2kHz polling loop\n\n");
@@ -242,16 +354,16 @@ void loop() {
 
         // Print every 500 samples (~4Hz at 2kHz loop)
         if (sample_count % 500 == 0) {
-            printf("Sample %lu: ", sample_count);
-            printf("Accel[%6d,%6d,%6d] ",
-                   imu_data[0], imu_data[1], imu_data[2]);
-            printf("Gyro[%6d,%6d,%6d]\n",
-                   imu_data[3], imu_data[4], imu_data[5]);
+            CI_PRINTF("Sample %lu: ", sample_count);
+            CI_PRINTF("Accel[%6d,%6d,%6d] ",
+                      imu_data[0], imu_data[1], imu_data[2]);
+            CI_PRINTF("Gyro[%6d,%6d,%6d]\n",
+                      imu_data[3], imu_data[4], imu_data[5]);
         }
 
         // Exit after 10000 samples (~5 seconds)
         if (sample_count >= 10000) {
-            CI_LOG("\n✓ Data collection complete\n");
+            CI_LOG("\nData collection complete\n");
             CI_LOG("\n=== Test Complete ===\n");
             CI_LOG("*STOP*\n");
             while(1); // Halt
@@ -264,24 +376,3 @@ void loop() {
         loop_timer = micros();
     }
 }
-
-/* --------------------------------------------------------------------------------------
- *  libPrintf putchar_ implementation for RTT/Serial routing
- * -------------------------------------------------------------------------------------- */
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-void putchar_(char c) {
-#ifdef USE_RTT
-    char buf[2] = {c, '\0'};
-    SEGGER_RTT_WriteString(0, buf);
-#else
-    Serial.print(c);
-#endif
-}
-
-#ifdef __cplusplus
-}
-#endif

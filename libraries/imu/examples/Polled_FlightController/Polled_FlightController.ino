@@ -28,13 +28,11 @@
 #include <IMU.h>
 #include <ci_log.h>
 #include <SPI.h>
-#include <libPrintf.h>
 
-// libPrintf requires putchar_() for output routing
+// CI_PRINTF requires putchar_() for libPrintf output routing
 extern "C" void putchar_(char c) {
 #ifdef USE_RTT
-    char buf[2] = {c, '\0'};
-    SEGGER_RTT_WriteString(0, buf);
+    SEGGER_RTT_PutChar(0, c);
 #else
     Serial.write(c);
 #endif
@@ -71,12 +69,12 @@ void setup() {
 
     // Display pin configuration
     CI_LOG("Pin Configuration (BoardConfig):\n");
-    printf("  CS: %d, MOSI: %d, MISO: %d, SCLK: %d\n",
+    CI_PRINTF("  CS: %d, MOSI: %d, MISO: %d, SCLK: %d\n",
            (int)BoardConfig::imu.spi.cs_pin,
            (int)BoardConfig::imu.spi.mosi_pin,
            (int)BoardConfig::imu.spi.miso_pin,
            (int)BoardConfig::imu.spi.sclk_pin);
-    printf("  SPI Speed: %lu Hz\n", (unsigned long)BoardConfig::imu.spi.freq_hz);
+    CI_PRINTF("  SPI Speed: %lu Hz\n", (unsigned long)BoardConfig::imu.spi.freq_hz);
     CI_LOG("  Polling Mode: No interrupt pin required\n\n");
 
     // Give IMU time to stabilize
@@ -103,7 +101,7 @@ void setup() {
         case IMU::ChipType::ICM20689:   chip_name = "ICM-20689"; break;
         default: break;
     }
-    printf("Detected chip: %s (0x%02X)\n", chip_name, static_cast<uint8_t>(chip));
+    CI_PRINTF("Detected chip: %s (0x%02X)\n", chip_name, static_cast<uint8_t>(chip));
 
     CI_LOG("\n");
 
@@ -153,13 +151,13 @@ void loop() {
             float gy = imu_data[4] / imu.GetGyroSensitivity();
             float gz = imu_data[5] / imu.GetGyroSensitivity();
 
-            printf("[%lu] Accel(g): %.3f, %.3f, %.3f | Gyro(dps): %.2f, %.2f, %.2f\n",
+            CI_PRINTF("[%lu] Accel(g): %.3f, %.3f, %.3f | Gyro(dps): %.2f, %.2f, %.2f\n",
                    sample_count, ax, ay, az, gx, gy, gz);
         }
 
         // Stop after 20 prints (10 seconds)
         if (sample_count >= 20000) {
-            printf("\n✓ Completed %lu samples\n", (unsigned long)sample_count);
+            CI_PRINTF("\n✓ Completed %lu samples\n", (unsigned long)sample_count);
             CI_LOG("*STOP*\n");
             while (1) delay(1000);
         }

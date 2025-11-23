@@ -19,7 +19,6 @@
 #include <IMU.h>
 #include <ci_log.h>
 #include <SPI.h>
-#include <libPrintf.h>
 
 // Board configuration - Multi-board support
 #if defined(ARDUINO_BKMN_NERO)
@@ -60,15 +59,15 @@ void setup() {
 
     // Display pin configuration
     CI_LOG("Pin Configuration (BoardConfig):\n");
-    printf("  CS: %d, MOSI: %d, MISO: %d, SCLK: %d\n",
+    CI_PRINTF("  CS: %d, MOSI: %d, MISO: %d, SCLK: %d\n",
            (int)BoardConfig::imu.spi.cs_pin,
            (int)BoardConfig::imu.spi.mosi_pin,
            (int)BoardConfig::imu.spi.miso_pin,
            (int)BoardConfig::imu.spi.sclk_pin);
-    printf("  SPI Speed: %lu Hz\n", (unsigned long)BoardConfig::imu.spi.freq_hz);
+    CI_PRINTF("  SPI Speed: %lu Hz\n", (unsigned long)BoardConfig::imu.spi.freq_hz);
 
     if (BoardConfig::imu.int_pin != 0) {
-        printf("  Interrupt Pin: %d\n\n", (int)BoardConfig::imu.int_pin);
+        CI_PRINTF("  Interrupt Pin: %d\n\n", (int)BoardConfig::imu.int_pin);
     } else {
         CI_LOG("  Interrupt Pin: None configured\n");
         CI_LOG("ERROR: This example requires interrupt pin!\n");
@@ -100,7 +99,7 @@ void setup() {
         case IMU::ChipType::ICM20689:   chip_name = "ICM-20689"; break;
         default: break;
     }
-    printf("Detected chip: %s (0x%02X)\n", chip_name, static_cast<uint8_t>(chip));
+    CI_PRINTF("Detected chip: %s (0x%02X)\n", chip_name, static_cast<uint8_t>(chip));
     CI_LOG("\n");
 
     // Configure IMU for interrupt-driven operation
@@ -150,10 +149,10 @@ void setup() {
 
                 // Print every 5th sample
                 if (sample_count % 5 == 0) {
-                    printf("Sample %d: ", sample_count);
-                    printf("Accel[%6d,%6d,%6d] ",
+                    CI_PRINTF("Sample %d: ", sample_count);
+                    CI_PRINTF("Accel[%6d,%6d,%6d] ",
                            imu_data[0], imu_data[1], imu_data[2]);
-                    printf("Gyro[%6d,%6d,%6d]\n",
+                    CI_PRINTF("Gyro[%6d,%6d,%6d]\n",
                            imu_data[3], imu_data[4], imu_data[5]);
                 }
             }
@@ -175,7 +174,7 @@ void loop() {
 }
 
 /* --------------------------------------------------------------------------------------
- *  libPrintf putchar_ implementation for RTT/Serial routing
+ *  CI_PRINTF putchar_ implementation for RTT/Serial routing
  * -------------------------------------------------------------------------------------- */
 
 #ifdef __cplusplus
@@ -184,10 +183,9 @@ extern "C" {
 
 void putchar_(char c) {
 #ifdef USE_RTT
-    char buf[2] = {c, '\0'};
-    SEGGER_RTT_WriteString(0, buf);
+    SEGGER_RTT_PutChar(0, c);
 #else
-    Serial.print(c);
+    Serial.write(c);
 #endif
 }
 

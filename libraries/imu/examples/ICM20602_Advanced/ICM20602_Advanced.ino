@@ -33,13 +33,11 @@
 #include <IMU.h>
 #include <ci_log.h>
 #include <SPI.h>
-#include <libPrintf.h>
 
-// libPrintf requires putchar_() for output routing
+// CI_PRINTF requires putchar_() for libPrintf output routing
 extern "C" void putchar_(char c) {
 #ifdef USE_RTT
-    char buf[2] = {c, '\0'};
-    SEGGER_RTT_WriteString(0, buf);
+    SEGGER_RTT_PutChar(0, c);
 #else
     Serial.write(c);
 #endif
@@ -187,18 +185,18 @@ void dumpConfiguration() {
     uint8_t accel_cfg = imu.ReadReg_Ex(REG_ACCEL_CONFIG);
     uint8_t accel_cfg2 = imu.ReadReg_Ex(REG_ACCEL_CONFIG2);
 
-    printf("  PWR_MGMT_1:     0x%02X\n", pwr);
-    printf("  SMPLRT_DIV:     0x%02X (%d)\n", smplrt, smplrt);
-    printf("  CONFIG:         0x%02X (DLPF_CFG=%d)\n", config, config & 0x07);
-    printf("  GYRO_CONFIG:    0x%02X (FSR=%d)\n", gyro_cfg, (gyro_cfg >> 3) & 0x03);
-    printf("  ACCEL_CONFIG:   0x%02X (FSR=%d)\n", accel_cfg, (accel_cfg >> 3) & 0x03);
-    printf("  ACCEL_CONFIG2:  0x%02X (A_DLPF=%d)\n", accel_cfg2, accel_cfg2 & 0x07);
+    CI_PRINTF("  PWR_MGMT_1:     0x%02X\n", pwr);
+    CI_PRINTF("  SMPLRT_DIV:     0x%02X (%d)\n", smplrt, smplrt);
+    CI_PRINTF("  CONFIG:         0x%02X (DLPF_CFG=%d)\n", config, config & 0x07);
+    CI_PRINTF("  GYRO_CONFIG:    0x%02X (FSR=%d)\n", gyro_cfg, (gyro_cfg >> 3) & 0x03);
+    CI_PRINTF("  ACCEL_CONFIG:   0x%02X (FSR=%d)\n", accel_cfg, (accel_cfg >> 3) & 0x03);
+    CI_PRINTF("  ACCEL_CONFIG2:  0x%02X (A_DLPF=%d)\n", accel_cfg2, accel_cfg2 & 0x07);
 
     // Calculate effective sample rate
     uint8_t dlpf = config & 0x07;
     uint16_t internal_rate = (dlpf == 0 || dlpf == 7) ? 8000 : 1000;
     uint16_t output_rate = (dlpf == 0 || dlpf == 7) ? 8000 : internal_rate / (1 + smplrt);
-    printf("  Effective rate: %d Hz (internal: %d Hz)\n", output_rate, internal_rate);
+    CI_PRINTF("  Effective rate: %d Hz (internal: %d Hz)\n", output_rate, internal_rate);
 }
 
 /**
@@ -235,12 +233,12 @@ void setup() {
 
     // Display pin configuration
     CI_LOG("Pin Configuration (BoardConfig):\n");
-    printf("  CS: %d, MOSI: %d, MISO: %d, SCLK: %d\n",
+    CI_PRINTF("  CS: %d, MOSI: %d, MISO: %d, SCLK: %d\n",
            (int)BoardConfig::imu.spi.cs_pin,
            (int)BoardConfig::imu.spi.mosi_pin,
            (int)BoardConfig::imu.spi.miso_pin,
            (int)BoardConfig::imu.spi.sclk_pin);
-    printf("  SPI Speed: %lu Hz\n\n", (unsigned long)BoardConfig::imu.spi.freq_hz);
+    CI_PRINTF("  SPI Speed: %lu Hz\n\n", (unsigned long)BoardConfig::imu.spi.freq_hz);
 
     // Give IMU time to stabilize
     delay(5);
@@ -260,7 +258,7 @@ void setup() {
                         chip == IMU::ChipType::ICM20689);
 
     if (!is_icm206xx) {
-        printf("ERROR: This example requires ICM-206xx (detected 0x%02X)\n",
+        CI_PRINTF("ERROR: This example requires ICM-206xx (detected 0x%02X)\n",
                static_cast<uint8_t>(chip));
         CI_LOG("Use ICM42688P_Advanced for ICM-42688-P.\n");
         CI_LOG("*STOP*\n");
@@ -275,7 +273,7 @@ void setup() {
         case IMU::ChipType::ICM20689: chip_name = "ICM-20689"; break;
         default: break;
     }
-    printf("Detected chip: %s (0x%02X)\n\n", chip_name, static_cast<uint8_t>(chip));
+    CI_PRINTF("Detected chip: %s (0x%02X)\n\n", chip_name, static_cast<uint8_t>(chip));
 
     // ========================================================================
     // STEP 1: Show default configuration after Init()
@@ -301,7 +299,7 @@ void setup() {
         std::array<int16_t, 6> data;
         if (imu.ReadIMU6(data) == 0) {
             if (i % 2 == 0) {
-                printf("  [%d] Accel[%6d,%6d,%6d] Gyro[%6d,%6d,%6d]\n",
+                CI_PRINTF("  [%d] Accel[%6d,%6d,%6d] Gyro[%6d,%6d,%6d]\n",
                        i, data[0], data[1], data[2], data[3], data[4], data[5]);
             }
         }
@@ -338,7 +336,7 @@ void setup() {
         std::array<int16_t, 6> data;
         if (imu.ReadIMU6(data) == 0) {
             if (i % 2 == 0) {
-                printf("  [%d] Accel[%6d,%6d,%6d] Gyro[%6d,%6d,%6d]\n",
+                CI_PRINTF("  [%d] Accel[%6d,%6d,%6d] Gyro[%6d,%6d,%6d]\n",
                        i, data[0], data[1], data[2], data[3], data[4], data[5]);
             }
         }
@@ -371,7 +369,7 @@ void setup() {
         std::array<int16_t, 6> data;
         if (imu.ReadIMU6(data) == 0) {
             if (i % 2 == 0) {
-                printf("  [%d] Accel[%6d,%6d,%6d] Gyro[%6d,%6d,%6d]\n",
+                CI_PRINTF("  [%d] Accel[%6d,%6d,%6d] Gyro[%6d,%6d,%6d]\n",
                        i, data[0], data[1], data[2], data[3], data[4], data[5]);
             }
         }
@@ -393,8 +391,8 @@ void setup() {
         CI_LOG("ERROR: Failed to set accel FSR!\n");
     }
 
-    printf("Gyro sensitivity: %.1f LSB/dps\n", imu.GetGyroSensitivity());
-    printf("Accel sensitivity: %.1f LSB/g\n", imu.GetAccelSensitivity());
+    CI_PRINTF("Gyro sensitivity: %.1f LSB/dps\n", imu.GetGyroSensitivity());
+    CI_PRINTF("Accel sensitivity: %.1f LSB/g\n", imu.GetAccelSensitivity());
 
     CI_LOG("\nConfiguration after FSR change:\n");
     dumpConfiguration();
@@ -412,7 +410,7 @@ void setup() {
                 float gx = data[3] / imu.GetGyroSensitivity();
                 float gy = data[4] / imu.GetGyroSensitivity();
                 float gz = data[5] / imu.GetGyroSensitivity();
-                printf("  [%d] Accel(g): %6.3f,%6.3f,%6.3f | Gyro(dps): %6.2f,%6.2f,%6.2f\n",
+                CI_PRINTF("  [%d] Accel(g): %6.3f,%6.3f,%6.3f | Gyro(dps): %6.2f,%6.2f,%6.2f\n",
                        i, ax, ay, az, gx, gy, gz);
             }
         }
