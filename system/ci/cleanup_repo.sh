@@ -10,6 +10,10 @@ echo "=== Repository Cleanup ==="
 echo "Removing sketch build directories..."
 find tests/ sketches/ libraries/ extras/ cmake/examples/ -name "build" -type d -exec rm -rf {} + 2>/dev/null || true
 
+# Remove test logs directory (contains symlinks that break Windows)
+echo "Removing test logs directory..."
+rm -rf test_logs/ 2>/dev/null || true
+
 # Remove auto-generated build_id.h files
 echo "Removing auto-generated build_id.h files..."
 find . -name "build_id.h" -delete 2>/dev/null || true
