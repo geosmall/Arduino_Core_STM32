@@ -34,6 +34,7 @@ find . -name "sketches" -type d -path "*/.cache/*" -exec rm -rf {} + 2>/dev/null
 # Remove Python cache directories and bytecode
 echo "Removing Python cache directories..."
 find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+find . -name ".pytest_cache" -type d -exec rm -rf {} + 2>/dev/null || true
 find . -name "*.pyc" -delete 2>/dev/null || true
 find . -name "*.pyo" -delete 2>/dev/null || true
 
