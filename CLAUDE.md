@@ -562,7 +562,8 @@ AVOID documentation duplication across files. Before adding content, check if it
 CI_LOG(s)              // String literals only (no printf formatting)
 CI_LOGF(...)           // Printf-style formatting (RTT: SEGGER_RTT_printf, Serial: Serial.printf)
                        // ⚠️ RTT LIMITATION: %f float formatting NOT supported in RTT mode
-CI_PRINTF(...)         // Full printf with float support via libPrintf (requires putchar_())
+CI_PRINTF(...)         // Full printf with float support via libPrintf
+                       // ⚠️ REQUIRES: #include <libPrintf.h> AND putchar_() implementation
                        // ✅ RECOMMENDED for formatted output including floats
 CI_BUILD_INFO()        // Shows build SHA + timestamp (RTT only, no-op in Serial mode)
 CI_READY_TOKEN()       // Shows ready token (RTT only, no-op in Serial mode)
@@ -572,6 +573,7 @@ CI_LOG_FLOAT(prefix, value, decimals)  // Float output helper (works in both mod
 **Correct Usage Pattern**:
 ```cpp
 #include <ci_log.h>
+#include <libPrintf.h>  // REQUIRED for CI_PRINTF - links the printf_ library
 
 // CI_PRINTF requires putchar_() for libPrintf output routing
 extern "C" void putchar_(char c) {
