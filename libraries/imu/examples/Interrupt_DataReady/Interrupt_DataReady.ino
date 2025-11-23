@@ -19,6 +19,7 @@
 #include <IMU.h>
 #include <ci_log.h>
 #include <SPI.h>
+#include <libPrintf.h>
 
 // Board configuration - Multi-board support
 #if defined(ARDUINO_BKMN_NERO)

@@ -28,6 +28,7 @@
 #include <IMU.h>
 #include <ci_log.h>
 #include <SPI.h>
+#include <libPrintf.h>
 
 // CI_PRINTF requires putchar_() for libPrintf output routing
 extern "C" void putchar_(char c) {

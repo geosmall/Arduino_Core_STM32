@@ -27,7 +27,15 @@
 //
 #pragma once
 
-#include <libPrintf.h>  // eyalroz/printf - full printf with float support
+// Forward declare printf_ from libPrintf for CI_PRINTF macro
+// Users must #include <libPrintf.h> in their sketch to use CI_PRINTF
+#ifdef __cplusplus
+extern "C" {
+#endif
+int printf_(const char* format, ...);
+#ifdef __cplusplus
+}
+#endif
 
 #if defined(USE_RTT)
   #include "SEGGER_RTT.h"
@@ -52,7 +60,8 @@
 
   // Full printf with float support via libPrintf
   // Requires putchar_() to be defined in sketch (routes to SEGGER_RTT_PutChar)
-  #define CI_PRINTF(...) printf(__VA_ARGS__)
+  // Use printf_ directly to avoid macro conflicts with libPrintf's printf redefinition
+  #define CI_PRINTF(...) printf_(__VA_ARGS__)
 
   // RTT doesn't support float printf natively, so provide helper using dtostrf
   inline void CI_LOG_FLOAT(const char* prefix, float value, int decimals = 2) {
@@ -70,7 +79,8 @@
 
   // Full printf with float support via libPrintf
   // Requires putchar_() to be defined in sketch (routes to Serial.write)
-  #define CI_PRINTF(...) printf(__VA_ARGS__)
+  // Use printf_ directly to avoid macro conflicts with libPrintf's printf redefinition
+  #define CI_PRINTF(...) printf_(__VA_ARGS__)
 
   // Serial mode supports float natively
   inline void CI_LOG_FLOAT(const char* prefix, float value, int decimals = 2) {
