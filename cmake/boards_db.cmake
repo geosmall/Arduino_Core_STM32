@@ -1,85 +1,3 @@
-# AFROFLIGHT_F103CB
-# -----------------------------------------------------------------------------
-
-set(AFROFLIGHT_F103CB_VARIANT_PATH "${CMAKE_CURRENT_LIST_DIR}/../variants/STM32F1xx/F103C8T_F103CB(T-U)")
-set(AFROFLIGHT_F103CB_MAXSIZE 131072)
-set(AFROFLIGHT_F103CB_MAXDATASIZE 20480)
-set(AFROFLIGHT_F103CB_MCU cortex-m3)
-set(AFROFLIGHT_F103CB_FPCONF "-")
-add_library(AFROFLIGHT_F103CB INTERFACE)
-target_compile_options(AFROFLIGHT_F103CB INTERFACE
-  "SHELL:-DCORE_CM7 -DSTM32F103xB  "
-  "SHELL:"
-  "SHELL:"
-  "SHELL:-mfpu=fpv4-sp-d16 -mfloat-abi=hard"
-  -mcpu=${AFROFLIGHT_F103CB_MCU}
-)
-target_compile_definitions(AFROFLIGHT_F103CB INTERFACE
-  "STM32F1xx"
-	"ARDUINO_AFROFLIGHT_F103CB"
-	"BOARD_NAME=\"AFROFLIGHT_F103CB\""
-	"BOARD_ID=AFROFLIGHT_F103CB"
-	"VARIANT_H=\"variant_AFROFLIGHT_F103CB_XX.h\""
-)
-target_include_directories(AFROFLIGHT_F103CB INTERFACE
-  ${CMAKE_CURRENT_LIST_DIR}/../system/STM32F1xx
-  ${CMAKE_CURRENT_LIST_DIR}/../system/Drivers/STM32F1xx_HAL_Driver/Inc
-  ${CMAKE_CURRENT_LIST_DIR}/../system/Drivers/STM32F1xx_HAL_Driver/Src
-  ${CMAKE_CURRENT_LIST_DIR}/../system/Drivers/CMSIS/Device/ST/STM32F1xx/Include/
-  ${CMAKE_CURRENT_LIST_DIR}/../system/Drivers/CMSIS/Device/ST/STM32F1xx/Source/Templates/gcc/
-  ${AFROFLIGHT_F103CB_VARIANT_PATH}
-)
-
-target_link_options(AFROFLIGHT_F103CB INTERFACE
-  "LINKER:--default-script=${AFROFLIGHT_F103CB_VARIANT_PATH}/ldscript.ld"
-  "LINKER:--defsym=LD_FLASH_OFFSET=0x0"
-	"LINKER:--defsym=LD_MAX_SIZE=131072"
-	"LINKER:--defsym=LD_MAX_DATA_SIZE=20480"
-  "SHELL:-mfpu=fpv4-sp-d16 -mfloat-abi=hard"
-  -mcpu=${AFROFLIGHT_F103CB_MCU}
-)
-
-add_library(AFROFLIGHT_F103CB_serial_disabled INTERFACE)
-target_compile_options(AFROFLIGHT_F103CB_serial_disabled INTERFACE
-  "SHELL:"
-)
-add_library(AFROFLIGHT_F103CB_serial_generic INTERFACE)
-target_compile_options(AFROFLIGHT_F103CB_serial_generic INTERFACE
-  "SHELL:-DHAL_UART_MODULE_ENABLED"
-)
-add_library(AFROFLIGHT_F103CB_serial_none INTERFACE)
-target_compile_options(AFROFLIGHT_F103CB_serial_none INTERFACE
-  "SHELL:-DHAL_UART_MODULE_ENABLED -DHWSERIAL_NONE"
-)
-add_library(AFROFLIGHT_F103CB_usb_CDC INTERFACE)
-target_compile_options(AFROFLIGHT_F103CB_usb_CDC INTERFACE
-  "SHELL:-DUSBCON  -DUSBD_VID=0 -DUSBD_PID=0 -DHAL_PCD_MODULE_ENABLED -DUSBD_USE_CDC -DDISABLE_GENERIC_SERIALUSB"
-)
-add_library(AFROFLIGHT_F103CB_usb_CDCgen INTERFACE)
-target_compile_options(AFROFLIGHT_F103CB_usb_CDCgen INTERFACE
-  "SHELL:-DUSBCON  -DUSBD_VID=0 -DUSBD_PID=0 -DHAL_PCD_MODULE_ENABLED -DUSBD_USE_CDC"
-)
-add_library(AFROFLIGHT_F103CB_usb_HID INTERFACE)
-target_compile_options(AFROFLIGHT_F103CB_usb_HID INTERFACE
-  "SHELL:-DUSBCON  -DUSBD_VID=0 -DUSBD_PID=0 -DHAL_PCD_MODULE_ENABLED -DUSBD_USE_HID_COMPOSITE"
-)
-add_library(AFROFLIGHT_F103CB_usb_none INTERFACE)
-target_compile_options(AFROFLIGHT_F103CB_usb_none INTERFACE
-  "SHELL:"
-)
-add_library(AFROFLIGHT_F103CB_xusb_FS INTERFACE)
-target_compile_options(AFROFLIGHT_F103CB_xusb_FS INTERFACE
-  "SHELL:"
-)
-add_library(AFROFLIGHT_F103CB_xusb_HS INTERFACE)
-target_compile_options(AFROFLIGHT_F103CB_xusb_HS INTERFACE
-  "SHELL:-DUSE_USB_HS"
-)
-add_library(AFROFLIGHT_F103CB_xusb_HSFS INTERFACE)
-target_compile_options(AFROFLIGHT_F103CB_xusb_HSFS INTERFACE
-  "SHELL:-DUSE_USB_HS -DUSE_USB_HS_IN_FS"
-)
-
 # B_G431B_ESC1
 # -----------------------------------------------------------------------------
 
@@ -159,6 +77,88 @@ target_compile_options(B_G431B_ESC1_xusb_HS INTERFACE
 )
 add_library(B_G431B_ESC1_xusb_HSFS INTERFACE)
 target_compile_options(B_G431B_ESC1_xusb_HSFS INTERFACE
+  "SHELL:-DUSE_USB_HS -DUSE_USB_HS_IN_FS"
+)
+
+# BKMN_NERO
+# -----------------------------------------------------------------------------
+
+set(BKMN_NERO_VARIANT_PATH "${CMAKE_CURRENT_LIST_DIR}/../variants/STM32F7xx/F722R(C-E)T_F730R8T_F732RET")
+set(BKMN_NERO_MAXSIZE 524288)
+set(BKMN_NERO_MAXDATASIZE 262144)
+set(BKMN_NERO_MCU cortex-m7)
+set(BKMN_NERO_FPCONF "-")
+add_library(BKMN_NERO INTERFACE)
+target_compile_options(BKMN_NERO INTERFACE
+  "SHELL:-DSTM32F722xx  "
+  "SHELL:"
+  "SHELL:"
+  "SHELL:-mfpu=fpv4-sp-d16 -mfloat-abi=hard"
+  -mcpu=${BKMN_NERO_MCU}
+)
+target_compile_definitions(BKMN_NERO INTERFACE
+  "STM32F7xx"
+	"ARDUINO_BKMN_NERO"
+	"BOARD_NAME=\"BKMN_NERO\""
+	"BOARD_ID=BKMN_NERO"
+	"VARIANT_H=\"variant_BKMN_NERO.h\""
+)
+target_include_directories(BKMN_NERO INTERFACE
+  ${CMAKE_CURRENT_LIST_DIR}/../system/STM32F7xx
+  ${CMAKE_CURRENT_LIST_DIR}/../system/Drivers/STM32F7xx_HAL_Driver/Inc
+  ${CMAKE_CURRENT_LIST_DIR}/../system/Drivers/STM32F7xx_HAL_Driver/Src
+  ${CMAKE_CURRENT_LIST_DIR}/../system/Drivers/CMSIS/Device/ST/STM32F7xx/Include/
+  ${CMAKE_CURRENT_LIST_DIR}/../system/Drivers/CMSIS/Device/ST/STM32F7xx/Source/Templates/gcc/
+  ${BKMN_NERO_VARIANT_PATH}
+)
+
+target_link_options(BKMN_NERO INTERFACE
+  "LINKER:--default-script=${BKMN_NERO_VARIANT_PATH}/ldscript.ld"
+  "LINKER:--defsym=LD_FLASH_OFFSET=0x0"
+	"LINKER:--defsym=LD_MAX_SIZE=524288"
+	"LINKER:--defsym=LD_MAX_DATA_SIZE=262144"
+  "SHELL:-mfpu=fpv4-sp-d16 -mfloat-abi=hard"
+  -mcpu=${BKMN_NERO_MCU}
+)
+
+add_library(BKMN_NERO_serial_disabled INTERFACE)
+target_compile_options(BKMN_NERO_serial_disabled INTERFACE
+  "SHELL:"
+)
+add_library(BKMN_NERO_serial_generic INTERFACE)
+target_compile_options(BKMN_NERO_serial_generic INTERFACE
+  "SHELL:-DHAL_UART_MODULE_ENABLED"
+)
+add_library(BKMN_NERO_serial_none INTERFACE)
+target_compile_options(BKMN_NERO_serial_none INTERFACE
+  "SHELL:-DHAL_UART_MODULE_ENABLED -DHWSERIAL_NONE"
+)
+add_library(BKMN_NERO_usb_CDC INTERFACE)
+target_compile_options(BKMN_NERO_usb_CDC INTERFACE
+  "SHELL:-DUSBCON  -DUSBD_VID=0 -DUSBD_PID=0 -DHAL_PCD_MODULE_ENABLED -DUSBD_USE_CDC -DDISABLE_GENERIC_SERIALUSB"
+)
+add_library(BKMN_NERO_usb_CDCgen INTERFACE)
+target_compile_options(BKMN_NERO_usb_CDCgen INTERFACE
+  "SHELL:-DUSBCON  -DUSBD_VID=0 -DUSBD_PID=0 -DHAL_PCD_MODULE_ENABLED -DUSBD_USE_CDC"
+)
+add_library(BKMN_NERO_usb_HID INTERFACE)
+target_compile_options(BKMN_NERO_usb_HID INTERFACE
+  "SHELL:-DUSBCON  -DUSBD_VID=0 -DUSBD_PID=0 -DHAL_PCD_MODULE_ENABLED -DUSBD_USE_HID_COMPOSITE"
+)
+add_library(BKMN_NERO_usb_none INTERFACE)
+target_compile_options(BKMN_NERO_usb_none INTERFACE
+  "SHELL:"
+)
+add_library(BKMN_NERO_xusb_FS INTERFACE)
+target_compile_options(BKMN_NERO_xusb_FS INTERFACE
+  "SHELL:"
+)
+add_library(BKMN_NERO_xusb_HS INTERFACE)
+target_compile_options(BKMN_NERO_xusb_HS INTERFACE
+  "SHELL:-DUSE_USB_HS"
+)
+add_library(BKMN_NERO_xusb_HSFS INTERFACE)
+target_compile_options(BKMN_NERO_xusb_HSFS INTERFACE
   "SHELL:-DUSE_USB_HS -DUSE_USB_HS_IN_FS"
 )
 
@@ -32408,6 +32408,88 @@ target_compile_options(GENERIC_H757XIHX_xusb_HSFS INTERFACE
   "SHELL:-DUSE_USB_HS -DUSE_USB_HS_IN_FS"
 )
 
+# JHEF_JHEF411
+# -----------------------------------------------------------------------------
+
+set(JHEF_JHEF411_VARIANT_PATH "${CMAKE_CURRENT_LIST_DIR}/../variants/STM32F4xx/F411C(C-E)(U-Y)")
+set(JHEF_JHEF411_MAXSIZE 524288)
+set(JHEF_JHEF411_MAXDATASIZE 131072)
+set(JHEF_JHEF411_MCU cortex-m4)
+set(JHEF_JHEF411_FPCONF "-")
+add_library(JHEF_JHEF411 INTERFACE)
+target_compile_options(JHEF_JHEF411 INTERFACE
+  "SHELL:-DSTM32F411xE  "
+  "SHELL:"
+  "SHELL:"
+  "SHELL:-mfpu=fpv4-sp-d16 -mfloat-abi=hard"
+  -mcpu=${JHEF_JHEF411_MCU}
+)
+target_compile_definitions(JHEF_JHEF411 INTERFACE
+  "STM32F4xx"
+	"ARDUINO_JHEF_JHEF411"
+	"BOARD_NAME=\"JHEF_JHEF411\""
+	"BOARD_ID=JHEF_JHEF411"
+	"VARIANT_H=\"variant_JHEF_JHEF411.h\""
+)
+target_include_directories(JHEF_JHEF411 INTERFACE
+  ${CMAKE_CURRENT_LIST_DIR}/../system/STM32F4xx
+  ${CMAKE_CURRENT_LIST_DIR}/../system/Drivers/STM32F4xx_HAL_Driver/Inc
+  ${CMAKE_CURRENT_LIST_DIR}/../system/Drivers/STM32F4xx_HAL_Driver/Src
+  ${CMAKE_CURRENT_LIST_DIR}/../system/Drivers/CMSIS/Device/ST/STM32F4xx/Include/
+  ${CMAKE_CURRENT_LIST_DIR}/../system/Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates/gcc/
+  ${JHEF_JHEF411_VARIANT_PATH}
+)
+
+target_link_options(JHEF_JHEF411 INTERFACE
+  "LINKER:--default-script=${JHEF_JHEF411_VARIANT_PATH}/ldscript.ld"
+  "LINKER:--defsym=LD_FLASH_OFFSET=0x0"
+	"LINKER:--defsym=LD_MAX_SIZE=524288"
+	"LINKER:--defsym=LD_MAX_DATA_SIZE=131072"
+  "SHELL:-mfpu=fpv4-sp-d16 -mfloat-abi=hard"
+  -mcpu=${JHEF_JHEF411_MCU}
+)
+
+add_library(JHEF_JHEF411_serial_disabled INTERFACE)
+target_compile_options(JHEF_JHEF411_serial_disabled INTERFACE
+  "SHELL:"
+)
+add_library(JHEF_JHEF411_serial_generic INTERFACE)
+target_compile_options(JHEF_JHEF411_serial_generic INTERFACE
+  "SHELL:-DHAL_UART_MODULE_ENABLED"
+)
+add_library(JHEF_JHEF411_serial_none INTERFACE)
+target_compile_options(JHEF_JHEF411_serial_none INTERFACE
+  "SHELL:-DHAL_UART_MODULE_ENABLED -DHWSERIAL_NONE"
+)
+add_library(JHEF_JHEF411_usb_CDC INTERFACE)
+target_compile_options(JHEF_JHEF411_usb_CDC INTERFACE
+  "SHELL:-DUSBCON  -DUSBD_VID=0 -DUSBD_PID=0 -DHAL_PCD_MODULE_ENABLED -DUSBD_USE_CDC -DDISABLE_GENERIC_SERIALUSB"
+)
+add_library(JHEF_JHEF411_usb_CDCgen INTERFACE)
+target_compile_options(JHEF_JHEF411_usb_CDCgen INTERFACE
+  "SHELL:-DUSBCON  -DUSBD_VID=0 -DUSBD_PID=0 -DHAL_PCD_MODULE_ENABLED -DUSBD_USE_CDC"
+)
+add_library(JHEF_JHEF411_usb_HID INTERFACE)
+target_compile_options(JHEF_JHEF411_usb_HID INTERFACE
+  "SHELL:-DUSBCON  -DUSBD_VID=0 -DUSBD_PID=0 -DHAL_PCD_MODULE_ENABLED -DUSBD_USE_HID_COMPOSITE"
+)
+add_library(JHEF_JHEF411_usb_none INTERFACE)
+target_compile_options(JHEF_JHEF411_usb_none INTERFACE
+  "SHELL:"
+)
+add_library(JHEF_JHEF411_xusb_FS INTERFACE)
+target_compile_options(JHEF_JHEF411_xusb_FS INTERFACE
+  "SHELL:"
+)
+add_library(JHEF_JHEF411_xusb_HS INTERFACE)
+target_compile_options(JHEF_JHEF411_xusb_HS INTERFACE
+  "SHELL:-DUSE_USB_HS"
+)
+add_library(JHEF_JHEF411_xusb_HSFS INTERFACE)
+target_compile_options(JHEF_JHEF411_xusb_HSFS INTERFACE
+  "SHELL:-DUSE_USB_HS -DUSE_USB_HS_IN_FS"
+)
+
 # MATEK_H743VI
 # -----------------------------------------------------------------------------
 
@@ -33638,88 +33720,6 @@ target_compile_options(NUCLEO_G474RE_xusb_HSFS INTERFACE
   "SHELL:-DUSE_USB_HS -DUSE_USB_HS_IN_FS"
 )
 
-# NUCLEO_H563ZI
-# -----------------------------------------------------------------------------
-
-set(NUCLEO_H563ZI_VARIANT_PATH "${CMAKE_CURRENT_LIST_DIR}/../variants/STM32H5xx/H563Z(G-I)T")
-set(NUCLEO_H563ZI_MAXSIZE 2097152)
-set(NUCLEO_H563ZI_MAXDATASIZE 655360)
-set(NUCLEO_H563ZI_MCU cortex-m33)
-set(NUCLEO_H563ZI_FPCONF "fpv4-sp-d16-hard")
-add_library(NUCLEO_H563ZI INTERFACE)
-target_compile_options(NUCLEO_H563ZI INTERFACE
-  "SHELL:-DSTM32H563xx  "
-  "SHELL:"
-  "SHELL:"
-  "SHELL:-mfpu=fpv4-sp-d16 -mfloat-abi=hard"
-  -mcpu=${NUCLEO_H563ZI_MCU}
-)
-target_compile_definitions(NUCLEO_H563ZI INTERFACE
-  "STM32H5xx"
-	"ARDUINO_NUCLEO_H563ZI"
-	"BOARD_NAME=\"NUCLEO_H563ZI\""
-	"BOARD_ID=NUCLEO_H563ZI"
-	"VARIANT_H=\"variant_NUCLEO_H563ZI.h\""
-)
-target_include_directories(NUCLEO_H563ZI INTERFACE
-  ${CMAKE_CURRENT_LIST_DIR}/../system/STM32H5xx
-  ${CMAKE_CURRENT_LIST_DIR}/../system/Drivers/STM32H5xx_HAL_Driver/Inc
-  ${CMAKE_CURRENT_LIST_DIR}/../system/Drivers/STM32H5xx_HAL_Driver/Src
-  ${CMAKE_CURRENT_LIST_DIR}/../system/Drivers/CMSIS/Device/ST/STM32H5xx/Include/
-  ${CMAKE_CURRENT_LIST_DIR}/../system/Drivers/CMSIS/Device/ST/STM32H5xx/Source/Templates/gcc/
-  ${NUCLEO_H563ZI_VARIANT_PATH}
-)
-
-target_link_options(NUCLEO_H563ZI INTERFACE
-  "LINKER:--default-script=${NUCLEO_H563ZI_VARIANT_PATH}/ldscript.ld"
-  "LINKER:--defsym=LD_FLASH_OFFSET=0x0"
-	"LINKER:--defsym=LD_MAX_SIZE=2097152"
-	"LINKER:--defsym=LD_MAX_DATA_SIZE=655360"
-  "SHELL:-mfpu=fpv4-sp-d16 -mfloat-abi=hard"
-  -mcpu=${NUCLEO_H563ZI_MCU}
-)
-
-add_library(NUCLEO_H563ZI_serial_disabled INTERFACE)
-target_compile_options(NUCLEO_H563ZI_serial_disabled INTERFACE
-  "SHELL:"
-)
-add_library(NUCLEO_H563ZI_serial_generic INTERFACE)
-target_compile_options(NUCLEO_H563ZI_serial_generic INTERFACE
-  "SHELL:-DHAL_UART_MODULE_ENABLED"
-)
-add_library(NUCLEO_H563ZI_serial_none INTERFACE)
-target_compile_options(NUCLEO_H563ZI_serial_none INTERFACE
-  "SHELL:-DHAL_UART_MODULE_ENABLED -DHWSERIAL_NONE"
-)
-add_library(NUCLEO_H563ZI_usb_CDC INTERFACE)
-target_compile_options(NUCLEO_H563ZI_usb_CDC INTERFACE
-  "SHELL:-DUSBCON  -DUSBD_VID=0 -DUSBD_PID=0 -DHAL_PCD_MODULE_ENABLED -DUSBD_USE_CDC -DDISABLE_GENERIC_SERIALUSB"
-)
-add_library(NUCLEO_H563ZI_usb_CDCgen INTERFACE)
-target_compile_options(NUCLEO_H563ZI_usb_CDCgen INTERFACE
-  "SHELL:-DUSBCON  -DUSBD_VID=0 -DUSBD_PID=0 -DHAL_PCD_MODULE_ENABLED -DUSBD_USE_CDC"
-)
-add_library(NUCLEO_H563ZI_usb_HID INTERFACE)
-target_compile_options(NUCLEO_H563ZI_usb_HID INTERFACE
-  "SHELL:-DUSBCON  -DUSBD_VID=0 -DUSBD_PID=0 -DHAL_PCD_MODULE_ENABLED -DUSBD_USE_HID_COMPOSITE"
-)
-add_library(NUCLEO_H563ZI_usb_none INTERFACE)
-target_compile_options(NUCLEO_H563ZI_usb_none INTERFACE
-  "SHELL:"
-)
-add_library(NUCLEO_H563ZI_xusb_FS INTERFACE)
-target_compile_options(NUCLEO_H563ZI_xusb_FS INTERFACE
-  "SHELL:"
-)
-add_library(NUCLEO_H563ZI_xusb_HS INTERFACE)
-target_compile_options(NUCLEO_H563ZI_xusb_HS INTERFACE
-  "SHELL:-DUSE_USB_HS"
-)
-add_library(NUCLEO_H563ZI_xusb_HSFS INTERFACE)
-target_compile_options(NUCLEO_H563ZI_xusb_HSFS INTERFACE
-  "SHELL:-DUSE_USB_HS -DUSE_USB_HS_IN_FS"
-)
-
 # NUCLEO_H723ZG
 # -----------------------------------------------------------------------------
 
@@ -34048,88 +34048,6 @@ target_compile_options(NUCLEO_H753ZI_xusb_HSFS INTERFACE
   "SHELL:-DUSE_USB_HS -DUSE_USB_HS_IN_FS"
 )
 
-# STM32H573I_DK
-# -----------------------------------------------------------------------------
-
-set(STM32H573I_DK_VARIANT_PATH "${CMAKE_CURRENT_LIST_DIR}/../variants/STM32H5xx/H573IIKxQ")
-set(STM32H573I_DK_MAXSIZE 2097152)
-set(STM32H573I_DK_MAXDATASIZE 655360)
-set(STM32H573I_DK_MCU cortex-m33)
-set(STM32H573I_DK_FPCONF "fpv4-sp-d16-hard")
-add_library(STM32H573I_DK INTERFACE)
-target_compile_options(STM32H573I_DK INTERFACE
-  "SHELL:-DSTM32H573xx  "
-  "SHELL:-DCUSTOM_PERIPHERAL_PINS"
-  "SHELL:"
-  "SHELL:-mfpu=fpv4-sp-d16 -mfloat-abi=hard"
-  -mcpu=${STM32H573I_DK_MCU}
-)
-target_compile_definitions(STM32H573I_DK INTERFACE
-  "STM32H5xx"
-	"ARDUINO_STM32H573I_DK"
-	"BOARD_NAME=\"STM32H573I_DK\""
-	"BOARD_ID=STM32H573I_DK"
-	"VARIANT_H=\"variant_STM32H573I_DK.h\""
-)
-target_include_directories(STM32H573I_DK INTERFACE
-  ${CMAKE_CURRENT_LIST_DIR}/../system/STM32H5xx
-  ${CMAKE_CURRENT_LIST_DIR}/../system/Drivers/STM32H5xx_HAL_Driver/Inc
-  ${CMAKE_CURRENT_LIST_DIR}/../system/Drivers/STM32H5xx_HAL_Driver/Src
-  ${CMAKE_CURRENT_LIST_DIR}/../system/Drivers/CMSIS/Device/ST/STM32H5xx/Include/
-  ${CMAKE_CURRENT_LIST_DIR}/../system/Drivers/CMSIS/Device/ST/STM32H5xx/Source/Templates/gcc/
-  ${STM32H573I_DK_VARIANT_PATH}
-)
-
-target_link_options(STM32H573I_DK INTERFACE
-  "LINKER:--default-script=${STM32H573I_DK_VARIANT_PATH}/ldscript.ld"
-  "LINKER:--defsym=LD_FLASH_OFFSET=0x0"
-	"LINKER:--defsym=LD_MAX_SIZE=2097152"
-	"LINKER:--defsym=LD_MAX_DATA_SIZE=655360"
-  "SHELL:-mfpu=fpv4-sp-d16 -mfloat-abi=hard"
-  -mcpu=${STM32H573I_DK_MCU}
-)
-
-add_library(STM32H573I_DK_serial_disabled INTERFACE)
-target_compile_options(STM32H573I_DK_serial_disabled INTERFACE
-  "SHELL:"
-)
-add_library(STM32H573I_DK_serial_generic INTERFACE)
-target_compile_options(STM32H573I_DK_serial_generic INTERFACE
-  "SHELL:-DHAL_UART_MODULE_ENABLED"
-)
-add_library(STM32H573I_DK_serial_none INTERFACE)
-target_compile_options(STM32H573I_DK_serial_none INTERFACE
-  "SHELL:-DHAL_UART_MODULE_ENABLED -DHWSERIAL_NONE"
-)
-add_library(STM32H573I_DK_usb_CDC INTERFACE)
-target_compile_options(STM32H573I_DK_usb_CDC INTERFACE
-  "SHELL:-DUSBCON  -DUSBD_VID=0 -DUSBD_PID=0 -DHAL_PCD_MODULE_ENABLED -DUSBD_USE_CDC -DDISABLE_GENERIC_SERIALUSB"
-)
-add_library(STM32H573I_DK_usb_CDCgen INTERFACE)
-target_compile_options(STM32H573I_DK_usb_CDCgen INTERFACE
-  "SHELL:-DUSBCON  -DUSBD_VID=0 -DUSBD_PID=0 -DHAL_PCD_MODULE_ENABLED -DUSBD_USE_CDC"
-)
-add_library(STM32H573I_DK_usb_HID INTERFACE)
-target_compile_options(STM32H573I_DK_usb_HID INTERFACE
-  "SHELL:-DUSBCON  -DUSBD_VID=0 -DUSBD_PID=0 -DHAL_PCD_MODULE_ENABLED -DUSBD_USE_HID_COMPOSITE"
-)
-add_library(STM32H573I_DK_usb_none INTERFACE)
-target_compile_options(STM32H573I_DK_usb_none INTERFACE
-  "SHELL:"
-)
-add_library(STM32H573I_DK_xusb_FS INTERFACE)
-target_compile_options(STM32H573I_DK_xusb_FS INTERFACE
-  "SHELL:"
-)
-add_library(STM32H573I_DK_xusb_HS INTERFACE)
-target_compile_options(STM32H573I_DK_xusb_HS INTERFACE
-  "SHELL:-DUSE_USB_HS"
-)
-add_library(STM32H573I_DK_xusb_HSFS INTERFACE)
-target_compile_options(STM32H573I_DK_xusb_HSFS INTERFACE
-  "SHELL:-DUSE_USB_HS -DUSE_USB_HS_IN_FS"
-)
-
 # STM32H747I_DISCO
 # -----------------------------------------------------------------------------
 
@@ -34211,130 +34129,6 @@ add_library(STM32H747I_DISCO_xusb_HSFS INTERFACE)
 target_compile_options(STM32H747I_DISCO_xusb_HSFS INTERFACE
   "SHELL:-DUSE_USB_HS -DUSE_USB_HS_IN_FS"
 )
-
-# THUNDERPACK_F411
-# -----------------------------------------------------------------------------
-
-set(THUNDERPACK_F411_VARIANT_PATH "${CMAKE_CURRENT_LIST_DIR}/../variants/STM32F4xx/F411C(C-E)(U-Y)")
-set(THUNDERPACK_F411_MAXSIZE 524288)
-set(THUNDERPACK_F411_MAXDATASIZE 131072)
-set(THUNDERPACK_F411_MCU cortex-m4)
-set(THUNDERPACK_F411_FPCONF "-")
-add_library(THUNDERPACK_F411 INTERFACE)
-target_compile_options(THUNDERPACK_F411 INTERFACE
-  "SHELL:-DSTM32F411xE   "
-  "SHELL:-DCUSTOM_PERIPHERAL_PINS"
-  "SHELL:"
-  "SHELL:-mfpu=fpv4-sp-d16 -mfloat-abi=hard"
-  -mcpu=${THUNDERPACK_F411_MCU}
-)
-target_compile_definitions(THUNDERPACK_F411 INTERFACE
-  "STM32F4xx"
-	"ARDUINO_THUNDERPACK_F411"
-	"BOARD_NAME=\"THUNDERPACK_F411\""
-	"BOARD_ID=THUNDERPACK_F411"
-	"VARIANT_H=\"variant_THUNDERPACK_F411.h\""
-)
-target_include_directories(THUNDERPACK_F411 INTERFACE
-  ${CMAKE_CURRENT_LIST_DIR}/../system/STM32F4xx
-  ${CMAKE_CURRENT_LIST_DIR}/../system/Drivers/STM32F4xx_HAL_Driver/Inc
-  ${CMAKE_CURRENT_LIST_DIR}/../system/Drivers/STM32F4xx_HAL_Driver/Src
-  ${CMAKE_CURRENT_LIST_DIR}/../system/Drivers/CMSIS/Device/ST/STM32F4xx/Include/
-  ${CMAKE_CURRENT_LIST_DIR}/../system/Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates/gcc/
-  ${THUNDERPACK_F411_VARIANT_PATH}
-)
-
-target_link_options(THUNDERPACK_F411 INTERFACE
-  "LINKER:--default-script=${THUNDERPACK_F411_VARIANT_PATH}/ldscript.ld"
-  "LINKER:--defsym=LD_FLASH_OFFSET=0x0"
-	"LINKER:--defsym=LD_MAX_SIZE=524288"
-	"LINKER:--defsym=LD_MAX_DATA_SIZE=131072"
-  "SHELL:-mfpu=fpv4-sp-d16 -mfloat-abi=hard"
-  -mcpu=${THUNDERPACK_F411_MCU}
-)
-
-add_library(THUNDERPACK_F411_serial_disabled INTERFACE)
-target_compile_options(THUNDERPACK_F411_serial_disabled INTERFACE
-  "SHELL:"
-)
-add_library(THUNDERPACK_F411_serial_generic INTERFACE)
-target_compile_options(THUNDERPACK_F411_serial_generic INTERFACE
-  "SHELL:-DHAL_UART_MODULE_ENABLED"
-)
-add_library(THUNDERPACK_F411_serial_none INTERFACE)
-target_compile_options(THUNDERPACK_F411_serial_none INTERFACE
-  "SHELL:-DHAL_UART_MODULE_ENABLED -DHWSERIAL_NONE"
-)
-add_library(THUNDERPACK_F411_usb_CDC INTERFACE)
-target_compile_options(THUNDERPACK_F411_usb_CDC INTERFACE
-  "SHELL:-DUSBCON  -DUSBD_VID=0 -DUSBD_PID=0 -DHAL_PCD_MODULE_ENABLED -DUSBD_USE_CDC -DDISABLE_GENERIC_SERIALUSB"
-)
-add_library(THUNDERPACK_F411_usb_CDCgen INTERFACE)
-target_compile_options(THUNDERPACK_F411_usb_CDCgen INTERFACE
-  "SHELL:-DUSBCON  -DUSBD_VID=0 -DUSBD_PID=0 -DHAL_PCD_MODULE_ENABLED -DUSBD_USE_CDC"
-)
-add_library(THUNDERPACK_F411_usb_HID INTERFACE)
-target_compile_options(THUNDERPACK_F411_usb_HID INTERFACE
-  "SHELL:-DUSBCON  -DUSBD_VID=0 -DUSBD_PID=0 -DHAL_PCD_MODULE_ENABLED -DUSBD_USE_HID_COMPOSITE"
-)
-add_library(THUNDERPACK_F411_usb_none INTERFACE)
-target_compile_options(THUNDERPACK_F411_usb_none INTERFACE
-  "SHELL:"
-)
-add_library(THUNDERPACK_F411_xusb_FS INTERFACE)
-target_compile_options(THUNDERPACK_F411_xusb_FS INTERFACE
-  "SHELL:"
-)
-add_library(THUNDERPACK_F411_xusb_HS INTERFACE)
-target_compile_options(THUNDERPACK_F411_xusb_HS INTERFACE
-  "SHELL:-DUSE_USB_HS"
-)
-add_library(THUNDERPACK_F411_xusb_HSFS INTERFACE)
-target_compile_options(THUNDERPACK_F411_xusb_HSFS INTERFACE
-  "SHELL:-DUSE_USB_HS -DUSE_USB_HS_IN_FS"
-)
-
-# THUNDERPACK_F411_hid
-# -----------------------------------------------------------------------------
-
-set(THUNDERPACK_F411_hid_VARIANT_PATH "${CMAKE_CURRENT_LIST_DIR}/../variants/STM32F4xx/F411C(C-E)(U-Y)")
-set(THUNDERPACK_F411_hid_MAXSIZE 524288)
-set(THUNDERPACK_F411_hid_MAXDATASIZE 131072)
-set(THUNDERPACK_F411_hid_MCU cortex-m4)
-set(THUNDERPACK_F411_hid_FPCONF "-")
-add_library(THUNDERPACK_F411_hid INTERFACE)
-target_compile_options(THUNDERPACK_F411_hid INTERFACE
-  "SHELL:-DSTM32F411xE  -DHAL_UART_MODULE_ENABLED -DBL_HID"
-  "SHELL:-DCUSTOM_PERIPHERAL_PINS"
-  "SHELL:"
-  "SHELL:-mfpu=fpv4-sp-d16 -mfloat-abi=hard"
-  -mcpu=${THUNDERPACK_F411_hid_MCU}
-)
-target_compile_definitions(THUNDERPACK_F411_hid INTERFACE
-  "STM32F4xx"
-	"ARDUINO_THUNDERPACK_F411"
-	"BOARD_NAME=\"THUNDERPACK_F411\""
-	"BOARD_ID=THUNDERPACK_F411"
-	"VARIANT_H=\"variant_THUNDERPACK_F411.h\""
-)
-target_include_directories(THUNDERPACK_F411_hid INTERFACE
-  ${CMAKE_CURRENT_LIST_DIR}/../system/STM32F4xx
-  ${CMAKE_CURRENT_LIST_DIR}/../system/Drivers/STM32F4xx_HAL_Driver/Inc
-  ${CMAKE_CURRENT_LIST_DIR}/../system/Drivers/STM32F4xx_HAL_Driver/Src
-  ${CMAKE_CURRENT_LIST_DIR}/../system/Drivers/CMSIS/Device/ST/STM32F4xx/Include/
-  ${CMAKE_CURRENT_LIST_DIR}/../system/Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates/gcc/
-  ${THUNDERPACK_F411_hid_VARIANT_PATH}
-)
-
-target_link_options(THUNDERPACK_F411_hid INTERFACE
-  "LINKER:--default-script=${THUNDERPACK_F411_hid_VARIANT_PATH}/ldscript.ld"
-  "LINKER:--defsym=LD_FLASH_OFFSET=0x4000"
-	"LINKER:--defsym=LD_MAX_SIZE=524288"
-	"LINKER:--defsym=LD_MAX_DATA_SIZE=131072"
-  "SHELL:-mfpu=fpv4-sp-d16 -mfloat-abi=hard"
-  -mcpu=${THUNDERPACK_F411_hid_MCU}
-)
-
 
 # VCCGND_F407ZG_MINI
 # -----------------------------------------------------------------------------

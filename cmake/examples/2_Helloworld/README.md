@@ -10,11 +10,11 @@ As you can see, the options for `set_board()` and `overall_settings()` have also
 # -----------------------------------------------------------------------------
 
 include(set_board)
-set_board("NUCLEO_L433RC_P"
-  # SERIAL generic
-  # USB none
-  # XUSB FS
-  # VIRTIO disabled
+set_board("${BOARDNAME}"
+  # SERIAL generic / disabled / none
+  # USB none / CDCgen / CDC / HID
+  # XUSB FS / HS / HSFS
+  # VIRTIO disable / generic / enabled
   # BOOTLOADER dfuo / dfu2 / hid
 )
 
@@ -56,5 +56,14 @@ They may also hinder debugging by removing some error log.
 Anyway, the insights are special targets not built by default: when enabled, use the following command to build them:
 ```sh
 # to build the target "logicstrucure.svg", which goes with LOGIC_STRUCTURE
-cmake --build ./2_helloworld/build --target logicstructure.svg
+cmake --build cmake/examples/2_Helloworld/build --target logicstructure.svg
 ```
+
+## Building
+
+```sh
+cmake -G Ninja -S cmake/examples/2_Helloworld -B cmake/examples/2_Helloworld/build
+cmake --build cmake/examples/2_Helloworld/build
+```
+
+The default board is NUCLEO_F411RE. After building, you will find "2_Helloworld", "2_Helloworld.bin", "2_Helloworld.hex" in the build directory.

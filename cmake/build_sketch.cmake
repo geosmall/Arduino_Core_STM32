@@ -38,6 +38,17 @@ function(build_sketch)
     target_link_libraries(${SKBD_TARGET} PRIVATE ${SKBD_DEPENDS})
   endif()
 
+  # Resolve circular dependency between libc and core_bin:
+  # libc_nano requires syscall stubs (_sbrk, _exit, _kill, _getpid) which are
+  # implemented in core_bin's syscalls.c. However, with standard static library
+  # linking, core_bin is processed before libc, so when libc looks for these
+  # symbols they appear undefined. LINK_GROUP:RESCAN wraps both libraries with
+  # --start-group/--end-group, allowing the linker to make multiple passes and
+  # resolve the circular references. Requires CMake 3.24+.
+  target_link_libraries(${SKBD_TARGET} PRIVATE
+    "$<LINK_GROUP:RESCAN,$<TARGET_FILE:core_bin>,c>"
+  )
+
   get_target_property(OUTDIR ${SKBD_TARGET} BINARY_DIR)
   set(MAPFILE ${OUTDIR}/${SKBD_TARGET}.map)
 

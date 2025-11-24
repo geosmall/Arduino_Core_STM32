@@ -1,3 +1,8 @@
+# CMake example demonstrating library dependency (SPI)
+# Build with:
+#   cmake -G Ninja -S cmake/examples/3_Lib_Test -B cmake/examples/3_Lib_Test/build
+#   cmake --build cmake/examples/3_Lib_Test/build
+
 cmake_minimum_required(VERSION 3.21)
 
 # STEP 1: set up bases of environment
@@ -22,7 +27,7 @@ if (NOT ${CMAKE_PARENT_LIST_FILE} STREQUAL ${CMAKE_CURRENT_LIST_FILE})
     return()
 endif()
 
-project("2_Helloworld_project")
+project("3_Lib_Test_project")
 
 # STEP 2: configure the build
 # -----------------------------------------------------------------------------
@@ -55,16 +60,20 @@ overall_settings(
 # -----------------------------------------------------------------------------
 
 include(build_sketch)
-build_sketch(TARGET "2_Helloworld"
+build_sketch(TARGET "3_Lib_Test"
   SOURCES
-  2_Helloworld.ino
+  3_Lib_Test.ino
+
+  # Link the SPI library from libraries/ folder
+  DEPENDS
+  SPI
 )
 
 # STEP 4: optional features
 # -----------------------------------------------------------------------------
 
 include(insights)
-insights(TARGET "2_Helloworld"
+insights(TARGET "3_Lib_Test"
   # DIRECT_INCLUDES
   # TRANSITIVE_INCLUDES
   # SYMBOLS

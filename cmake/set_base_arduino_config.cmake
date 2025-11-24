@@ -70,7 +70,6 @@ add_library(stm32_runtime INTERFACE)
 target_link_libraries(stm32_runtime INTERFACE
   base_config
 
-  SrcWrapper
   core
   $<TARGET_NAME_IF_EXISTS:variant>
 )
