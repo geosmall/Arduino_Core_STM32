@@ -2,6 +2,24 @@
 
 A focused STM32 Arduino development environment with CI/CD automation capabilities.
 
+## Installation via Arduino Board Manager
+
+The easiest way to install this core:
+
+1. Open **Arduino IDE**
+2. Go to **File → Preferences**
+3. Add this URL to "Additional Boards Manager URLs":
+   ```
+   https://github.com/geosmall/BoardManagerFiles/raw/main/package_stm32_robotics_index.json
+   ```
+4. Go to **Tools → Board → Boards Manager**
+5. Search for **"STM32 Robotics"**
+6. Click **Install**
+
+This installs the complete STM32 Robotics Core with all robotics libraries.
+
+For development workflows (CI/HIL testing, build scripts), see [Prerequisites](#prerequisites) below.
+
 ## Overview
 
 This repository contains a **fork of the STM32 Arduino Core** with simplified variant selection. It's designed for developing autonomous systems such as drone flight control systems with real-time data logging, sensor and configuration data management.
