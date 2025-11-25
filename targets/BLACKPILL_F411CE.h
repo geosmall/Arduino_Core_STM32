@@ -52,9 +52,9 @@ namespace BoardConfig {
   // WS2812 LED strip
   static constexpr uint8_t ws2812_pin = PA8;
 
-  // Motor outputs (8 channels) - organized by timer
+  // Motor outputs - organized by timer banks (dRehmFlight compatible)
   namespace Motor {
-    static constexpr uint32_t frequency_hz = 1000;  // 1 kHz for OneShot125
+    static constexpr uint32_t frequency_hz = 8000;  // 8 kHz for OneShot125
 
     struct MotorChannel {
       uint32_t pin;
@@ -63,21 +63,24 @@ namespace BoardConfig {
       uint32_t max_us;
     };
 
-    // TIM3 motors (M1-M4)
-    static inline TIM_TypeDef* const timer3 = TIM3;
-    static constexpr MotorChannel motor1{PB4, 1, 125, 250};      // TIM3_CH1
-    static constexpr MotorChannel motor2{PB5, 2, 125, 250};      // TIM3_CH2
-    static constexpr MotorChannel motor3{PB0_ALT1, 3, 125, 250}; // TIM3_CH3 (ALT1)
-    static constexpr MotorChannel motor4{PB1_ALT1, 4, 125, 250}; // TIM3_CH4 (ALT1)
+    // TIM1 Bank (M1-M3) - using TIM2 on BLACKPILL (PA0, PA1, PA2)
+    namespace TIM1_Bank {
+      static inline TIM_TypeDef* const timer = TIM2;
+      static constexpr MotorChannel motor1{PA0, 1, 125, 250};  // TIM2_CH1
+      static constexpr MotorChannel motor2{PA1, 2, 125, 250};  // TIM2_CH2
+      static constexpr MotorChannel motor3{PA2, 3, 125, 250};  // TIM2_CH3
+      static constexpr MotorChannel motor4{PA3, 4, 125, 250};  // TIM2_CH4 (spare)
+      static constexpr MotorChannel motor5{PA15, 1, 125, 250}; // TIM2_CH1 (spare, ALT)
+    }
 
-    // TIM4 motors (M5-M6)
-    static inline TIM_TypeDef* const timer4 = TIM4;
-    static constexpr MotorChannel motor5{PB6, 1, 125, 250};      // TIM4_CH1
-    static constexpr MotorChannel motor6{PB7, 2, 125, 250};      // TIM4_CH2
-
-    // TIM2 motors (M7)
-    static inline TIM_TypeDef* const timer2 = TIM2;
-    static constexpr MotorChannel motor7{PA2, 3, 125, 250};      // TIM2_CH3
+    // TIM3 Bank (M4-M5) - using TIM3 on BLACKPILL (PB0_ALT1, PB4)
+    namespace TIM3_Bank {
+      static inline TIM_TypeDef* const timer = TIM3;
+      static constexpr MotorChannel motor4{PB0_ALT1, 3, 125, 250}; // TIM3_CH3 (ALT1)
+      static constexpr MotorChannel motor5{PB4, 1, 125, 250};      // TIM3_CH1
+      static constexpr MotorChannel motor6{PB5, 2, 125, 250};      // TIM3_CH2 (spare)
+      static constexpr MotorChannel motor7{PB1_ALT1, 4, 125, 250}; // TIM3_CH4 (spare, ALT1)
+    }
   }
 
 }

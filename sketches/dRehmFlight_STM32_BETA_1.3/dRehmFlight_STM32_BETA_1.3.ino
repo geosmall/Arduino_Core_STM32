@@ -67,7 +67,14 @@ Everyone that sends me pictures and videos of your flying creations! -Nick
 #include <SPI.h>      //SPI communication
 
 //STM32 libraries
-#include "../../targets/NUCLEO_F411RE_JHEF411.h"  //BoardConfig for pin definitions
+// BoardConfig: Auto-detect from Arduino board selection
+#if defined(ARDUINO_BLACKPILL_F411CE)
+  #include "../../targets/BLACKPILL_F411CE.h"  //BLACKPILL F411CE (MPU-9250 9-DOF)
+#elif defined(ARDUINO_NUCLEO_F411RE)
+  #include "../../targets/NUCLEO_F411RE_JHEF411.h"  //NUCLEO F411RE (ICM42688P 6-DOF)
+#else
+  #error "Unsupported board! Use BLACKPILL_F411CE or NUCLEO_F411RE"
+#endif
 #include <IMU.h>           //IMU library for ICM42688P
 #include <SerialRx.h>      //Serial RX library for IBus/SBUS
 #include <PWMOutputBank.h> //TimerPWM for OneShot125 motor output
@@ -79,43 +86,26 @@ Everyone that sends me pictures and videos of your flying creations! -Nick
 
 
 
-//Setup gyro and accel full scale value selection and scale factor
-
-//Map to IMU library enums (STM32)
-#define GYRO_FS_SEL_250   IMU::dps250
-#define GYRO_FS_SEL_500   IMU::dps500
-#define GYRO_FS_SEL_1000  IMU::dps1000
-#define GYRO_FS_SEL_2000  IMU::dps2000
-#define ACCEL_FS_SEL_2    IMU::gpm2
-#define ACCEL_FS_SEL_4    IMU::gpm4
-#define ACCEL_FS_SEL_8    IMU::gpm8
-#define ACCEL_FS_SEL_16   IMU::gpm16
+//Setup gyro and accel scale factors for raw-to-physical conversion
+//Note: FSR (Full Scale Range) is now set via IMU library's SetGyroFSR_Ex/SetAccelFSR_Ex in IMUinit()
 
 #if defined GYRO_250DPS
-  #define GYRO_SCALE GYRO_FS_SEL_250
   #define GYRO_SCALE_FACTOR 131.0
 #elif defined GYRO_500DPS
-  #define GYRO_SCALE GYRO_FS_SEL_500
   #define GYRO_SCALE_FACTOR 65.5
 #elif defined GYRO_1000DPS
-  #define GYRO_SCALE GYRO_FS_SEL_1000
   #define GYRO_SCALE_FACTOR 32.8
 #elif defined GYRO_2000DPS
-  #define GYRO_SCALE GYRO_FS_SEL_2000
   #define GYRO_SCALE_FACTOR 16.4
 #endif
 
 #if defined ACCEL_2G
-  #define ACCEL_SCALE ACCEL_FS_SEL_2
   #define ACCEL_SCALE_FACTOR 16384.0
 #elif defined ACCEL_4G
-  #define ACCEL_SCALE ACCEL_FS_SEL_4
   #define ACCEL_SCALE_FACTOR 8192.0
 #elif defined ACCEL_8G
-  #define ACCEL_SCALE ACCEL_FS_SEL_8
   #define ACCEL_SCALE_FACTOR 4096.0
 #elif defined ACCEL_16G
-  #define ACCEL_SCALE ACCEL_FS_SEL_16
   #define ACCEL_SCALE_FACTOR 2048.0
 #endif
 
@@ -476,55 +466,58 @@ void armedStatus() {
 
 void IMUinit() {
   //DESCRIPTION: Initialize IMU
-  //STM32: Using ICM42688P via IMU library
-  IMU::Result status = imu.Init(spi_imu, BoardConfig::imu.spi.cs_pin, BoardConfig::imu.spi.freq_hz);
+  /*
+   * STM32: Uses IMU library with ApplyPreset() for validated config.
+   * Supports ICM42688P, MPU-6000, MPU-9250 auto-detection.
+   * Honors user-defined GYRO_SCALE and ACCEL_SCALE settings.
+   */
 
-  if (status != IMU::Result::OK) {
+  // Init + chip detection (Init() auto-detects chip type)
+  if (imu.Init(spi_imu, BoardConfig::imu.spi.cs_pin, BoardConfig::imu.spi.freq_hz) != IMU::Result::OK) {
     CI_LOG("IMU initialization failed\n");
     while(1) {}
   }
 
-  // Verify chip detection
-  IMU::ChipType chip = imu.GetChipType();
-  if (chip != IMU::ChipType::ICM42688_P) {
-    CI_LOGF("Wrong IMU chip detected: 0x%02X\n", static_cast<uint8_t>(chip));
+  // Apply BALANCED preset (4kHz gyro, 1kHz accel, validated filters)
+  // This matches dRehmFlight's 2kHz loop with optimal filtering
+  if (imu.ApplyPreset(IMU::Preset::BALANCED) != IMU::Result::OK) {
+    CI_LOG("IMU preset configuration failed\n");
     while(1) {}
   }
 
-  // Configure gyro and accelerometer using user-defined ranges
-  // ODR: Gyro 4kHz (better resolution for fast movements), Accel 1kHz (sufficient for level flight)
-  status = imu.ConfigureInvDevice(ACCEL_SCALE, GYRO_SCALE, IMU::accel_odr1k, IMU::gyr_odr4k);
+  // Override FSR with user-defined values (like Teensy setFullScaleGyroRange/setFullScaleAccelRange)
+  #if defined GYRO_250DPS
+    imu.SetGyroFSR_Ex(GyroFSR::DPS_250);
+  #elif defined GYRO_500DPS
+    imu.SetGyroFSR_Ex(GyroFSR::DPS_500);
+  #elif defined GYRO_1000DPS
+    imu.SetGyroFSR_Ex(GyroFSR::DPS_1000);
+  #elif defined GYRO_2000DPS
+    imu.SetGyroFSR_Ex(GyroFSR::DPS_2000);
+  #endif
 
-  if (status != IMU::Result::OK) {
-    CI_LOG("IMU configuration failed\n");
-    while(1) {}
+  #if defined ACCEL_2G
+    imu.SetAccelFSR_Ex(AccelFSR::G_2);
+  #elif defined ACCEL_4G
+    imu.SetAccelFSR_Ex(AccelFSR::G_4);
+  #elif defined ACCEL_8G
+    imu.SetAccelFSR_Ex(AccelFSR::G_8);
+  #elif defined ACCEL_16G
+    imu.SetAccelFSR_Ex(AccelFSR::G_16);
+  #endif
+
+  CI_LOG("IMU initialized successfully\n");
+
+  // Initialize magnetometer if available (MPU-9250/9255)
+  if (imu.HasMagnetometer()) {
+    if (imu.InitMagnetometer() == IMU::Result::OK) {
+      CI_LOG("Magnetometer initialized (9-DOF mode)\n");
+    } else {
+      CI_LOG("Magnetometer init failed, using 6-DOF only\n");
+    }
+  } else {
+    CI_LOG("No magnetometer detected (6-DOF mode)\n");
   }
-
-  // Enable sensors for continuous data acquisition (required for polling)
-  if (imu.EnableAccelLNMode() != 0) {
-    CI_LOG("Failed to enable accelerometer\n");
-    while(1) {}
-  }
-  if (imu.EnableGyroLNMode() != 0) {
-    CI_LOG("Failed to enable gyroscope\n");
-    while(1) {}
-  }
-
-  CI_LOG("IMU initialized: ICM42688P\n");
-
-  // Configure IMU filters (AAF + UI)
-  // AAF (Anti-Alias Filter): Protects against aliasing at sensor front-end
-  //   Gyro: 258 Hz (matches MPU-6000 DLPF 260 Hz, Betaflight standard)
-  //   Accel: 170 Hz (good vibration rejection for level mode)
-  imu.SetGyroFilterHz(ICM42688P_AAF_258HZ);
-  imu.SetAccelFilterHz(ICM42688P_AAF_170HZ);
-
-  // UI Filter: Set to 1st-order, ODR/2 bandwidth to let AAF dominate
-  //   This matches MPU-6000 DLPF 260 "wide" feel with minimal phase lag
-  //   Parameters: bandwidth_code=0 (ODR/2), gyro_order=1, accel_order=1
-  imu.SetUiFilters(0, 1, 1);
-
-  CI_LOG("IMU filters configured: AAF (Gyro 258 Hz, Accel 170 Hz), UI (1st-order, ODR/2)\n");
 }
 
 void getIMUdata() {
@@ -537,9 +530,16 @@ void getIMUdata() {
    * the readings. The filter parameters B_gyro and B_accel are set to be good for a 2kHz loop rate. Finally,
    * the constant errors found in calculate_IMU_error() on startup are subtracted from the accelerometer and gyro readings.
    */
-  int16_t AcX,AcY,AcZ,GyX,GyY,GyZ,MgX,MgY,MgZ;
+  int16_t AcX,AcY,AcZ,GyX,GyY,GyZ;
+  float MgX_raw, MgY_raw, MgZ_raw;
 
-  imu.getMotion6(&AcX, &AcY, &AcZ, &GyX, &GyY, &GyZ);
+  // Use getMotion9 if magnetometer available, else getMotion6
+  if (imu.HasMagnetometer()) {
+    imu.getMotion9(&AcX, &AcY, &AcZ, &GyX, &GyY, &GyZ, &MgX_raw, &MgY_raw, &MgZ_raw);
+  } else {
+    imu.getMotion6(&AcX, &AcY, &AcZ, &GyX, &GyY, &GyZ);
+    MgX_raw = MgY_raw = MgZ_raw = 0.0f;  // No magnetometer data
+  }
 
  //Accelerometer
   AccX = AcX / ACCEL_SCALE_FACTOR; //G's
@@ -574,9 +574,10 @@ void getIMUdata() {
   GyroZ_prev = GyroZ;
 
   //Magnetometer
-  MagX = MgX/6.0; //uT
-  MagY = MgY/6.0;
-  MagZ = MgZ/6.0;
+  // getMotion9() returns magnetometer data already in µT (float), no need to divide by 6.0
+  MagX = MgX_raw;
+  MagY = MgY_raw;
+  MagZ = MgZ_raw;
   //Correct the outputs with the calculated error values
   MagX = (MagX - MagErrorX)*MagScaleX;
   MagY = (MagY - MagErrorY)*MagScaleY;
