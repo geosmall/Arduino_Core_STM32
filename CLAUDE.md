@@ -427,6 +427,7 @@ Compile-time board config with multi-board support (NUCLEO_F411RE, BLACKPILL_F41
 - **6-DOF API**: Init, ReadIMU6, FSR/ODR/power config, preset API
 - **9-DOF API**: InitMagnetometer, ReadIMU9, ReadMagnetometer, CalibrateMagnetometer (MPU-9250/9255 only)
 - **Magnetometer**: AK8963 support via I2C master mode, figure-8 calibration, hard/soft iron correction
+- **Hardware Validated**: MPU-9250 on BLACKPILL_F411CE - detection (0x71), AK8963 init (0x48), 9-DOF streaming, calibration (±1.6 µT centered)
 - Usage:
   - `IMU imu; imu.Init(spi_bus, cs_pin, freq);`
   - `if (imu.HasMagnetometer()) { imu.InitMagnetometer(); imu.ReadIMU9(gyro, accel, mag); }`

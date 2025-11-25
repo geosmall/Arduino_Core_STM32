@@ -17,7 +17,7 @@ Multi-device IMU library with Betaflight-quality drivers and automatic device de
 - **DeviceBase abstraction**: Polymorphic device handling
 - **SPI/I2C support**: Bus abstraction layer (DeviceBus)
 - **Shared register maps**: DRY principle for MPU-family devices
-- **Hardware validated**: Tested on NUCLEO_F411RE, BlackPill F411CE, NERO F7
+- **Hardware validated**: Tested on NUCLEO_F411RE, BlackPill F411CE (MPU-9250 9-DOF ✓), NERO F7
 
 ## Examples
 
@@ -39,10 +39,8 @@ See `examples/` directory:
 
 **GNU General Public License v3 (GPLv3)**
 
-This library contains code derived from [Betaflight](https://github.com/betaflight/betaflight), which is licensed under GPLv3. The IMU drivers are based on Betaflight's flight-tested accgyro drivers and therefore inherit the GPL license.
-
 **Key Points**:
-- This IMU library is GPL-licensed due to Betaflight derivation
+- This IMU library is GPL-licensed due to small amount of Betaflight derivation
 - The Arduino_Core_STM32 core itself remains LGPL v2.1
 - Applications using this IMU library must comply with GPLv3 terms
 - See `LICENSE` file for full license text
@@ -179,7 +177,3 @@ imu.SetMagCalibration(bias_x, bias_y, bias_z,
 1. MPU-9250 I2C master reads AK8963 automatically
 2. Mag data appears in EXT_SENS_DATA registers
 3. Single SPI burst read gets all 9 axes efficiently
-
-## Contributing
-
-This is a fork of Arduino_Core_STM32 with integrated robotics libraries. Contributions should maintain GPL compliance for Betaflight-derived code.
