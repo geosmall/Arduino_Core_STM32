@@ -145,6 +145,95 @@ public:
         (void)reg; (void)value; return false;
     }
 
+    // ========================================================================
+    // Magnetometer API (MPU-9250/9255 only)
+    // ========================================================================
+
+    /**
+     * @brief Check if device has magnetometer support
+     * @return true if magnetometer available (MPU-9250/9255), false otherwise
+     *
+     * Default returns false. Only MPU9250 driver overrides to return true.
+     */
+    virtual bool hasMagnetometer() const { return false; }
+
+    /**
+     * @brief Initialize magnetometer (AK8963 for MPU-9250)
+     * @return true on success, false on failure or not supported
+     *
+     * Enables I2C master mode, configures AK8963, reads ASA calibration.
+     * Default implementation returns false (no magnetometer).
+     */
+    virtual bool initMagnetometer() { return false; }
+
+    /**
+     * @brief Read magnetometer data
+     * @param mag Output array [mx, my, mz] in µT (microtesla)
+     * @return true on success, false on failure or not supported
+     *
+     * Default implementation returns false (no magnetometer).
+     */
+    virtual bool readMagnetometer(float* mag) {
+        (void)mag; return false;
+    }
+
+    /**
+     * @brief Read 9-axis data (accel + gyro + mag)
+     * @param accgyr Output array [ax, ay, az, gx, gy, gz] in raw LSB
+     * @param mag Output array [mx, my, mz] in µT
+     * @return true on success, false on failure or not supported
+     *
+     * Default implementation calls read() for 6-axis and returns false for mag.
+     */
+    virtual bool read9DOF(int16_t* accgyr, float* mag) {
+        read(accgyr);
+        (void)mag;
+        return false;
+    }
+
+    /**
+     * @brief Calibrate magnetometer using figure-8 motion
+     * @return true on success, false on failure or not supported
+     *
+     * Collects samples during figure-8 motion to calculate hard/soft iron calibration.
+     * Default implementation returns false (no magnetometer).
+     */
+    virtual bool calibrateMagnetometer() { return false; }
+
+    /**
+     * @brief Set magnetometer calibration values
+     * @param bias_x X-axis bias (µT)
+     * @param bias_y Y-axis bias (µT)
+     * @param bias_z Z-axis bias (µT)
+     * @param scale_x X-axis scale factor
+     * @param scale_y Y-axis scale factor
+     * @param scale_z Z-axis scale factor
+     *
+     * Default implementation is no-op (no magnetometer).
+     */
+    virtual void setMagCalibration(float bias_x, float bias_y, float bias_z,
+                                   float scale_x, float scale_y, float scale_z) {
+        (void)bias_x; (void)bias_y; (void)bias_z;
+        (void)scale_x; (void)scale_y; (void)scale_z;
+    }
+
+    /**
+     * @brief Get magnetometer calibration values
+     * @param bias_x X-axis bias (µT)
+     * @param bias_y Y-axis bias (µT)
+     * @param bias_z Z-axis bias (µT)
+     * @param scale_x X-axis scale factor
+     * @param scale_y Y-axis scale factor
+     * @param scale_z Z-axis scale factor
+     *
+     * Default implementation sets all to zero (no magnetometer).
+     */
+    virtual void getMagCalibration(float& bias_x, float& bias_y, float& bias_z,
+                                   float& scale_x, float& scale_y, float& scale_z) const {
+        bias_x = bias_y = bias_z = 0.0f;
+        scale_x = scale_y = scale_z = 1.0f;
+    }
+
     // Public scale factors for data conversion
     uint8_t whoAmI_;         // WHO_AM_I register value
     float accScale_;         // Accelerometer scale [G/LSB]

@@ -27,6 +27,7 @@
 
 #include "MPU9250.h"
 #include "MPU_Common.h"
+#include "ak8963.h"
 
 // ============================================================================
 // MPU9250-Specific Definitions
@@ -44,6 +45,16 @@
 
 MPU9250::MPU9250(DeviceBus* bus, uint8_t whoAmI)
     : bus_(bus)
+    , mag_initialized_(false)
+    , mag_scale_x_(1.0f)
+    , mag_scale_y_(1.0f)
+    , mag_scale_z_(1.0f)
+    , mag_bias_x_(0.0f)
+    , mag_bias_y_(0.0f)
+    , mag_bias_z_(0.0f)
+    , mag_scale_factor_x_(1.0f)
+    , mag_scale_factor_y_(1.0f)
+    , mag_scale_factor_z_(1.0f)
 {
     whoAmI_ = whoAmI;
 
@@ -71,8 +82,8 @@ MPU9250::MPU9250(DeviceBus* bus, uint8_t whoAmI)
 
     // INT pin configuration
     // Bit 4: INT_ANYRD_2CLEAR = 1 (interrupt status cleared on any read)
-    // Bit 1: BYPASS_EN = 1 (bypass mode for magnetometer access)
-    bus_->writeReg(MPU_RA_INT_PIN_CFG, (1 << 4) | (1 << 1));
+    // Note: Bypass mode NOT enabled here - use initMagnetometer() for I2C master mode
+    bus_->writeReg(MPU_RA_INT_PIN_CFG, (1 << 4));
     delayMicroseconds(1);
 
     // Enable data ready interrupt
@@ -259,4 +270,245 @@ bool MPU9250::writeRegVerify(uint8_t reg, uint8_t value)
     delayMicroseconds(15);
     uint8_t readback = bus_->readReg(reg);
     return (readback == value);
+}
+
+// ============================================================================
+// Magnetometer (AK8963) Implementation
+// ============================================================================
+
+bool MPU9250::writeAK8963Register(uint8_t reg, uint8_t value)
+{
+    // Set I2C slave 0 for write operation
+    bus_->writeReg(MPU_RA_I2C_SLV0_ADDR, AK8963_I2C_ADDR);  // Write mode
+    bus_->writeReg(MPU_RA_I2C_SLV0_REG, reg);               // Target register
+    bus_->writeReg(MPU_RA_I2C_SLV0_DO, value);              // Data to write
+    bus_->writeReg(MPU_RA_I2C_SLV0_CTRL, I2C_SLV0_EN | 0x01); // Enable + 1 byte
+
+    delay(10); // Wait for I2C transaction to complete
+
+    return true;
+}
+
+bool MPU9250::readAK8963Registers(uint8_t reg, uint8_t count, uint8_t *dest)
+{
+    if (!dest) {
+        return false;
+    }
+
+    // Set I2C slave 0 for read operation
+    bus_->writeReg(MPU_RA_I2C_SLV0_ADDR, AK8963_I2C_ADDR | I2C_READ_FLAG);  // Read mode
+    bus_->writeReg(MPU_RA_I2C_SLV0_REG, reg);                               // Target register
+    bus_->writeReg(MPU_RA_I2C_SLV0_CTRL, I2C_SLV0_EN | count);              // Enable + byte count
+
+    delay(1); // Wait for data to populate EXT_SENS_DATA registers
+
+    // Read from EXT_SENS_DATA registers
+    for (uint8_t i = 0; i < count; i++) {
+        dest[i] = bus_->readReg(MPU_RA_EXT_SENS_DATA_00 + i);
+    }
+
+    return true;
+}
+
+uint8_t MPU9250::whoAmIAK8963()
+{
+    uint8_t who_am_i = 0;
+    readAK8963Registers(AK8963_WHO_AM_I, 1, &who_am_i);
+    return who_am_i;
+}
+
+bool MPU9250::initMagnetometer()
+{
+    if (mag_initialized_) {
+        return true;  // Already initialized
+    }
+
+    // Disable I2C bypass mode (we'll use I2C master instead)
+    uint8_t int_pin_cfg = bus_->readReg(MPU_RA_INT_PIN_CFG);
+    int_pin_cfg &= ~BIT_BYPASS_EN;  // Clear bypass bit
+    bus_->writeReg(MPU_RA_INT_PIN_CFG, int_pin_cfg);
+    delay(10);
+
+    // Enable I2C master mode
+    uint8_t user_ctrl = bus_->readReg(MPU_RA_USER_CTRL);
+    user_ctrl |= BIT_I2C_MST_EN;  // Set I2C master enable bit
+    bus_->writeReg(MPU_RA_USER_CTRL, user_ctrl);
+    delay(10);
+
+    // Configure I2C master clock to 400 kHz
+    bus_->writeReg(MPU_RA_I2C_MST_CTRL, I2C_MST_CLK_400KHZ);
+    delay(10);
+
+    // Power down magnetometer
+    writeAK8963Register(AK8963_CNTL1, AK8963_CNTL1_MODE_POWER_DOWN);
+    delay(10);
+
+    // Soft reset magnetometer
+    writeAK8963Register(AK8963_CNTL2, AK8963_CNTL2_SRST);
+    delay(100);
+
+    // Check WHO_AM_I
+    uint8_t who_am_i = whoAmIAK8963();
+    if (who_am_i != AK8963_WHO_AM_I_RESPONSE) {
+        return false;  // AK8963 not detected
+    }
+
+    // Enter Fuse ROM access mode to read ASA calibration values
+    writeAK8963Register(AK8963_CNTL1, AK8963_MODE_FUSE_ROM_16BIT);
+    delay(10);
+
+    // Read ASA (Adjustable Sensitivity Adjustment) values
+    uint8_t asa[3];
+    if (!readAK8963Registers(AK8963_ASAX, 3, asa)) {
+        return false;
+    }
+
+    // Calculate sensitivity scale factors from ASA values
+    // Formula: Hadj = H * ((ASA - 128) * 0.5 / 128 + 1)
+    mag_scale_x_ = (float)(asa[0] - 128) / 256.0f + 1.0f;
+    mag_scale_y_ = (float)(asa[1] - 128) / 256.0f + 1.0f;
+    mag_scale_z_ = (float)(asa[2] - 128) / 256.0f + 1.0f;
+
+    // Power down before switching modes
+    writeAK8963Register(AK8963_CNTL1, AK8963_CNTL1_MODE_POWER_DOWN);
+    delay(10);
+
+    // Set continuous measurement mode 2 (100 Hz) with 16-bit output
+    writeAK8963Register(AK8963_CNTL1, AK8963_MODE_CONT_2_16BIT);
+    delay(100);  // Critical: 100ms delay for mode change
+
+    // Configure I2C Slave 0 for continuous auto-reading of magnetometer data
+    // This configures the MPU9250 to automatically read 7 bytes from AK8963
+    // at the gyro sample rate and populate EXT_SENS_DATA_00 to EXT_SENS_DATA_06
+    bus_->writeReg(MPU_RA_I2C_SLV0_ADDR, AK8963_I2C_ADDR | I2C_READ_FLAG);
+    bus_->writeReg(MPU_RA_I2C_SLV0_REG, AK8963_HXL);
+    bus_->writeReg(MPU_RA_I2C_SLV0_CTRL, I2C_SLV0_EN | 0x07);  // Enable + 7 bytes
+    delay(10);
+
+    mag_initialized_ = true;
+    return true;
+}
+
+bool MPU9250::readMagnetometer(float* mag)
+{
+    if (!mag_initialized_ || !mag) {
+        return false;
+    }
+
+    // Read magnetometer data directly from EXT_SENS_DATA registers
+    // The MPU9250 I2C master automatically populates these at the gyro sample rate
+    // (7 bytes: HXL, HXH, HYL, HYH, HZL, HZH, ST2)
+    uint8_t mag_data[7];
+    for (uint8_t i = 0; i < 7; i++) {
+        mag_data[i] = bus_->readReg(MPU_RA_EXT_SENS_DATA_00 + i);
+    }
+
+    // Check ST2 status register for overflow
+    if (mag_data[6] & AK8963_ST2_HOFL) {
+        // Magnetic sensor overflow detected
+        return false;
+    }
+
+    // Extract raw magnetometer data (LSB-first byte order!)
+    int16_t mx_raw = (int16_t)((mag_data[1] << 8) | mag_data[0]);
+    int16_t my_raw = (int16_t)((mag_data[3] << 8) | mag_data[2]);
+    int16_t mz_raw = (int16_t)((mag_data[5] << 8) | mag_data[4]);
+
+    // Apply ASA scale factors and convert to µT
+    // AK8963 16-bit: 0.15 µT/LSB (±4912 µT range)
+    float mx_ut = (float)mx_raw * mag_scale_x_ * AK8963_SENSITIVITY_SCALE_FACTOR;
+    float my_ut = (float)my_raw * mag_scale_y_ * AK8963_SENSITIVITY_SCALE_FACTOR;
+    float mz_ut = (float)mz_raw * mag_scale_z_ * AK8963_SENSITIVITY_SCALE_FACTOR;
+
+    // Apply calibration (hard iron bias + soft iron scale)
+    mag[0] = (mx_ut - mag_bias_x_) * mag_scale_factor_x_;
+    mag[1] = (my_ut - mag_bias_y_) * mag_scale_factor_y_;
+    mag[2] = (mz_ut - mag_bias_z_) * mag_scale_factor_z_;
+
+    return true;
+}
+
+bool MPU9250::read9DOF(int16_t* accgyr, float* mag)
+{
+    // Read 6-axis data (accel + gyro)
+    read(accgyr);
+
+    // Read magnetometer
+    return readMagnetometer(mag);
+}
+
+bool MPU9250::calibrateMagnetometer()
+{
+    if (!mag_initialized_) {
+        return false;
+    }
+
+    const uint16_t sample_count = 1500;  // 1500 samples over 15 seconds
+    const uint16_t sample_delay = 10;    // 10ms between samples (100 Hz)
+
+    float mag_max_x = -10000.0f, mag_max_y = -10000.0f, mag_max_z = -10000.0f;
+    float mag_min_x = 10000.0f, mag_min_y = 10000.0f, mag_min_z = 10000.0f;
+
+    // Temporarily disable calibration to get raw scaled values
+    float temp_bias_x = mag_bias_x_;
+    float temp_bias_y = mag_bias_y_;
+    float temp_bias_z = mag_bias_z_;
+    float temp_scale_x = mag_scale_factor_x_;
+    float temp_scale_y = mag_scale_factor_y_;
+    float temp_scale_z = mag_scale_factor_z_;
+
+    mag_bias_x_ = mag_bias_y_ = mag_bias_z_ = 0.0f;
+    mag_scale_factor_x_ = mag_scale_factor_y_ = mag_scale_factor_z_ = 1.0f;
+
+    // Collect samples
+    for (uint16_t i = 0; i < sample_count; i++) {
+        float mag[3];
+
+        if (readMagnetometer(mag)) {
+            // Track min/max for each axis
+            if (mag[0] > mag_max_x) mag_max_x = mag[0];
+            if (mag[0] < mag_min_x) mag_min_x = mag[0];
+            if (mag[1] > mag_max_y) mag_max_y = mag[1];
+            if (mag[1] < mag_min_y) mag_min_y = mag[1];
+            if (mag[2] > mag_max_z) mag_max_z = mag[2];
+            if (mag[2] < mag_min_z) mag_min_z = mag[2];
+        }
+
+        delay(sample_delay);
+    }
+
+    // Calculate hard iron bias (center of sphere)
+    mag_bias_x_ = (mag_max_x + mag_min_x) / 2.0f;
+    mag_bias_y_ = (mag_max_y + mag_min_y) / 2.0f;
+    mag_bias_z_ = (mag_max_z + mag_min_z) / 2.0f;
+
+    // Calculate soft iron scale factors (normalize to average radius)
+    float avg_radius = ((mag_max_x - mag_min_x) + (mag_max_y - mag_min_y) + (mag_max_z - mag_min_z)) / 6.0f;
+    mag_scale_factor_x_ = avg_radius / ((mag_max_x - mag_min_x) / 2.0f);
+    mag_scale_factor_y_ = avg_radius / ((mag_max_y - mag_min_y) / 2.0f);
+    mag_scale_factor_z_ = avg_radius / ((mag_max_z - mag_min_z) / 2.0f);
+
+    return true;
+}
+
+void MPU9250::setMagCalibration(float bias_x, float bias_y, float bias_z,
+                                float scale_x, float scale_y, float scale_z)
+{
+    mag_bias_x_ = bias_x;
+    mag_bias_y_ = bias_y;
+    mag_bias_z_ = bias_z;
+    mag_scale_factor_x_ = scale_x;
+    mag_scale_factor_y_ = scale_y;
+    mag_scale_factor_z_ = scale_z;
+}
+
+void MPU9250::getMagCalibration(float& bias_x, float& bias_y, float& bias_z,
+                                float& scale_x, float& scale_y, float& scale_z) const
+{
+    bias_x = mag_bias_x_;
+    bias_y = mag_bias_y_;
+    bias_z = mag_bias_z_;
+    scale_x = mag_scale_factor_x_;
+    scale_y = mag_scale_factor_y_;
+    scale_z = mag_scale_factor_z_;
 }

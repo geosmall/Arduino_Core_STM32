@@ -252,6 +252,144 @@ int IMU::getMotion6(int16_t* ax, int16_t* ay, int16_t* az,
 }
 
 // ============================================================================
+// Magnetometer API (MPU-9250/9255 only)
+// ============================================================================
+
+bool IMU::HasMagnetometer() const
+{
+    if (!initialized_ || !driver_) {
+        return false;
+    }
+    return driver_->hasMagnetometer();
+}
+
+IMU::Result IMU::InitMagnetometer()
+{
+    if (!initialized_ || !driver_) {
+        return Result::ERR;
+    }
+
+    if (!driver_->hasMagnetometer()) {
+        return Result::ERR;  // Chip doesn't have magnetometer
+    }
+
+    return driver_->initMagnetometer() ? Result::OK : Result::ERR;
+}
+
+IMU::Result IMU::ReadMagnetometer(float& mx, float& my, float& mz)
+{
+    if (!initialized_ || !driver_) {
+        return Result::ERR;
+    }
+
+    if (!driver_->hasMagnetometer()) {
+        return Result::ERR;  // Chip doesn't have magnetometer
+    }
+
+    float mag[3];
+    if (!driver_->readMagnetometer(mag)) {
+        return Result::ERR;
+    }
+
+    mx = mag[0];
+    my = mag[1];
+    mz = mag[2];
+
+    return Result::OK;
+}
+
+IMU::Result IMU::ReadIMU9(std::array<int16_t, 3>& gyro_buf,
+                          std::array<int16_t, 3>& accel_buf,
+                          std::array<float, 3>& mag_buf)
+{
+    if (!initialized_ || !driver_) {
+        return Result::ERR;
+    }
+
+    if (!driver_->hasMagnetometer()) {
+        return Result::ERR;  // Chip doesn't have magnetometer
+    }
+
+    // Read 6-axis data (accel + gyro)
+    int16_t accgyr[6];
+    driver_->read(accgyr);
+
+    // Copy to output buffers
+    accel_buf[0] = accgyr[0];
+    accel_buf[1] = accgyr[1];
+    accel_buf[2] = accgyr[2];
+    gyro_buf[0] = accgyr[3];
+    gyro_buf[1] = accgyr[4];
+    gyro_buf[2] = accgyr[5];
+
+    // Read magnetometer
+    if (!driver_->readMagnetometer(mag_buf.data())) {
+        return Result::ERR;
+    }
+
+    return Result::OK;
+}
+
+int IMU::getMotion9(int16_t* ax, int16_t* ay, int16_t* az,
+                    int16_t* gx, int16_t* gy, int16_t* gz,
+                    float* mx, float* my, float* mz)
+{
+    std::array<int16_t, 3> gyro_data;
+    std::array<int16_t, 3> accel_data;
+    std::array<float, 3> mag_data;
+
+    Result status = ReadIMU9(gyro_data, accel_data, mag_data);
+
+    if (status != Result::OK) {
+        return -1;
+    }
+
+    *ax = accel_data[0];
+    *ay = accel_data[1];
+    *az = accel_data[2];
+    *gx = gyro_data[0];
+    *gy = gyro_data[1];
+    *gz = gyro_data[2];
+    *mx = mag_data[0];
+    *my = mag_data[1];
+    *mz = mag_data[2];
+
+    return 0;
+}
+
+IMU::Result IMU::CalibrateMagnetometer()
+{
+    if (!initialized_ || !driver_) {
+        return Result::ERR;
+    }
+
+    if (!driver_->hasMagnetometer()) {
+        return Result::ERR;  // Chip doesn't have magnetometer
+    }
+
+    return driver_->calibrateMagnetometer() ? Result::OK : Result::ERR;
+}
+
+void IMU::SetMagCalibration(float bias_x, float bias_y, float bias_z,
+                            float scale_x, float scale_y, float scale_z)
+{
+    if (initialized_ && driver_ && driver_->hasMagnetometer()) {
+        driver_->setMagCalibration(bias_x, bias_y, bias_z, scale_x, scale_y, scale_z);
+    }
+}
+
+void IMU::GetMagCalibration(float& bias_x, float& bias_y, float& bias_z,
+                            float& scale_x, float& scale_y, float& scale_z) const
+{
+    if (initialized_ && driver_) {
+        driver_->getMagCalibration(bias_x, bias_y, bias_z, scale_x, scale_y, scale_z);
+    } else {
+        bias_x = bias_y = bias_z = 0.0f;
+        scale_x = scale_y = scale_z = 1.0f;
+    }
+}
+
+// ============================================================================
 // Private Methods
 // ============================================================================
 

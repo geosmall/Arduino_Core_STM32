@@ -57,6 +57,14 @@
 #define MPU_RA_INT_ENABLE       0x38    // Interrupt Enable
 #define MPU_RA_INT_STATUS       0x3A    // Interrupt Status
 
+// I2C Master registers (for MPU-9250 magnetometer access)
+#define MPU_RA_I2C_MST_CTRL     0x24    // I2C Master Control
+#define MPU_RA_I2C_SLV0_ADDR    0x25    // I2C Slave 0 Address
+#define MPU_RA_I2C_SLV0_REG     0x26    // I2C Slave 0 Register
+#define MPU_RA_I2C_SLV0_CTRL    0x27    // I2C Slave 0 Control
+#define MPU_RA_I2C_SLV0_DO      0x63    // I2C Slave 0 Data Out
+#define MPU_RA_EXT_SENS_DATA_00 0x49    // External Sensor Data (magnetometer data appears here)
+
 // Data output registers (big-endian)
 #define MPU_RA_ACCEL_XOUT_H     0x3B
 #define MPU_RA_ACCEL_XOUT_L     0x3C
@@ -91,7 +99,11 @@
 #define INV_CLK_PLL             0x01    // PLL clock source
 
 // USER_CTRL (0x6A)
+#define BIT_I2C_MST_EN          0x20    // Enable I2C master mode
 #define BIT_I2C_IF_DIS          0x10    // Disable I2C interface (SPI only)
+
+// INT_PIN_CFG (0x37)
+#define BIT_BYPASS_EN           0x02    // Enable I2C bypass mode (direct AK8963 access)
 
 // SIGNAL_PATH_RESET (0x68)
 #define BIT_GYRO                0x04    // Reset gyro signal path

@@ -238,6 +238,109 @@ public:
     // FIFO support eliminated in Phase 2 migration - use ReadIMU6() for polling.
     // See MIGRATION_PLAN.md for rationale.
 
+    // ========================================================================
+    // Magnetometer API (MPU-9250/9255 only)
+    // ========================================================================
+
+    /**
+     * @brief Check if IMU has magnetometer support
+     * @return true if magnetometer available (MPU-9250/9255), false otherwise
+     *
+     * Use this to detect 9-DOF vs 6-DOF capability before calling magnetometer methods.
+     * Example: if (imu.HasMagnetometer()) { imu.ReadIMU9(...); } else { imu.ReadIMU6(...); }
+     */
+    bool HasMagnetometer() const;
+
+    /**
+     * @brief Initialize magnetometer (call after Init() for MPU-9250)
+     * @return Result::OK on success, Result::ERR on failure or not supported
+     *
+     * For MPU-9250: Enables I2C master mode, configures AK8963, reads ASA calibration.
+     * For other chips: Returns ERR (no magnetometer).
+     * Optional - only needed if you want to use magnetometer.
+     */
+    Result InitMagnetometer();
+
+    /**
+     * @brief Read magnetometer data only
+     * @param mx Magnetometer X-axis (µT, microtesla)
+     * @param my Magnetometer Y-axis (µT)
+     * @param mz Magnetometer Z-axis (µT)
+     * @return Result::OK on success, Result::ERR on failure or not supported
+     *
+     * Requires InitMagnetometer() called first for MPU-9250.
+     */
+    Result ReadMagnetometer(float& mx, float& my, float& mz);
+
+    /**
+     * @brief Read 9-axis IMU data (gyro + accel + mag)
+     * @param gyro_buf Gyroscope data [gx, gy, gz] (raw int16_t)
+     * @param accel_buf Accelerometer data [ax, ay, az] (raw int16_t)
+     * @param mag_buf Magnetometer data [mx, my, mz] (µT)
+     * @return Result::OK on success, Result::ERR on failure or not supported
+     *
+     * Efficient 9-DOF reading for MPU-9250 sensor fusion.
+     * For chips without magnetometer, returns ERR.
+     * Requires InitMagnetometer() called first for MPU-9250.
+     */
+    Result ReadIMU9(std::array<int16_t, 3>& gyro_buf,
+                    std::array<int16_t, 3>& accel_buf,
+                    std::array<float, 3>& mag_buf);
+
+    /**
+     * @brief MPU9250 compatibility interface for 9-DOF data
+     * @param ax, ay, az Accelerometer X, Y, Z output (raw int16_t)
+     * @param gx, gy, gz Gyroscope X, Y, Z output (raw int16_t)
+     * @param mx, my, mz Magnetometer X, Y, Z output (µT)
+     * @return 0 on success, negative error code on failure
+     *
+     * Wraps ReadIMU9() for compatibility with MPU9250 library API.
+     * Requires InitMagnetometer() called first for MPU-9250.
+     */
+    int getMotion9(int16_t* ax, int16_t* ay, int16_t* az,
+                   int16_t* gx, int16_t* gy, int16_t* gz,
+                   float* mx, float* my, float* mz);
+
+    /**
+     * @brief Calibrate magnetometer using figure-8 motion
+     * @return Result::OK on success, Result::ERR on failure or not supported
+     *
+     * Interactive calibration: move IMU in figure-8 pattern for 15 seconds.
+     * Calculates hard iron (bias) and soft iron (scale) corrections.
+     * Only supported on MPU-9250/9255.
+     */
+    Result CalibrateMagnetometer();
+
+    /**
+     * @brief Set magnetometer calibration values
+     * @param bias_x X-axis bias (µT)
+     * @param bias_y Y-axis bias (µT)
+     * @param bias_z Z-axis bias (µT)
+     * @param scale_x X-axis scale factor
+     * @param scale_y Y-axis scale factor
+     * @param scale_z Z-axis scale factor
+     *
+     * Apply previously calculated calibration values.
+     * Only effective for MPU-9250/9255.
+     */
+    void SetMagCalibration(float bias_x, float bias_y, float bias_z,
+                           float scale_x, float scale_y, float scale_z);
+
+    /**
+     * @brief Get current magnetometer calibration values
+     * @param bias_x X-axis bias (µT)
+     * @param bias_y Y-axis bias (µT)
+     * @param bias_z Z-axis bias (µT)
+     * @param scale_x X-axis scale factor
+     * @param scale_y Y-axis scale factor
+     * @param scale_z Z-axis scale factor
+     *
+     * Retrieve current calibration for storage/display.
+     * Returns zeros for chips without magnetometer.
+     */
+    void GetMagCalibration(float& bias_x, float& bias_y, float& bias_z,
+                           float& scale_x, float& scale_y, float& scale_z) const;
+
 private:
     // IMU data sizes (6 bytes accel + 6 bytes gyro)
     static constexpr uint32_t ACCEL_DATA_SIZE = 6;

@@ -230,7 +230,7 @@ This repository supports **UAV flight controller boards** with the following STM
 - `Storage` - Generic storage abstraction for LittleFS and SDFS
 - `minIniStorage` - INI configuration management with automatic storage backend selection
 - `ICM42688P` - 6-axis IMU library with TDK InvenSense drivers and self-test
-- `IMU` - High-level C++ IMU wrapper with chip detection and multi-instance support
+- `IMU` - High-level C++ IMU wrapper with chip detection, multi-instance support, and 9-DOF magnetometer support (MPU-9250/9255)
 - `TimerPWM` - Hardware timer PWM for servo/ESC control with 1µs resolution
 - `libPrintf` - Embedded printf library (eyalroz/printf v6.2.0) - 20% binary reduction
 - `AUnit` - Unit testing framework (v1.7.1) with RTT integration
@@ -422,11 +422,15 @@ Compile-time board config with multi-board support (NUCLEO_F411RE, BLACKPILL_F41
 - 4 examples: Simple (WHO_AM_I), self-test, interrupt-driven, processed AG data
 - Usage: `ICM42688P_Simple imu; imu.begin(spi, PA4, 1000000);  // Returns 0x47`
 
-**IMU (High-Level Wrapper)**: Unified C++ wrapper for InvenSense IMUs with chip detection
-- Multi-instance support, ChipType enum (ICM42688_P, MPU-6000, MPU-9250)
-- Full API: Init, Reset, RunSelfTest, ReadIMU6, FSR/ODR/power config
-- Usage: `IMU imu; imu.Init(spi_bus, BoardConfig::imu.spi.cs_pin, freq); IMU::ChipType chip = imu.GetChipType();`
-- Currently: ICM-42688-P (0x47), framework ready for MPU-6000/MPU-9250
+**IMU (High-Level Wrapper)**: Unified C++ wrapper for InvenSense IMUs with chip detection and 9-DOF support
+- Multi-instance support, ChipType enum (ICM42688_P, MPU-6000, MPU-9250, ICM-206xx)
+- **6-DOF API**: Init, ReadIMU6, FSR/ODR/power config, preset API
+- **9-DOF API**: InitMagnetometer, ReadIMU9, ReadMagnetometer, CalibrateMagnetometer (MPU-9250/9255 only)
+- **Magnetometer**: AK8963 support via I2C master mode, figure-8 calibration, hard/soft iron correction
+- Usage:
+  - `IMU imu; imu.Init(spi_bus, cs_pin, freq);`
+  - `if (imu.HasMagnetometer()) { imu.InitMagnetometer(); imu.ReadIMU9(gyro, accel, mag); }`
+- Supported: ICM-42688-P (6-DOF), MPU-6000 (6-DOF), MPU-9250/9255 (9-DOF), ICM-206xx (6-DOF)
 
 ### TimerPWM Library ✅ **COMPLETED**
 

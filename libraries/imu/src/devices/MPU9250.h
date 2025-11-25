@@ -86,8 +86,39 @@ public:
     bool writeReg(uint8_t reg, uint8_t value) override;
     bool writeRegVerify(uint8_t reg, uint8_t value) override;
 
+    // ========================================================================
+    // Magnetometer API Overrides (AK8963)
+    // ========================================================================
+
+    bool hasMagnetometer() const override { return true; }
+    bool initMagnetometer() override;
+    bool readMagnetometer(float* mag) override;
+    bool read9DOF(int16_t* accgyr, float* mag) override;
+    bool calibrateMagnetometer() override;
+    void setMagCalibration(float bias_x, float bias_y, float bias_z,
+                           float scale_x, float scale_y, float scale_z) override;
+    void getMagCalibration(float& bias_x, float& bias_y, float& bias_z,
+                           float& scale_x, float& scale_y, float& scale_z) const override;
+
     // Note: whoAmI_, accScale_, gyrScale_, samplingRateHz_ inherited from DeviceBase
 
 private:
     DeviceBus* bus_;         // Bus abstraction (owned by caller)
+
+    // Magnetometer (AK8963) support
+    bool mag_initialized_;
+    float mag_scale_x_;      // ASA calibration scale factor X
+    float mag_scale_y_;      // ASA calibration scale factor Y
+    float mag_scale_z_;      // ASA calibration scale factor Z
+    float mag_bias_x_;       // Hard iron bias X (µT)
+    float mag_bias_y_;       // Hard iron bias Y (µT)
+    float mag_bias_z_;       // Hard iron bias Z (µT)
+    float mag_scale_factor_x_;  // Soft iron scale factor X
+    float mag_scale_factor_y_;  // Soft iron scale factor Y
+    float mag_scale_factor_z_;  // Soft iron scale factor Z
+
+    // AK8963 helper methods
+    bool writeAK8963Register(uint8_t reg, uint8_t value);
+    bool readAK8963Registers(uint8_t reg, uint8_t count, uint8_t *dest);
+    uint8_t whoAmIAK8963();
 };
