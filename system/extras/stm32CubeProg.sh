@@ -138,27 +138,6 @@ case $PROTOCOL in
   3)
     PORT="JLINK"
     MODE="mode=UR"
-    # Check for STM32CubeProgrammer J-Link library path bug workaround (Linux only)
-    # STM32CubeProgrammer v2.20.0 has hardcoded relative path /../../../lib/libjlinkarm.so
-    # which resolves incorrectly from typical install locations on Linux.
-    # Windows and macOS do not have this issue.
-    if [ "${UNAME_OS}" = "Linux" ]; then
-      JLINK_SYMLINK_PATH="$HOME/STMicroelectronics/lib/libjlinkarm.so"
-      if [ ! -e "$JLINK_SYMLINK_PATH" ]; then
-        echo "############################################################"
-        echo "## WARNING: J-Link library symlink not found!"
-        echo "##"
-        echo "## STM32CubeProgrammer has a bug with J-Link library path."
-        echo "## To fix, create a symlink:"
-        echo "##"
-        echo "##   mkdir -p ~/STMicroelectronics/lib"
-        echo "##   ln -s ~/STMicroelectronics/STM32Cube/STM32CubeProgrammer/lib/libjlinkarm.so \\"
-        echo "##         ~/STMicroelectronics/lib/libjlinkarm.so"
-        echo "##"
-        echo "## See README.md for details."
-        echo "############################################################"
-      fi
-    fi
     shift 3
     ;;
   *)

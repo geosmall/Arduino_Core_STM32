@@ -28,7 +28,7 @@ This repository contains a **fork of the STM32 Arduino Core** with simplified va
 
 - **Primary**: STM32F411 (Nucleo F411RE, BlackPill F411CE)
 - **Secondary**: STM32F405 (common in flight controllers)
-- **Future**: STM32H743 (high-performance flight controllers)
+- **Advanced**: STM32H743 (high-performance flight controllers)
 
 ## Key Features
 
@@ -53,9 +53,9 @@ This repository contains a **fork of the STM32 Arduino Core** with simplified va
 - **Arduino CLI** v1.3.0 (locked version for build consistency)
   - Manages STM32 core and ARM GCC toolchain automatically
   - Installation: https://arduino.github.io/arduino-cli/latest/installation/
-- **STM32 Core** v2.7.1 (STMicroelectronics:stm32)
+- **STM32 Robotics Core** (this repository)
   - Includes ARM GCC 12.x toolchain (xpack-arm-none-eabi-gcc-12.2.1-1.2)
-  - Automatically installed via Arduino CLI
+  - Install via Board Manager (see [Installation](#installation-via-arduino-board-manager) above)
 
 #### Optional (Hardware Testing & Debugging)
 - **SEGGER J-Link** v8.62+ (for HIL testing with RTT debugging)
@@ -65,15 +65,8 @@ This repository contains a **fork of the STM32 Arduino Core** with simplified va
   - `JLinkRTTClient` - Real-time terminal client
   - Installation: https://www.segger.com/downloads/jlink/
   - Note: Requires ST-Link V2.1 reflashed to J-Link firmware for NUCLEO boards
-- **STM32CubeProgrammer** v2.20.0+ (for Arduino IDE J-Link uploads)
-  - Required for "STM32CubeProgrammer (J-Link)" upload method in Arduino IDE
+  - STM32CubeProgrammer - for Arduino IDE ST-Link and J-Link uploads
   - Installation: https://www.st.com/en/development-tools/stm32cubeprog.html
-  - **J-Link Library Path Fix**: STM32CubeProgrammer v2.20.0 has a bug with J-Link library path resolution. Create this symlink:
-    ```bash
-    mkdir -p ~/STMicroelectronics/lib
-    ln -s ~/STMicroelectronics/STM32Cube/STM32CubeProgrammer/lib/libjlinkarm.so \
-          ~/STMicroelectronics/lib/libjlinkarm.so
-    ```
 
 ### System Tools (Linux/macOS)
 
@@ -85,11 +78,15 @@ This repository contains a **fork of the STM32 Arduino Core** with simplified va
 - **lsusb** - USB device enumeration (Linux only)
   - Ubuntu/Debian: `sudo apt-get install usbutils`
 
-### Installation
+### Installation (CLI)
 ```bash
-# Install STM32 core
+# Add custom board manager URL
+arduino-cli config add board_manager.additional_urls \
+  https://github.com/geosmall/BoardManagerFiles/raw/main/package_stm32_robotics_index.json
+
+# Install STM32 Robotics core
 arduino-cli core update-index
-arduino-cli core install STMicroelectronics:stm32
+arduino-cli core install STM32_Robotics:stm32
 
 # Verify installation
 ./system/ci/env_check_quick.sh true
