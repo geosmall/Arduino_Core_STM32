@@ -1,6 +1,6 @@
 /*
  * Auto-generated BoardConfig from Betaflight unified target
- * Generated: 2025-11-07 16:27:54
+ * Generated: 2025-11-25 15:54:54
  * Generator: betaflight_target_converter.py
  */
 
@@ -36,40 +36,30 @@ namespace BoardConfig {
   // Status LEDs
   static constexpr LEDConfig status_leds{PC13};
 
+  // RC Receiver: IBus/SBUS (adjust protocol based on actual wiring)
+  static constexpr RCReceiverConfig rc_receiver{PB7, PB6, 115200, 1000, 300};
+
   // Motors: DSHOT300 protocol
   namespace Motor {
     static constexpr uint32_t frequency_hz = 1000;
 
-    // TIM1 Bank: Motors 1, 2, 3
-    namespace TIM1_Bank {
-      static inline TIM_TypeDef* const timer = TIM1;
-
-      struct Channel {
-        uint32_t pin;
-        uint32_t ch;
-        uint32_t min_us;
-        uint32_t max_us;
-      };
-
-      static constexpr Channel motor1 = {PA8, 1, 0, 0};  // TIM1_CH1
-      static constexpr Channel motor2 = {PA9, 2, 0, 0};  // TIM1_CH2
-      static constexpr Channel motor3 = {PA10, 3, 0, 0};  // TIM1_CH3
+    struct MotorConfig {
+      TIM_TypeDef* timer;
+      uint32_t pin;
+      uint32_t channel;
+      uint32_t min_us;
+      uint32_t max_us;
     };
 
-    // TIM3 Bank: Motors 4, 5
-    namespace TIM3_Bank {
-      static inline TIM_TypeDef* const timer = TIM3;
-
-      struct Channel {
-        uint32_t pin;
-        uint32_t ch;
-        uint32_t min_us;
-        uint32_t max_us;
-      };
-
-      static constexpr Channel motor4 = {PB0_ALT1, 3, 0, 0};  // TIM3_CH3
-      static constexpr Channel motor5 = {PB4, 1, 0, 0};  // TIM3_CH1
+    // Motor array - hardware timer assignments from Betaflight config
+    static constexpr MotorConfig motors[] = {
+      {TIM1, PA8, 1, 0, 0},  // Motor 1: TIM1_CH1
+      {TIM1, PA9, 2, 0, 0},  // Motor 2: TIM1_CH2
+      {TIM1, PA10, 3, 0, 0},  // Motor 3: TIM1_CH3
+      {TIM3, PB0_ALT1, 3, 0, 0},  // Motor 4: TIM3_CH3
+      {TIM3, PB4, 1, 0, 0},  // Motor 5: TIM3_CH1
     };
 
+    static constexpr int num_motors = sizeof(motors) / sizeof(motors[0]);
   };
 }

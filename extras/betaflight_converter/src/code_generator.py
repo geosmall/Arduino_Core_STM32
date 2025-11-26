@@ -69,6 +69,11 @@ class BoardConfigGenerator:
         if led_code:
             lines.append(led_code)
 
+        # RC Receiver
+        rc_receiver_code = self._generate_rc_receiver()
+        if rc_receiver_code:
+            lines.append(rc_receiver_code)
+
         # Servos
         servo_code = self._generate_servos()
         if servo_code:
@@ -286,6 +291,21 @@ class BoardConfigGenerator:
 
         return "\n".join(lines)
 
+    def _generate_rc_receiver(self) -> Optional[str]:
+        """Generate RCReceiverConfig for dRehmFlight compatibility."""
+        # Use USART1 by default (adjust if needed)
+        uarts = self.validator.validate_uarts()
+        uart1 = next((u for u in uarts if u.uart_num == 1), None)
+        if not uart1:
+            return None
+
+        lines = [
+            "  // RC Receiver: IBus/SBUS (adjust protocol based on actual wiring)",
+            f"  static constexpr RCReceiverConfig rc_receiver{{{uart1.rx}, {uart1.tx}, 115200, 1000, 300}};",
+            ""
+        ]
+        return "\n".join(lines)
+
     def _generate_servos(self) -> Optional[str]:
         """Generate Servo namespace with timer banks."""
         servos = self.validator.validate_servos()
@@ -335,17 +355,16 @@ class BoardConfigGenerator:
         return "\n".join(lines)
 
     def _generate_motors(self) -> Optional[str]:
-        """Generate Motor namespace with timer banks."""
+        """Generate Motor namespace with motor array (runtime timer discovery)."""
         motors = self.validator.validate_motors()
         if not motors:
             return None
 
-        # Group by timer
-        timer_banks = self.validator.group_motors_by_timer(motors)
-
         # Get protocol
         protocol = self.bf_config.settings.get('motor_pwm_protocol', 'ONESHOT125')
-        frequency_hz = self._get_protocol_frequency(protocol)
+
+        # CRITICAL FIX: Use 8000 Hz for OneShot125 (not 1000 Hz)
+        frequency_hz = 8000 if protocol == 'ONESHOT125' else self._get_protocol_frequency(protocol)
         min_us, max_us = self._get_protocol_pulse_range(protocol)
 
         lines = [
@@ -355,30 +374,26 @@ class BoardConfigGenerator:
             ""
         ]
 
-        # Generate timer banks
-        for timer_name in sorted(timer_banks.keys()):
-            bank_motors = timer_banks[timer_name]
-            bank_name = timer_name.replace('TIM', 'TIM') + "_Bank"
+        # Add MotorConfig struct definition
+        lines.append("    struct MotorConfig {")
+        lines.append("      TIM_TypeDef* timer;")
+        lines.append("      uint32_t pin;")
+        lines.append("      uint32_t channel;")
+        lines.append("      uint32_t min_us;")
+        lines.append("      uint32_t max_us;")
+        lines.append("    };")
+        lines.append("")
 
-            lines.append(f"    // {timer_name} Bank: Motors {', '.join(str(m.index) for m in bank_motors)}")
-            lines.append(f"    namespace {bank_name} {{")
-            lines.append(f"      static inline TIM_TypeDef* const timer = {timer_name};")
-            lines.append("")
-            lines.append("      struct Channel {")
-            lines.append("        uint32_t pin;")
-            lines.append("        uint32_t ch;")
-            lines.append("        uint32_t min_us;")
-            lines.append("        uint32_t max_us;")
-            lines.append("      };")
-            lines.append("")
+        # Generate motor array
+        lines.append("    // Motor array - hardware timer assignments from Betaflight config")
+        lines.append("    static constexpr MotorConfig motors[] = {")
 
-            # Generate motor channels
-            for motor in sorted(bank_motors, key=lambda m: m.index):
-                lines.append(f"      static constexpr Channel motor{motor.index} = {{{motor.pin_arduino}, {motor.channel}, {min_us}, {max_us}}};  // {timer_name}_CH{motor.channel}")
+        for motor in sorted(motors, key=lambda m: m.index):
+            lines.append(f"      {{{motor.timer}, {motor.pin_arduino}, {motor.channel}, {min_us}, {max_us}}},  // Motor {motor.index}: {motor.timer}_CH{motor.channel}")
 
-            lines.append("    };")
-            lines.append("")
-
+        lines.append("    };")
+        lines.append("")
+        lines.append("    static constexpr int num_motors = sizeof(motors) / sizeof(motors[0]);")
         lines.append("  };")  # End Motor namespace
 
         return "\n".join(lines)

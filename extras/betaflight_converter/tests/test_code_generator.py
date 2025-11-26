@@ -152,41 +152,36 @@ class TestCodeGenerator(unittest.TestCase):
         self.assertIn("namespace Motor {", code)
         self.assertIn("frequency_hz", code)
 
-        # Should have timer banks
-        self.assertIn("TIM1_Bank", code)
-        self.assertIn("TIM3_Bank", code)
+        # Should have motor array structure (NOT timer banks)
+        self.assertIn("struct MotorConfig", code)
+        self.assertIn("motors[]", code)
+        self.assertIn("num_motors", code)
 
-        # Should have motor definitions
-        self.assertIn("motor1", code)
-        self.assertIn("motor2", code)
-        self.assertIn("motor3", code)
-        self.assertIn("motor4", code)
-        self.assertIn("motor5", code)
+        # Should NOT have old timer bank namespaces
+        self.assertNotIn("TIM1_Bank", code)
+        self.assertNotIn("TIM3_Bank", code)
 
         # Should have correct timer references
         self.assertIn("TIM1", code)
         self.assertIn("TIM3", code)
 
     def test_motor_timer_grouping(self):
-        """Test motors are grouped by timer correctly."""
+        """Test motors are listed in array with correct timer assignments."""
         code = self.generator.generate()
 
-        # TIM1 should have motors 1-3
-        tim1_section = re.search(r'namespace TIM1_Bank \{(.+?)\n    \};', code, re.DOTALL)
-        self.assertIsNotNone(tim1_section)
-        tim1_code = tim1_section.group(1)
+        # Motors should be in array format with explicit timer assignments
+        motor_array_section = re.search(r'motors\[\] = \{(.+?)\n    \};', code, re.DOTALL)
+        self.assertIsNotNone(motor_array_section)
+        motors_code = motor_array_section.group(1)
 
-        self.assertIn("motor1", tim1_code)
-        self.assertIn("motor2", tim1_code)
-        self.assertIn("motor3", tim1_code)
+        # TIM1 motors (motors 1-3 in JHEF411 config)
+        self.assertIn("{TIM1, PA8, 1,", motors_code)   # Motor 1
+        self.assertIn("{TIM1, PA9, 2,", motors_code)   # Motor 2
+        self.assertIn("{TIM1, PA10, 3,", motors_code)  # Motor 3
 
-        # TIM3 should have motors 4-5
-        tim3_section = re.search(r'namespace TIM3_Bank \{(.+?)\n    \};', code, re.DOTALL)
-        self.assertIsNotNone(tim3_section)
-        tim3_code = tim3_section.group(1)
-
-        self.assertIn("motor4", tim3_code)
-        self.assertIn("motor5", tim3_code)
+        # TIM3 motors (motors 4-5 in JHEF411 config)
+        self.assertIn("{TIM3, PB0_ALT1, 3,", motors_code)  # Motor 4
+        self.assertIn("{TIM3, PB4, 1,", motors_code)       # Motor 5
 
     def test_protocol_detection(self):
         """Test motor protocol detection."""
@@ -205,10 +200,11 @@ class TestCodeGenerator(unittest.TestCase):
         # Should end with closing brace
         self.assertTrue(code.strip().endswith('}'))
 
-        # Should have proper semicolons after config lines
+        # Should have proper semicolons after config lines (but not array declarations)
         config_lines = [line for line in code.split('\n') if 'Config' in line and '=' in line]
         for line in config_lines:
-            if not line.strip().startswith('//'):
+            # Skip array declarations (motors[]) and comments
+            if not line.strip().startswith('//') and 'motors[]' not in line:
                 self.assertTrue(line.strip().endswith(';'), f"Missing semicolon: {line}")
 
     def test_save_to_file(self):

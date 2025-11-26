@@ -1,6 +1,6 @@
 /*
  * Auto-generated BoardConfig from Betaflight unified target
- * Generated: 2025-11-07 16:27:54
+ * Generated: 2025-11-25 15:54:54
  * Generator: betaflight_target_converter.py
  */
 
@@ -51,6 +51,9 @@ namespace BoardConfig {
   // Status LEDs
   static constexpr LEDConfig status_leds{PE3, PE4};
 
+  // RC Receiver: IBus/SBUS (adjust protocol based on actual wiring)
+  static constexpr RCReceiverConfig rc_receiver{PA10, PA9, 115200, 1000, 300};
+
   // Servos: Standard PWM (50 Hz)
   namespace Servo {
     static constexpr uint32_t frequency_hz = 50;
@@ -73,54 +76,28 @@ namespace BoardConfig {
   };
   // Motors: ONESHOT125 protocol
   namespace Motor {
-    static constexpr uint32_t frequency_hz = 1000;
+    static constexpr uint32_t frequency_hz = 8000;
 
-    // TIM3 Bank: Motors 1, 2
-    namespace TIM3_Bank {
-      static inline TIM_TypeDef* const timer = TIM3;
-
-      struct Channel {
-        uint32_t pin;
-        uint32_t ch;
-        uint32_t min_us;
-        uint32_t max_us;
-      };
-
-      static constexpr Channel motor1 = {PB0_ALT1, 3, 125, 250};  // TIM3_CH3
-      static constexpr Channel motor2 = {PB1_ALT1, 4, 125, 250};  // TIM3_CH4
+    struct MotorConfig {
+      TIM_TypeDef* timer;
+      uint32_t pin;
+      uint32_t channel;
+      uint32_t min_us;
+      uint32_t max_us;
     };
 
-    // TIM4 Bank: Motors 7, 8
-    namespace TIM4_Bank {
-      static inline TIM_TypeDef* const timer = TIM4;
-
-      struct Channel {
-        uint32_t pin;
-        uint32_t ch;
-        uint32_t min_us;
-        uint32_t max_us;
-      };
-
-      static constexpr Channel motor7 = {PD12, 1, 125, 250};  // TIM4_CH1
-      static constexpr Channel motor8 = {PD13, 2, 125, 250};  // TIM4_CH2
+    // Motor array - hardware timer assignments from Betaflight config
+    static constexpr MotorConfig motors[] = {
+      {TIM3, PB0_ALT1, 3, 125, 250},  // Motor 1: TIM3_CH3
+      {TIM3, PB1_ALT1, 4, 125, 250},  // Motor 2: TIM3_CH4
+      {TIM5, PA0_ALT1, 1, 125, 250},  // Motor 3: TIM5_CH1
+      {TIM5, PA1_ALT1, 2, 125, 250},  // Motor 4: TIM5_CH2
+      {TIM5, PA2_ALT1, 3, 125, 250},  // Motor 5: TIM5_CH3
+      {TIM5, PA3_ALT1, 4, 125, 250},  // Motor 6: TIM5_CH4
+      {TIM4, PD12, 1, 125, 250},  // Motor 7: TIM4_CH1
+      {TIM4, PD13, 2, 125, 250},  // Motor 8: TIM4_CH2
     };
 
-    // TIM5 Bank: Motors 3, 4, 5, 6
-    namespace TIM5_Bank {
-      static inline TIM_TypeDef* const timer = TIM5;
-
-      struct Channel {
-        uint32_t pin;
-        uint32_t ch;
-        uint32_t min_us;
-        uint32_t max_us;
-      };
-
-      static constexpr Channel motor3 = {PA0_ALT1, 1, 125, 250};  // TIM5_CH1
-      static constexpr Channel motor4 = {PA1_ALT1, 2, 125, 250};  // TIM5_CH2
-      static constexpr Channel motor5 = {PA2_ALT1, 3, 125, 250};  // TIM5_CH3
-      static constexpr Channel motor6 = {PA3_ALT1, 4, 125, 250};  // TIM5_CH4
-    };
-
+    static constexpr int num_motors = sizeof(motors) / sizeof(motors[0]);
   };
 }

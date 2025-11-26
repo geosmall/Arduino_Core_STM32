@@ -72,8 +72,10 @@ Everyone that sends me pictures and videos of your flying creations! -Nick
   #include "../../targets/BLACKPILL_F411CE.h"  //BLACKPILL F411CE (MPU-9250 9-DOF)
 #elif defined(ARDUINO_NUCLEO_F411RE)
   #include "../../targets/NUCLEO_F411RE_JHEF411.h"  //NUCLEO F411RE (ICM42688P 6-DOF)
+#elif defined(ARDUINO_BKMN_NERO)
+  #include "../../targets/BKMN-NERO.h"  //NERO F7 flight controller (ICM-20602 6-DOF)
 #else
-  #error "Unsupported board! Use BLACKPILL_F411CE or NUCLEO_F411RE"
+  #error "Unsupported board! Use BLACKPILL_F411CE, NUCLEO_F411RE, or BKMN_NERO"
 #endif
 #include <IMU.h>           //IMU library for ICM42688P
 #include <SerialRx.h>      //Serial RX library for IBus/SBUS
@@ -177,14 +179,7 @@ float Kd_yaw = 0.00015;       //Yaw D-gain (be careful when increasing too high,
 //                                                     DECLARE PINS                                                       //
 //========================================================================================================================//
 
-//STM32: Pin configuration from NUCLEO_F411RE_JHEF411.h BoardConfig
-//OneShot125 ESC pin outputs (5 motors available on F411RE):
-const int m1Pin = BoardConfig::Motor::TIM1_Bank::motor1.pin;  // PA8  - TIM1_CH1
-const int m2Pin = BoardConfig::Motor::TIM1_Bank::motor2.pin;  // PA9  - TIM1_CH2
-const int m3Pin = BoardConfig::Motor::TIM1_Bank::motor3.pin;  // PA10 - TIM1_CH3
-const int m4Pin = BoardConfig::Motor::TIM3_Bank::motor4.pin;  // PB0_ALT1 - TIM3_CH3
-const int m5Pin = BoardConfig::Motor::TIM3_Bank::motor5.pin;  // PB4  - TIM3_CH1
-const int m6Pin = NC;  // Not available on F411RE (6th motor not supported)
+//STM32: Motor configuration via MotorManager (BoardConfig motor array)
 //PWM servo outputs (TODO: Define using available timer channels):
 const int servo1Pin = PB10;  // TIM2_CH3 (example)
 const int servo2Pin = NC;    // Not yet assigned
@@ -256,9 +251,11 @@ SPIClass spi_imu(BoardConfig::imu.spi.mosi_pin,
 // Create IMU instance
 IMU imu;
 
-//STM32: Motor outputs via TimerPWM (OneShot125)
-PWMOutputBank motors_tim1;
-PWMOutputBank motors_tim3;
+//STM32: Motor outputs via MotorManager (OneShot125)
+MotorManager motors;
+
+//STM32: Servo outputs via ServoManager (50 Hz PWM)
+ServoManager servos;
 
 //========================================================================================================================//
 //                                                      VOID SETUP                                                        //                           
@@ -276,12 +273,7 @@ void setup() {
 
   //Initialize all pins
   pinMode(ledPin, OUTPUT); //LED blinker
-  pinMode(m1Pin, OUTPUT);
-  pinMode(m2Pin, OUTPUT);
-  pinMode(m3Pin, OUTPUT);
-  pinMode(m4Pin, OUTPUT);
-  pinMode(m5Pin, OUTPUT);
-  //STM32: m6Pin is NC (not available on F411RE)
+  //STM32: Motor pins initialized by MotorManager.Init()
   //TODO: Servos not yet implemented
   //servo1.attach(servo1Pin, 900, 2100);
 
@@ -317,16 +309,14 @@ void setup() {
   //calibrateESCs(); //PROPS OFF. Uncomment this to calibrate your ESCs by setting throttle stick to max, powering on, and lowering throttle to zero after the beeps
   //Code will not proceed past here if this function is uncommented!
 
-  //STM32: Initialize OneShot125 motors via TimerPWM (8kHz = 125µs period, 125-250µs pulses)
-  motors_tim1.Init(BoardConfig::Motor::TIM1_Bank::timer, 8000);  // 8kHz for OneShot125
-  motors_tim3.Init(BoardConfig::Motor::TIM3_Bank::timer, 8000);
+  //STM32: Initialize motors via MotorManager (auto-discovers timer banks from BoardConfig)
+  motors.Init(BoardConfig::Motor::motors, BoardConfig::Motor::num_motors, BoardConfig::Motor::frequency_hz);
 
-  // Attach motor channels
-  motors_tim1.AttachChannel(1, m1Pin, 125, 250);
-  motors_tim1.AttachChannel(2, m2Pin, 125, 250);
-  motors_tim1.AttachChannel(3, m3Pin, 125, 250);
-  motors_tim3.AttachChannel(3, m4Pin, 125, 250);
-  motors_tim3.AttachChannel(1, m5Pin, 125, 250);
+  //STM32: Initialize servos via ServoManager (if present on this board)
+  if (BoardConfig::Servo::num_servos > 0) {
+    servos.Init(BoardConfig::Servo::servos, BoardConfig::Servo::num_servos, BoardConfig::Servo::frequency_hz);
+    servos.SetAllServos(1500);  // Center all servos
+  }
 
   //Arm OneShot125 motors
   m1_command_PWM = 125; //Command OneShot125 ESC from 125 to 250us pulse length
@@ -336,9 +326,6 @@ void setup() {
   m5_command_PWM = 125;
   m6_command_PWM = 125;
   armMotors(); //Loop over commandMotors() until ESCs happily arm
-  
-  motors_tim1.Start();
-  motors_tim3.Start();
 
   delay(100);  // Allow ESCs to arm
   
@@ -402,9 +389,9 @@ void loop() {
   //Command actuators
   commandMotors(); //Sends command pulses to each motor pin using OneShot125 protocol
 
-  //STM32: Servos not used - This port targets 4-motor conventional quadcopter (NOXE V3)
-  //servo1.write(s1_command_PWM);
-    
+  //STM32: Command servos (if present on this board)
+  commandServos();
+
   //Get vehicle commands for next loop iteration
   getCommands(); //Pulls current available radio commands
   failSafe(); //Prevent failures in event of bad receiver connection, defaults to failsafe values assigned in setup
@@ -1114,22 +1101,22 @@ void scaleCommands() {
   m5_command_PWM = constrain(m5_command_PWM, 125, 250);
   m6_command_PWM = constrain(m6_command_PWM, 125, 250);
 
-  //Scaled to 0-180 for servo library
-  s1_command_PWM = s1_command_scaled*180;
-  s2_command_PWM = s2_command_scaled*180;
-  s3_command_PWM = s3_command_scaled*180;
-  s4_command_PWM = s4_command_scaled*180;
-  s5_command_PWM = s5_command_scaled*180;
-  s6_command_PWM = s6_command_scaled*180;
-  s7_command_PWM = s7_command_scaled*180;
-  //Constrain commands to servos within servo library bounds
-  s1_command_PWM = constrain(s1_command_PWM, 0, 180);
-  s2_command_PWM = constrain(s2_command_PWM, 0, 180);
-  s3_command_PWM = constrain(s3_command_PWM, 0, 180);
-  s4_command_PWM = constrain(s4_command_PWM, 0, 180);
-  s5_command_PWM = constrain(s5_command_PWM, 0, 180);
-  s6_command_PWM = constrain(s6_command_PWM, 0, 180);
-  s7_command_PWM = constrain(s7_command_PWM, 0, 180);
+  //STM32: Scaled to 1000-2000µs for ServoManager (standard PWM servo protocol)
+  s1_command_PWM = s1_command_scaled*1000 + 1000;
+  s2_command_PWM = s2_command_scaled*1000 + 1000;
+  s3_command_PWM = s3_command_scaled*1000 + 1000;
+  s4_command_PWM = s4_command_scaled*1000 + 1000;
+  s5_command_PWM = s5_command_scaled*1000 + 1000;
+  s6_command_PWM = s6_command_scaled*1000 + 1000;
+  s7_command_PWM = s7_command_scaled*1000 + 1000;
+  //Constrain commands to servos within standard PWM bounds
+  s1_command_PWM = constrain(s1_command_PWM, 1000, 2000);
+  s2_command_PWM = constrain(s2_command_PWM, 1000, 2000);
+  s3_command_PWM = constrain(s3_command_PWM, 1000, 2000);
+  s4_command_PWM = constrain(s4_command_PWM, 1000, 2000);
+  s5_command_PWM = constrain(s5_command_PWM, 1000, 2000);
+  s6_command_PWM = constrain(s6_command_PWM, 1000, 2000);
+  s7_command_PWM = constrain(s7_command_PWM, 1000, 2000);
 
 }
 
@@ -1203,13 +1190,32 @@ void failSafe() {
 
 void commandMotors() {
   //DESCRIPTION: Send pulses to motor pins, oneshot125 protocol
-  //STM32: Using TimerPWM library for OneShot125 (8kHz, 125-250µs pulses)
-  motors_tim1.SetPulseWidth(1, m1_command_PWM);
-  motors_tim1.SetPulseWidth(2, m2_command_PWM);
-  motors_tim1.SetPulseWidth(3, m3_command_PWM);
-  motors_tim3.SetPulseWidth(3, m4_command_PWM);
-  motors_tim3.SetPulseWidth(1, m5_command_PWM);
-  // m6 not available on F411RE
+  //STM32: Using MotorManager for OneShot125 (8kHz, 125-250µs pulses)
+  //Dynamically command all motors available on this board (defined in BoardConfig)
+  int num_motors = BoardConfig::Motor::num_motors;
+
+  if (num_motors > 0) motors.SetMotor(0, m1_command_PWM);  // Motor 1
+  if (num_motors > 1) motors.SetMotor(1, m2_command_PWM);  // Motor 2
+  if (num_motors > 2) motors.SetMotor(2, m3_command_PWM);  // Motor 3
+  if (num_motors > 3) motors.SetMotor(3, m4_command_PWM);  // Motor 4
+  if (num_motors > 4) motors.SetMotor(4, m5_command_PWM);  // Motor 5
+  if (num_motors > 5) motors.SetMotor(5, m6_command_PWM);  // Motor 6 (BLACKPILL, NERO)
+  //Motor 7-8 would need m7/m8_command_PWM variables (not yet in sketch)
+}
+
+void commandServos() {
+  //DESCRIPTION: Send pulses to servo pins, standard PWM protocol (50 Hz, 1000-2000µs)
+  //STM32: Using ServoManager for standard servo PWM
+  //Dynamically command all servos available on this board (defined in BoardConfig)
+  int num_servos = BoardConfig::Servo::num_servos;
+
+  if (num_servos > 0) servos.SetServo(0, s1_command_PWM);  // Servo 1
+  if (num_servos > 1) servos.SetServo(1, s2_command_PWM);  // Servo 2
+  if (num_servos > 2) servos.SetServo(2, s3_command_PWM);  // Servo 3 (BLACKPILL)
+  if (num_servos > 3) servos.SetServo(3, s4_command_PWM);  // Servo 4
+  if (num_servos > 4) servos.SetServo(4, s5_command_PWM);  // Servo 5
+  if (num_servos > 5) servos.SetServo(5, s6_command_PWM);  // Servo 6
+  if (num_servos > 6) servos.SetServo(6, s7_command_PWM);  // Servo 7
 }
 
 void armMotors() {
@@ -1263,14 +1269,8 @@ void calibrateESCs() {
     
       //throttleCut(); //Directly sets motor commands to low based on state of ch5
 
-      //STM32: Servos not used - This port targets 4-motor conventional quadcopter (NOXE V3)
-      //servo1.write(s1_command_PWM);
-      //servo2.write(s2_command_PWM);
-      //servo3.write(s3_command_PWM);
-      //servo4.write(s4_command_PWM);
-      //servo5.write(s5_command_PWM);
-      //servo6.write(s6_command_PWM);
-      //servo7.write(s7_command_PWM);
+      //STM32: Command servos (if present on this board)
+      commandServos();
       commandMotors(); //Sends command pulses to each motor pin using OneShot125 protocol
       
       //printRadioData(); //Radio pwm values (expected: 1000 to 2000)
