@@ -332,27 +332,39 @@ IMU::Result IMU::ReadIMU9(std::array<int16_t, 3>& gyro_buf,
 
 int IMU::getMotion9(int16_t* ax, int16_t* ay, int16_t* az,
                     int16_t* gx, int16_t* gy, int16_t* gz,
-                    float* mx, float* my, float* mz)
+                    int16_t* mx, int16_t* my, int16_t* mz)
 {
-    std::array<int16_t, 3> gyro_data;
-    std::array<int16_t, 3> accel_data;
-    std::array<float, 3> mag_data;
-
-    Result status = ReadIMU9(gyro_data, accel_data, mag_data);
-
-    if (status != Result::OK) {
+    if (!initialized_ || !driver_) {
         return -1;
     }
 
-    *ax = accel_data[0];
-    *ay = accel_data[1];
-    *az = accel_data[2];
-    *gx = gyro_data[0];
-    *gy = gyro_data[1];
-    *gz = gyro_data[2];
-    *mx = mag_data[0];
-    *my = mag_data[1];
-    *mz = mag_data[2];
+    // Read 6-axis data (accel X,Y,Z followed by gyro X,Y,Z)
+    std::array<int16_t, 6> buf;
+    int status = ReadIMU6(buf);
+    if (status != 0) {
+        return -1;
+    }
+
+    *ax = buf[0];
+    *ay = buf[1];
+    *az = buf[2];
+    *gx = buf[3];
+    *gy = buf[4];
+    *gz = buf[5];
+
+    // Read raw magnetometer data (Teensy MPU9250 API compatible)
+    if (driver_->hasMagnetometer()) {
+        int16_t mag_raw[3];
+        if (driver_->readMagnetometerRaw(mag_raw)) {
+            *mx = mag_raw[0];
+            *my = mag_raw[1];
+            *mz = mag_raw[2];
+        } else {
+            *mx = *my = *mz = 0;
+        }
+    } else {
+        *mx = *my = *mz = 0;
+    }
 
     return 0;
 }

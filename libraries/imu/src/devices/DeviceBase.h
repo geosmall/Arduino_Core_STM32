@@ -167,13 +167,26 @@ public:
     virtual bool initMagnetometer() { return false; }
 
     /**
-     * @brief Read magnetometer data
+     * @brief Read magnetometer data (calibrated, in µT)
      * @param mag Output array [mx, my, mz] in µT (microtesla)
      * @return true on success, false on failure or not supported
      *
      * Default implementation returns false (no magnetometer).
      */
     virtual bool readMagnetometer(float* mag) {
+        (void)mag; return false;
+    }
+
+    /**
+     * @brief Read raw magnetometer data (uncalibrated, int16_t)
+     * @param mag Output array [mx, my, mz] in raw LSB (AK8963 format)
+     * @return true on success, false on failure or not supported
+     *
+     * Returns raw sensor values without ASA scaling or calibration.
+     * Useful for Teensy MPU9250 API compatibility.
+     * Default implementation returns false (no magnetometer).
+     */
+    virtual bool readMagnetometerRaw(int16_t* mag) {
         (void)mag; return false;
     }
 

@@ -286,7 +286,12 @@ bool MPU9250::writeAK8963Register(uint8_t reg, uint8_t value)
 
     delay(10); // Wait for I2C transaction to complete
 
-    return true;
+    // Read back and verify (like invensense-imu library)
+    uint8_t readback = 0;
+    if (!readAK8963Registers(reg, 1, &readback)) {
+        return false;
+    }
+    return (readback == value);
 }
 
 bool MPU9250::readAK8963Registers(uint8_t reg, uint8_t count, uint8_t *dest)
@@ -323,28 +328,26 @@ bool MPU9250::initMagnetometer()
         return true;  // Already initialized
     }
 
-    // Disable I2C bypass mode (we'll use I2C master instead)
-    uint8_t int_pin_cfg = bus_->readReg(MPU_RA_INT_PIN_CFG);
-    int_pin_cfg &= ~BIT_BYPASS_EN;  // Clear bypass bit
-    bus_->writeReg(MPU_RA_INT_PIN_CFG, int_pin_cfg);
-    delay(10);
-
-    // Enable I2C master mode
-    uint8_t user_ctrl = bus_->readReg(MPU_RA_USER_CTRL);
-    user_ctrl |= BIT_I2C_MST_EN;  // Set I2C master enable bit
-    bus_->writeReg(MPU_RA_USER_CTRL, user_ctrl);
+    // Enable I2C master mode (must be done before any AK8963 communication)
+    bus_->writeReg(MPU_RA_USER_CTRL, BIT_I2C_MST_EN);
     delay(10);
 
     // Configure I2C master clock to 400 kHz
     bus_->writeReg(MPU_RA_I2C_MST_CTRL, I2C_MST_CLK_400KHZ);
     delay(10);
 
-    // Power down magnetometer
-    writeAK8963Register(AK8963_CNTL1, AK8963_CNTL1_MODE_POWER_DOWN);
-    delay(10);
+    // Power down magnetometer first (don't verify - starts in unknown state)
+    bus_->writeReg(MPU_RA_I2C_SLV0_ADDR, AK8963_I2C_ADDR);
+    bus_->writeReg(MPU_RA_I2C_SLV0_REG, AK8963_CNTL1);
+    bus_->writeReg(MPU_RA_I2C_SLV0_DO, AK8963_CNTL1_MODE_POWER_DOWN);
+    bus_->writeReg(MPU_RA_I2C_SLV0_CTRL, I2C_SLV0_EN | 0x01);
+    delay(100);
 
-    // Soft reset magnetometer
-    writeAK8963Register(AK8963_CNTL2, AK8963_CNTL2_SRST);
+    // Soft reset magnetometer (SRST bit auto-clears, so don't verify)
+    bus_->writeReg(MPU_RA_I2C_SLV0_ADDR, AK8963_I2C_ADDR);
+    bus_->writeReg(MPU_RA_I2C_SLV0_REG, AK8963_CNTL2);
+    bus_->writeReg(MPU_RA_I2C_SLV0_DO, AK8963_CNTL2_SRST);
+    bus_->writeReg(MPU_RA_I2C_SLV0_CTRL, I2C_SLV0_EN | 0x01);
     delay(100);
 
     // Check WHO_AM_I
@@ -353,9 +356,17 @@ bool MPU9250::initMagnetometer()
         return false;  // AK8963 not detected
     }
 
+    // Power down before entering FUSE ROM mode
+    if (!writeAK8963Register(AK8963_CNTL1, AK8963_CNTL1_MODE_POWER_DOWN)) {
+        return false;
+    }
+    delay(100);
+
     // Enter Fuse ROM access mode to read ASA calibration values
-    writeAK8963Register(AK8963_CNTL1, AK8963_MODE_FUSE_ROM_16BIT);
-    delay(10);
+    if (!writeAK8963Register(AK8963_CNTL1, AK8963_MODE_FUSE_ROM_16BIT)) {
+        return false;
+    }
+    delay(100);
 
     // Read ASA (Adjustable Sensitivity Adjustment) values
     uint8_t asa[3];
@@ -369,13 +380,17 @@ bool MPU9250::initMagnetometer()
     mag_scale_y_ = (float)(asa[1] - 128) / 256.0f + 1.0f;
     mag_scale_z_ = (float)(asa[2] - 128) / 256.0f + 1.0f;
 
-    // Power down before switching modes
-    writeAK8963Register(AK8963_CNTL1, AK8963_CNTL1_MODE_POWER_DOWN);
-    delay(10);
+    // Power down before switching to continuous mode
+    if (!writeAK8963Register(AK8963_CNTL1, AK8963_CNTL1_MODE_POWER_DOWN)) {
+        return false;
+    }
+    delay(100);
 
     // Set continuous measurement mode 2 (100 Hz) with 16-bit output
-    writeAK8963Register(AK8963_CNTL1, AK8963_MODE_CONT_2_16BIT);
-    delay(100);  // Critical: 100ms delay for mode change
+    if (!writeAK8963Register(AK8963_CNTL1, AK8963_MODE_CONT_2_16BIT)) {
+        return false;
+    }
+    delay(100);
 
     // Configure I2C Slave 0 for continuous auto-reading of magnetometer data
     // This configures the MPU9250 to automatically read 7 bytes from AK8963
@@ -424,6 +439,35 @@ bool MPU9250::readMagnetometer(float* mag)
     mag[0] = (mx_ut - mag_bias_x_) * mag_scale_factor_x_;
     mag[1] = (my_ut - mag_bias_y_) * mag_scale_factor_y_;
     mag[2] = (mz_ut - mag_bias_z_) * mag_scale_factor_z_;
+
+    return true;
+}
+
+bool MPU9250::readMagnetometerRaw(int16_t* mag)
+{
+    if (!mag_initialized_ || !mag) {
+        return false;
+    }
+
+    // Read magnetometer data directly from EXT_SENS_DATA registers
+    // The MPU9250 I2C master automatically populates these at the gyro sample rate
+    // (7 bytes: HXL, HXH, HYL, HYH, HZL, HZH, ST2)
+    uint8_t mag_data[7];
+    for (uint8_t i = 0; i < 7; i++) {
+        mag_data[i] = bus_->readReg(MPU_RA_EXT_SENS_DATA_00 + i);
+    }
+
+    // Check ST2 status register for overflow
+    if (mag_data[6] & AK8963_ST2_HOFL) {
+        // Magnetic sensor overflow detected
+        return false;
+    }
+
+    // Extract raw magnetometer data (LSB-first byte order!)
+    // Return raw int16_t values without ASA scaling or calibration
+    mag[0] = (int16_t)((mag_data[1] << 8) | mag_data[0]);
+    mag[1] = (int16_t)((mag_data[3] << 8) | mag_data[2]);
+    mag[2] = (int16_t)((mag_data[5] << 8) | mag_data[4]);
 
     return true;
 }

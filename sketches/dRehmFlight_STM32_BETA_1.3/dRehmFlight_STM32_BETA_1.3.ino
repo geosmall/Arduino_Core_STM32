@@ -517,15 +517,14 @@ void getIMUdata() {
    * the readings. The filter parameters B_gyro and B_accel are set to be good for a 2kHz loop rate. Finally,
    * the constant errors found in calculate_IMU_error() on startup are subtracted from the accelerometer and gyro readings.
    */
-  int16_t AcX,AcY,AcZ,GyX,GyY,GyZ;
-  float MgX_raw, MgY_raw, MgZ_raw;
+  int16_t AcX,AcY,AcZ,GyX,GyY,GyZ,MgX,MgY,MgZ;
 
   // Use getMotion9 if magnetometer available, else getMotion6
   if (imu.HasMagnetometer()) {
-    imu.getMotion9(&AcX, &AcY, &AcZ, &GyX, &GyY, &GyZ, &MgX_raw, &MgY_raw, &MgZ_raw);
+    imu.getMotion9(&AcX, &AcY, &AcZ, &GyX, &GyY, &GyZ, &MgX, &MgY, &MgZ);
   } else {
     imu.getMotion6(&AcX, &AcY, &AcZ, &GyX, &GyY, &GyZ);
-    MgX_raw = MgY_raw = MgZ_raw = 0.0f;  // No magnetometer data
+    MgX = MgY = MgZ = 0;  // No magnetometer data
   }
 
  //Accelerometer
@@ -561,10 +560,9 @@ void getIMUdata() {
   GyroZ_prev = GyroZ;
 
   //Magnetometer
-  // getMotion9() returns magnetometer data already in µT (float), no need to divide by 6.0
-  MagX = MgX_raw;
-  MagY = MgY_raw;
-  MagZ = MgZ_raw;
+  MagX = MgX/6.0; //uT
+  MagY = MgY/6.0;
+  MagZ = MgZ/6.0;
   //Correct the outputs with the calculated error values
   MagX = (MagX - MagErrorX)*MagScaleX;
   MagY = (MagY - MagErrorY)*MagScaleY;

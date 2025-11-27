@@ -93,6 +93,7 @@ public:
     bool hasMagnetometer() const override { return true; }
     bool initMagnetometer() override;
     bool readMagnetometer(float* mag) override;
+    bool readMagnetometerRaw(int16_t* mag) override;
     bool read9DOF(int16_t* accgyr, float* mag) override;
     bool calibrateMagnetometer() override;
     void setMagCalibration(float bias_x, float bias_y, float bias_z,

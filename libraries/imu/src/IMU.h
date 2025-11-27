@@ -291,15 +291,16 @@ public:
      * @brief MPU9250 compatibility interface for 9-DOF data
      * @param ax, ay, az Accelerometer X, Y, Z output (raw int16_t)
      * @param gx, gy, gz Gyroscope X, Y, Z output (raw int16_t)
-     * @param mx, my, mz Magnetometer X, Y, Z output (µT)
+     * @param mx, my, mz Magnetometer X, Y, Z output (raw int16_t)
      * @return 0 on success, negative error code on failure
      *
-     * Wraps ReadIMU9() for compatibility with MPU9250 library API.
+     * Wraps ReadIMU6() and readMagnetometerRaw() for compatibility with
+     * Teensy MPU9250 library API. Returns raw magnetometer values.
      * Requires InitMagnetometer() called first for MPU-9250.
      */
     int getMotion9(int16_t* ax, int16_t* ay, int16_t* az,
                    int16_t* gx, int16_t* gy, int16_t* gz,
-                   float* mx, float* my, float* mz);
+                   int16_t* mx, int16_t* my, int16_t* mz);
 
     /**
      * @brief Calibrate magnetometer using figure-8 motion
