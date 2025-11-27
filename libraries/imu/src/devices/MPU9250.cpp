@@ -266,8 +266,9 @@ bool MPU9250::writeReg(uint8_t reg, uint8_t value)
 
 bool MPU9250::writeRegVerify(uint8_t reg, uint8_t value)
 {
+    // Match invensense-imu WriteRegister: write, 10ms delay, verify
     bus_->writeReg(reg, value);
-    delayMicroseconds(15);
+    delay(10);
     uint8_t readback = bus_->readReg(reg);
     return (readback == value);
 }
@@ -276,21 +277,43 @@ bool MPU9250::writeRegVerify(uint8_t reg, uint8_t value)
 // Magnetometer (AK8963) Implementation
 // ============================================================================
 
-bool MPU9250::writeAK8963Register(uint8_t reg, uint8_t value)
+void MPU9250::writeAK8963Register(uint8_t reg, uint8_t value)
 {
-    // Set I2C slave 0 for write operation
-    bus_->writeReg(MPU_RA_I2C_SLV0_ADDR, AK8963_I2C_ADDR);  // Write mode
-    bus_->writeReg(MPU_RA_I2C_SLV0_REG, reg);               // Target register
-    bus_->writeReg(MPU_RA_I2C_SLV0_DO, value);              // Data to write
-    bus_->writeReg(MPU_RA_I2C_SLV0_CTRL, I2C_SLV0_EN | 0x01); // Enable + 1 byte
+    // Fire-and-forget write to AK8963 via I2C master
+    // Used for power-down and reset before MPU9250 reset when state is unknown
+    bus_->writeReg(MPU_RA_I2C_SLV0_ADDR, AK8963_I2C_ADDR);
+    delay(10);
+    bus_->writeReg(MPU_RA_I2C_SLV0_REG, reg);
+    delay(10);
+    bus_->writeReg(MPU_RA_I2C_SLV0_DO, value);
+    delay(10);
+    bus_->writeReg(MPU_RA_I2C_SLV0_CTRL, I2C_SLV0_EN | 0x01);
+    delay(10);
+}
 
-    delay(10); // Wait for I2C transaction to complete
+bool MPU9250::writeAK8963RegisterVerify(uint8_t reg, uint8_t value)
+{
+    // Match invensense-imu WriteAk8963Register exactly (lines 431-452)
+    // Each WriteRegister() has 10ms delay + verify
+    if (!writeRegVerify(MPU_RA_I2C_SLV0_ADDR, AK8963_I2C_ADDR)) {
+        return false;
+    }
+    if (!writeRegVerify(MPU_RA_I2C_SLV0_REG, reg)) {
+        return false;
+    }
+    if (!writeRegVerify(MPU_RA_I2C_SLV0_DO, value)) {
+        return false;
+    }
+    if (!writeRegVerify(MPU_RA_I2C_SLV0_CTRL, I2C_SLV0_EN | 0x01)) {
+        return false;
+    }
 
-    // Read back and verify (like invensense-imu library)
+    // Verify AK8963 received the data
     uint8_t readback = 0;
     if (!readAK8963Registers(reg, 1, &readback)) {
         return false;
     }
+
     return (readback == value);
 }
 
@@ -300,12 +323,20 @@ bool MPU9250::readAK8963Registers(uint8_t reg, uint8_t count, uint8_t *dest)
         return false;
     }
 
-    // Set I2C slave 0 for read operation
-    bus_->writeReg(MPU_RA_I2C_SLV0_ADDR, AK8963_I2C_ADDR | I2C_READ_FLAG);  // Read mode
-    bus_->writeReg(MPU_RA_I2C_SLV0_REG, reg);                               // Target register
-    bus_->writeReg(MPU_RA_I2C_SLV0_CTRL, I2C_SLV0_EN | count);              // Enable + byte count
+    // Match invensense-imu ReadAk8963Registers exactly (lines 454-466)
+    // Each WriteRegister() has 10ms delay + verify
+    if (!writeRegVerify(MPU_RA_I2C_SLV0_ADDR, AK8963_I2C_ADDR | I2C_READ_FLAG)) {
+        return false;
+    }
+    if (!writeRegVerify(MPU_RA_I2C_SLV0_REG, reg)) {
+        return false;
+    }
+    if (!writeRegVerify(MPU_RA_I2C_SLV0_CTRL, I2C_SLV0_EN | count)) {
+        return false;
+    }
 
-    delay(1); // Wait for data to populate EXT_SENS_DATA registers
+    // Wait for I2C master to complete transaction (line 465: delay(1))
+    delay(1);
 
     // Read from EXT_SENS_DATA registers
     for (uint8_t i = 0; i < count; i++) {
@@ -328,42 +359,73 @@ bool MPU9250::initMagnetometer()
         return true;  // Already initialized
     }
 
-    // Enable I2C master mode (must be done before any AK8963 communication)
-    bus_->writeReg(MPU_RA_USER_CTRL, BIT_I2C_MST_EN);
-    delay(10);
+    // =========================================================================
+    // EXACT invensense-imu Begin() sequence (lines 46-95 of mpu9250.cpp)
+    // Each WriteRegister() has 10ms delay + verify built-in
+    // =========================================================================
 
-    // Configure I2C master clock to 400 kHz
-    bus_->writeReg(MPU_RA_I2C_MST_CTRL, I2C_MST_CLK_400KHZ);
-    delay(10);
+    // Step 1: Select clock source to gyro (line 51)
+    if (!writeRegVerify(MPU_RA_PWR_MGMT_1, INV_CLK_PLL)) {
+        return false;
+    }
 
-    // Power down magnetometer first (don't verify - starts in unknown state)
-    bus_->writeReg(MPU_RA_I2C_SLV0_ADDR, AK8963_I2C_ADDR);
-    bus_->writeReg(MPU_RA_I2C_SLV0_REG, AK8963_CNTL1);
-    bus_->writeReg(MPU_RA_I2C_SLV0_DO, AK8963_CNTL1_MODE_POWER_DOWN);
-    bus_->writeReg(MPU_RA_I2C_SLV0_CTRL, I2C_SLV0_EN | 0x01);
-    delay(100);
+    // Step 2: Enable I2C master mode (line 55)
+    if (!writeRegVerify(MPU_RA_USER_CTRL, BIT_I2C_MST_EN)) {
+        return false;
+    }
 
-    // Soft reset magnetometer (SRST bit auto-clears, so don't verify)
-    bus_->writeReg(MPU_RA_I2C_SLV0_ADDR, AK8963_I2C_ADDR);
-    bus_->writeReg(MPU_RA_I2C_SLV0_REG, AK8963_CNTL2);
-    bus_->writeReg(MPU_RA_I2C_SLV0_DO, AK8963_CNTL2_SRST);
-    bus_->writeReg(MPU_RA_I2C_SLV0_CTRL, I2C_SLV0_EN | 0x01);
-    delay(100);
+    // Step 3: Set I2C bus speed to 400 kHz (line 59)
+    if (!writeRegVerify(MPU_RA_I2C_MST_CTRL, I2C_MST_CLK_400KHZ)) {
+        return false;
+    }
 
-    // Check WHO_AM_I
+    // Step 4: Power down AK8963 - fire and forget (line 63)
+    writeAK8963Register(AK8963_CNTL1, AK8963_CNTL1_MODE_POWER_DOWN);
+
+    // Step 5: Reset MPU9250 - fire and forget (line 65)
+    bus_->writeReg(MPU_RA_PWR_MGMT_1, MPU9250_BIT_RESET);
+
+    // Step 6: Wait for MPU9250 to come back up (line 67)
+    delay(1);
+
+    // Step 7: Reset AK8963 - fire and forget (line 69)
+    writeAK8963Register(AK8963_CNTL2, AK8963_CNTL2_SRST);
+
+    // Step 8: Select clock source to gyro again (line 71)
+    if (!writeRegVerify(MPU_RA_PWR_MGMT_1, INV_CLK_PLL)) {
+        return false;
+    }
+
+    // Step 9: Check MPU9250 WHO_AM_I (lines 75-80)
+    uint8_t mpu_who = bus_->readReg(MPU_RA_WHO_AM_I);
+    if (mpu_who != MPU9250_WHO_AM_I_CONST && mpu_who != MPU9255_WHO_AM_I_CONST) {
+        return false;  // MPU9250 not responding after reset
+    }
+
+    // Step 10: Enable I2C master mode again (line 82)
+    if (!writeRegVerify(MPU_RA_USER_CTRL, BIT_I2C_MST_EN)) {
+        return false;
+    }
+
+    // Step 11: Set I2C bus speed to 400 kHz again (line 86)
+    if (!writeRegVerify(MPU_RA_I2C_MST_CTRL, I2C_MST_CLK_400KHZ)) {
+        return false;
+    }
+
+    // Step 12: Check AK8963 WHO_AM_I (lines 90-94)
     uint8_t who_am_i = whoAmIAK8963();
     if (who_am_i != AK8963_WHO_AM_I_RESPONSE) {
         return false;  // AK8963 not detected
     }
 
     // Power down before entering FUSE ROM mode
-    if (!writeAK8963Register(AK8963_CNTL1, AK8963_CNTL1_MODE_POWER_DOWN)) {
+    if (!writeAK8963RegisterVerify(AK8963_CNTL1, AK8963_CNTL1_MODE_POWER_DOWN)) {
         return false;
     }
     delay(100);
 
     // Enter Fuse ROM access mode to read ASA calibration values
-    if (!writeAK8963Register(AK8963_CNTL1, AK8963_MODE_FUSE_ROM_16BIT)) {
+    if (!writeAK8963RegisterVerify(AK8963_CNTL1, AK8963_MODE_FUSE_ROM_16BIT)) {
         return false;
     }
     delay(100);
@@ -381,13 +443,13 @@ bool MPU9250::initMagnetometer()
     mag_scale_z_ = (float)(asa[2] - 128) / 256.0f + 1.0f;
 
     // Power down before switching to continuous mode
-    if (!writeAK8963Register(AK8963_CNTL1, AK8963_CNTL1_MODE_POWER_DOWN)) {
+    if (!writeAK8963RegisterVerify(AK8963_CNTL1, AK8963_CNTL1_MODE_POWER_DOWN)) {
         return false;
     }
     delay(100);
 
     // Set continuous measurement mode 2 (100 Hz) with 16-bit output
-    if (!writeAK8963Register(AK8963_CNTL1, AK8963_MODE_CONT_2_16BIT)) {
+    if (!writeAK8963RegisterVerify(AK8963_CNTL1, AK8963_MODE_CONT_2_16BIT)) {
         return false;
     }
     delay(100);

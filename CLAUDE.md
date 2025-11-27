@@ -150,6 +150,20 @@ JLinkGDBServer -Device STM32F411RE -If SWD -Speed 4000 -RTTTelnetPort 19021 &
 JLinkRTTClient                                     # Connect to RTT
 ```
 
+**Running Multiple Sequential Tests**:
+When running multiple HIL tests in a loop (e.g., for consistency validation), add a delay between runs to allow the hardware to fully reset:
+```bash
+# Good: Add 0.5s delay between tests
+for i in 1 2 3 4 5; do
+    echo "=== Test $i/5 ==="
+    ./system/ci/aflash.sh tests/MyTest --use-rtt --build-id 2>&1 | grep -E "(PASS|FAIL)"
+    sleep 0.5
+done
+
+# Bad: No delay - may cause intermittent failures due to hardware state
+for i in 1 2 3 4 5; do ./system/ci/aflash.sh tests/MyTest --use-rtt --build-id; done
+```
+
 ### CMake Build System
 
 ```bash

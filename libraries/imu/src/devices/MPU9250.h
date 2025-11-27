@@ -119,7 +119,8 @@ private:
     float mag_scale_factor_z_;  // Soft iron scale factor Z
 
     // AK8963 helper methods
-    bool writeAK8963Register(uint8_t reg, uint8_t value);
+    void writeAK8963Register(uint8_t reg, uint8_t value);
+    bool writeAK8963RegisterVerify(uint8_t reg, uint8_t value);
     bool readAK8963Registers(uint8_t reg, uint8_t count, uint8_t *dest);
     uint8_t whoAmIAK8963();
 };
