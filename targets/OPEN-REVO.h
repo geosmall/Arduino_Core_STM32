@@ -1,6 +1,6 @@
 /*
  * Auto-generated BoardConfig from Betaflight unified target
- * Generated: 2025-11-25 15:54:54
+ * Generated: 2025-11-27 06:24:15
  * Generator: betaflight_target_converter.py
  */
 
@@ -22,7 +22,7 @@ namespace BoardConfig {
   static constexpr IMUConfig imu{imu_spi, PC4, 1000000};
 
   // I2C1: Environmental sensors
-  static constexpr I2CConfig sensors{PB8, PB9, 400000};
+  static constexpr I2CConfig sensors{PB9, PB8, 400000};
 
   // USART1: Serial port
   static constexpr UARTConfig uart1{PA9, PA10, 115200};

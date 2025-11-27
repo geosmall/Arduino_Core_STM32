@@ -1,6 +1,6 @@
 /*
  * Auto-generated BoardConfig from Betaflight unified target
- * Generated: 2025-11-26 17:37:28
+ * Generated: 2025-11-27 06:24:14
  * Generator: betaflight_target_converter.py
  */
 
@@ -18,7 +18,7 @@ namespace BoardConfig {
   static constexpr StorageConfig storage{StorageBackend::SDFS, PC12, PC11, PC10, PA15, 8000000};
 
   // IMU: ICM20602 on SPI1
-  static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PC4, 1000000};
+  static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PC4, 8000000};
   static constexpr IMUConfig imu{imu_spi, PB2, 1000000};
 
   // I2C1: Environmental sensors

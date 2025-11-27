@@ -1,6 +1,6 @@
 /*
  * Auto-generated BoardConfig from Betaflight unified target
- * Generated: 2025-11-25 15:54:54
+ * Generated: 2025-11-27 06:24:15
  * Generator: betaflight_target_converter.py
  */
 
@@ -19,10 +19,10 @@ namespace BoardConfig {
   static constexpr IMUConfig imu{imu_spi, PB2, 1000000};
 
   // I2C1: Airspeed sensor, external compass
-  static constexpr I2CConfig airspeed{PB6, PB7, 400000};
+  static constexpr I2CConfig airspeed{PB7, PB6, 400000};
 
   // I2C2: Barometer, compass
-  static constexpr I2CConfig baro{PB10, PB11, 400000};
+  static constexpr I2CConfig baro{PB11, PB10, 400000};
 
   // LPUART1: Serial port
   static constexpr UARTConfig uart1{PA9, PA10, 115200};
@@ -54,25 +54,24 @@ namespace BoardConfig {
   // RC Receiver: IBus/SBUS (adjust protocol based on actual wiring)
   static constexpr RCReceiverConfig rc_receiver{PA10, PA9, 115200, 1000, 300};
 
-  // Servos: Standard PWM (50 Hz)
+  // Servo outputs - 50 Hz PWM for standard servos
   namespace Servo {
     static constexpr uint32_t frequency_hz = 50;
 
-    // TIM15 Bank: Servos 1, 2
-    namespace TIM15_Bank {
-      static inline TIM_TypeDef* const timer = TIM15;
-
-      struct Channel {
-        uint32_t pin;
-        uint32_t ch;
-        uint32_t min_us;
-        uint32_t max_us;
-      };
-
-      static constexpr Channel servo1 = {PE5, 1, 1000, 2000};  // TIM15_CH1
-      static constexpr Channel servo2 = {PE6, 2, 1000, 2000};  // TIM15_CH2
+    struct ServoConfig {
+      TIM_TypeDef* timer;
+      uint32_t pin;
+      uint32_t channel;
+      uint32_t min_us;
+      uint32_t max_us;
     };
 
+    static constexpr ServoConfig servos[] = {
+      {TIM15, PE5, 1, 1000, 2000},  // Servo 1: TIM15_CH1
+      {TIM15, PE6, 2, 1000, 2000},  // Servo 2: TIM15_CH2
+    };
+
+    static constexpr int num_servos = sizeof(servos) / sizeof(servos[0]);
   };
   // Motors: ONESHOT125 protocol
   namespace Motor {

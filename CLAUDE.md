@@ -119,6 +119,12 @@ Enhanced build workflow with environment validation and device auto-detection:
 - **Device Auto-Detection**: 50+ STM32 device IDs supported
 - **Cache Management**: `--clean-cache` for deterministic builds
 
+**CRITICAL - Sequential Hardware Testing**:
+- **NEVER run `aflash.sh` commands in parallel** - hardware tests must execute sequentially
+- Each `aflash.sh` call programs and runs on physical hardware (one device at a time)
+- Multiple parallel `aflash.sh` calls will fail or produce undefined behavior
+- Use `build.sh` in parallel for compilation-only tasks (no hardware required)
+
 **FQBN Specification**:
 - `aflash.sh` accepts optional FQBN as second positional argument (after sketch directory)
 - Default FQBN: `STMicroelectronics:stm32:Nucleo_64:pnum=NUCLEO_F411RE`

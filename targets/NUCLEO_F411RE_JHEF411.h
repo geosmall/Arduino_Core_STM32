@@ -1,7 +1,8 @@
 /*
  * Auto-generated BoardConfig from Betaflight unified target
- * Generated: 2025-11-25 15:54:54
+ * Generated: 2025-11-27 06:24:15
  * Generator: betaflight_target_converter.py
+ * Modified: NUCLEO_F411RE breadboard target - 1 MHz SPI for jumper wire connections
  */
 
 #pragma once
@@ -9,20 +10,20 @@
 // Include ConfigTypes.h from targets/config directory
 #include "../../../../targets/config/ConfigTypes.h"
 
-// Board: JHEF411
+// Board: JHEF411 (NOXE V3) - Breadboard configuration for NUCLEO_F411RE
 // Manufacturer: JHEF
 // MCU: STM32F411
 // Gyro: MPU6000, ICM42688P
 namespace BoardConfig {
-  // Storage: W25Q128FV SPI flash on SPI2
-  static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PB15, PB14, PB13, PB2, 8000000};
+  // Storage: W25Q128FV SPI flash on SPI2 (1 MHz for breadboard/jumper wires)
+  static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PB15, PB14, PB13, PB2, 1000000};
 
-  // IMU: MPU6000, ICM42688P on SPI1
-  static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 8000000};
+  // IMU: MPU6000, ICM42688P on SPI1 (1 MHz for breadboard/jumper wires)
+  static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 1000000};
   static constexpr IMUConfig imu{imu_spi, PB3, 1000000};
 
   // I2C1: Environmental sensors
-  static constexpr I2CConfig sensors{PB8, PB9, 400000};
+  static constexpr I2CConfig sensors{PB9, PB8, 400000};
 
   // USART1: Serial port
   static constexpr UARTConfig uart1{PB6, PB7, 115200};
@@ -61,21 +62,5 @@ namespace BoardConfig {
     };
 
     static constexpr int num_motors = sizeof(motors) / sizeof(motors[0]);
-  };
-
-  // Servo outputs - no servos on NUCLEO_F411RE_JHEF411
-  namespace Servo {
-    static constexpr uint32_t frequency_hz = 50;
-
-    struct ServoConfig {
-      TIM_TypeDef* timer;
-      uint32_t pin;
-      uint32_t channel;
-      uint32_t min_us;
-      uint32_t max_us;
-    };
-
-    static constexpr ServoConfig servos[] = {};
-    static constexpr int num_servos = 0;
   };
 }
