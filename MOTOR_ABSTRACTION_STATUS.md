@@ -6,8 +6,16 @@
 
 ✅ **Motor abstraction**: COMPLETE (7 phases)
 ✅ **Servo abstraction**: COMPLETE (Phase 8)
+✅ **Code generator servo support**: COMPLETE (2025-11-26)
 
-All builds passing, all tests passing, all phases complete!
+All builds passing, all tests passing (54/54), all phases complete!
+
+### Recent Update (2025-11-26)
+Updated Betaflight converter code generator to output servo array format (ServoManager compatible):
+- Modified `_generate_servos()` to match motor array pattern
+- Added `test_generate_servos()` validation test
+- Regenerated BKMN-NERO.h with 6 motors + 2 servos
+- All 54 tests passing (was 53, added 1 servo test)
 
 ## Progress Summary
 
@@ -158,6 +166,24 @@ All builds compile successfully with new motor abstraction!
 
 ## Known Issues / Notes
 
+### SPI Frequency Manual Overrides
+**Generator Default**: All SPI buses default to 8 MHz (generic, works for most peripherals)
+
+**Manual Override Pattern**: For specific hardware setups (breadboard, long jumper wires, etc.), manually edit the target file after generation:
+
+```cpp
+// Example: BLACKPILL_F411CE.h - IMU on breadboard requires lower frequency
+// Manual override: 1 MHz for breadboard/jumper wire setup (generator default: 8 MHz)
+static constexpr SPIConfig imu_spi{PB15, PB14, PB13, PB12, 1000000};
+```
+
+**When to Override**:
+- Breadboard/jumper wire setups → Lower frequency (1-4 MHz)
+- PCB with short traces → Can use higher frequency (8-20 MHz)
+- Signal integrity issues → Reduce frequency until stable
+
+**Important**: Manual edits must be reapplied after regenerating config from Betaflight source.
+
 ### RC Receiver UART Selection
 - Current implementation hardcodes USART1
 - Could be enhanced to parse Betaflight `serial` commands
@@ -193,12 +219,21 @@ All builds compile successfully with new motor abstraction!
 ## Validation Criteria Tracking
 
 ### Code Generator ✅
+**Motors**:
 - ✅ Generates `struct MotorConfig` with timer/pin/channel/min/max fields
 - ✅ Generates motor array `motors[]` indexed by motor number
 - ✅ Generates `num_motors` constant
 - ✅ NO timer bank namespaces (TIM1_Bank, TIM3_Bank, etc.)
 - ✅ Frequency is 8000 Hz for OneShot125 (not 1000 Hz)
 - ✅ Generates RCReceiverConfig
+
+**Servos** (Updated 2025-11-26):
+- ✅ Generates `struct ServoConfig` with timer/pin/channel/min/max fields
+- ✅ Generates servo array `servos[]` indexed by servo number
+- ✅ Generates `num_servos` constant
+- ✅ NO timer bank namespaces (TIM8_Bank, etc.) - OLD format removed
+- ✅ Frequency is 50 Hz for standard PWM servos
+- ✅ Test added: `test_generate_servos()` validates array format
 
 ### Sketch ✅
 - ✅ NO includes of `<PWMOutputBank.h>` directly

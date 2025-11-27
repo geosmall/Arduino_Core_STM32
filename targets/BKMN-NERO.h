@@ -1,6 +1,6 @@
 /*
  * Auto-generated BoardConfig from Betaflight unified target
- * Generated: 2025-11-25 15:54:30
+ * Generated: 2025-11-26 17:01:40
  * Generator: betaflight_target_converter.py
  */
 
@@ -42,6 +42,25 @@ namespace BoardConfig {
   // RC Receiver: IBus/SBUS (adjust protocol based on actual wiring)
   static constexpr RCReceiverConfig rc_receiver{PA10, PA9, 115200, 1000, 300};
 
+  // Servo outputs - 50 Hz PWM for standard servos
+  namespace Servo {
+    static constexpr uint32_t frequency_hz = 50;
+
+    struct ServoConfig {
+      TIM_TypeDef* timer;
+      uint32_t pin;
+      uint32_t channel;
+      uint32_t min_us;
+      uint32_t max_us;
+    };
+
+    static constexpr ServoConfig servos[] = {
+      {TIM8, PC8_ALT1, 3, 1000, 2000},  // Servo 1: TIM8_CH3
+      {TIM8, PC9_ALT1, 4, 1000, 2000},  // Servo 2: TIM8_CH4
+    };
+
+    static constexpr int num_servos = sizeof(servos) / sizeof(servos[0]);
+  };
   // Motors: ONESHOT125 protocol
   namespace Motor {
     static constexpr uint32_t frequency_hz = 8000;
@@ -65,25 +84,5 @@ namespace BoardConfig {
     };
 
     static constexpr int num_motors = sizeof(motors) / sizeof(motors[0]);
-  };
-
-  // Servo outputs - 50 Hz PWM for standard servos
-  namespace Servo {
-    static constexpr uint32_t frequency_hz = 50;
-
-    struct ServoConfig {
-      TIM_TypeDef* timer;
-      uint32_t pin;
-      uint32_t channel;
-      uint32_t min_us;
-      uint32_t max_us;
-    };
-
-    static constexpr ServoConfig servos[] = {
-      {TIM8, PC8_ALT1, 3, 1000, 2000},  // Servo 1: TIM8_CH3
-      {TIM8, PC9_ALT1, 4, 1000, 2000},  // Servo 2: TIM8_CH4
-    };
-
-    static constexpr int num_servos = sizeof(servos) / sizeof(servos[0]);
   };
 }

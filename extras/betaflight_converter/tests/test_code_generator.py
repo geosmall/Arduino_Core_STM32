@@ -207,6 +207,49 @@ class TestCodeGenerator(unittest.TestCase):
             if not line.strip().startswith('//') and 'motors[]' not in line:
                 self.assertTrue(line.strip().endswith(';'), f"Missing semicolon: {line}")
 
+    def test_generate_servos(self):
+        """Test servo array generation format (ServoManager compatible)."""
+        # Load BKMN-NERO config which has servos
+        config_path = Path(__file__).parent.parent / "data/BKMN-NERO.config"
+        if not config_path.exists():
+            self.skipTest("BKMN-NERO config not found")
+
+        bf_config = BetaflightConfig(config_path)
+
+        # Load F722 pinmap
+        arduino_root = Path(__file__).parents[3]
+        pinmap_path = arduino_root / "variants/STM32F7xx/F722Z(C-E)T_F732ZET/PeripheralPins.c"
+        if not pinmap_path.exists():
+            self.skipTest("F722 PeripheralPins.c not found")
+
+        pinmap = PeripheralPinMap(pinmap_path)
+        validator = ConfigValidator(bf_config, pinmap)
+        validator.validate_all()
+        generator = BoardConfigGenerator(bf_config, validator)
+
+        code = generator.generate()
+
+        # Should have Servo namespace
+        self.assertIn("namespace Servo {", code)
+        self.assertIn("frequency_hz = 50", code)
+
+        # Should have servo array structure (NOT timer banks)
+        self.assertIn("struct ServoConfig", code)
+        self.assertIn("servos[]", code)
+        self.assertIn("num_servos", code)
+
+        # Should NOT have old timer bank namespaces
+        self.assertNotIn("TIM8_Bank", code)
+
+        # Verify servo array format matches expected structure
+        servo_array_section = re.search(r'servos\[\] = \{(.+?)\n    \};', code, re.DOTALL)
+        self.assertIsNotNone(servo_array_section, "Servo array not found in generated code")
+        servos_code = servo_array_section.group(1)
+
+        # BKMN-NERO has 2 servos on TIM8
+        self.assertIn("{TIM8, PC8_ALT1, 3, 1000, 2000}", servos_code)  # Servo 1
+        self.assertIn("{TIM8, PC9_ALT1, 4, 1000, 2000}", servos_code)  # Servo 2
+
     def test_save_to_file(self):
         """Test saving generated code to file."""
         output_path = Path("/tmp/test_generated_NOXE_V3.h")

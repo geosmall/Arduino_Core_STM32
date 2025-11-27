@@ -1,6 +1,6 @@
 /*
  * Auto-generated BoardConfig from Betaflight unified target
- * Generated: 2025-11-26 17:37:28
+ * Generated: 2025-11-26 17:41:46
  * Generator: betaflight_target_converter.py
  */
 
@@ -9,16 +9,16 @@
 // Include ConfigTypes.h from targets/config directory
 #include "../../../../targets/config/ConfigTypes.h"
 
-// Board: NERO
-// Manufacturer: BKMN
-// MCU: STM32F7X2
-// Gyro: ICM20602
+// Board: BLACKPILL_F411CE
+// Manufacturer: WACT
+// MCU: STM32F411
+// Gyro: MPU9250
 namespace BoardConfig {
-  // Storage: SD card on SPI3
-  static constexpr StorageConfig storage{StorageBackend::SDFS, PC12, PC11, PC10, PA15, 8000000};
+  // Storage: W25Q128FV SPI flash on SPI1
+  static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PA7, PA6, PA5, PA4, 8000000};
 
-  // IMU: ICM20602 on SPI1
-  static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PC4, 1000000};
+  // IMU: MPU9250 on SPI2
+  static constexpr SPIConfig imu_spi{PB15, PB14, PB13, PB12, 8000000};
   static constexpr IMUConfig imu{imu_spi, PB2, 1000000};
 
   // I2C1: Environmental sensors
@@ -27,17 +27,14 @@ namespace BoardConfig {
   // USART1: Serial port
   static constexpr UARTConfig uart1{PA9, PA10, 115200};
 
-  // USART3: Serial port
-  static constexpr UARTConfig uart3{PB10, PB11, 115200};
-
-  // USART6: Serial port
-  static constexpr UARTConfig uart6{PC6, PC7, 115200};
+  // USART2: Serial port
+  static constexpr UARTConfig uart2{PA2, PA3, 115200};
 
   // ADC: Battery voltage and current monitoring
-  static constexpr ADCConfig battery{PC3, PC2, 110, 170};
+  static constexpr ADCConfig battery{PA1, PA0, 110, 170};
 
   // Status LEDs
-  static constexpr LEDConfig status_leds{PB6, PB5};
+  static constexpr LEDConfig status_leds{PC13};
 
   // RC Receiver: IBus/SBUS (adjust protocol based on actual wiring)
   static constexpr RCReceiverConfig rc_receiver{PA10, PA9, 115200, 1000, 300};
@@ -55,8 +52,9 @@ namespace BoardConfig {
     };
 
     static constexpr ServoConfig servos[] = {
-      {TIM8, PC8_ALT1, 3, 1000, 2000},  // Servo 1: TIM8_CH3
-      {TIM8, PC9_ALT1, 4, 1000, 2000},  // Servo 2: TIM8_CH4
+      {TIM2, PA2, 3, 1000, 2000},  // Servo 1: TIM2_CH3
+      {TIM2, PA15, 1, 1000, 2000},  // Servo 2: TIM2_CH1
+      {TIM2, PB3, 2, 1000, 2000},  // Servo 3: TIM2_CH2
     };
 
     static constexpr int num_servos = sizeof(servos) / sizeof(servos[0]);
@@ -75,12 +73,12 @@ namespace BoardConfig {
 
     // Motor array - hardware timer assignments from Betaflight config
     static constexpr MotorConfig motors[] = {
-      {TIM5, PA0_ALT1, 1, 125, 250},  // Motor 1: TIM5_CH1
-      {TIM5, PA1_ALT1, 2, 125, 250},  // Motor 2: TIM5_CH2
-      {TIM5, PA2_ALT1, 3, 125, 250},  // Motor 3: TIM5_CH3
-      {TIM5, PA3_ALT1, 4, 125, 250},  // Motor 4: TIM5_CH4
-      {TIM3, PB0_ALT1, 3, 125, 250},  // Motor 5: TIM3_CH3
-      {TIM3, PB1_ALT1, 4, 125, 250},  // Motor 6: TIM3_CH4
+      {TIM3, PB4, 1, 125, 250},  // Motor 1: TIM3_CH1
+      {TIM3, PB5, 2, 125, 250},  // Motor 2: TIM3_CH2
+      {TIM3, PB0_ALT1, 3, 125, 250},  // Motor 3: TIM3_CH3
+      {TIM3, PB1_ALT1, 4, 125, 250},  // Motor 4: TIM3_CH4
+      {TIM4, PB6, 1, 125, 250},  // Motor 5: TIM4_CH1
+      {TIM4, PB7, 2, 125, 250},  // Motor 6: TIM4_CH2
     };
 
     static constexpr int num_motors = sizeof(motors) / sizeof(motors[0]);

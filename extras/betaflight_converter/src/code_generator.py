@@ -220,7 +220,7 @@ class BoardConfigGenerator:
                 usage_desc = "Environmental sensors"
 
             lines.append(f"  // {bus.bus_name}: {usage_desc}")
-            lines.append(f"  static constexpr I2CConfig {var_name}{{{bus.scl}, {bus.sda}, 400000}};")
+            lines.append(f"  static constexpr I2CConfig {var_name}{{{bus.sda}, {bus.scl}, 400000}};")
             lines.append("")
 
         return "\n".join(lines)
@@ -307,49 +307,41 @@ class BoardConfigGenerator:
         return "\n".join(lines)
 
     def _generate_servos(self) -> Optional[str]:
-        """Generate Servo namespace with timer banks."""
+        """Generate Servo namespace with servo array (ServoManager compatible)."""
         servos = self.validator.validate_servos()
         if not servos:
             return None
-
-        # Group by timer
-        timer_banks = self.validator.group_motors_by_timer(servos)  # Reuse motor grouping
 
         # Servos use standard PWM (50 Hz, 1000-2000 µs)
         frequency_hz = 50
         min_us, max_us = 1000, 2000
 
         lines = [
-            "  // Servos: Standard PWM (50 Hz)",
+            "  // Servo outputs - 50 Hz PWM for standard servos",
             "  namespace Servo {",
             f"    static constexpr uint32_t frequency_hz = {frequency_hz};",
             ""
         ]
 
-        # Generate timer banks
-        for timer_name in sorted(timer_banks.keys()):
-            bank_servos = timer_banks[timer_name]
-            bank_name = timer_name.replace('TIM', 'TIM') + "_Bank"
+        # Add ServoConfig struct definition
+        lines.append("    struct ServoConfig {")
+        lines.append("      TIM_TypeDef* timer;")
+        lines.append("      uint32_t pin;")
+        lines.append("      uint32_t channel;")
+        lines.append("      uint32_t min_us;")
+        lines.append("      uint32_t max_us;")
+        lines.append("    };")
+        lines.append("")
 
-            lines.append(f"    // {timer_name} Bank: Servos {', '.join(str(s.index) for s in bank_servos)}")
-            lines.append(f"    namespace {bank_name} {{")
-            lines.append(f"      static inline TIM_TypeDef* const timer = {timer_name};")
-            lines.append("")
-            lines.append("      struct Channel {")
-            lines.append("        uint32_t pin;")
-            lines.append("        uint32_t ch;")
-            lines.append("        uint32_t min_us;")
-            lines.append("        uint32_t max_us;")
-            lines.append("      };")
-            lines.append("")
+        # Generate servo array
+        lines.append("    static constexpr ServoConfig servos[] = {")
 
-            # Generate servo channels
-            for servo in sorted(bank_servos, key=lambda s: s.index):
-                lines.append(f"      static constexpr Channel servo{servo.index} = {{{servo.pin_arduino}, {servo.channel}, {min_us}, {max_us}}};  // {timer_name}_CH{servo.channel}")
+        for servo in sorted(servos, key=lambda s: s.index):
+            lines.append(f"      {{{servo.timer}, {servo.pin_arduino}, {servo.channel}, {min_us}, {max_us}}},  // Servo {servo.index}: {servo.timer}_CH{servo.channel}")
 
-            lines.append("    };")
-            lines.append("")
-
+        lines.append("    };")
+        lines.append("")
+        lines.append("    static constexpr int num_servos = sizeof(servos) / sizeof(servos[0]);")
         lines.append("  };")  # End Servo namespace
 
         return "\n".join(lines)
