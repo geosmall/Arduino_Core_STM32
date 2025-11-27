@@ -1,6 +1,6 @@
 /*
  * Auto-generated BoardConfig from Betaflight unified target
- * Generated: 2025-11-27 06:24:15
+ * Generated: 2025-11-27 08:46:10
  * Generator: betaflight_target_converter.py
  */
 
@@ -45,6 +45,21 @@ namespace BoardConfig {
   // RC Receiver: IBus/SBUS (adjust protocol based on actual wiring)
   static constexpr RCReceiverConfig rc_receiver{PA10, PA9, 115200, 1000, 300};
 
+  // Servo outputs - none configured
+  namespace Servo {
+    static constexpr uint32_t frequency_hz = 50;
+
+    struct ServoConfig {
+      TIM_TypeDef* timer;
+      uint32_t pin;
+      uint32_t channel;
+      uint32_t min_us;
+      uint32_t max_us;
+    };
+
+    static constexpr ServoConfig servos[] = {};
+    static constexpr int num_servos = 0;
+  };
   // Motors: ONESHOT125 protocol
   namespace Motor {
     static constexpr uint32_t frequency_hz = 8000;

@@ -1,6 +1,6 @@
 /*
  * Auto-generated BoardConfig from Betaflight unified target
- * Generated: 2025-11-27 06:24:15
+ * Generated: 2025-11-27 08:46:10
  * Generator: betaflight_target_converter.py
  */
 
@@ -17,8 +17,7 @@ namespace BoardConfig {
   // Storage: W25Q128FV SPI flash on SPI1
   static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PA7, PA6, PA5, PA4, 8000000};
 
-  // IMU: MPU9250 on SPI2
-  // Manual override: 1 MHz for breadboard/jumper wire setup (generator default: 8 MHz)
+  // IMU: MPU9250 on SPI2 (1 MHz for breadboard/jumper wire setup)
   static constexpr SPIConfig imu_spi{PB15, PB14, PB13, PB12, 1000000};
   static constexpr IMUConfig imu{imu_spi, PB2, 1000000};
 

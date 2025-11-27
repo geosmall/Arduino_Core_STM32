@@ -1,6 +1,6 @@
 /*
  * Auto-generated BoardConfig from Betaflight unified target
- * Generated: 2025-11-27 06:24:15
+ * Generated: 2025-11-27 08:46:10
  * Generator: betaflight_target_converter.py
  * Modified: NUCLEO_F411RE breadboard target - 1 MHz SPI for jumper wire connections
  */
@@ -40,6 +40,21 @@ namespace BoardConfig {
   // RC Receiver: IBus/SBUS (adjust protocol based on actual wiring)
   static constexpr RCReceiverConfig rc_receiver{PB7, PB6, 115200, 1000, 300};
 
+  // Servo outputs - none configured
+  namespace Servo {
+    static constexpr uint32_t frequency_hz = 50;
+
+    struct ServoConfig {
+      TIM_TypeDef* timer;
+      uint32_t pin;
+      uint32_t channel;
+      uint32_t min_us;
+      uint32_t max_us;
+    };
+
+    static constexpr ServoConfig servos[] = {};
+    static constexpr int num_servos = 0;
+  };
   // Motors: DSHOT300 protocol
   namespace Motor {
     static constexpr uint32_t frequency_hz = 1000;

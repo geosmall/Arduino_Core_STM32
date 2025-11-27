@@ -307,10 +307,33 @@ class BoardConfigGenerator:
         return "\n".join(lines)
 
     def _generate_servos(self) -> Optional[str]:
-        """Generate Servo namespace with servo array (ServoManager compatible)."""
+        """Generate Servo namespace with servo array (ServoManager compatible).
+
+        Always generates the namespace even if no servos configured, so sketches
+        can check BoardConfig::Servo::num_servos at compile time.
+        """
         servos = self.validator.validate_servos()
+
         if not servos:
-            return None
+            # Generate empty Servo namespace for targets without servos
+            lines = [
+                "  // Servo outputs - none configured",
+                "  namespace Servo {",
+                "    static constexpr uint32_t frequency_hz = 50;",
+                "",
+                "    struct ServoConfig {",
+                "      TIM_TypeDef* timer;",
+                "      uint32_t pin;",
+                "      uint32_t channel;",
+                "      uint32_t min_us;",
+                "      uint32_t max_us;",
+                "    };",
+                "",
+                "    static constexpr ServoConfig servos[] = {};",
+                "    static constexpr int num_servos = 0;",
+                "  };",
+            ]
+            return "\n".join(lines)
 
         # Servos use standard PWM (50 Hz, 1000-2000 µs)
         frequency_hz = 50
