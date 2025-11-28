@@ -68,12 +68,16 @@ void SerialRx::update() {
     uint32_t now = micros();
 
     // Software idle line detection (optional feature)
-    if (idle_threshold_us_ > 0) {
+    // Only trigger idle detection when:
+    // 1) Buffer is empty (no pending data)
+    // 2) Sufficient time has passed since last byte
+    // This prevents false idle detection when buffer contains partial frames
+    if (idle_threshold_us_ > 0 && !serial_->available()) {
         uint32_t idle_time = now - last_byte_time_us_;
 
         if (idle_time > idle_threshold_us_) {
             if (!expect_frame_start_) {
-                // Idle period detected → prepare for guaranteed frame start
+                // Idle period detected with empty buffer → prepare for guaranteed frame start
                 parser_->ResetParser();
                 expect_frame_start_ = true;
             }
