@@ -67,6 +67,8 @@ bool IBusParser::ParseByte(uint8_t byte) {
         if (frame_checksum_ == running_checksum_) {
             ParserNotify();  // Good frame received
             did_parse = true;
+        } else {
+            ParserNotifyFailed();  // Checksum mismatch
         }
         // Go back to start
         ResetParser();

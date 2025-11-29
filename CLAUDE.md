@@ -688,6 +688,12 @@ void loop() {
 - **No binary artifacts**: Remove `*.bin`, `*.hex`, `*.elf` files from sketch builds
 - **No test artifacts**: Remove temporary test files and logs
 
+**IMPORTANT - When to Run Cleanup**:
+- ✅ **ONLY run `cleanup_repo.sh` when**:
+  1. User explicitly asks for cleanup
+  2. Before committing changes
+- ❌ **DO NOT run cleanup after tests** - test logs in `test_logs/` may be needed for analysis
+
 **Cleanup Methods**:
 ```bash
 # Recommended: Use the cleanup script

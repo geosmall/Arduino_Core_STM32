@@ -58,6 +58,41 @@ public:
         return msg_q_.Count();
     }
 
+    /**
+     * @brief Get count of successfully parsed frames
+     * @return Number of valid frames received
+     */
+    inline uint32_t GetFramesReceived() const {
+        return frames_received_;
+    }
+
+    /**
+     * @brief Get count of frames that failed validation
+     * @return Number of failed frames (checksum errors, etc.)
+     */
+    inline uint32_t GetFramesFailed() const {
+        return frames_failed_;
+    }
+
+    /**
+     * @brief Get frame loss percentage
+     * @return Loss rate as percentage (0.0 - 100.0), or 0 if no frames processed
+     */
+    inline float GetFrameLossPercent() const {
+        // Use uint64_t to avoid overflow when both counters are large
+        uint64_t total = (uint64_t)frames_received_ + frames_failed_;
+        if (total == 0) return 0.0f;
+        return (frames_failed_ * 100.0f) / total;
+    }
+
+    /**
+     * @brief Reset frame statistics counters
+     */
+    inline void ResetStatistics() {
+        frames_received_ = 0;
+        frames_failed_ = 0;
+    }
+
 protected:
     // Working message buffer for parser
     RCMessage msg_;
@@ -65,11 +100,24 @@ protected:
     // Message queue (16-message depth)
     RingBuffer<RCMessage, 16> msg_q_;
 
+    // Frame statistics
+    uint32_t frames_received_ = 0;
+    uint32_t frames_failed_ = 0;
+
     /**
      * @brief Notify that a message was successfully parsed
      * @details Call this from derived parser when complete message received
      */
     inline void ParserNotify() {
         msg_q_.PutWithOverwrite(msg_);
+        if (frames_received_ < UINT32_MAX) frames_received_++;
+    }
+
+    /**
+     * @brief Notify that a frame failed validation
+     * @details Call this from derived parser when checksum or validation fails
+     */
+    inline void ParserNotifyFailed() {
+        if (frames_failed_ < UINT32_MAX) frames_failed_++;
     }
 };

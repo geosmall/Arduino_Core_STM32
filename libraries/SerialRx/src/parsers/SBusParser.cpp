@@ -60,6 +60,8 @@ bool SBusParser::ParseByte(uint8_t byte) {
 
             ParserNotify();  // Good frame received
             did_parse = true;
+        } else {
+            ParserNotifyFailed();  // Invalid footer byte
         }
         // Go back to start (valid or invalid footer)
         ResetParser();

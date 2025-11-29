@@ -10,7 +10,7 @@
 #include <stddef.h>
 
 // Number of channels in the parsed message
-constexpr size_t RC_NUM_CHANNELS = 10;
+constexpr size_t RC_NUM_CHANNELS = 14;
 
 /**
  * @brief Parsed RC message structure

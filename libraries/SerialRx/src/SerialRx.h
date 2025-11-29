@@ -97,6 +97,29 @@ public:
     uint32_t timeSinceLastMessage() const;
 
     /**
+     * @brief Get count of successfully received frames
+     * @return Number of valid frames
+     */
+    uint32_t getFramesReceived() const;
+
+    /**
+     * @brief Get count of frames that failed validation
+     * @return Number of failed frames (checksum errors)
+     */
+    uint32_t getFramesFailed() const;
+
+    /**
+     * @brief Get frame loss percentage
+     * @return Loss rate as percentage (0.0 - 100.0)
+     */
+    float getFrameLossPercent() const;
+
+    /**
+     * @brief Reset frame statistics counters
+     */
+    void resetStatistics();
+
+    /**
      * @brief Send telemetry data (future)
      * @param data Telemetry data buffer
      * @param len Data length

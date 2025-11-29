@@ -129,6 +129,27 @@ uint32_t SerialRx::timeSinceLastMessage() const {
     return millis() - last_message_time_;
 }
 
+uint32_t SerialRx::getFramesReceived() const {
+    if (parser_ == nullptr) return 0;
+    return parser_->GetFramesReceived();
+}
+
+uint32_t SerialRx::getFramesFailed() const {
+    if (parser_ == nullptr) return 0;
+    return parser_->GetFramesFailed();
+}
+
+float SerialRx::getFrameLossPercent() const {
+    if (parser_ == nullptr) return 0.0f;
+    return parser_->GetFrameLossPercent();
+}
+
+void SerialRx::resetStatistics() {
+    if (parser_ != nullptr) {
+        parser_->ResetStatistics();
+    }
+}
+
 bool SerialRx::sendTelemetry(uint8_t* data, size_t len) {
     // Future implementation for bi-directional telemetry
     if (serial_ == nullptr || data == nullptr || len == 0) {

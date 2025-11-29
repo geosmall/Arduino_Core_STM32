@@ -24,7 +24,7 @@
 
 #include <SerialRx.h>
 #include <ci_log.h>
-#include "../../../../../targets/NUCLEO_F411RE_LITTLEFS.h"
+#include "../../../../../targets/NUCLEO_F411RE_JHEF411.h"
 
 // Create HardwareSerial instance using BoardConfig
 HardwareSerial SerialRC(BoardConfig::rc_receiver.rx_pin,

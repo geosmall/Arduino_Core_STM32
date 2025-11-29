@@ -10,7 +10,7 @@
  *   RC Receiver VCC  → 5V (if receiver needs 5V power)
  *
  * Protocol: IBus @ 115200 baud
- * Expected: 10 RC channels (1000-2000 us typical range)
+ * Expected: 14 RC channels (1000-2000 us typical range)
  *
  * Board Configuration:
  *   NUCLEO_F411RE: Uses USART1 (RX=PA10, TX=PA9)
@@ -20,7 +20,7 @@
 
 #include <SerialRx.h>
 #include <ci_log.h>
-#include "../../../../../targets/NUCLEO_F411RE_LITTLEFS.h"
+#include "../../../../../targets/NUCLEO_F411RE_JHEF411.h"
 
 // Create HardwareSerial instance using BoardConfig
 HardwareSerial SerialRC(BoardConfig::rc_receiver.rx_pin,
@@ -84,6 +84,10 @@ void loop() {
   // Check if 15-second test duration elapsed
   if (millis() - test_start_time >= TEST_DURATION_MS) {
     CI_LOG("\n=== 15-Second Test Complete ===\n");
+    CI_LOGF("Frames received: %lu\n", rc.getFramesReceived());
+    CI_LOGF("Frames failed:   %lu\n", rc.getFramesFailed());
+    CI_LOG_FLOAT("Loss rate:       ", rc.getFrameLossPercent(), 2);
+    CI_LOG("%\n");
     CI_LOG("*STOP*\n");
     while (1);  // Halt for deterministic HIL testing
   }
@@ -96,17 +100,18 @@ void loop() {
   if (rc.available()) {
     RCMessage msg;
     if (rc.getMessage(&msg)) {
-      // Print first 4 channels
-      CI_LOGF("Ch1: %4d  Ch2: %4d  Ch3: %4d  Ch4: %4d  ",
-              msg.channels[0], msg.channels[1],
-              msg.channels[2], msg.channels[3]);
-
-      // Print all 10 channels on second line
-      CI_LOGF("All: ");
-      for (int i = 0; i < RC_NUM_CHANNELS; i++) {
-        CI_LOGF("%d:%4d ", i + 1, msg.channels[i]);
+      // Print at 10 Hz to avoid flooding output
+      static uint32_t last_print = 0;
+      if (millis() - last_print >= 100) {
+        last_print = millis();
+        // Print all 14 IBus channels on single line
+        CI_LOGF("%d %d %d %d %d %d %d %d %d %d %d %d %d %d | Rx:%lu\n",
+                msg.channels[0], msg.channels[1], msg.channels[2],
+                msg.channels[3], msg.channels[4], msg.channels[5],
+                msg.channels[6], msg.channels[7], msg.channels[8],
+                msg.channels[9], msg.channels[10], msg.channels[11],
+                msg.channels[12], msg.channels[13], rc.getFramesReceived());
       }
-      CI_LOG("\n");
     }
   }
 
@@ -124,5 +129,6 @@ void loop() {
     }
   }
 
-  delay(100);  // Print at 10 Hz
+  // No delay - fast polling required to avoid UART buffer overflow
+  // IBus sends at 100 Hz, UART buffer is only 64 bytes (2 frames)
 }

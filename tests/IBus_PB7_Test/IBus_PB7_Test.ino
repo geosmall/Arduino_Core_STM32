@@ -62,7 +62,10 @@ void loop() {
 
   if (millis() - test_start_time >= TEST_DURATION_MS) {
     CI_LOG("\n=== 15-Second Test Complete ===\n");
-    CI_LOGF("Total frames received: %lu\n", frame_count);
+    CI_LOGF("Frames received: %lu\n", rc.getFramesReceived());
+    CI_LOGF("Frames failed:   %lu\n", rc.getFramesFailed());
+    CI_LOG_FLOAT("Loss rate:       ", rc.getFrameLossPercent(), 2);
+    CI_LOG("%\n");
     CI_LOG("*STOP*\n");
     while (1);
   }

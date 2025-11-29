@@ -41,7 +41,6 @@ constexpr uint8_t MIN_FRAMES_EXPECTED = 400; // Expect ~500 frames in 5 seconds
 
 // Test state
 uint32_t test_start_time = 0;
-uint32_t frames_received = 0;
 uint32_t frames_sent = 0;
 uint32_t last_frame_time = 0;
 bool test_failed = false;
@@ -154,8 +153,6 @@ void loop() {
   if (rc.available()) {
     RCMessage msg;
     if (rc.getMessage(&msg)) {
-      frames_received++;
-
       // Validate channel 1 value (simple sanity check)
       uint16_t expected_base = 1000 + ((frames_sent - 1) % 1000);
       uint16_t received_ch1 = msg.channels[0];
@@ -166,7 +163,8 @@ void loop() {
         test_failed = true;
       }
 
-      // Log every 100 frames
+      // Log every 100 frames using built-in statistics
+      uint32_t frames_received = rc.getFramesReceived();
       if (frames_received % 100 == 0) {
         CI_LOGF("Progress: %lu frames RX, %lu frames TX\n", frames_received, frames_sent);
       }
@@ -187,16 +185,21 @@ void loop() {
       rc.update();
       if (rc.available()) {
         RCMessage msg;
-        if (rc.getMessage(&msg)) {
-          frames_received++;
-        }
+        rc.getMessage(&msg);
       }
     }
+
+    // Get final statistics from SerialRx
+    uint32_t frames_received = rc.getFramesReceived();
+    uint32_t frames_failed = rc.getFramesFailed();
+    float loss_percent = rc.getFrameLossPercent();
 
     CI_LOG("\n=== Test Complete ===\n");
     CI_LOGF("Frames Sent: %lu\n", frames_sent);
     CI_LOGF("Frames Received: %lu\n", frames_received);
-    CI_LOGF("Frame Loss: %lu (%.2f%%)\n",
+    CI_LOGF("Frames Failed (checksum): %lu\n", frames_failed);
+    CI_LOGF("Checksum Loss Rate: %.2f%%\n", loss_percent);
+    CI_LOGF("Total Loss: %lu (%.2f%%)\n",
             frames_sent - frames_received,
             (float)(frames_sent - frames_received) * 100.0f / frames_sent);
 
@@ -209,9 +212,9 @@ void loop() {
       pass = false;
     }
 
-    float loss_rate = (float)(frames_sent - frames_received) * 100.0f / frames_sent;
-    if (loss_rate > 2.0f) {
-      CI_LOGF("FAIL: Frame loss rate too high (%.2f%% > 2.0%%)\n", loss_rate);
+    float total_loss_rate = (float)(frames_sent - frames_received) * 100.0f / frames_sent;
+    if (total_loss_rate > 2.0f) {
+      CI_LOGF("FAIL: Frame loss rate too high (%.2f%% > 2.0%%)\n", total_loss_rate);
       pass = false;
     }
 
