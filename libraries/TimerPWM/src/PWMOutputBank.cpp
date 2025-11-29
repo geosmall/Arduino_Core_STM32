@@ -44,22 +44,47 @@ uint32_t PWMOutputBank::GetTimerClockFreq()
 #ifdef TIM11
       || _timer_instance == TIM11
 #endif
+#ifdef TIM15
+      || _timer_instance == TIM15
+#endif
+#ifdef TIM16
+      || _timer_instance == TIM16
+#endif
+#ifdef TIM17
+      || _timer_instance == TIM17
+#endif
      ) {
     // APB2 timers
     timer_clock = HAL_RCC_GetPCLK2Freq();
 
     // RCC clock tree: if APB2 prescaler != 1, timer clock is 2x PCLK2
+#if defined(STM32H7xx)
+    // H7 series: D2CFGR register with D2PPRE2 bits
+    if ((RCC->D2CFGR & RCC_D2CFGR_D2PPRE2) != 0) {
+      timer_clock *= 2;
+    }
+#else
+    // F4/F7/G4/etc: CFGR register with PPRE2 bits
     if ((RCC->CFGR & RCC_CFGR_PPRE2) != 0) {
       timer_clock *= 2;
     }
+#endif
   } else {
     // APB1 timers (TIM2, TIM3, TIM4, TIM5, etc.)
     timer_clock = HAL_RCC_GetPCLK1Freq();
 
     // RCC clock tree: if APB1 prescaler != 1, timer clock is 2x PCLK1
+#if defined(STM32H7xx)
+    // H7 series: D2CFGR register with D2PPRE1 bits
+    if ((RCC->D2CFGR & RCC_D2CFGR_D2PPRE1) != 0) {
+      timer_clock *= 2;
+    }
+#else
+    // F4/F7/G4/etc: CFGR register with PPRE1 bits
     if ((RCC->CFGR & RCC_CFGR_PPRE1) != 0) {
       timer_clock *= 2;
     }
+#endif
   }
 
   return timer_clock;

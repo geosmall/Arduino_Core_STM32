@@ -13,14 +13,20 @@
  * Expected: 14 RC channels (1000-2000 us typical range)
  *
  * Board Configuration:
- *   NUCLEO_F411RE: Uses USART1 (RX=PA10, TX=PA9)
- *   BLACKPILL_F411CE: Uses UART1 (RX=PB3, TX=PA15)
- *   JHEF411: Uses USART2 (RX=PA3, TX=PA2)
+ *   NUCLEO_F411RE_JHEF411: Uses USART2 (RX=PA3, TX=PA2)
+ *   MTKS-MATEKH743: Uses LPUART1 (RX=PA10, TX=PA9)
  */
 
 #include <SerialRx.h>
 #include <ci_log.h>
-#include "../../../../../targets/NUCLEO_F411RE_JHEF411.h"
+
+// Board target selection - uncomment ONE target
+#if defined(ARDUINO_NUCLEO_H743ZI) || defined(ARDUINO_GENERIC_H743ZITX)
+  #include "../../../../../targets/MTKS-MATEKH743.h"
+#else
+  // Default: NUCLEO_F411RE with JHEF411 pin mapping
+  #include "../../../../../targets/NUCLEO_F411RE_JHEF411.h"
+#endif
 
 // Create HardwareSerial instance using BoardConfig
 HardwareSerial SerialRC(BoardConfig::rc_receiver.rx_pin,
