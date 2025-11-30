@@ -3,6 +3,7 @@
  * Generated: 2025-11-27 08:46:10
  * Generator: betaflight_target_converter.py
  * Modified: NUCLEO_F411RE breadboard target - 1 MHz SPI for jumper wire connections
+ *           Added servo outputs on TIM2 (PA15/PB10) for DualTimerPWM testing
  */
 
 #pragma once
@@ -10,7 +11,7 @@
 // Include ConfigTypes.h from targets/config directory
 #include "../../../../targets/config/ConfigTypes.h"
 
-// Board: JHEF411 (NOXE V3) - Breadboard configuration for NUCLEO_F411RE
+// Board: JHEF411 (NOXE V3) - Breadboard configuration for NUCLEO_F411RE with servos
 // Manufacturer: JHEF
 // MCU: STM32F411
 // Gyro: MPU6000, ICM42688P
@@ -40,8 +41,7 @@ namespace BoardConfig {
   // RC Receiver: IBus/SBUS (adjust protocol based on actual wiring)
   static constexpr RCReceiverConfig rc_receiver{PB7, PB6, 115200, 1000, 300};
 
-  // Servo outputs - none configured (flight controller config)
-  // See NUCLEO_F411RE_JHEF411_SERVOS.h for variant with servo support
+  // Servo outputs - TIM2 on unused pins PA15/PB10
   namespace Servo {
     static constexpr uint32_t frequency_hz = 50;
 
@@ -53,8 +53,11 @@ namespace BoardConfig {
       uint32_t max_us;
     };
 
-    static constexpr ServoConfig servos[] = {};
-    static constexpr int num_servos = 0;
+    static constexpr ServoConfig servos[] = {
+      {TIM2, PA15, 1, 1000, 2000},  // Servo 1: TIM2_CH1
+      {TIM2, PB10, 3, 1000, 2000},  // Servo 2: TIM2_CH3
+    };
+    static constexpr int num_servos = sizeof(servos) / sizeof(servos[0]);
   };
 
   // Motors: ONESHOT125 protocol (125-250 µs)

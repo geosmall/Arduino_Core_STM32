@@ -20,9 +20,8 @@
   #include "../../../../targets/BLACKPILL_F411CE.h"
   #define BOARD_NAME "BLACKPILL_F411CE"
 #elif defined(ARDUINO_NUCLEO_F411RE)
-  #define HAS_SERVOS  // Enable servo/motor PWM configuration
-  #include "../../../../targets/NUCLEO_F411RE_JHEF411.h"
-  #define BOARD_NAME "NUCLEO_F411RE_JHEF411"
+  #include "../../../../targets/NUCLEO_F411RE_JHEF411_SERVOS.h"
+  #define BOARD_NAME "NUCLEO_F411RE_JHEF411_SERVOS"
 #else
   #error "Unsupported board variant. Supported: BLACKPILL_F411CE, NUCLEO_F411RE, MATEK_H743VI"
 #endif
