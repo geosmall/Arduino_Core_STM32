@@ -1,6 +1,6 @@
 /*
  * Auto-generated BoardConfig from Betaflight unified target
- * Generated: 2025-11-27 08:46:10
+ * Generated: 2025-11-30 11:26:51
  * Generator: betaflight_target_converter.py
  */
 
@@ -60,9 +60,9 @@ namespace BoardConfig {
     static constexpr ServoConfig servos[] = {};
     static constexpr int num_servos = 0;
   };
-  // Motors: ONESHOT125 protocol
+  // Motors: ONESHOT125 protocol (125-250 µs)
   namespace Motor {
-    static constexpr uint32_t frequency_hz = 8000;
+    static constexpr uint32_t frequency_hz = 2000;
 
     struct MotorConfig {
       TIM_TypeDef* timer;

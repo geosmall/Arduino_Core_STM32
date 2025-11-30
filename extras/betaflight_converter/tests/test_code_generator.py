@@ -187,8 +187,11 @@ class TestCodeGenerator(unittest.TestCase):
         """Test motor protocol detection."""
         code = self.generator.generate()
 
-        # JHEF411 uses DSHOT300 (should fallback to 1kHz)
-        self.assertIn("frequency_hz = 1000", code)
+        # Always use OneShot125 @ 2kHz (DSHOT not implemented)
+        # 2 kHz is practical rate for most ESCs (max theoretical is 4 kHz)
+        self.assertIn("frequency_hz = 2000", code)
+        self.assertIn("ONESHOT125 protocol", code)
+        self.assertIn("125, 250", code)  # OneShot125 pulse range
 
     def test_valid_cpp_syntax(self):
         """Test generated code has valid C++ syntax."""

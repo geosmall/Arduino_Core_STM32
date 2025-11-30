@@ -40,7 +40,8 @@ namespace BoardConfig {
   // RC Receiver: IBus/SBUS (adjust protocol based on actual wiring)
   static constexpr RCReceiverConfig rc_receiver{PB7, PB6, 115200, 1000, 300};
 
-  // Servo outputs - none configured
+  // Servo outputs - TIM2 on unused pins PA15/PB10
+  // Define HAS_SERVOS to enable servo configuration
   namespace Servo {
     static constexpr uint32_t frequency_hz = 50;
 
@@ -52,12 +53,21 @@ namespace BoardConfig {
       uint32_t max_us;
     };
 
+#ifdef HAS_SERVOS
+    static constexpr ServoConfig servos[] = {
+      {TIM2, PA15, 1, 1000, 2000},  // Servo 1: TIM2_CH1
+      {TIM2, PB10, 3, 1000, 2000},  // Servo 2: TIM2_CH3
+    };
+    static constexpr int num_servos = sizeof(servos) / sizeof(servos[0]);
+#else
     static constexpr ServoConfig servos[] = {};
     static constexpr int num_servos = 0;
+#endif
   };
-  // Motors: DSHOT300 protocol
+
+  // Motors: ONESHOT125 protocol (125-250 µs)
   namespace Motor {
-    static constexpr uint32_t frequency_hz = 1000;
+    static constexpr uint32_t frequency_hz = 2000;
 
     struct MotorConfig {
       TIM_TypeDef* timer;
@@ -69,11 +79,11 @@ namespace BoardConfig {
 
     // Motor array - hardware timer assignments from Betaflight config
     static constexpr MotorConfig motors[] = {
-      {TIM1, PA8, 1, 0, 0},  // Motor 1: TIM1_CH1
-      {TIM1, PA9, 2, 0, 0},  // Motor 2: TIM1_CH2
-      {TIM1, PA10, 3, 0, 0},  // Motor 3: TIM1_CH3
-      {TIM3, PB0_ALT1, 3, 0, 0},  // Motor 4: TIM3_CH3
-      {TIM3, PB4, 1, 0, 0},  // Motor 5: TIM3_CH1
+      {TIM1, PA8, 1, 125, 250},  // Motor 1: TIM1_CH1
+      {TIM1, PA9, 2, 125, 250},  // Motor 2: TIM1_CH2
+      {TIM1, PA10, 3, 125, 250},  // Motor 3: TIM1_CH3
+      {TIM3, PB0_ALT1, 3, 125, 250},  // Motor 4: TIM3_CH3
+      {TIM3, PB4, 1, 125, 250},  // Motor 5: TIM3_CH1
     };
 
     static constexpr int num_motors = sizeof(motors) / sizeof(motors[0]);

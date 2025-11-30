@@ -38,10 +38,10 @@ namespace BoardConfig {
     static constexpr Channel servo1 = {PB4, 1, 1000, 2000};  // TIM3_CH1 (D5)
   };
 
-  // ESC: TIM4 @ 1000 Hz (OneShot125 protocol)
+  // ESC: TIM4 @ 2 kHz (OneShot125 protocol, 125-250 µs)
   namespace ESC {
     static inline TIM_TypeDef* const timer = TIM4;
-    static constexpr uint32_t frequency_hz = 1000;  // 1 kHz for OneShot125
+    static constexpr uint32_t frequency_hz = 2000;
 
     struct Channel {
       uint32_t pin;

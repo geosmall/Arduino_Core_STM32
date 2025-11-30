@@ -3,7 +3,8 @@
 //
 // Supported Targets:
 //   BLACKPILL_F411CE: Servos on TIM2, Motors on TIM3
-//   NUCLEO_H743ZI:    Servos on TIM15, Motors on TIM3 (MTKS-MATEKH743 config)
+//   NUCLEO_F411RE:    Servos on TIM2 (PA15/PB10), Motors on TIM1 (JHEF411 config)
+//   MATEK_H743VI:     Servos on TIM15, Motors on TIM3 (MTKS-MATEKH743 config)
 //
 // This example shows how to control servos and motors simultaneously using
 // separate timer banks with different frequencies.
@@ -12,14 +13,18 @@
 #include <ci_log.h>
 
 // Board target selection based on Arduino board define
-#if defined(ARDUINO_NUCLEO_H743ZI) || defined(ARDUINO_GENERIC_H743ZITX)
+#if defined(ARDUINO_MATEK_H743VI)
   #include "../../../../targets/MTKS-MATEKH743.h"
-  #define BOARD_NAME "MTKS-MATEKH743 (Matek H743-WLITE)"
+  #define BOARD_NAME "MATEK_H743VI (MTKS-MATEKH743)"
 #elif defined(ARDUINO_BLACKPILL_F411CE)
   #include "../../../../targets/BLACKPILL_F411CE.h"
   #define BOARD_NAME "BLACKPILL_F411CE"
+#elif defined(ARDUINO_NUCLEO_F411RE)
+  #define HAS_SERVOS  // Enable servo/motor PWM configuration
+  #include "../../../../targets/NUCLEO_F411RE_JHEF411.h"
+  #define BOARD_NAME "NUCLEO_F411RE_JHEF411"
 #else
-  #error "Unsupported board variant. Supported: BLACKPILL_F411CE, NUCLEO_H743ZI"
+  #error "Unsupported board variant. Supported: BLACKPILL_F411CE, NUCLEO_F411RE, MATEK_H743VI"
 #endif
 
 PWMOutputBank servo_pwm;

@@ -1,6 +1,6 @@
 /*
  * Auto-generated BoardConfig from Betaflight unified target
- * Generated: 2025-11-27 08:46:10
+ * Generated: 2025-11-30 11:27:03
  * Generator: betaflight_target_converter.py
  */
 
@@ -54,9 +54,9 @@ namespace BoardConfig {
     static constexpr ServoConfig servos[] = {};
     static constexpr int num_servos = 0;
   };
-  // Motors: DSHOT300 protocol
+  // Motors: ONESHOT125 protocol (125-250 µs)
   namespace Motor {
-    static constexpr uint32_t frequency_hz = 1000;
+    static constexpr uint32_t frequency_hz = 2000;
 
     struct MotorConfig {
       TIM_TypeDef* timer;
@@ -68,11 +68,11 @@ namespace BoardConfig {
 
     // Motor array - hardware timer assignments from Betaflight config
     static constexpr MotorConfig motors[] = {
-      {TIM1, PA8, 1, 0, 0},  // Motor 1: TIM1_CH1
-      {TIM1, PA9, 2, 0, 0},  // Motor 2: TIM1_CH2
-      {TIM1, PA10, 3, 0, 0},  // Motor 3: TIM1_CH3
-      {TIM3, PB0_ALT1, 3, 0, 0},  // Motor 4: TIM3_CH3
-      {TIM3, PB4, 1, 0, 0},  // Motor 5: TIM3_CH1
+      {TIM1, PA8, 1, 125, 250},  // Motor 1: TIM1_CH1
+      {TIM1, PA9, 2, 125, 250},  // Motor 2: TIM1_CH2
+      {TIM1, PA10, 3, 125, 250},  // Motor 3: TIM1_CH3
+      {TIM3, PB0_ALT1, 3, 125, 250},  // Motor 4: TIM3_CH3
+      {TIM3, PB4, 1, 125, 250},  // Motor 5: TIM3_CH1
     };
 
     static constexpr int num_motors = sizeof(motors) / sizeof(motors[0]);

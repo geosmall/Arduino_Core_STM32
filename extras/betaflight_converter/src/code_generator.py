@@ -375,15 +375,17 @@ class BoardConfigGenerator:
         if not motors:
             return None
 
-        # Get protocol
-        protocol = self.bf_config.settings.get('motor_pwm_protocol', 'ONESHOT125')
+        # Get protocol from config, but always use OneShot125 (DSHOT not implemented)
+        bf_protocol = self.bf_config.settings.get('motor_pwm_protocol', 'ONESHOT125')
 
-        # CRITICAL FIX: Use 8000 Hz for OneShot125 (not 1000 Hz)
-        frequency_hz = 8000 if protocol == 'ONESHOT125' else self._get_protocol_frequency(protocol)
-        min_us, max_us = self._get_protocol_pulse_range(protocol)
+        # Force OneShot125 - DSHOT is not implemented in this core
+        # 2 kHz is a practical rate that works with most ESCs (max theoretical is 4 kHz)
+        protocol = 'ONESHOT125'
+        frequency_hz = 2000
+        min_us, max_us = (125, 250)
 
         lines = [
-            f"  // Motors: {protocol} protocol",
+            f"  // Motors: {protocol} protocol (125-250 µs)",
             "  namespace Motor {",
             f"    static constexpr uint32_t frequency_hz = {frequency_hz};",
             ""
