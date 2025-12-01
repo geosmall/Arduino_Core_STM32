@@ -6,9 +6,11 @@ Minimal-change port of [dRehmFlight](https://github.com/nickrehm/dRehmFlight) BE
 
 This port preserves 100% of Nicholas Rehm's flight control logic while adapting only the hardware interface layer for STM32F4 microcontrollers.
 
-**Target Hardware**:
-- **Development**: NUCLEO_F411RE with breadboard ICM42688P + SBUS receiver
-- **Production**: NOXE V3 flight controller (STM32F411, ICM42688P, SPI flash)
+**Target Hardware** (4 boards supported):
+- **NUCLEO_F411RE**: Development board with breadboard ICM42688P + SBUS receiver
+- **BLACKPILL_F411CE**: Compact development board with MPU-9250
+- **BKMN_NERO**: NERO F7 flight controller (STM32F722, ICM-20602)
+- **MATEK_H743VI**: MATEK H743-WLITE flight controller (STM32H743, ICM42688P)
 
 ## Upstream Links
 
@@ -36,9 +38,9 @@ This port preserves 100% of Nicholas Rehm's flight control logic while adapting 
    - **Preserved**: Same 125-250µs pulse widths
 
 4. **Pin Configuration** - BoardConfig abstraction
-   - **Motors**: TIM1 (PA8, PA9, PA10), TIM3 (PB0_ALT1, PB4)
-   - **LED**: PC13
-   - **Multi-board**: NUCLEO_F411RE, NOXE V3
+   - **Motors** (NUCLEO_F411RE): TIM1 (PA8, PA9, PA10), TIM3 (PB0_ALT1, PB4)
+   - **LED**: Board-specific (PC13 on BLACKPILL, PA5 on NUCLEO)
+   - **Multi-board**: NUCLEO_F411RE, BLACKPILL_F411CE, BKMN_NERO, MATEK_H743VI
 
 5. **Quad Focus** - Servos commented out (4-motor conventional quad)
 
@@ -54,13 +56,13 @@ This port preserves 100% of Nicholas Rehm's flight control logic while adapting 
 - ✅ Loop Timing (2kHz)
 - ✅ All PID Tuning Parameters
 
-## Metrics
+## Metrics (NUCLEO_F411RE)
 
 | Metric | Value |
 |--------|-------|
-| Binary Size | 46.9KB (8.9% of 512KB flash) |
-| RAM Usage | 5.9KB (4.5% of 128KB RAM) |
-| Line Count | 1735 → 1513 (-13%) |
+| Binary Size | 47.5KB (9% of 512KB flash) |
+| RAM Usage | 3.3KB (2% of 128KB RAM) |
+| Line Count | 1933 → 1640 (-15%) |
 | Flight Logic Modified | 0 functions |
 | Hardware Interface Modified | 6 functions |
 
@@ -125,7 +127,7 @@ Gyro X:0.39 Y:-0.80 Z:0.29
 ## Current Status
 
 **Port Status: ✅ Complete - Ready for Hardware Testing**
-- ✅ Port compiles successfully (46.9KB binary)
+- ✅ Port compiles successfully (47.5KB binary)
 - ✅ Setup() executes without crashes
 - ✅ IMU initializes and produces valid data
 - ✅ Radio RX initializes (SBUS on USART1)
@@ -161,7 +163,7 @@ Gyro X:0.39 Y:-0.80 Z:0.29
 - 📋 RC receiver bench testing pending
 - 📋 Motor control bench testing pending
 - 📋 Flight testing pending
-- 📋 Deployment to NOXE V3 pending validation
+- 📋 Deployment to flight controller hardware pending validation
 
 ## Next Steps
 
@@ -233,10 +235,10 @@ Raw values now match within normal sensor noise ✅
 - Performance validation
 - Loop rate stability monitoring
 
-### Phase 4: NOXE V3 Deployment
+### Phase 4: Flight Controller Deployment
 
 **Hardware Migration**:
-- Port to NOXE V3 flight controller board
+- Deploy to target flight controller (NERO F7, MATEK H743, or similar)
 - Verify all peripherals (IMU, flash, motors, receiver)
 - Production flight testing
 - Final PID tuning for production hardware
@@ -258,5 +260,5 @@ This port demonstrates that STM32 support requires only minimal changes to the h
 Key requirements for STM32 port:
 1. IMU abstraction (supports ICM42688P, MPU6000, MPU9250)
 2. Serial RX library (SBUS/IBus/CRSF)
-3. Hardware timer PWM (OneShot125/DShot)
+3. Hardware timer PWM (OneShot125)
 4. Board configuration system

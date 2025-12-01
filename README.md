@@ -27,7 +27,7 @@ This repository contains a **fork of the STM32 Arduino Core** with simplified va
 ## Target Hardware
 
 - **Primary**: STM32F411 (Nucleo F411RE, BlackPill F411CE)
-- **Secondary**: STM32F405 (common in flight controllers)
+- **Secondary**: STM32F405, STM32F722 (common in flight controllers)
 - **Advanced**: STM32H743 (high-performance flight controllers)
 
 ## Key Features
@@ -38,10 +38,10 @@ This repository contains a **fork of the STM32 Arduino Core** with simplified va
 - **Universal Device Detection**: Auto-detect any STM32 via J-Link for programming
 - **Sub-20ms Ready Token Detection**: Deterministic HIL test initialization (5.2ms achieved)
 - **Unified Storage Systems**: LittleFS (SPI flash), SDFS (SD card), and Generic Storage abstraction with minIni configuration management
-- **IMU Integration**: High-level C++ wrapper (IMU library) and low-level TDK drivers (ICM42688P) with chip detection and manufacturer self-test
+- **IMU Integration**: High-level C++ wrapper (IMU library) supporting 6-DOF and 9-DOF sensors (ICM42688P, MPU-6000, MPU-9250) with chip detection, magnetometer calibration, and manufacturer self-test
 - **Betaflight Config Converter**: Python tool converting Betaflight unified targets to BoardConfig headers with PeripheralPins.c validation and ALT variant handling
 - **libPrintf Integration**: Embedded printf library eliminating nanofp complexity with 20KB+ binary savings
-- **AUnit Testing Framework**: Comprehensive unit testing with HIL integration (22 tests across storage systems)
+- **AUnit Testing Framework**: Comprehensive unit testing with HIL integration (18 tests across storage systems)
 - **Real-time Debugging**: SEGGER RTT v8.62 integration for printf-style debugging
 - **Flight Controller Focus**: Optimized for UAV applications with deterministic testing
 
@@ -137,14 +137,26 @@ make check          # Verify environment
 - **minIniStorage v1.5.0**: INI file configuration management with automatic storage backend selection
 
 ### Sensors and Hardware
-- **IMU v1.0.0**: High-level C++ wrapper for InvenSense IMU sensors with chip detection and multi-instance support
+- **IMU v1.0.0**: High-level C++ wrapper for InvenSense IMU sensors with chip detection, multi-instance support, and 9-DOF magnetometer support (MPU-9250/9255)
 - **ICM42688P v1.0.0**: Low-level 6-axis IMU library with TDK InvenSense drivers, self-test, and data acquisition
+- **ICM206xx v1.0.0**: Betaflight-derived 6-axis IMU library for ICM-20601/20602/20608/20689 with auto-detection
+- **MPU6000 v1.0.0**: Betaflight-derived 6-axis IMU library for MPU-6000
+- **MPU9250 v1.0.0**: Betaflight-derived 9-axis IMU library for MPU-9250/9255 with magnetometer
+- **invensense-imu v6.0.3**: Bolder Flight Systems library for MPU-9250/MPU-6500 (I2C and SPI)
 - **SerialRx v1.0.0**: RC receiver serial protocol parser (IBus, SBUS) with software idle detection and hardware validation
+- **TimerPWM v1.0.0**: Hardware timer PWM for servo/ESC control with 1µs resolution, explicit timer banks, and dual-timer support
 - **STM32RTC**: Real-time clock functionality
 
+### Core Communication
+- **SPI**: SPI communication library
+- **Wire**: I2C communication library
+- **SoftwareSerial**: Software UART implementation
+
 ### Development and Testing
+- **SEGGER_RTT v8.62**: Real-time transfer debugging with HIL integration
+- **CMSIS_DSP**: ARM CMSIS DSP functions
 - **libPrintf v6.2.0**: Embedded printf library eliminating nanofp complexity (20KB+ binary savings)
-- **AUnit v1.7.1**: Arduino unit testing framework with HIL integration (22 comprehensive tests)
+- **AUnit v1.7.1**: Arduino unit testing framework with HIL integration (18 comprehensive tests)
 
 ## Project Structure
 
@@ -240,11 +252,13 @@ void setup() {
 ## Current Development Status
 
 - **✅ Complete**: Storage systems (LittleFS, SDFS, Storage abstraction), configuration management (minIni), build/HIL framework, libPrintf integration
-- **✅ Complete**: IMU library (high-level wrapper with chip detection, context-based design, interrupt support)
+- **✅ Complete**: IMU library (6-DOF and 9-DOF support: ICM42688P, MPU-6000, MPU-9250/9255 with magnetometer calibration)
 - **✅ Complete**: ICM42688P library (low-level TDK drivers with self-test and data acquisition)
 - **✅ Complete**: SerialRx library (IBus hardware validated, SBUS implemented, software idle detection)
+- **✅ Complete**: TimerPWM library (hardware PWM for servos/ESCs, 1µs resolution, hardware validated)
 - **✅ Complete**: Betaflight Config Converter (Python tool with PeripheralPins.c validation, ALT variant handling, 53 passing tests)
-- **📋 Future**: Additional IMU sensor support (MPU-6000, MPU-9250), CRSF protocol support
+- **✅ Complete**: dRehmFlight STM32 port (BETA 1.3 flight controller, 100% flight logic preserved, pending bench validation)
+- **📋 Future**: CRSF protocol support for SerialRx
 
 ## Documentation
 

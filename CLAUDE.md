@@ -502,9 +502,9 @@ Minimal-change port of dRehmFlight BETA 1.3 (Teensy-based UAV flight controller)
 - **Application Focus**: 4-motor quadcopter (servos commented out)
 
 **Key Metrics**:
-- Binary Size: 47.3KB (9.0% of 512KB flash)
-- RAM Usage: 5.9KB (4.5% of 128KB RAM)
-- Line Count: 1735 → 1513 lines (-13% reduction)
+- Binary Size: 47.5KB (9% of 512KB flash)
+- RAM Usage: 3.3KB (2% of 128KB RAM)
+- Line Count: 1933 → 1640 lines (-15% reduction)
 - Flight Control Logic Modified: 0 functions (100% preserved)
 - Hardware Interface Modified: 6 functions (IMUinit, getIMUdata, radioSetup, updateRadioChannels, commandMotors, setup)
 
@@ -516,7 +516,7 @@ Minimal-change port of dRehmFlight BETA 1.3 (Teensy-based UAV flight controller)
 5. Build: `./system/ci/aflash.sh sketches/dRehmFlight_STM32_BETA_1.3 --use-rtt --build-id`
 
 **Port Status** ✅:
-- ✅ Compiles for all 4 targets (47.3KB binary on F411)
+- ✅ Compiles for all 4 targets (47.5KB binary on F411)
 - ✅ All flight control logic preserved (100% unchanged)
 - ✅ Minimal changes achieved (only 6 hardware functions modified)
 - ✅ **IMU Hardware Validated**: WHO_AM_I verified (0x47), self-test passed, gyro data operational
