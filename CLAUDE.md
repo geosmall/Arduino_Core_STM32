@@ -214,7 +214,11 @@ cmake --build <build_folder>
   - **Variant**: `variant_BKMN_NERO.h` in `variants/STM32F7xx/F722R(C-E)T_F730R8T_F732RET/`
   - **BoardConfig**: Available at `targets/BKMN-NERO.h`
   - **Example**: `./system/ci/aflash.sh <sketch> STMicroelectronics:stm32:FlightCtr:pnum=BKMN_NERO --use-rtt`
-- **Nucleo H753ZI** (High-Performance): `STMicroelectronics:stm32:Nucleo_144:pnum=NUCLEO_H753ZI`
+- **MATEK H743-WLITE**: `STMicroelectronics:stm32:FlightCtr:pnum=MATEK_H743VI`
+  - **MCU**: STM32H743VIT6
+  - **IMU**: ICM42688P on SPI1
+  - **BoardConfig**: Available at `targets/MTKS-MATEKH743.h`
+  - **Example**: `./system/ci/aflash.sh <sketch> STMicroelectronics:stm32:FlightCtr:pnum=MATEK_H743VI --use-rtt`
 
 **Important**: Examples using BoardConfig system (e.g., MPU9250, LittleFS, ICM206xx) auto-detect board via `ARDUINO_*` defines. The FQBN must match the connected hardware to ensure correct pin assignments and peripheral configurations.
 
@@ -224,7 +228,7 @@ This repository supports **UAV flight controller boards** with the following STM
 - **STM32F411** - Primary target (Nucleo F411RE, BlackPill F411CE for development)
 - **STM32F405** - Secondary target (common in flight controllers)
 - **STM32F722** - Validated target (NERO F7 flight controller with ICM-20602)
-- **STM32H743** - Future target (high-performance flight controllers)
+- **STM32H743** - Validated target (MATEK H743-WLITE flight controller with ICM42688P)
 
 ### Example Target Applications
 - **UAV Flight Controllers** - Autonomous drone flight control systems
@@ -484,13 +488,13 @@ RC receiver protocol parser with BoardConfig integration, software idle detectio
 
 ## Projects In Progress
 
-### dRehmFlight STM32 Port 🚧 **IN PROGRESS**
+### dRehmFlight STM32 Port ✅ **PORT COMPLETE** (Pending Bench Validation)
 
-Minimal-change port of dRehmFlight BETA 1.3 (Teensy-based UAV flight controller) to STM32F4, targeting 4-motor conventional quadcopter.
+Minimal-change port of dRehmFlight BETA 1.3 (Teensy-based UAV flight controller) to STM32F4/H7, targeting 4-motor conventional quadcopter.
 
 **Target Hardware**:
 - Development: NUCLEO_F411RE with breadboard ICM42688P + SBUS receiver
-- Deployment: NOXE V3 flight controller (STM32F411, ICM42688P, SPI flash)
+- Deployment: NOXE V3 (STM32F411), MATEK H743-WLITE (STM32H743)
 
 **Port Strategy**: Minimal changes - hardware interface only, preserve all flight control logic
 - **Libraries Replaced**: MPU6050/MPU9250 → IMU, PWM/PPM/DSM → SerialRx, bit-bang PWM → TimerPWM
@@ -508,11 +512,11 @@ Minimal-change port of dRehmFlight BETA 1.3 (Teensy-based UAV flight controller)
 1. IMU: MPU6050/9250 → ICM42688P via IMU library (±250 DPS, ±2G, 2kHz ODR, polling-based)
 2. Radio RX: PWM/PPM/DSM → SerialRx (SBUS, adapter pattern, eliminated 110 lines)
 3. Motor: Bit-bang → TimerPWM OneShot125 (TIM1/TIM3, 125-250µs)
-4. Pins: BoardConfig (NUCLEO_F411RE, NOXE V3)
+4. Pins: BoardConfig system (4 targets: NUCLEO_F411RE, BLACKPILL_F411CE, BKMN_NERO, MATEK_H743VI)
 5. Build: `./system/ci/aflash.sh sketches/dRehmFlight_STM32_BETA_1.3 --use-rtt --build-id`
 
-**Status**:
-- ✅ Port complete (compiles successfully - 47.3KB binary)
+**Port Status** ✅:
+- ✅ Compiles for all 4 targets (47.3KB binary on F411)
 - ✅ All flight control logic preserved (100% unchanged)
 - ✅ Minimal changes achieved (only 6 hardware functions modified)
 - ✅ **IMU Hardware Validated**: WHO_AM_I verified (0x47), self-test passed, gyro data operational
@@ -521,11 +525,12 @@ Minimal-change port of dRehmFlight BETA 1.3 (Teensy-based UAV flight controller)
 - ✅ **IMU Filters**: AAF configured (Gyro 258 Hz, Accel 170 Hz) - Betaflight-standard settings
 - ✅ **Setup() Execution**: All initialization complete (IMU, filters, radio RX, motor timers)
 - ✅ **Main Loop Running**: 2kHz loop timing operational with RTT/Serial logging
-- 📋 **Filter Tuning**: Filter API available via `imu.SetGyroFilterHz()` / `imu.SetAccelFilterHz()` - see `ICM42688_CONFIG.md`
-- 📋 RC receiver bench testing pending (SBUS on USART1)
-- 📋 Motor control bench testing pending (OneShot125 via TIM1/TIM3)
-- 📋 Flight testing with PID tuning pending
-- 📋 Deployment to NOXE V3 pending validation
+
+**Remaining Validation** 📋:
+- 📋 RC receiver bench testing (SBUS on USART1) - validate SerialRx integration
+- 📋 Motor control bench testing (OneShot125 via TIM1/TIM3) - validate TimerPWM output
+- 📋 Flight testing with PID tuning - tune for specific airframe
+- 📋 Deployment to target flight controller hardware
 
 **Issues Resolved**:
 1. **UART Conflict**: Fixed by moving RC receiver to USART1 (PB7/PB6), Serial debug on USART2 (PA2/PA3)

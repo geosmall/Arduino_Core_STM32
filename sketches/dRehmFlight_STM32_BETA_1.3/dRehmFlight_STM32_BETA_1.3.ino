@@ -5,7 +5,7 @@
 //Version: Beta 1.3
 //
 //STM32 Port: BETA 1.3 - Minimal changes from Teensy BETA 1.3
-//Target: STM32F4 (NUCLEO_F411RE, NOXE V3)
+//Target: STM32F4/H7 (NUCLEO_F411RE, NOXE V3, MATEK H743)
  
 //========================================================================================================================//
 
@@ -74,8 +74,10 @@ Everyone that sends me pictures and videos of your flying creations! -Nick
   #include "../../targets/NUCLEO_F411RE_JHEF411.h"  //NUCLEO F411RE (ICM42688P 6-DOF)
 #elif defined(ARDUINO_BKMN_NERO)
   #include "../../targets/BKMN-NERO.h"  //NERO F7 flight controller (ICM-20602 6-DOF)
+#elif defined(ARDUINO_MATEK_H743VI)
+  #include "../../targets/MTKS-MATEKH743.h"  //MATEK H743 flight controller (ICM42688P 6-DOF)
 #else
-  #error "Unsupported board! Use BLACKPILL_F411CE, NUCLEO_F411RE, or BKMN_NERO"
+  #error "Unsupported board! Use BLACKPILL_F411CE, NUCLEO_F411RE, BKMN_NERO, or MATEK_H743VI"
 #endif
 #include <IMU.h>           //IMU library for ICM42688P
 #include <SerialRx.h>      //Serial RX library for IBus/SBUS
@@ -676,12 +678,6 @@ void Madgwick(float gx, float gy, float gz, float ax, float ay, float az, float 
   float hx, hy;
   float _2q0mx, _2q0my, _2q0mz, _2q1mx, _2bx, _2bz, _4bx, _4bz, _2q0, _2q1, _2q2, _2q3, _2q0q2, _2q2q3, q0q0, q0q1, q0q2, q0q3, q1q1, q1q2, q1q3, q2q2, q2q3, q3q3;
 
-  //use 6DOF algorithm if MPU6050 is being used
-  #if defined USE_MPU6050_I2C 
-    Madgwick6DOF(gx, gy, gz, ax, ay, az, invSampleFreq);
-    return;
-  #endif
-  
   //Use 6DOF algorithm if magnetometer measurement invalid (avoids NaN in magnetometer normalisation)
   if((mx == 0.0f) && (my == 0.0f) && (mz == 0.0f)) {
     Madgwick6DOF(gx, gy, gz, ax, ay, az, invSampleFreq);
