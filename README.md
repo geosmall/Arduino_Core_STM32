@@ -143,6 +143,7 @@ make check          # Verify environment
 - **MPU6000 v1.0.0**: Betaflight-derived 6-axis IMU library for MPU-6000
 - **MPU9250 v1.0.0**: Betaflight-derived 9-axis IMU library for MPU-9250/9255 with magnetometer
 - **invensense-imu v6.0.3**: Bolder Flight Systems library for MPU-9250/MPU-6500 (I2C and SPI)
+- **TinyGPSPlus v1.0.3a**: NMEA GPS parser library with CI examples for HardwareSerial and SoftwareSerial
 - **SerialRx v1.0.0**: RC receiver serial protocol parser (IBus, SBUS) with software idle detection and hardware validation
 - **TimerPWM v1.0.0**: Hardware timer PWM for servo/ESC control with 1µs resolution, explicit timer banks, and dual-timer support
 - **STM32RTC**: Real-time clock functionality
@@ -180,7 +181,8 @@ make check          # Verify environment
 │   ├── SerialRx/          # RC receiver protocol parser (IBus, SBUS) with idle detection
 │   ├── STM32RTC/          # Real-time clock library
 │   ├── Storage/           # Generic storage abstraction for LittleFS/SDFS
-│   └── TimerPWM/          # Hardware timer PWM for servo/ESC control
+│   ├── TimerPWM/          # Hardware timer PWM for servo/ESC control
+│   └── TinyGPSPlus/       # NMEA GPS parser (mikalhart/TinyGPSPlus v1.0.3a)
 ├── cmake/                 # CMake build system and examples
 ├── extras/
 │   └── betaflight_converter/  # Betaflight → BoardConfig converter with validation
