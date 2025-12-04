@@ -47,6 +47,7 @@ extern "C" void putchar_(char c) {
 
 // DPS3xx sensor
 Dps3xx baroSensor;
+// Test with custom TwoWire instance using BoardConfig pins
 TwoWire baroWire(BARO_SDA, BARO_SCL);
 
 // Test counters
@@ -79,21 +80,47 @@ void setup()
     CI_PRINTF("  Baro I2C SCL: 0x%04X\n", BARO_SCL);
     CI_LOG("\n");
 
-    // Initialize I2C
-    CI_LOG("Initializing I2C...\n");
+    // Initialize I2C - use custom TwoWire instance with BoardConfig pins
+    CI_LOG("Initializing I2C (custom baroWire)...\n");
     baroWire.begin();
     baroWire.setClock(400000);  // 400 kHz
 
+    // Quick I2C scan to verify sensor is present
+    CI_LOG("Verifying I2C device at 0x77...\n");
+    baroWire.beginTransmission(0x77);
+    uint8_t i2c_error = baroWire.endTransmission();
+    CI_LOGF("  I2C probe result: %d (0=found)\n", i2c_error);
+
+    // Try reading Product ID register (0x0D) directly
+    CI_LOG("Reading PROD_ID register (0x0D) directly...\n");
+    baroWire.beginTransmission(0x77);
+    baroWire.write(0x0D);  // PROD_ID register address
+    i2c_error = baroWire.endTransmission(false);  // Repeated start
+    CI_LOGF("  Write reg addr result: %d\n", i2c_error);
+
+    uint8_t bytesRead = baroWire.requestFrom((uint8_t)0x77, (uint8_t)1);
+    CI_LOGF("  Bytes received: %d\n", bytesRead);
+    if (bytesRead > 0) {
+        uint8_t rawProdId = baroWire.read();
+        CI_LOGF("  Raw PROD_ID: 0x%02X\n", rawProdId);
+    }
+
     // Initialize DPS3xx
-    CI_LOG("Initializing DPS3xx...\n");
+    CI_LOG("\nInitializing DPS3xx via library...\n");
     baroSensor.begin(baroWire);
 
-    // Check if initialization succeeded by reading product ID
+    // Check if initialization succeeded
+    // Note: DPS3xx Product ID is 0x00 per datasheet, so we check revisionId > 0
+    //       or verify sensor responds by attempting a measurement
     uint8_t productId = baroSensor.getProductId();
     uint8_t revisionId = baroSensor.getRevisionId();
+    CI_LOGF("Library getProductId(): 0x%02X (expected 0x00 for DPS3xx)\n", productId);
+    CI_LOGF("Library getRevisionId(): 0x%02X\n", revisionId);
 
-    if (productId == 0) {
-        CI_LOG("FAIL: DPS3xx not detected (product ID = 0)\n");
+    // DPS3xx PROD_ID is 0x00, REV_ID should be non-zero (typically 0x01)
+    // Raw register 0x0D should be 0x1X where X is product ID (0) and 1 is revision
+    if (revisionId == 0 && productId == 0) {
+        CI_LOG("FAIL: DPS3xx not detected (both IDs are 0)\n");
         failCount++;
         CI_LOG("\n");
         CI_PRINTF("Tests passed: %d\n", passCount);
