@@ -1343,6 +1343,282 @@ void I2C6_ER_IRQHandler(void)
 }
 #endif // I2C6_BASE
 
+/*******************************************************************************
+ * DMA-based non-blocking I2C read functions
+ * Phase 1: STM32F4xx support (no cache concerns)
+ ******************************************************************************/
+#if defined(HAL_DMA_MODULE_ENABLED)
+
+/**
+  * @brief  Get DMA stream and channel for I2C RX based on I2C instance
+  * @param  obj : pointer to i2c_t structure
+  * @param  dma_stream : pointer to store DMA stream
+  * @param  dma_channel : pointer to store DMA channel (F4) or request (H7)
+  * @param  dma_irqn : pointer to store DMA IRQ number
+  * @retval 0 on success, -1 if I2C instance not supported for DMA
+  */
+static int i2c_get_dma_config(i2c_t *obj, DMA_Stream_TypeDef **dma_stream,
+                               uint32_t *dma_channel, IRQn_Type *dma_irqn)
+{
+#if defined(STM32F4xx)
+  /* F4xx DMA channel mapping for I2C RX:
+   * I2C1 RX: DMA1 Stream 0, Channel 1
+   * I2C2 RX: DMA1 Stream 2, Channel 7
+   * I2C3 RX: DMA1 Stream 2, Channel 3
+   */
+#if defined(I2C1_BASE)
+  if (obj->i2c == I2C1) {
+    *dma_stream = DMA1_Stream0;
+    *dma_channel = DMA_CHANNEL_1;
+    *dma_irqn = DMA1_Stream0_IRQn;
+    return 0;
+  }
+#endif
+#if defined(I2C2_BASE)
+  if (obj->i2c == I2C2) {
+    *dma_stream = DMA1_Stream2;
+    *dma_channel = DMA_CHANNEL_7;
+    *dma_irqn = DMA1_Stream2_IRQn;
+    return 0;
+  }
+#endif
+#if defined(I2C3_BASE)
+  if (obj->i2c == I2C3) {
+    *dma_stream = DMA1_Stream2;
+    *dma_channel = DMA_CHANNEL_3;
+    *dma_irqn = DMA1_Stream2_IRQn;
+    return 0;
+  }
+#endif
+#elif defined(STM32H7xx)
+  /* H7xx uses DMAMUX - channel is actually a request ID */
+#if defined(I2C1_BASE)
+  if (obj->i2c == I2C1) {
+    *dma_stream = DMA1_Stream0;
+    *dma_channel = DMA_REQUEST_I2C1_RX;
+    *dma_irqn = DMA1_Stream0_IRQn;
+    return 0;
+  }
+#endif
+#if defined(I2C2_BASE)
+  if (obj->i2c == I2C2) {
+    *dma_stream = DMA1_Stream2;
+    *dma_channel = DMA_REQUEST_I2C2_RX;
+    *dma_irqn = DMA1_Stream2_IRQn;
+    return 0;
+  }
+#endif
+#if defined(I2C4_BASE)
+  /* I2C4 on H7 uses BDMA, not supported in Phase 1 */
+#endif
+#endif /* STM32F4xx / STM32H7xx */
+
+  UNUSED(obj);
+  UNUSED(dma_stream);
+  UNUSED(dma_channel);
+  UNUSED(dma_irqn);
+  return -1; /* Not supported */
+}
+
+/**
+  * @brief  Initialize DMA for I2C RX (lazy init on first use)
+  * @param  obj : pointer to i2c_t structure
+  * @retval 0 on success, -1 on failure
+  */
+static int i2c_dma_rx_init(i2c_t *obj)
+{
+  if (obj->dma_rx_initialized) {
+    return 0;
+  }
+
+  DMA_Stream_TypeDef *dma_stream;
+  uint32_t dma_channel;
+  IRQn_Type dma_irqn;
+
+  if (i2c_get_dma_config(obj, &dma_stream, &dma_channel, &dma_irqn) != 0) {
+    return -1;
+  }
+
+  /* Enable DMA clock */
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* Configure DMA handle */
+  obj->hdma_rx.Instance = dma_stream;
+#if defined(STM32F4xx)
+  obj->hdma_rx.Init.Channel = dma_channel;
+#else
+  obj->hdma_rx.Init.Request = dma_channel;
+#endif
+  obj->hdma_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
+  obj->hdma_rx.Init.PeriphInc = DMA_PINC_DISABLE;
+  obj->hdma_rx.Init.MemInc = DMA_MINC_ENABLE;
+  obj->hdma_rx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+  obj->hdma_rx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+  obj->hdma_rx.Init.Mode = DMA_NORMAL;
+  obj->hdma_rx.Init.Priority = DMA_PRIORITY_LOW;
+  obj->hdma_rx.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
+
+  if (HAL_DMA_Init(&obj->hdma_rx) != HAL_OK) {
+    return -1;
+  }
+
+  /* Link DMA handle to I2C handle */
+  __HAL_LINKDMA(&obj->handle, hdmarx, obj->hdma_rx);
+
+  /* Configure DMA interrupt */
+  HAL_NVIC_SetPriority(dma_irqn, I2C_IRQ_PRIO, I2C_IRQ_SUBPRIO);
+  HAL_NVIC_EnableIRQ(dma_irqn);
+
+  /* Initialize state */
+  obj->dma_rx_busy = 0;
+  obj->dma_rx_result = I2C_OK;
+  obj->dma_rx_initialized = 1;
+
+  return 0;
+}
+
+/**
+  * @brief  Start a DMA-based I2C master read (non-blocking)
+  * @param  obj : pointer to i2c_t structure
+  * @param  dev_address: specifies the address of the device (already shifted)
+  * @param  data: pointer to buffer to receive data
+  * @param  size: number of bytes to read
+  * @retval I2C status
+  */
+i2c_status_e i2c_master_read_dma(i2c_t *obj, uint8_t dev_address,
+                                  uint8_t *data, uint16_t size)
+{
+  if (obj == NULL || data == NULL || size == 0) {
+    return I2C_ERROR;
+  }
+
+  /* Check if previous DMA is still running */
+  if (obj->dma_rx_busy) {
+    return I2C_BUSY;
+  }
+
+#if defined(STM32H7xx)
+  /* Phase 2: Validate buffer is in non-cached D2 SRAM region */
+  /* D2 SRAM1: 0x30000000 - 0x30007FFF (32KB) */
+  uint32_t buf_addr = (uint32_t)data;
+  if (buf_addr < 0x30000000 || buf_addr >= 0x30008000) {
+    return I2C_ERROR; /* Buffer not in DMA-safe region */
+  }
+#endif
+
+  /* Initialize DMA on first use */
+  if (i2c_dma_rx_init(obj) != 0) {
+    return I2C_ERROR;
+  }
+
+  /* Wait for I2C to be ready */
+  uint32_t tickstart = HAL_GetTick();
+  while (HAL_I2C_GetState(&obj->handle) != HAL_I2C_STATE_READY) {
+    if ((HAL_GetTick() - tickstart) > I2C_TIMEOUT_TICK) {
+      return I2C_TIMEOUT;
+    }
+  }
+
+  /* Store transfer info */
+  obj->dma_rx_buf = data;
+  obj->dma_rx_len = size;
+  obj->dma_rx_busy = 1;
+  obj->dma_rx_result = I2C_BUSY;
+
+  /* Start DMA transfer */
+  HAL_StatusTypeDef status = HAL_I2C_Master_Receive_DMA(&obj->handle,
+                                                         dev_address,
+                                                         data, size);
+  if (status != HAL_OK) {
+    obj->dma_rx_busy = 0;
+    obj->dma_rx_result = I2C_ERROR;
+    return I2C_ERROR;
+  }
+
+  return I2C_OK;
+}
+
+/**
+  * @brief  Check if DMA RX transfer is complete
+  * @param  obj : pointer to i2c_t structure
+  * @retval 1 if transfer done (or no transfer in progress), 0 if busy
+  */
+uint8_t i2c_dma_rx_done(i2c_t *obj)
+{
+  if (obj == NULL) {
+    return 1;
+  }
+  return (obj->dma_rx_busy == 0) ? 1 : 0;
+}
+
+/**
+  * @brief  Get result of last DMA RX transfer
+  * @param  obj : pointer to i2c_t structure
+  * @retval I2C status of last transfer
+  */
+i2c_status_e i2c_dma_rx_get_result(i2c_t *obj)
+{
+  if (obj == NULL) {
+    return I2C_ERROR;
+  }
+  return obj->dma_rx_result;
+}
+
+/**
+  * @brief  I2C Master RX complete callback (called from HAL)
+  * @param  hi2c: pointer to I2C handle
+  * @retval None
+  */
+void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
+{
+  i2c_t *obj = get_i2c_obj(hi2c);
+  if (obj != NULL && obj->dma_rx_busy) {
+    obj->dma_rx_busy = 0;
+    obj->dma_rx_result = I2C_OK;
+    /* No cache invalidation needed on F4 */
+    /* H7 uses non-cached memory region, so no cache ops needed */
+  }
+}
+
+/* DMA Stream IRQ Handlers - route to HAL */
+#if defined(STM32F4xx) || defined(STM32H7xx)
+#if defined(I2C1_BASE)
+/**
+  * @brief  DMA1 Stream0 IRQ handler (I2C1 RX)
+  */
+void DMA1_Stream0_IRQHandler(void)
+{
+  I2C_HandleTypeDef *handle = i2c_handles[I2C1_INDEX];
+  if (handle != NULL && handle->hdmarx != NULL) {
+    HAL_DMA_IRQHandler(handle->hdmarx);
+  }
+}
+#endif /* I2C1_BASE */
+
+#if defined(I2C2_BASE) || defined(I2C3_BASE)
+/**
+  * @brief  DMA1 Stream2 IRQ handler (I2C2/I2C3 RX)
+  */
+void DMA1_Stream2_IRQHandler(void)
+{
+#if defined(I2C2_BASE)
+  I2C_HandleTypeDef *handle2 = i2c_handles[I2C2_INDEX];
+  if (handle2 != NULL && handle2->hdmarx != NULL) {
+    HAL_DMA_IRQHandler(handle2->hdmarx);
+  }
+#endif
+#if defined(I2C3_BASE)
+  I2C_HandleTypeDef *handle3 = i2c_handles[I2C3_INDEX];
+  if (handle3 != NULL && handle3->hdmarx != NULL) {
+    HAL_DMA_IRQHandler(handle3->hdmarx);
+  }
+#endif
+}
+#endif /* I2C2_BASE || I2C3_BASE */
+#endif /* STM32F4xx || STM32H7xx */
+
+#endif /* HAL_DMA_MODULE_ENABLED */
+
 #ifdef __cplusplus
 }
 #endif

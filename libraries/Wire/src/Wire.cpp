@@ -546,6 +546,41 @@ void TwoWire::recoverBus(void)
   }
 }
 
+#if defined(HAL_DMA_MODULE_ENABLED)
+/**
+  * @brief  Start a non-blocking DMA read into user-supplied buffer.
+  * @param  address: 7-bit I2C slave address
+  * @param  buf: pointer to user buffer (on H7, must be in non-cached memory)
+  * @param  len: number of bytes to read
+  * @param  stopBit: generate STOP after read (default true)
+  * @retval true if DMA started successfully, false otherwise
+  */
+bool TwoWire::requestFromDMA(uint8_t address, uint8_t* buf, uint32_t len, bool stopBit)
+{
+  UNUSED(stopBit); // stopBit handling not implemented for DMA mode
+
+  if (_i2c.isMaster != 1 || buf == nullptr || len == 0 || len > 0xFFFF) {
+    return false;
+  }
+
+  // Check if previous DMA is still running
+  if (!i2c_dma_rx_done(&_i2c)) {
+    return false;
+  }
+
+  return (i2c_master_read_dma(&_i2c, address << 1, buf, (uint16_t)len) == I2C_OK);
+}
+
+/**
+  * @brief  Check if DMA transfer is complete.
+  * @retval true if transfer done (or no transfer in progress), false if busy
+  */
+bool TwoWire::dmaTransferDone() const
+{
+  return i2c_dma_rx_done(const_cast<i2c_t*>(&_i2c)) != 0;
+}
+#endif /* HAL_DMA_MODULE_ENABLED */
+
 // Preinstantiate Objects //////////////////////////////////////////////////////
 
 TwoWire Wire = TwoWire(); //D14-D15

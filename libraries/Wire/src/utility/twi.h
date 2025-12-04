@@ -97,6 +97,17 @@ extern "C" {
 #endif // defined(I2C4_BASE)
 #endif /* STM32C0xx || STM32F0xx || STM32G0xx || STM32L0xx */
 
+///@brief I2C state
+typedef enum {
+  I2C_OK = 0,
+  I2C_DATA_TOO_LONG = 1,
+  I2C_NACK_ADDR = 2,
+  I2C_NACK_DATA = 3,
+  I2C_ERROR = 4,
+  I2C_TIMEOUT = 5,
+  I2C_BUSY = 6
+} i2c_status_e;
+
 typedef struct i2c_s i2c_t;
 
 struct i2c_s {
@@ -123,18 +134,16 @@ struct i2c_s {
   uint8_t isMaster;
   uint8_t generalCall;
   uint8_t NoStretchMode;
+#if defined(HAL_DMA_MODULE_ENABLED)
+  /* DMA RX state for non-blocking reads */
+  DMA_HandleTypeDef hdma_rx;
+  volatile uint8_t *dma_rx_buf;
+  volatile uint16_t dma_rx_len;
+  volatile uint8_t dma_rx_busy;
+  volatile i2c_status_e dma_rx_result;
+  uint8_t dma_rx_initialized;
+#endif /* HAL_DMA_MODULE_ENABLED */
 };
-
-///@brief I2C state
-typedef enum {
-  I2C_OK = 0,
-  I2C_DATA_TOO_LONG = 1,
-  I2C_NACK_ADDR = 2,
-  I2C_NACK_DATA = 3,
-  I2C_ERROR = 4,
-  I2C_TIMEOUT = 5,
-  I2C_BUSY = 6
-} i2c_status_e;
 
 /* Exported functions ------------------------------------------------------- */
 void i2c_init(i2c_t *obj);
@@ -150,6 +159,14 @@ i2c_status_e i2c_IsDeviceReady(i2c_t *obj, uint8_t devAddr, uint32_t trials);
 
 void i2c_attachSlaveRxEvent(i2c_t *obj, void (*function)(i2c_t *));
 void i2c_attachSlaveTxEvent(i2c_t *obj, void (*function)(i2c_t *));
+
+#if defined(HAL_DMA_MODULE_ENABLED)
+/* DMA-based non-blocking I2C read functions */
+i2c_status_e i2c_master_read_dma(i2c_t *obj, uint8_t dev_address,
+                                  uint8_t *data, uint16_t size);
+uint8_t i2c_dma_rx_done(i2c_t *obj);
+i2c_status_e i2c_dma_rx_get_result(i2c_t *obj);
+#endif /* HAL_DMA_MODULE_ENABLED */
 
 #ifdef __cplusplus
 }

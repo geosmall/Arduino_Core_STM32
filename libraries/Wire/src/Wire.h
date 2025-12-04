@@ -41,6 +41,14 @@ extern "C" {
 // WIRE_HAS_END means Wire has end()
 #define WIRE_HAS_END 1
 
+// DMA buffer macro for H7 (places buffer in non-cached D2 SRAM)
+// On F4 this is a no-op since there's no cache
+#if defined(STM32H7xx)
+  #define WIRE_DMA_BUFFER __attribute__((section(".dmabuf")))
+#else
+  #define WIRE_DMA_BUFFER
+#endif
+
 class TwoWire : public Stream {
   public:
     typedef std::function<void(int)> cb_function_receive_t;
@@ -121,6 +129,12 @@ class TwoWire : public Stream {
 
     void onReceive(cb_function_receive_t callback);
     void onRequest(cb_function_request_t callback);
+
+#if defined(HAL_DMA_MODULE_ENABLED)
+    // DMA-based non-blocking read methods
+    bool requestFromDMA(uint8_t address, uint8_t* buf, uint32_t len, bool stopBit = true);
+    bool dmaTransferDone() const;
+#endif /* HAL_DMA_MODULE_ENABLED */
 
     inline size_t write(unsigned long n)
     {
