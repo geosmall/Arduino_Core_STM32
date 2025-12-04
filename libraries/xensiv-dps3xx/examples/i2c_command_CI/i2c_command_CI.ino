@@ -13,24 +13,27 @@
 #include <ci_log.h>
 #include <libPrintf.h>
 
-// BoardConfig for target-specific I2C pins
+// BoardConfig for target-specific I2C pins and address
 #if defined(ARDUINO_MATEK_H743VI)
   #include "../../../../targets/MTKS-MATEKH743.h"
-  // MATEK H743 has dedicated baro I2C bus
+  // MATEK H743 has dedicated baro I2C bus, onboard DPS310 at 0x76
   #define BARO_SDA BoardConfig::baro.sda_pin
   #define BARO_SCL BoardConfig::baro.scl_pin
+  #define BARO_I2C_ADDR 0x76
   #define TARGET_NAME "MATEK_H743VI"
 #elif defined(ARDUINO_BLACKPILL_F411CE)
   #include "../../../../targets/BLACKPILL_F411CE.h"
-  // BlackPill uses sensors I2C for barometer
+  // BlackPill uses sensors I2C for external barometer at 0x77
   #define BARO_SDA BoardConfig::sensors.sda_pin
   #define BARO_SCL BoardConfig::sensors.scl_pin
+  #define BARO_I2C_ADDR 0x77
   #define TARGET_NAME "BLACKPILL_F411CE"
 #elif defined(ARDUINO_NUCLEO_F411RE)
   #include "../../../../targets/NUCLEO_F411RE.h"
-  // Nucleo uses sensors I2C for barometer
+  // Nucleo uses sensors I2C for external barometer at 0x77
   #define BARO_SDA BoardConfig::sensors.sda_pin
   #define BARO_SCL BoardConfig::sensors.scl_pin
+  #define BARO_I2C_ADDR 0x77
   #define TARGET_NAME "NUCLEO_F411RE"
 #else
   #error "Unsupported board. Use MATEK_H743VI, BLACKPILL_F411CE, or NUCLEO_F411RE."
@@ -78,6 +81,7 @@ void setup()
     CI_PRINTF("  Target: %s\n", TARGET_NAME);
     CI_PRINTF("  Baro I2C SDA: 0x%04X\n", BARO_SDA);
     CI_PRINTF("  Baro I2C SCL: 0x%04X\n", BARO_SCL);
+    CI_PRINTF("  Baro I2C Addr: 0x%02X\n", BARO_I2C_ADDR);
     CI_LOG("\n");
 
     // Initialize I2C - use custom TwoWire instance with BoardConfig pins
@@ -86,19 +90,19 @@ void setup()
     baroWire.setClock(400000);  // 400 kHz
 
     // Quick I2C scan to verify sensor is present
-    CI_LOG("Verifying I2C device at 0x77...\n");
-    baroWire.beginTransmission(0x77);
+    CI_PRINTF("Verifying I2C device at 0x%02X...\n", BARO_I2C_ADDR);
+    baroWire.beginTransmission(BARO_I2C_ADDR);
     uint8_t i2c_error = baroWire.endTransmission();
     CI_LOGF("  I2C probe result: %d (0=found)\n", i2c_error);
 
     // Try reading Product ID register (0x0D) directly
     CI_LOG("Reading PROD_ID register (0x0D) directly...\n");
-    baroWire.beginTransmission(0x77);
+    baroWire.beginTransmission(BARO_I2C_ADDR);
     baroWire.write(0x0D);  // PROD_ID register address
     i2c_error = baroWire.endTransmission(false);  // Repeated start
     CI_LOGF("  Write reg addr result: %d\n", i2c_error);
 
-    uint8_t bytesRead = baroWire.requestFrom((uint8_t)0x77, (uint8_t)1);
+    uint8_t bytesRead = baroWire.requestFrom((uint8_t)BARO_I2C_ADDR, (uint8_t)1);
     CI_LOGF("  Bytes received: %d\n", bytesRead);
     if (bytesRead > 0) {
         uint8_t rawProdId = baroWire.read();
@@ -107,7 +111,7 @@ void setup()
 
     // Initialize DPS3xx
     CI_LOG("\nInitializing DPS3xx via library...\n");
-    baroSensor.begin(baroWire);
+    baroSensor.begin(baroWire, BARO_I2C_ADDR);
 
     // Check if initialization succeeded
     // Note: DPS3xx Product ID is 0x00 per datasheet, so we check revisionId > 0

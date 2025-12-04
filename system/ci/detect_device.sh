@@ -12,10 +12,16 @@ echo "Auto-detecting STM32 device via J-Link..."
 # Run J-Link detection script
 output=$(JLinkExe -AutoConnect 1 -If SWD -Speed 4000 -CommandFile "$JLINK_SCRIPT" 2>&1)
 
-# Extract device ID from DBGMCU_IDCODE register (handles both hex and decimal format)
+# Extract device ID from DBGMCU_IDCODE register
+# Try F4/F7/etc address first (0xE0042000), then H7 address (0x5C001000)
 device_id=$(echo "$output" | grep -E "E0042000.*=" | sed -E 's/.*E0042000 = ([0-9A-Fa-f]+).*/\1/')
 
-if [ -z "$device_id" ]; then
+# If F4 address returned 0, try H7 address
+if [ -z "$device_id" ] || [ "$device_id" = "00000000" ]; then
+    device_id=$(echo "$output" | grep -E "5C001000.*=" | sed -E 's/.*5C001000 = ([0-9A-Fa-f]+).*/\1/')
+fi
+
+if [ -z "$device_id" ] || [ "$device_id" = "00000000" ]; then
     echo "ERROR: Could not detect device ID"
     echo "J-Link output:"
     echo "$output"

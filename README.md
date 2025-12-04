@@ -143,6 +143,7 @@ make check          # Verify environment
 - **MPU6000 v1.0.0**: Betaflight-derived 6-axis IMU library for MPU-6000
 - **MPU9250 v1.0.0**: Betaflight-derived 9-axis IMU library for MPU-9250/9255 with magnetometer
 - **invensense-imu v6.0.3**: Bolder Flight Systems library for MPU-9250/MPU-6500 (I2C and SPI)
+- **xensiv-dps3xx v1.0.0**: Infineon barometric pressure sensor library for DPS310/DPS368 with I2C support, STM32H7 detection, and configurable address
 - **TinyGPSPlus v1.0.3a**: NMEA GPS parser library with CI examples for HardwareSerial and SoftwareSerial
 - **SerialRx v1.0.0**: RC receiver serial protocol parser (IBus, SBUS) with software idle detection and hardware validation
 - **TimerPWM v1.0.0**: Hardware timer PWM for servo/ESC control with 1µs resolution, explicit timer banks, and dual-timer support
@@ -182,7 +183,8 @@ make check          # Verify environment
 │   ├── STM32RTC/          # Real-time clock library
 │   ├── Storage/           # Generic storage abstraction for LittleFS/SDFS
 │   ├── TimerPWM/          # Hardware timer PWM for servo/ESC control
-│   └── TinyGPSPlus/       # NMEA GPS parser (mikalhart/TinyGPSPlus v1.0.3a)
+│   ├── TinyGPSPlus/       # NMEA GPS parser (mikalhart/TinyGPSPlus v1.0.3a)
+│   └── xensiv-dps3xx/     # Infineon barometric pressure sensor (DPS310/DPS368)
 ├── cmake/                 # CMake build system and examples
 ├── extras/
 │   └── betaflight_converter/  # Betaflight → BoardConfig converter with validation
@@ -256,6 +258,7 @@ void setup() {
 - **✅ Complete**: Storage systems (LittleFS, SDFS, Storage abstraction), configuration management (minIni), build/HIL framework, libPrintf integration
 - **✅ Complete**: IMU library (6-DOF and 9-DOF support: ICM42688P, MPU-6000, MPU-9250/9255 with magnetometer calibration)
 - **✅ Complete**: ICM42688P library (low-level TDK drivers with self-test and data acquisition)
+- **✅ Complete**: xensiv-dps3xx library (DPS310/DPS368 barometric pressure sensor with STM32H7 detection)
 - **✅ Complete**: SerialRx library (IBus hardware validated, SBUS implemented, software idle detection)
 - **✅ Complete**: TimerPWM library (hardware PWM for servos/ESCs, 1µs resolution, hardware validated)
 - **✅ Complete**: Betaflight Config Converter (Python tool with PeripheralPins.c validation, ALT variant handling, 53 passing tests)
