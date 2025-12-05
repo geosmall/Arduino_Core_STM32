@@ -4,8 +4,9 @@
 // Compares blocking vs DMA read timing and validates data integrity.
 //
 // Supported targets:
-//   NUCLEO_F411RE:    Uses BoardConfig::sensors I2C (PB9/PB8)
-//   BLACKPILL_F411CE: Uses BoardConfig::sensors I2C (PB9/PB8)
+//   NUCLEO_F411RE:    Uses BoardConfig::sensors I2C (PB9/PB8) - Phase 1
+//   BLACKPILL_F411CE: Uses BoardConfig::sensors I2C (PB9/PB8) - Phase 1
+//   MATEK_H743VI:     Uses BoardConfig::baro I2C (PB11/PB10) - Phase 2
 
 #include <Wire.h>
 #include <ci_log.h>
@@ -22,8 +23,13 @@
   #define BARO_SDA BoardConfig::sensors.sda_pin
   #define BARO_SCL BoardConfig::sensors.scl_pin
   #define TARGET_NAME "BLACKPILL_F411CE"
+#elif defined(ARDUINO_MATEK_H743VI)
+  #include "../../../../targets/MTKS-MATEKH743.h"
+  #define BARO_SDA BoardConfig::baro.sda_pin
+  #define BARO_SCL BoardConfig::baro.scl_pin
+  #define TARGET_NAME "MATEK_H743VI"
 #else
-  #error "Unsupported board. Use NUCLEO_F411RE or BLACKPILL_F411CE."
+  #error "Unsupported board. Use NUCLEO_F411RE, BLACKPILL_F411CE, or MATEK_H743VI."
 #endif
 
 // DPS3xx I2C address

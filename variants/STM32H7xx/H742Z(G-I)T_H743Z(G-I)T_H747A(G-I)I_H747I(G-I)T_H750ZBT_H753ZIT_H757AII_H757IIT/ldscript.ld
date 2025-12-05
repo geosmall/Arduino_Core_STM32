@@ -43,7 +43,8 @@ MEMORY
   DTCMRAM    (xrw)    : ORIGIN = 0x20000000,   LENGTH = 128K
   ITCMRAM    (xrw)    : ORIGIN = 0x00000000,   LENGTH = 64K
   RAM_D1    (xrw)    : ORIGIN = 0x24000000,   LENGTH = LD_MAX_DATA_SIZE
-  RAM_D2    (xrw)    : ORIGIN = 0x30000000,   LENGTH = 288K
+  RAM_D2    (xrw)    : ORIGIN = 0x30000000,   LENGTH = 256K  /* SRAM1 (128K) + SRAM2 (128K) */
+  RAM_D2_NC (xrw)    : ORIGIN = 0x30040000,   LENGTH = 32K   /* SRAM3 - non-cached for DMA */
   RAM_D3    (xrw)    : ORIGIN = 0x38000000,   LENGTH = 64K
   FLASH    (rx)    : ORIGIN = 0x8000000 + LD_FLASH_OFFSET, LENGTH = LD_MAX_SIZE - LD_FLASH_OFFSET
 }
@@ -157,6 +158,15 @@ SECTIONS
     . = . + _Min_Stack_Size;
     . = ALIGN(8);
   } >RAM_D1
+
+  /* DMA buffer section in D2 SRAM3 (non-cached via MPU for DMA coherency) */
+  .dmabuf (NOLOAD) :
+  {
+    . = ALIGN(4);
+    *(.dmabuf)
+    *(.dmabuf*)
+    . = ALIGN(4);
+  } >RAM_D2_NC
 
   /* Remove information from the standard libraries */
   /DISCARD/ :

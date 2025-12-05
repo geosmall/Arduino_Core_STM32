@@ -1498,10 +1498,10 @@ i2c_status_e i2c_master_read_dma(i2c_t *obj, uint8_t dev_address,
   }
 
 #if defined(STM32H7xx)
-  /* Phase 2: Validate buffer is in non-cached D2 SRAM region */
-  /* D2 SRAM1: 0x30000000 - 0x30007FFF (32KB) */
+  /* Validate buffer is in non-cached D2 SRAM3 region (configured via MPU) */
+  /* D2 SRAM3: 0x30040000 - 0x30047FFF (32KB) - non-cached for DMA coherency */
   uint32_t buf_addr = (uint32_t)data;
-  if (buf_addr < 0x30000000 || buf_addr >= 0x30008000) {
+  if (buf_addr < 0x30040000 || buf_addr >= 0x30048000) {
     return I2C_ERROR; /* Buffer not in DMA-safe region */
   }
 #endif
