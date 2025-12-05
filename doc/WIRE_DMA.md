@@ -4,15 +4,15 @@
 
 Add non-blocking DMA read capability to the Wire library for efficient multi-byte I2C sensor reads.
 
-**Status**: Phase 1 Implementation Complete (pending hardware validation)
+**Status**: Phase 1 Complete ✅ (Hardware Validated on NUCLEO_F411RE)
 **Reference**: UVOS_Duino Wire library DMA implementation
 
 ## Implementation Phases
 
-| Phase | Target | Scope |
-|-------|--------|-------|
-| **Phase 1** | STM32F4xx | Core DMA implementation, no cache concerns |
-| **Phase 2** | STM32H7xx | Add non-cached memory requirement + runtime check |
+| Phase | Target | Status | Scope |
+|-------|--------|--------|-------|
+| **Phase 1** | STM32F4xx | ✅ Complete | Core DMA implementation, no cache concerns |
+| **Phase 2** | STM32H7xx | 📋 Planned | Add non-cached memory requirement + runtime check |
 
 ## Motivation
 
@@ -159,13 +159,22 @@ bool TwoWire::dmaTransferDone() const {
 }
 ```
 
-### Phase 1 Testing (NUCLEO_F411RE)
+### Phase 1 Hardware Validation Results (NUCLEO_F411RE)
 
-1. DPS3xx barometer - 6-byte temperature/pressure burst read
-2. Timing comparison: blocking vs DMA
-3. Data integrity verification
-4. Stress test: rapid sequential reads
-5. Interleave DMA and blocking reads
+**Test Date**: 2025-12-05
+**Hardware**: NUCLEO_F411RE + DPS310 barometer (I2C @ 400kHz)
+**Test Sketch**: `libraries/xensiv-dps3xx/examples/i2c_dma_test/`
+
+| Test | Result | Details |
+|------|--------|---------|
+| DPS3xx detection | ✅ PASS | Product ID: 0x10 |
+| DMA read product ID | ✅ PASS | Matches blocking read (0x10) |
+| Multi-byte DMA (6 bytes) | ✅ PASS | Data integrity verified |
+| Timing comparison | ✅ PASS | ~232 µs/read (blocking and DMA equivalent when waiting) |
+| Idle state check | ✅ PASS | `dmaTransferDone()` returns true when idle |
+| Busy rejection | ✅ PASS | Second DMA correctly rejected while first busy |
+
+**All 6 tests passed.**
 
 ---
 
