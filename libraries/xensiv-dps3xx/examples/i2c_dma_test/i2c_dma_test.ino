@@ -18,22 +18,22 @@
   #define BARO_SDA BoardConfig::sensors.sda_pin
   #define BARO_SCL BoardConfig::sensors.scl_pin
   #define TARGET_NAME "NUCLEO_F411RE"
+  #define DPS3XX_ADDR 0x77  // External DPS310 default address
 #elif defined(ARDUINO_BLACKPILL_F411CE)
   #include "../../../../targets/BLACKPILL_F411CE.h"
   #define BARO_SDA BoardConfig::sensors.sda_pin
   #define BARO_SCL BoardConfig::sensors.scl_pin
   #define TARGET_NAME "BLACKPILL_F411CE"
+  #define DPS3XX_ADDR 0x77  // External DPS310 default address
 #elif defined(ARDUINO_MATEK_H743VI)
   #include "../../../../targets/MTKS-MATEKH743.h"
   #define BARO_SDA BoardConfig::baro.sda_pin
   #define BARO_SCL BoardConfig::baro.scl_pin
   #define TARGET_NAME "MATEK_H743VI"
+  #define DPS3XX_ADDR 0x76  // Onboard DPS310 uses alternate address
 #else
   #error "Unsupported board. Use NUCLEO_F411RE, BLACKPILL_F411CE, or MATEK_H743VI."
 #endif
-
-// DPS3xx I2C address
-#define DPS3XX_ADDR 0x77
 
 // DPS3xx registers
 #define DPS3XX_PSR_B2     0x00  // Pressure data (3 bytes: B2, B1, B0)

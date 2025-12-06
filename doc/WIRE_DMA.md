@@ -4,7 +4,7 @@
 
 Add non-blocking DMA read capability to the Wire library for efficient multi-byte I2C sensor reads.
 
-**Status**: Phase 2 Implemented ✅ (Pending Hardware Validation on MATEK_H743VI)
+**Status**: Phase 2 Complete ✅ (Hardware Validated on MATEK_H743VI)
 **Reference**: UVOS_Duino Wire library DMA implementation
 
 ## Implementation Phases
@@ -12,7 +12,7 @@ Add non-blocking DMA read capability to the Wire library for efficient multi-byt
 | Phase | Target | Status | Scope |
 |-------|--------|--------|-------|
 | **Phase 1** | STM32F4xx | ✅ Complete | Core DMA implementation, no cache concerns |
-| **Phase 2** | STM32H7xx | ✅ Implemented | Non-cached D2 SRAM3 via MPU, pending hardware validation |
+| **Phase 2** | STM32H7xx | ✅ Complete | Non-cached D2 SRAM3 via MPU, hardware validated |
 
 ## Motivation
 
@@ -312,15 +312,28 @@ SECTIONS
 #endif
 ```
 
-### Phase 2 Test Plan (MATEK_H743VI)
+### Phase 2 Hardware Validation Results (MATEK_H743VI)
 
-| Test | Description |
-|------|-------------|
-| Rejection test | Verify `requestFromDMA()` returns false for normal buffers |
-| DMA read test | DPS310 product ID with `WIRE_DMA_BUFFER` |
-| Multi-byte test | 6-byte pressure/temp burst read |
-| Data integrity | Compare DMA vs blocking reads |
-| Cache stress | Repeated reads with D-Cache active |
+**Test Date**: 2025-12-06
+**Hardware**: MATEK_H743VI (STM32H743VIT6) + onboard DPS310 barometer (I2C2 @ 400kHz)
+**Test Sketch**: `libraries/xensiv-dps3xx/examples/i2c_dma_test/`
+
+| Test | Result | Details |
+|------|--------|---------|
+| DPS3xx detection | ✅ PASS | Product ID: 0x10 (address 0x76) |
+| DMA read product ID | ✅ PASS | Matches blocking read (0x10) |
+| Multi-byte DMA (6 bytes) | ✅ PASS | Data integrity verified (F6 14 2E 09 99 60) |
+| Timing comparison | ✅ PASS | ~160 µs/read (blocking and DMA equivalent when waiting) |
+| Idle state check | ✅ PASS | `dmaTransferDone()` returns true when idle |
+| Busy rejection | ✅ PASS | Second DMA correctly rejected while first busy |
+
+**All 6 tests passed.**
+
+**Key Observations**:
+- D2 SRAM3 non-cached region working correctly (no cache coherency issues)
+- `WIRE_DMA_BUFFER` macro properly places buffers in `.dmabuf` section
+- I2C2 DMA (Stream 2) functioning on H7
+- ~160 µs/read at 400kHz is faster than F4 (~232 µs) due to H7's higher clock speed
 
 ---
 
