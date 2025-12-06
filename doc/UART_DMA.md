@@ -4,8 +4,8 @@
 
 Analysis and implementation plan for adding DMA-based UART receive capability to the Arduino STM32 core, specifically targeting GPS receivers and other continuous serial data streams.
 
-**Status**: Planning / Analysis Complete
-**Priority**: Future enhancement
+**Status**: Implementation Ready
+**Priority**: Active development (uart-rx-dma branch)
 
 ## Motivation
 
@@ -147,16 +147,68 @@ void loop() {
 
 ## Implementation Plan
 
+### Reference Implementation: UVOS_Duino
+
+**Source**: `/home/geo/src/UVOS_Duino/cores/arduino/per/uart.cpp`
+
+Key patterns from UVOS:
+- `DmaListenStart()` - Enables circular DMA + IDLE interrupt
+- `UART_CheckRxListener()` - Calculates new data range on TC/HT/IDLE
+- Uses `LL_DMA_GetDataLength()` for position: `head = bufSize - remaining`
+- Handles wraparound: splits callback when `pos < old_pos`
+- H7 cache: `SCB_InvalidateDCache_by_Addr()` before reading DMA buffer
+- Uses `FIFO<uint8_t>` for lock-free software ring buffer
+
 ### Phase 1: STM32F4xx (No Cache Concerns)
 
 **Files to Modify:**
 
 | File | Changes |
 |------|---------|
-| `cores/arduino/HardwareSerial.h` | Add DMA state, new methods |
-| `cores/arduino/HardwareSerial.cpp` | Implement beginDMA(), DMA-aware available()/read() |
-| `cores/arduino/stm32/uart.h` | Add DMA structures to serial_t |
-| `cores/arduino/stm32/uart.c` | Add DMA init, IDLE IRQ handler |
+| `cores/arduino/util/FIFO.h` | **NEW** - Import from UVOS_Duino (with fixes) |
+| `cores/arduino/stm32/uart.h` | Add DMA fields to `serial_s` struct |
+| `cores/arduino/stm32/uart.c` | Add DMA init, circular RX, IDLE IRQ handler |
+| `cores/arduino/HardwareSerial.h` | Add `beginDMA()`, `SERIAL_DMA_BUFFER` macro, FIFO member |
+| `cores/arduino/HardwareSerial.cpp` | Implement `beginDMA()`, DMA-aware `available()`/`read()` |
+
+**Step 1: Add DMA state to uart.h (`serial_s` struct)**
+```c
+#if defined(HAL_DMA_MODULE_ENABLED)
+  DMA_HandleTypeDef hdma_rx;
+  uint8_t *dma_rx_buf;
+  size_t dma_rx_size;
+  volatile size_t dma_rx_last_pos;  // Last processed position (UVOS pattern)
+  volatile uint8_t dma_listen_mode; // 0=interrupt, 1=DMA listen
+#endif
+```
+
+**Step 2: Add DMA functions to uart.c**
+```c
+// Start circular DMA RX with IDLE detection (UVOS DmaListenStart pattern)
+int uart_dma_listen_start(serial_t *obj, uint8_t *buf, size_t size);
+
+// Stop DMA listening
+void uart_dma_listen_stop(serial_t *obj);
+
+// Get current DMA write position (head)
+static inline size_t uart_dma_get_head(serial_t *obj) {
+  return obj->dma_rx_size - __HAL_DMA_GET_COUNTER(&obj->hdma_rx);
+}
+
+// Check for new data and push to FIFO (called from IRQ)
+static void uart_dma_check_rx(serial_t *obj);
+```
+
+**Step 3: IDLE + TC + HT Interrupt Handling**
+```c
+// IDLE detection in UART IRQ
+if (obj->dma_listen_mode && __HAL_UART_GET_FLAG(&huart, UART_FLAG_IDLE)) {
+  uart_dma_check_rx(obj);
+  __HAL_UART_CLEAR_IDLEFLAG(&huart);
+}
+
+// Also handle in HAL_UART_RxCpltCallback (TC) and HAL_UART_RxHalfCpltCallback (HT)
+```
 
 **DMA Channel Mapping (F4):**
 
@@ -168,10 +220,11 @@ void loop() {
 
 **Key Implementation Details:**
 
-1. **Circular DMA Mode**: `DMA_CIRCULAR` for continuous reception
+1. **Circular DMA Mode**: `hdma_rx.Init.Mode = DMA_CIRCULAR`
 2. **IDLE Line Interrupt**: Enable `USART_IT_IDLE`, clear with `__HAL_UART_CLEAR_IDLEFLAG()`
-3. **Head Position**: Read from `__HAL_DMA_GET_COUNTER()` to find DMA write position
-4. **Tail Position**: Track in software, advance on read()
+3. **Head Position**: `bufSize - __HAL_DMA_GET_COUNTER(hdma_rx)`
+4. **Tail Position**: Tracked in `dma_rx_last_pos`, advances after processing
+5. **FIFO Push**: DMA callback pushes bytes to lock-free FIFO via `PutWithOverwrite()`
 
 ### Phase 2: STM32H7xx (D-Cache Coherency)
 
@@ -224,6 +277,78 @@ if (__HAL_UART_GET_FLAG(&huart, UART_FLAG_IDLE)) {
 - **STM32 AN3109**: "Communication peripheral FIFO emulation with DMA"
 - **Wire DMA (this repo)**: `doc/WIRE_DMA.md` - similar pattern for I2C
 
+## FIFO.h Utility - Import with Fixes
+
+Import `FIFO.h` from UVOS_Duino (`/home/geo/src/UVOS_Duino/cores/arduino/util/FIFO.h`) with the following bug fixes:
+
+### Bug 1: Copy Constructor (HIGH priority)
+
+**Original** (Lines 171-175):
+```cpp
+// BUG: Calls operator= before base class initialized - undefined behavior
+FIFO(const FIFO<T, otherCapacity>& other) { *this = other; }
+```
+
+**Fix**:
+```cpp
+FIFO(const FIFO<T, otherCapacity>& other)
+    : FIFOBase<T>(buffer_, capacity + 1)
+{
+    FIFOBase<T>::operator=(other);
+}
+```
+
+### Bug 2: `PutWithOverwrite()` Race Condition (Medium)
+
+**Original** (Lines 75-102):
+- Current order: advances tail → writes data → advances head
+- Consumer could read stale data between tail advance and data write
+
+**Fix** - Write data BEFORE advancing tail:
+```cpp
+bool PutWithOverwrite(T const el)
+{
+    size_t h = head_.load(std::memory_order_relaxed);
+    size_t next_head = h + 1;
+    if (next_head == end_) {
+        next_head = 0;
+    }
+
+    size_t t = tail_.load(std::memory_order_acquire);
+
+    buf_[h] = el;  // Write data FIRST
+
+    if (next_head == t) {
+        // Buffer full - advance tail to overwrite oldest
+        size_t next_tail = t + 1;
+        if (next_tail == end_) {
+            next_tail = 0;
+        }
+        tail_.store(next_tail, std::memory_order_release);
+    }
+
+    head_.store(next_head, std::memory_order_release);
+    return true;
+}
+```
+
+### FIFO Usage in HardwareSerial
+
+```cpp
+#include "util/FIFO.h"
+uvos::FIFO<uint8_t, SERIAL_RX_BUFFER_SIZE> dma_rx_fifo_;
+
+// In DMA callback (uart_dma_check_rx):
+dma_rx_fifo_.PutWithOverwrite(byte);  // Overwrites oldest if full
+
+// In available():
+return dma_rx_fifo_.GetNumElements();
+
+// In read():
+uint8_t b;
+return dma_rx_fifo_.Get(b) ? b : -1;
+```
+
 ## Decision Log
 
 | Date | Decision | Rationale |
@@ -232,3 +357,6 @@ if (__HAL_UART_GET_FLAG(&huart, UART_FLAG_IDLE)) {
 | 2025-12-06 | Use circular DMA + IDLE detection | Industry standard (Betaflight, UVOS) |
 | 2025-12-06 | Reuse H7 D2 SRAM3 region | Already configured for Wire DMA |
 | 2025-12-06 | Document before implement | Learn from Wire DMA complexity |
+| 2025-12-06 | Import FIFO.h with fixes | Lock-free atomics, same pattern as UVOS |
+| 2025-12-06 | Fix FIFO copy constructor | Original has undefined behavior |
+| 2025-12-06 | Fix PutWithOverwrite race | Write data before advancing tail |
