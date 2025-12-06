@@ -4,8 +4,8 @@
 
 Analysis and implementation plan for adding DMA-based UART receive capability to the Arduino STM32 core, specifically targeting GPS receivers and other continuous serial data streams.
 
-**Status**: Implementation Ready
-**Priority**: Active development (uart-rx-dma branch)
+**Status**: Phase 1 In Progress
+**Branch**: `uart-rx-dma`
 
 ## Motivation
 
@@ -163,13 +163,13 @@ Key patterns from UVOS:
 
 **Files to Modify:**
 
-| File | Changes |
-|------|---------|
-| `cores/arduino/util/FIFO.h` | **NEW** - Import from UVOS_Duino (with fixes) |
-| `cores/arduino/stm32/uart.h` | Add DMA fields to `serial_s` struct |
-| `cores/arduino/stm32/uart.c` | Add DMA init, circular RX, IDLE IRQ handler |
-| `cores/arduino/HardwareSerial.h` | Add `beginDMA()`, `SERIAL_DMA_BUFFER` macro, FIFO member |
-| `cores/arduino/HardwareSerial.cpp` | Implement `beginDMA()`, DMA-aware `available()`/`read()` |
+| File | Changes | Status |
+|------|---------|--------|
+| `cores/arduino/util/FIFO.h` | Import from UVOS_Duino (with fixes) | ✅ Complete |
+| `cores/arduino/stm32/uart.h` | Add DMA fields to `serial_s` struct | 📋 Pending |
+| `cores/arduino/stm32/uart.c` | Add DMA init, circular RX, IDLE IRQ handler | 📋 Pending |
+| `cores/arduino/HardwareSerial.h` | Add `beginDMA()`, `SERIAL_DMA_BUFFER` macro, FIFO member | 📋 Pending |
+| `cores/arduino/HardwareSerial.cpp` | Implement `beginDMA()`, DMA-aware `available()`/`read()` | 📋 Pending |
 
 **Step 1: Add DMA state to uart.h (`serial_s` struct)**
 ```c
@@ -360,3 +360,4 @@ return dma_rx_fifo_.Get(b) ? b : -1;
 | 2025-12-06 | Import FIFO.h with fixes | Lock-free atomics, same pattern as UVOS |
 | 2025-12-06 | Fix FIFO copy constructor | Original has undefined behavior |
 | 2025-12-06 | Fix PutWithOverwrite race | Write data before advancing tail |
+| 2025-12-06 | FIFO.h validated | 15/15 unit tests passing on NUCLEO_F411RE |
