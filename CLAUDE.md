@@ -12,6 +12,12 @@ This is a fork of the upstream [stm32duino/Arduino_Core_STM32](https://github.co
 - **Robotics libraries** - Complete suite of UAV flight controller libraries integrated directly into the core
 - **HIL testing framework** - Production-grade CI/CD workflow with build traceability
 
+**IMPORTANT - Development Environment Symlink:**
+The installed Arduino STM32 core at `~/.arduino15/packages/STMicroelectronics/hardware/stm32/2.7.1` is a **symlink** to this repository (`/home/geo/Arduino/Arduino_Core_STM32`). This means:
+- There is NO library conflict between "installed" and "local" libraries - they are the same files
+- When debugging library issues, don't chase phantom "library priority" problems
+- All paths resolving to `.arduino15/.../stm32/2.7.1/` actually point to this repo
+
 ### Repository Structure
 
 - `cores/arduino/` - Core Arduino implementation for STM32

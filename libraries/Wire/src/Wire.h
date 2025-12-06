@@ -131,8 +131,23 @@ class TwoWire : public Stream {
     void onRequest(cb_function_request_t callback);
 
 #if defined(HAL_DMA_MODULE_ENABLED)
-    // DMA-based non-blocking read methods
+    /**
+     * @brief Start a non-blocking DMA read into user-supplied buffer.
+     * @param address 7-bit I2C slave address
+     * @param buf Pointer to user buffer (on H7, must be in non-cached memory via WIRE_DMA_BUFFER)
+     * @param len Number of bytes to read
+     * @param stopBit Generate STOP after read (default true, currently ignored)
+     * @return true if DMA started successfully, false otherwise
+     * @note IMPORTANT: Requires bus to be idle (after STOP condition). Using
+     *       endTransmission(false) (repeated start) before this call will fail.
+     *       Always use endTransmission() (with STOP) before requestFromDMA().
+     */
     bool requestFromDMA(uint8_t address, uint8_t* buf, uint32_t len, bool stopBit = true);
+
+    /**
+     * @brief Check if DMA transfer is complete.
+     * @return true if transfer done (or no transfer in progress), false if busy
+     */
     bool dmaTransferDone() const;
 #endif /* HAL_DMA_MODULE_ENABLED */
 

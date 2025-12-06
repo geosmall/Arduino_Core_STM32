@@ -45,6 +45,32 @@ while (!Wire.dmaTransferDone()) {
 }
 ```
 
+## Usage Requirements
+
+### STOP Condition Required Before DMA
+
+**CRITICAL**: `requestFromDMA()` requires the I2C bus to be idle (after STOP condition). Using `endTransmission(false)` (repeated start) before DMA will fail.
+
+**Why?** The STM32 HAL `HAL_I2C_Master_Receive_DMA()` checks `I2C_FLAG_BUSY` and returns `HAL_BUSY` if set. A repeated start leaves the bus held with this flag set.
+
+```cpp
+// ❌ WRONG - Repeated start causes DMA to fail
+Wire.beginTransmission(ADDR);
+Wire.write(REG);
+Wire.endTransmission(false);  // Repeated start - bus still held
+Wire.requestFromDMA(...);     // Returns false - I2C_FLAG_BUSY is set
+
+// ✅ CORRECT - STOP condition releases bus for DMA
+Wire.beginTransmission(ADDR);
+Wire.write(REG);
+Wire.endTransmission();       // STOP - bus released
+Wire.requestFromDMA(...);     // Works - bus is idle
+```
+
+**Scope**: This is a **general STM32 HAL limitation** affecting all families (F4, F7, H7, G4, etc.) - the same `I2C_FLAG_BUSY` check exists in all HAL drivers.
+
+**Note**: Blocking `requestFrom()` works with repeated start because it uses `HAL_I2C_Master_Seq_Receive_IT()` which accepts `XferOptions`. The DMA variant uses `HAL_I2C_Master_Receive_DMA()` which requires an idle bus.
+
 ## Architecture
 
 ### Current Wire Stack
