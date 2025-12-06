@@ -83,6 +83,16 @@ struct serial_s {
   volatile uint16_t rx_head;
   volatile uint16_t tx_tail;
   size_t tx_size;
+#if defined(HAL_DMA_MODULE_ENABLED)
+  /* DMA RX state for circular DMA listen mode */
+  DMA_HandleTypeDef hdma_rx;
+  uint8_t *dma_rx_buf;              /* User-provided DMA buffer */
+  size_t dma_rx_size;               /* DMA buffer size */
+  volatile size_t dma_rx_last_pos;  /* Last processed position (UVOS pattern) */
+  volatile uint8_t dma_listen_mode; /* 0=interrupt mode, 1=DMA listen mode */
+  volatile int dma_last_error;      /* Last DMA error code for debugging */
+  void (*dma_rx_callback)(struct serial_s *, uint8_t *, size_t); /* Callback for new data */
+#endif
 };
 
 /* Exported constants --------------------------------------------------------*/
@@ -250,6 +260,43 @@ void uart_enable_tx(serial_t *obj);
 void uart_enable_rx(serial_t *obj);
 
 size_t uart_debug_write(uint8_t *data, uint32_t size);
+
+#if defined(HAL_DMA_MODULE_ENABLED)
+/* DMA Listen Mode functions for circular RX with IDLE detection */
+
+/**
+ * @brief  Callback type for DMA circular RX data notification
+ * @param  obj : pointer to serial_t structure
+ * @param  data : pointer to received data
+ * @param  len : number of bytes received
+ */
+typedef void (*uart_dma_rx_callback_t)(serial_t *obj, uint8_t *data, size_t len);
+
+/**
+ * @brief  Start DMA-based circular RX with IDLE line detection
+ * @param  obj : pointer to serial_t structure
+ * @param  buf : user-provided DMA buffer (must be in DMA-safe memory on H7)
+ * @param  size : size of the DMA buffer
+ * @param  callback : function called when new data arrives (TC/HT/IDLE)
+ * @retval 0 on success, -1 on error
+ */
+int uart_dma_listen_start(serial_t *obj, uint8_t *buf, size_t size,
+                          uart_dma_rx_callback_t callback);
+
+/**
+ * @brief  Stop DMA listening mode
+ * @param  obj : pointer to serial_t structure
+ * @retval None
+ */
+void uart_dma_listen_stop(serial_t *obj);
+
+/**
+ * @brief  Check if DMA listen mode is active
+ * @param  obj : pointer to serial_t structure
+ * @retval 1 if listening, 0 otherwise
+ */
+uint8_t uart_dma_is_listening(serial_t *obj);
+#endif /* HAL_DMA_MODULE_ENABLED */
 
 #endif /* HAL_UART_MODULE_ENABLED  && !HAL_UART_MODULE_ONLY */
 #ifdef __cplusplus

@@ -652,4 +652,94 @@ void HardwareSerial::enableHalfDuplexRx(void)
   }
 }
 
+#if defined(HAL_DMA_MODULE_ENABLED)
+/*
+ * DMA Listen Mode Implementation
+ * Circular DMA + IDLE line detection for continuous streams (GPS, telemetry)
+ * Data is pushed to the standard RX ring buffer from DMA callback
+ */
+
+/**
+ * @brief  DMA RX callback - pushes received data to the RX ring buffer
+ * @param  obj : pointer to serial_t structure
+ * @param  data : pointer to received data
+ * @param  len : number of bytes received
+ */
+void HardwareSerial::_dma_rx_callback(serial_t *obj, uint8_t *data, size_t len)
+{
+  if (obj == NULL || data == NULL || len == 0) {
+    return;
+  }
+
+  /* Push each byte to the standard RX ring buffer */
+  for (size_t i = 0; i < len; i++) {
+    rx_buffer_index_t next = (rx_buffer_index_t)(obj->rx_head + 1) % SERIAL_RX_BUFFER_SIZE;
+
+    /* If buffer is not full, store the byte */
+    if (next != obj->rx_tail) {
+      obj->rx_buff[obj->rx_head] = data[i];
+      obj->rx_head = next;
+    }
+    /* else: buffer overflow - drop byte (same behavior as interrupt mode) */
+  }
+}
+
+/**
+ * @brief  Start DMA-based circular RX with IDLE line detection
+ * @param  baud : baud rate
+ * @param  rxBuffer : user-provided DMA buffer (must be in DMA-safe memory on H7)
+ * @param  rxBufferSize : size of the DMA buffer
+ * @retval true on success, false on error
+ */
+bool HardwareSerial::beginDMA(unsigned long baud, uint8_t *rxBuffer, size_t rxBufferSize)
+{
+  return beginDMA(baud, SERIAL_8N1, rxBuffer, rxBufferSize);
+}
+
+/**
+ * @brief  Start DMA-based circular RX with IDLE line detection
+ * @param  baud : baud rate
+ * @param  config : serial config (data bits, parity, stop bits)
+ * @param  rxBuffer : user-provided DMA buffer (must be in DMA-safe memory on H7)
+ * @param  rxBufferSize : size of the DMA buffer
+ * @retval true on success, false on error
+ */
+bool HardwareSerial::beginDMA(unsigned long baud, uint8_t config, uint8_t *rxBuffer, size_t rxBufferSize)
+{
+  /* First initialize UART normally */
+  begin(baud, config);
+
+  /* Then start DMA listen mode */
+  int result = uart_dma_listen_start(&_serial, rxBuffer, rxBufferSize, _dma_rx_callback);
+  if (result != 0) {
+    /* Store error code for debugging - can be retrieved via getLastDMAError() */
+    _serial.dma_last_error = result;
+    return false;
+  }
+
+  _serial.dma_last_error = 0;
+  return true;
+}
+
+/**
+ * @brief  Stop DMA listening mode and revert to interrupt-based RX
+ */
+void HardwareSerial::endDMA(void)
+{
+  uart_dma_listen_stop(&_serial);
+
+  /* Re-attach standard interrupt RX callback */
+  uart_attach_rx_callback(&_serial, _rx_complete_irq);
+}
+
+/**
+ * @brief  Check if DMA listen mode is active
+ * @retval true if listening, false otherwise
+ */
+bool HardwareSerial::isDMAListening(void)
+{
+  return uart_dma_is_listening(&_serial) != 0;
+}
+#endif /* HAL_DMA_MODULE_ENABLED */
+
 #endif // HAL_UART_MODULE_ENABLED && !HAL_UART_MODULE_ONLY

@@ -1,0 +1,11 @@
+# build.opt - Sketch-specific compiler flags for dRehmFlight
+#
+# This file is automatically read by the STM32 Arduino core.
+# Flags are passed directly to the compiler (one per line).
+#
+# Reference: platform.txt uses @{build.opt.path} to include this file
+
+# Increase serial RX buffer for GPS NMEA streams
+# GPS outputs bursts of 5-10 NMEA sentences (~400 bytes) per update
+# 256 bytes provides margin when flight loop is busy with IMU/motors
+-DSERIAL_RX_BUFFER_SIZE=256

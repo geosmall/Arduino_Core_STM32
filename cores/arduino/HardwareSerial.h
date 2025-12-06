@@ -44,7 +44,9 @@
   #define SERIAL_TX_BUFFER_SIZE 64
 #endif
 #if !defined(SERIAL_RX_BUFFER_SIZE)
-  #define SERIAL_RX_BUFFER_SIZE 64
+  // 128 bytes handles GPS NMEA sentences (max 82 bytes) and most protocols
+  // STM32 has plenty of RAM compared to 8-bit AVRs where 64 was the default
+  #define SERIAL_RX_BUFFER_SIZE 128
 #endif
 #if (SERIAL_TX_BUFFER_SIZE>256)
   typedef uint16_t tx_buffer_index_t;
@@ -55,6 +57,14 @@
   typedef uint16_t rx_buffer_index_t;
 #else
   typedef uint8_t rx_buffer_index_t;
+#endif
+
+// DMA buffer placement macro for H7 (non-cached D2 SRAM3)
+// On other families, no special placement needed
+#if defined(STM32H7xx)
+  #define SERIAL_DMA_BUFFER __attribute__((section(".dmabuf")))
+#else
+  #define SERIAL_DMA_BUFFER
 #endif
 
 // A bool should be enough for this
@@ -183,12 +193,28 @@ class HardwareSerial : public Stream {
     }
 #endif // HAL_UART_MODULE_ENABLED && !HAL_UART_MODULE_ONLY
 
+#if defined(HAL_DMA_MODULE_ENABLED)
+    // DMA-based circular RX for GPS and continuous serial streams
+    // Buffer must be in DMA-safe memory on H7 (use SERIAL_DMA_BUFFER macro)
+    bool beginDMA(unsigned long baud, uint8_t *rxBuffer, size_t rxBufferSize);
+    bool beginDMA(unsigned long baud, uint8_t config, uint8_t *rxBuffer, size_t rxBufferSize);
+    void endDMA(void);
+    bool isDMAListening(void);
+    // Get last DMA error code for debugging (-1 to -7)
+    int getLastDMAError(void) { return _serial.dma_last_error; }
+#endif // HAL_DMA_MODULE_ENABLED
+
   private:
     bool _rx_enabled;
     uint8_t _config;
     unsigned long _baud;
     void init(PinName _rx, PinName _tx, PinName _rts = NC, PinName _cts = NC);
     void configForLowPower(void);
+
+#if defined(HAL_DMA_MODULE_ENABLED)
+    // DMA RX callback - pushes data to FIFO
+    static void _dma_rx_callback(serial_t *obj, uint8_t *data, size_t len);
+#endif
 };
 
 #if defined(USART1)

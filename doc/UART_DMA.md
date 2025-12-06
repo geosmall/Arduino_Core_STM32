@@ -2,10 +2,37 @@
 
 ## Overview
 
-Analysis and implementation plan for adding DMA-based UART receive capability to the Arduino STM32 core, specifically targeting GPS receivers and other continuous serial data streams.
+DMA-based UART receive capability for the Arduino STM32 core, targeting GPS receivers and continuous serial data streams.
 
-**Status**: Phase 1 In Progress
+**Status**: Phase 1 Complete ✅ (STM32F4xx)
 **Branch**: `uart-rx-dma`
+
+## Implementation Summary
+
+### API Added to HardwareSerial
+
+```cpp
+// Start DMA circular RX (buffer must use SERIAL_DMA_BUFFER on H7)
+bool beginDMA(unsigned long baud, uint8_t *rxBuffer, size_t rxBufferSize);
+
+// Stop DMA, revert to interrupt mode
+void endDMA(void);
+
+// Check if DMA mode is active
+bool isDMAListening(void);
+```
+
+### Hardware Validated (NUCLEO_F411RE)
+- 50/50 stress tests passed
+- Mode switching: INT → DMA → INT → DMA ✓
+- NMEA-sized payloads (82 bytes) ✓
+- DMA buffer wraparound (635 bytes through 256-byte buffer) ✓
+
+### Key Changes
+- `SERIAL_RX_BUFFER_SIZE` default: 64 → 128 bytes
+- Circular DMA + IDLE line detection
+- STM32F4xx: USART1/2/6 supported
+- STM32H7xx: DMAMUX support ready (untested)
 
 ## Motivation
 
