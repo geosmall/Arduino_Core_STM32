@@ -12,6 +12,70 @@ Integrate UART DMA RX into two key subsystems:
 
 ---
 
+## How DMA RX Works (Data Flow)
+
+The key insight is that **DMA is transparent to the application layer**. The polling API (`available()`, `read()`) remains identical.
+
+### Interrupt Mode (Traditional)
+```
+UART RX pin → RXNE interrupt (per byte) → ISR pushes to ring buffer → available()/read()
+             ~11,500 IRQs/sec @ 115200 baud
+```
+
+### DMA Mode (New)
+```
+UART RX pin → DMA fills circular buffer (zero CPU) → IDLE interrupt → batch copy to ring buffer → available()/read()
+             ~100 IRQs/sec (IDLE only)
+```
+
+### Why SerialRx Doesn't Need Callback Changes
+
+The `_dma_rx_callback` in HardwareSerial.cpp (line 668) pushes received bytes to the **same ring buffer** used by interrupt mode:
+
+```cpp
+void HardwareSerial::_dma_rx_callback(serial_t *obj, uint8_t *data, size_t len)
+{
+    for (size_t i = 0; i < len; i++) {
+        obj->rx_buff[obj->rx_head] = data[i];  // Same ring buffer as interrupt mode
+        obj->rx_head = next;
+    }
+}
+```
+
+This means SerialRx's `update()` loop stays **exactly the same**:
+```cpp
+void SerialRx::update() {
+    while (serial_->available()) {           // Works identically
+        parser_->ParseByte(serial_->read()); // Works identically
+    }
+}
+```
+
+**The only change is in `begin()`** - routing to `beginDMA()` instead of `begin()`.
+
+### GPS with TinyGPSPlus - Same Principle
+
+TinyGPSPlus uses a simple byte-by-byte `encode()` pattern:
+```cpp
+void getGPSdata() {
+    while (SerialGPS.available()) {
+        gps.encode(SerialGPS.read());  // Feed NMEA bytes to parser
+    }
+}
+```
+
+With DMA, this code is **unchanged**. The DMA fills the ring buffer in the background, and `available()`/`read()` work identically. Benefits:
+
+| Metric | Interrupt Mode | DMA Mode |
+|--------|---------------|----------|
+| IRQs per NMEA sentence (82 bytes) | 82 | 1 (IDLE) |
+| CPU during byte reception | ISR per byte | Zero |
+| Latency to process | Loop rate dependent | IDLE triggers immediate |
+
+**GPS at 9600 baud**: ~960 bytes/sec = 960 IRQs/sec → reduced to ~12 IRQs/sec (one per sentence)
+
+---
+
 ## Part 1: SerialRX DMA Integration
 
 ### Files to Modify
