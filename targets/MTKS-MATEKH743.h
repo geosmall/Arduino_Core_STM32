@@ -54,6 +54,9 @@ namespace BoardConfig {
   // RC Receiver: IBus/SBUS (adjust protocol based on actual wiring)
   static constexpr RCReceiverConfig rc_receiver{PA10, PA9, 115200, 1000, 300};
 
+  // GPS: USART2 (PD5/PD6)
+  static constexpr GPSConfig gps{PD5, PD6, 9600};
+
   // Servo outputs - 50 Hz PWM for standard servos
   namespace Servo {
     static constexpr uint32_t frequency_hz = 50;

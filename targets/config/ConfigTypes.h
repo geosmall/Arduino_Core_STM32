@@ -122,6 +122,15 @@ namespace BoardConfig {
     const uint32_t timeout_ms;          // Failsafe timeout in milliseconds
     const uint32_t idle_threshold_us;   // Software idle detection threshold (0=disabled)
   };
+
+  struct GPSConfig {
+    constexpr GPSConfig(uint32_t tx, uint32_t rx, uint32_t baud = 9600)
+      : tx_pin(tx), rx_pin(rx), baud_rate(baud) {}
+
+    const uint32_t tx_pin;    // UART TX pin (to GPS RX)
+    const uint32_t rx_pin;    // UART RX pin (from GPS TX)
+    const uint32_t baud_rate; // GPS baudrate (typically 9600 or 115200)
+  };
 }
 
 // Motor abstraction for runtime timer grouping

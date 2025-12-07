@@ -40,6 +40,9 @@ namespace BoardConfig {
   // RC Receiver: IBus/SBUS (adjust protocol based on actual wiring)
   static constexpr RCReceiverConfig rc_receiver{PB7, PB6, 115200, 1000, 300};
 
+  // GPS: USART2 (directly on Nucleo Arduino header D1/D0)
+  static constexpr GPSConfig gps{PA2, PA3, 9600};
+
   // Servo outputs - none configured (flight controller config)
   // See NUCLEO_F411RE_JHEF411_SERVOS.h for variant with servo support
   namespace Servo {
