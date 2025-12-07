@@ -19,6 +19,42 @@
 extern "C" {
 #endif
 
+/*******************************************************************************
+ * STM32H7xx DMA buffer region MPU configuration
+ * Configure D2 SRAM3 (32KB @ 0x30040000) as non-cached for DMA coherency
+ *
+ * D2 SRAM Layout:
+ *   SRAM1: 0x30000000 - 0x3001FFFF (128KB) - general purpose, cached
+ *   SRAM2: 0x30020000 - 0x3003FFFF (128KB) - general purpose, cached
+ *   SRAM3: 0x30040000 - 0x30047FFF (32KB)  - DMA buffers, non-cached
+ *
+ * Using SRAM3 provides clean separation without fragmenting SRAM1/SRAM2.
+ ******************************************************************************/
+#if defined(STM32H7xx) && defined(HAL_DMA_MODULE_ENABLED)
+static void MPU_Config_DMA_Region(void)
+{
+  MPU_Region_InitTypeDef MPU_InitStruct = {0};
+
+  HAL_MPU_Disable();
+
+  /* D2 SRAM3 (32KB): 0x30040000 - 0x30047FFF as non-cached, shareable */
+  MPU_InitStruct.Enable = MPU_REGION_ENABLE;
+  MPU_InitStruct.Number = MPU_REGION_NUMBER0;
+  MPU_InitStruct.BaseAddress = 0x30040000;
+  MPU_InitStruct.Size = MPU_REGION_SIZE_32KB;
+  MPU_InitStruct.SubRegionDisable = 0x0;
+  MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL1;
+  MPU_InitStruct.AccessPermission = MPU_REGION_FULL_ACCESS;
+  MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_DISABLE;
+  MPU_InitStruct.IsShareable = MPU_ACCESS_SHAREABLE;
+  MPU_InitStruct.IsCacheable = MPU_ACCESS_NOT_CACHEABLE;
+  MPU_InitStruct.IsBufferable = MPU_ACCESS_NOT_BUFFERABLE;
+
+  HAL_MPU_ConfigRegion(&MPU_InitStruct);
+  HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
+}
+#endif /* STM32H7xx && HAL_DMA_MODULE_ENABLED */
+
 #if defined(HAL_CRC_MODULE_ENABLED)
 CRC_HandleTypeDef hcrc = {.Instance =
 #if defined(CRC2_BASE)
@@ -62,6 +98,11 @@ void hw_config_init(void)
 
   /* Initialize the HAL */
   HAL_Init();
+
+#if defined(STM32H7xx) && defined(HAL_DMA_MODULE_ENABLED)
+  /* Configure D2 SRAM3 as non-cached for DMA buffers */
+  MPU_Config_DMA_Region();
+#endif
 
   configHSECapacitorTuning();
 

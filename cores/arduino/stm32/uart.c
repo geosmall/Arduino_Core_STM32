@@ -966,6 +966,16 @@ int uart_dma_listen_start(serial_t *obj, uint8_t *buf, size_t size,
     return -2;  /* UART handler not initialized */
   }
 
+#if defined(STM32H7xx)
+  /* H7: Validate buffer is in non-cached D2 SRAM3 region (0x30040000-0x30047FFF)
+   * Buffers must use SERIAL_DMA_BUFFER attribute for DMA coherency.
+   * This matches the MPU configuration done for Wire DMA in hw_config.c */
+  uint32_t buf_addr = (uint32_t)buf;
+  if (buf_addr < 0x30040000 || buf_addr >= 0x30048000) {
+    return -8;  /* Buffer not in DMA-safe D2 SRAM3 region */
+  }
+#endif
+
   /* Store DMA configuration */
   obj->dma_rx_buf = buf;
   obj->dma_rx_size = size;

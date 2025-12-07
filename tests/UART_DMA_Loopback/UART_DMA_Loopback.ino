@@ -7,9 +7,9 @@
  * 3. Buffer wraparound in circular DMA mode
  *
  * Hardware setup:
- * - NUCLEO_F411RE: Jumper wire from PB6 (TX) to PB7 (RX)
- * - PB6 = D10 on Arduino header
- * - PB7 = CN7 pin 21 on Morpho header
+ * - NUCLEO_F411RE: Jumper D1 (PB6/TX) to D0 (PB7/RX) on CN9 Arduino header
+ * - NUCLEO_H753ZI: Jumper D1 (PB6/TX) to D0 (PB7/RX) on CN8 Arduino header
+ *   Note: H7 uses ALT pins (PB6_ALT2/PB7_ALT1) for USART1 instead of LPUART1
  *
  * Run with: ./system/ci/aflash.sh tests/UART_DMA_Loopback --use-rtt --build-id
  */
@@ -31,8 +31,13 @@
 // DMA buffer - 256 bytes for circular reception
 SERIAL_DMA_BUFFER uint8_t dmaRxBuffer[256];
 
-// Use USART1 on PB6/PB7 for loopback testing
-HardwareSerial SerialTest(PB7, PB6);  // RX, TX
+// Use USART1 for loopback testing
+// H7: PB6/PB7 default to LPUART1, need ALT pins for USART1
+#if defined(STM32H7xx)
+HardwareSerial SerialTest(PB7_ALT1, PB6_ALT2);  // RX=USART1, TX=USART1
+#else
+HardwareSerial SerialTest(PB7, PB6);  // RX, TX (USART1 on F4)
+#endif
 
 // Test patterns
 const char *shortStr = "Hello";
@@ -107,6 +112,40 @@ void setup()
       failed++;
     }
   }
+
+  // ========== H7 Buffer Validation Test ==========
+#if defined(STM32H7xx)
+  CI_LOG("\n--- H7 Buffer Validation Test ---\n");
+  {
+    // Test 1: Buffer NOT in D2 SRAM3 should fail with error -8
+    uint8_t badBuffer[64];  // Stack buffer - NOT in .dmabuf section
+    CI_LOG("  Testing buffer validation (stack buffer should fail)...\n");
+    if (SerialTest.beginDMA(115200, badBuffer, sizeof(badBuffer))) {
+      CI_LOG("  FAIL: beginDMA() should have rejected stack buffer\n");
+      failed++;
+    } else {
+      int err = SerialTest.getLastDMAError();
+      if (err == -8) {
+        CI_LOG("  PASS: Stack buffer correctly rejected (error=-8)\n");
+        passed++;
+      } else {
+        CI_LOGF("  FAIL: Expected error -8, got %d\n", err);
+        failed++;
+      }
+    }
+
+    // Test 2: Buffer in D2 SRAM3 (SERIAL_DMA_BUFFER) should succeed
+    CI_LOG("  Testing buffer validation (SERIAL_DMA_BUFFER should pass)...\n");
+    if (SerialTest.beginDMA(115200, dmaRxBuffer, sizeof(dmaRxBuffer))) {
+      CI_LOG("  PASS: SERIAL_DMA_BUFFER accepted\n");
+      passed++;
+      SerialTest.endDMA();  // Clean up for next test
+    } else {
+      CI_LOGF("  FAIL: SERIAL_DMA_BUFFER rejected, error=%d\n", SerialTest.getLastDMAError());
+      failed++;
+    }
+  }
+#endif
 
   // ========== Phase 2: DMA Mode ==========
   CI_LOG("\n--- Phase 2: DMA Mode ---\n");

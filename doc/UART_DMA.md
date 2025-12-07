@@ -4,7 +4,7 @@
 
 DMA-based UART receive capability for the Arduino STM32 core, targeting GPS receivers and continuous serial data streams.
 
-**Status**: Phase 1 Complete ✅ (STM32F4xx)
+**Status**: Phase 2 Complete ✅ (STM32F4xx + STM32H7xx)
 **Branch**: `uart-rx-dma`
 
 ## Implementation Summary
@@ -22,17 +22,25 @@ void endDMA(void);
 bool isDMAListening(void);
 ```
 
-### Hardware Validated (NUCLEO_F411RE)
+### Hardware Validated
+**NUCLEO_F411RE (STM32F4xx):**
 - 50/50 stress tests passed
 - Mode switching: INT → DMA → INT → DMA ✓
 - NMEA-sized payloads (82 bytes) ✓
 - DMA buffer wraparound (635 bytes through 256-byte buffer) ✓
 
+**NUCLEO_H753ZI (STM32H7xx):**
+- 50/50 stress tests passed
+- D2 SRAM3 non-cached buffer region via MPU ✓
+- DMAMUX with DMA_REQUEST_USARTx_RX ✓
+- Buffer validation (0x30040000-0x30047FFF) ✓
+
 ### Key Changes
 - `SERIAL_RX_BUFFER_SIZE` default: 64 → 128 bytes
 - Circular DMA + IDLE line detection
-- STM32F4xx: USART1/2/6 supported
-- STM32H7xx: DMAMUX support ready (untested)
+- STM32F4xx: USART1/2/6 supported (fixed DMA stream/channel)
+- STM32H7xx: USART1/2/3/4/6 supported (DMAMUX)
+- H7 D-cache coherency via MPU-configured non-cached region
 
 ## Motivation
 
@@ -253,15 +261,17 @@ if (obj->dma_listen_mode && __HAL_UART_GET_FLAG(&huart, UART_FLAG_IDLE)) {
 4. **Tail Position**: Tracked in `dma_rx_last_pos`, advances after processing
 5. **FIFO Push**: DMA callback pushes bytes to lock-free FIFO via `PutWithOverwrite()`
 
-### Phase 2: STM32H7xx (D-Cache Coherency)
+### Phase 2: STM32H7xx (D-Cache Coherency) ✅ COMPLETE
 
-**Additional Requirements:**
+**Implementation:**
 
-1. **Buffer in D2 SRAM3**: Use existing `.dmabuf` section (already configured for Wire DMA)
-2. **SERIAL_DMA_BUFFER Macro**: Same pattern as WIRE_DMA_BUFFER
-3. **Buffer Validation**: Runtime check that buffer is in 0x30040000-0x30048000
+1. **Buffer in D2 SRAM3**: `.dmabuf` section in linker script (0x30040000-0x30047FFF, 32KB)
+2. **SERIAL_DMA_BUFFER Macro**: Places buffer in non-cached region on H7
+3. **Buffer Validation**: Runtime check returns error -8 if buffer not in D2 SRAM3
+4. **MPU Configuration**: D2 SRAM3 configured as non-cached, shareable in `hw_config.c`
+5. **DMAMUX**: Uses `DMA_REQUEST_USARTx_RX` for flexible DMA stream assignment
 
-**Note**: H7 UART DMA can reuse the MPU configuration already done for Wire DMA Phase 2.
+**H7 Pin Note**: PB6/PB7 defaults to LPUART1 on H7. Use `PB6_ALT2`/`PB7_ALT1` for USART1.
 
 ### Phase 3: Optional Enhancements
 
