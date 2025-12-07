@@ -14,7 +14,8 @@ SerialRx::SerialRx(Protocol protocol)
     , last_message_time_(0)
     , idle_threshold_us_(0)
     , last_byte_time_us_(0)
-    , expect_frame_start_(false) {
+    , expect_frame_start_(false)
+    , dma_enabled_(false) {
 }
 
 SerialRx::~SerialRx() {
@@ -54,10 +55,37 @@ bool SerialRx::begin(const Config& config) {
         return false;
     }
 
-    // Initialize serial port
-    serial_->begin(config.baudrate);
+    // Initialize serial port (DMA or interrupt mode)
+    dma_enabled_ = false;
+    if (config.use_dma && config.dma_rx_buf != nullptr && config.dma_rx_size > 0) {
+        // Try DMA mode - reduces interrupt overhead for continuous streams
+        if (serial_->beginDMA(config.baudrate, config.dma_rx_buf, config.dma_rx_size)) {
+            dma_enabled_ = true;
+        } else {
+            // DMA failed (wrong buffer region on H7, unsupported UART, etc.)
+            // Fall back to interrupt mode
+            serial_->begin(config.baudrate);
+        }
+    } else {
+        // Standard interrupt mode
+        serial_->begin(config.baudrate);
+    }
 
     return true;
+}
+
+void SerialRx::end() {
+    if (serial_ != nullptr) {
+        if (dma_enabled_) {
+            serial_->endDMA();
+            dma_enabled_ = false;
+        }
+        serial_->end();
+    }
+
+    if (parser_ != nullptr) {
+        parser_->ResetParser();
+    }
 }
 
 void SerialRx::update() {

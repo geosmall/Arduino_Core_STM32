@@ -36,6 +36,10 @@ public:
         uint32_t baudrate;         // Serial baudrate
         uint32_t timeout_ms;       // Message timeout in milliseconds
         uint32_t idle_threshold_us; // Idle line detection threshold (0 = disabled)
+        // DMA mode (optional) - reduces interrupt overhead for continuous streams
+        bool use_dma;              // Enable DMA reception (default: false)
+        uint8_t* dma_rx_buf;       // User-provided DMA buffer (use SERIAL_DMA_BUFFER on H7)
+        size_t dma_rx_size;        // Buffer size (256 recommended)
 
         // Default constructor
         Config()
@@ -43,7 +47,10 @@ public:
             , rx_protocol(NONE)
             , baudrate(115200)
             , timeout_ms(1000)
-            , idle_threshold_us(0) {}  // Disabled by default
+            , idle_threshold_us(0)
+            , use_dma(false)
+            , dma_rx_buf(nullptr)
+            , dma_rx_size(0) {}
     };
 
     /**
@@ -63,6 +70,12 @@ public:
      * @return true if successful
      */
     bool begin(const Config& config);
+
+    /**
+     * @brief Stop serial receiver and cleanup
+     * @details Stops DMA if active, closes serial port
+     */
+    void end();
 
     /**
      * @brief Update receiver (call in loop())
@@ -136,4 +149,5 @@ private:
     uint32_t idle_threshold_us_;     // Idle detection threshold (0 = disabled)
     uint32_t last_byte_time_us_;     // micros() of last received byte
     bool expect_frame_start_;        // Next byte should be frame start after idle
+    bool dma_enabled_;               // DMA mode active
 };
