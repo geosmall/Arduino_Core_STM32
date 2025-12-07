@@ -18,6 +18,12 @@
 HardwareSerial SerialRC(BoardConfig::rc_receiver.rx_pin, BoardConfig::rc_receiver.tx_pin);
 SerialRx rx;
 
+// DMA buffer for RC UART - reduces interrupt overhead
+// On H7: Must use SERIAL_DMA_BUFFER macro for D2 SRAM3 placement
+#ifdef USE_RC_DMA
+SERIAL_DMA_BUFFER uint8_t rcDmaBuffer[256];
+#endif
+
 // Raw channel data - populated by SerialRx adapter
 unsigned long channel_1_raw, channel_2_raw, channel_3_raw, channel_4_raw, channel_5_raw, channel_6_raw;
 
@@ -39,8 +45,26 @@ void radioSetup() {
   config.timeout_ms = BoardConfig::rc_receiver.timeout_ms;
   config.idle_threshold_us = BoardConfig::rc_receiver.idle_threshold_us;
 
-  rx.begin(config);
-  CI_LOG("Radio RX initialized\n");
+#ifdef USE_RC_DMA
+  // DMA mode - fail loudly if DMA initialization fails
+  config.use_dma = true;
+  config.dma_rx_buf = rcDmaBuffer;
+  config.dma_rx_size = sizeof(rcDmaBuffer);
+#endif
+
+  if (!rx.begin(config)) {
+    CI_LOG("ERROR: Radio RX init failed!\n");
+#ifdef USE_RC_DMA
+    CI_LOG("  Check UART supports DMA and buffer uses SERIAL_DMA_BUFFER on H7\n");
+#endif
+    while (1) { delay(1000); }  // Halt
+  }
+
+#ifdef USE_RC_DMA
+  CI_LOG("Radio RX initialized (DMA mode)\n");
+#else
+  CI_LOG("Radio RX initialized (interrupt mode)\n");
+#endif
 }
 
 void updateRadioChannels() {

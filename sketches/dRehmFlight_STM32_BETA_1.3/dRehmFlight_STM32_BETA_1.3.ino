@@ -38,6 +38,7 @@ Everyone that sends me pictures and videos of your flying creations! -Nick
 #define USE_SERIAL_RX
 #define USE_IBUS_RX  //Uncomment for IBus protocol
 // #define USE_SBUS_RX  //Uncomment for SBUS protocol
+// #define USE_RC_DMA   // Optional: Use UART DMA for RC receiver (reduces IRQ overhead)
 
 //Uncomment only one IMU
 //STM32: Use ICM42688P via IMU library
