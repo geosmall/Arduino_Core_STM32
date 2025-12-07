@@ -92,6 +92,10 @@ struct serial_s {
   volatile uint8_t dma_listen_mode; /* 0=interrupt mode, 1=DMA listen mode */
   volatile int dma_last_error;      /* Last DMA error code for debugging */
   void (*dma_rx_callback)(struct serial_s *, uint8_t *, size_t); /* Callback for new data */
+  /* Error counters for diagnostics */
+  volatile uint32_t dma_overrun_count;   /* DMA buffer wrapped before software read */
+  volatile uint32_t uart_error_count;    /* UART framing/noise/parity errors */
+  volatile uint32_t uart_overrun_count;  /* UART hardware overrun errors */
 #endif
 };
 

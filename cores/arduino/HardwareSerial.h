@@ -200,8 +200,18 @@ class HardwareSerial : public Stream {
     bool beginDMA(unsigned long baud, uint8_t config, uint8_t *rxBuffer, size_t rxBufferSize);
     void endDMA(void);
     bool isDMAListening(void);
-    // Get last DMA error code for debugging (-1 to -7)
+    // Get last DMA error code for debugging (-1 to -8)
     int getLastDMAError(void) { return _serial.dma_last_error; }
+
+    // Error counters for diagnostics
+    uint32_t getDMAOverrunCount(void) { return _serial.dma_overrun_count; }
+    uint32_t getUARTErrorCount(void) { return _serial.uart_error_count; }
+    uint32_t getUARTOverrunCount(void) { return _serial.uart_overrun_count; }
+    void clearErrorCounts(void) {
+      _serial.dma_overrun_count = 0;
+      _serial.uart_error_count = 0;
+      _serial.uart_overrun_count = 0;
+    }
 #endif // HAL_DMA_MODULE_ENABLED
 
   private:

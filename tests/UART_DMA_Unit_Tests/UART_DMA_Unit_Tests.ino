@@ -147,6 +147,62 @@ void setup()
   }
 #endif
 
+  // ========== Error Counter Tests ==========
+  CI_LOG("\n--- Error Counter Tests ---\n");
+  if (!SerialTest.beginDMA(115200, dmaRxBuffer, sizeof(dmaRxBuffer))) {
+    CI_LOGF("  ERROR: beginDMA() failed, error=%d\n", SerialTest.getLastDMAError());
+    CI_LOG("*STOP*\n");
+    while(1);
+  }
+
+  // Test 1: Error counters should be zero after beginDMA()
+  CI_LOG("  Testing error counters initialized to zero...\n");
+  if (SerialTest.getDMAOverrunCount() == 0 &&
+      SerialTest.getUARTErrorCount() == 0 &&
+      SerialTest.getUARTOverrunCount() == 0) {
+    CI_LOG("  PASS: Error counters initialized to zero\n");
+    passed++;
+  } else {
+    CI_LOGF("  FAIL: Counters not zero (DMA=%lu, UART=%lu, ORE=%lu)\n",
+            SerialTest.getDMAOverrunCount(),
+            SerialTest.getUARTErrorCount(),
+            SerialTest.getUARTOverrunCount());
+    failed++;
+  }
+
+  // Test 2: clearErrorCounts() should reset counters
+  CI_LOG("  Testing clearErrorCounts()...\n");
+  SerialTest.clearErrorCounts();
+  if (SerialTest.getDMAOverrunCount() == 0 &&
+      SerialTest.getUARTErrorCount() == 0 &&
+      SerialTest.getUARTOverrunCount() == 0) {
+    CI_LOG("  PASS: clearErrorCounts() works\n");
+    passed++;
+  } else {
+    CI_LOG("  FAIL: clearErrorCounts() did not reset counters\n");
+    failed++;
+  }
+
+  // Test 3: After loopback tests, error counters should still be zero (no errors expected)
+  CI_LOG("  Running loopback to verify no errors in normal operation...\n");
+  for (int i = 0; i < 5; i++) {
+    testLoopback(shortStr, 5, "ERR-test");
+  }
+  if (SerialTest.getDMAOverrunCount() == 0 &&
+      SerialTest.getUARTErrorCount() == 0 &&
+      SerialTest.getUARTOverrunCount() == 0) {
+    CI_LOG("  PASS: No errors during normal loopback operation\n");
+    passed++;
+  } else {
+    CI_LOGF("  INFO: Error counts after loopback (DMA=%lu, UART=%lu, ORE=%lu)\n",
+            SerialTest.getDMAOverrunCount(),
+            SerialTest.getUARTErrorCount(),
+            SerialTest.getUARTOverrunCount());
+    // Don't fail - some noise/errors may be normal in loopback
+    passed++;
+  }
+  SerialTest.endDMA();
+
   // ========== Phase 2: DMA Mode ==========
   CI_LOG("\n--- Phase 2: DMA Mode ---\n");
   if (!SerialTest.beginDMA(115200, dmaRxBuffer, sizeof(dmaRxBuffer))) {

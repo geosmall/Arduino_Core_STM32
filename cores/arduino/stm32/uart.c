@@ -912,6 +912,18 @@ static void uart_dma_check_rx(serial_t *obj)
     return; /* No new data */
   }
 
+  /* Check for DMA overrun: if bytes_available >= buffer size, DMA lapped software */
+  size_t bytes_available;
+  if (pos >= old_pos) {
+    bytes_available = pos - old_pos;
+  } else {
+    bytes_available = obj->dma_rx_size - old_pos + pos;
+  }
+  if (bytes_available >= obj->dma_rx_size - 1) {
+    /* DMA wrapped around before software could read - data lost */
+    obj->dma_overrun_count++;
+  }
+
 #if defined(STM32H7xx)
   /* H7: Invalidate D-Cache before reading DMA buffer */
   if (pos > old_pos) {
@@ -981,6 +993,11 @@ int uart_dma_listen_start(serial_t *obj, uint8_t *buf, size_t size,
   obj->dma_rx_size = size;
   obj->dma_rx_callback = callback;
   obj->dma_rx_last_pos = 0;
+
+  /* Initialize error counters */
+  obj->dma_overrun_count = 0;
+  obj->uart_error_count = 0;
+  obj->uart_overrun_count = 0;
 
   /* Configure DMA for circular RX */
   obj->hdma_rx.Instance = NULL; /* Will be set based on UART peripheral */
@@ -1314,6 +1331,44 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 
 #if defined(HAL_DMA_MODULE_ENABLED)
 /**
+  * @brief  Check and count UART error flags in DMA listen mode
+  * @param  huart : UART handler
+  * @param  obj : serial object
+  */
+static inline void uart_dma_check_errors(UART_HandleTypeDef *huart, serial_t *obj)
+{
+  /* Check framing error */
+  if (__HAL_UART_GET_FLAG(huart, UART_FLAG_FE)) {
+    obj->uart_error_count++;
+#if defined(STM32F1xx) || defined(STM32F2xx) || defined(STM32F4xx) || defined(STM32L1xx)
+    __HAL_UART_CLEAR_FEFLAG(huart);
+#else
+    __HAL_UART_CLEAR_FLAG(huart, UART_CLEAR_FEF);
+#endif
+  }
+
+  /* Check noise error */
+  if (__HAL_UART_GET_FLAG(huart, UART_FLAG_NE)) {
+    obj->uart_error_count++;
+#if defined(STM32F1xx) || defined(STM32F2xx) || defined(STM32F4xx) || defined(STM32L1xx)
+    __HAL_UART_CLEAR_NEFLAG(huart);
+#else
+    __HAL_UART_CLEAR_FLAG(huart, UART_CLEAR_NEF);
+#endif
+  }
+
+  /* Check overrun error */
+  if (__HAL_UART_GET_FLAG(huart, UART_FLAG_ORE)) {
+    obj->uart_overrun_count++;
+#if defined(STM32F1xx) || defined(STM32F2xx) || defined(STM32F4xx) || defined(STM32L1xx)
+    __HAL_UART_CLEAR_OREFLAG(huart);
+#else
+    __HAL_UART_CLEAR_FLAG(huart, UART_CLEAR_OREF);
+#endif
+  }
+}
+
+/**
   * @brief  Helper to check for IDLE line interrupt in DMA listen mode
   * @param  index : UART index
   */
@@ -1327,6 +1382,9 @@ static inline void uart_dma_check_idle(uart_index_t index)
   if (obj == NULL || !obj->dma_listen_mode) {
     return;
   }
+
+  /* Check and count UART errors */
+  uart_dma_check_errors(uart_handlers[index], obj);
 
   if (__HAL_UART_GET_FLAG(uart_handlers[index], UART_FLAG_IDLE)) {
     uart_dma_check_rx(obj);
