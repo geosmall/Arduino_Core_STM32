@@ -1,11 +1,18 @@
 #include <aunit_hil.h>
 
-/*
- * AUnit Pilot Test - Single sketch supporting both Arduino IDE (Serial) and J-Run/RTT modes
- * Controlled via USE_RTT compile flag for deterministic HIL testing.
+/**
+ * AUnit_HIL.ino - AUnit + HIL integration test
  *
- * Arduino IDE mode: Serial output with manual monitoring
- * J-Run/RTT mode:   RTT output with deterministic exit tokens
+ * Category: HIL Test
+ * Framework: AUnit
+ * Hardware: None
+ * CI Automatable: Yes
+ *
+ * Demonstrates aunit_hil.h wrapper supporting both Arduino IDE (Serial) and
+ * J-Run/RTT modes via USE_RTT compile flag.
+ *
+ * Supported boards:
+ *   ./system/ci/aflash.sh tests/AUnit_HIL --use-rtt --build-id
  */
 
 // Basic functionality tests
