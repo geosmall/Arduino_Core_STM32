@@ -256,9 +256,17 @@ If you need to distribute proprietary code that uses HAL/CMSIS:
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## Future Project: Code Overlay Infrastructure Library
+## Future Project: Mixer Overlay System for dRehmFlight
 
-Building on the precompiled library patterns established above, a future project will explore creating a **precompiled overlay infrastructure library** for dynamically loading code from external storage (SPI flash, SD card) into RAM at runtime.
+Building on the precompiled library patterns established above, a future project will create a **mixer overlay system** enabling dRehmFlight users to develop, share, and dynamically load airframe-specific mixer configurations.
+
+### Use Case: Shareable Mixer Code
+
+dRehmFlight users with similar airframes and hardware can share pre-developed and verified mixers:
+- **Quad X**, **Quad +**, **Hex Y6**, **Octo X** - standard configurations
+- **Custom VTOL**, **Tricopter**, **Flying Wing** - specialized airframes
+- Users select mixer at runtime from SD card or SPI flash
+- No reflashing required to change airframe configuration
 
 ### Background
 
@@ -266,38 +274,78 @@ Based on Warren Gay's "Beginning STM32" overlay examples ([GitHub](https://githu
 - **overlay0**: Overlays in internal flash, loaded to RAM on demand
 - **overlay1**: Overlays in external SPI flash (W25Q32), loaded via SPI reads
 
-### Concept: Precompiled Overlay Manager
+### Architecture: dRehmFlight + Mixer Overlays
 
-A precompiled `.a` library providing overlay infrastructure using the **callback pattern** to remain device-independent:
+```
+┌─────────────────────────────────────────────────────────────┐
+│  dRehmFlight Application (flash)                            │
+│  ├── Flight control loop (PID, filters, safety)             │
+│  ├── IMU, RC receiver, motor drivers                        │
+│  └── libOverlayMgr.a (precompiled, callback-based)         │
+│           │                                                 │
+│           ▼ loads selected mixer into RAM                  │
+│  ┌─────────────────────────────────────────────────────────┐│
+│  │  Mixer Overlay (RAM)                                    ││
+│  │  mixer_calculate(throttle, roll, pitch, yaw, motors[]) ││
+│  └─────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────┘
+         │
+         ▼ reads from
+┌─────────────────────────────────────────────────────────────┐
+│  SD Card / SPI Flash                                        │
+│  ├── mixers/quad_x.bin      (standard X quadcopter)        │
+│  ├── mixers/quad_plus.bin   (+ configuration)              │
+│  ├── mixers/hex_y6.bin      (Y6 hexacopter)                │
+│  ├── mixers/vtol_tilt.bin   (tilt-rotor VTOL)              │
+│  └── mixers/custom.bin      (user's custom airframe)       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Mixer API (Standard Interface)
+
+All mixers implement the same interface, enabling interchangeability:
+
+```cpp
+// Input from flight controller
+typedef struct {
+    float throttle;   // 0.0 to 1.0
+    float roll;       // -1.0 to 1.0
+    float pitch;      // -1.0 to 1.0
+    float yaw;        // -1.0 to 1.0
+} mixer_input_t;
+
+// Output to motor drivers
+typedef struct {
+    float motors[8];  // Up to 8 motors, 0.0 to 1.0
+    uint8_t count;    // Number of active motors
+} mixer_output_t;
+
+// Standard mixer function signature
+void mixer_calculate(const mixer_input_t* in, mixer_output_t* out);
+
+// Optional: mixer metadata
+const char* mixer_name(void);      // e.g., "Quad X"
+const char* mixer_author(void);    // e.g., "geosmall"
+uint32_t mixer_version(void);      // e.g., 0x010000 = v1.0.0
+```
+
+### Precompiled Overlay Manager Library
+
+A precompiled `.a` library providing overlay infrastructure using the **callback pattern**:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  Precompiled Library: libOverlayMgr.a                       │
 │  (One binary per CPU core - NOT device-specific)            │
 ├─────────────────────────────────────────────────────────────┤
-│  • Overlay table management                                 │
-│  • Overlay caching (track currently loaded overlay)         │
-│  • Validation (CRC check before execution)                  │
-│  • Generic loader (memcpy to RAM region)                    │
+│  • Overlay loader (read from storage → RAM)                 │
+│  • CRC validation before execution                          │
+│  • Function pointer management                              │
+│  • Overlay metadata parsing                                 │
 │                                                             │
 │  Requires user-provided callbacks:                          │
-│  • storage_read(addr, buf, len) - read from SPI/SD/etc      │
+│  • storage_read(path, buf, len) - read from LittleFS/SDFS  │
 │  • get_overlay_region() - returns RAM address for overlays  │
-└─────────────────────────────────────────────────────────────┘
-         │
-         ▼ Links with
-┌─────────────────────────────────────────────────────────────┐
-│  User Application (compiled per-device)                     │
-│  • storage_impl.c - LittleFS/SDFS/raw SPI driver            │
-│  • overlay_config.c - RAM region, overlay table             │
-│  • Linker script defines overlay RAM region                 │
-└─────────────────────────────────────────────────────────────┘
-         │
-         ▼ Loads from
-┌─────────────────────────────────────────────────────────────┐
-│  External Storage                                           │
-│  • overlays.bin - position-dependent code for RAM region    │
-│  • overlay_index.bin - table of overlay offsets/sizes       │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -308,14 +356,38 @@ A precompiled `.a` library providing overlay infrastructure using the **callback
 | HAL dependency | **Callbacks only** | Keeps library device-independent (2 binaries) |
 | Storage abstraction | User-provided `storage_read()` | Works with LittleFS, SDFS, raw SPI |
 | RAM region | User-provided via callback | Linker script defines per-device |
-| Overlay binaries | **Always device-specific** | Position-dependent code for fixed RAM address |
+| Mixer binaries | **Device-specific** | Position-dependent code for fixed RAM address |
+| Mixer API | **Standardized interface** | Enables sharing between users |
 
 ### What This Enables
 
-1. **Proprietary overlay infrastructure** - distribute loader as binary
-2. **User-created overlays** - users compile their own overlays for their RAM region
-3. **Extendable applications** - load new functionality without reflashing main app
-4. **Memory efficiency** - share limited RAM among multiple code modules
+1. **Shareable mixers** - users with same hardware share verified mixer configs
+2. **Runtime selection** - change airframe without reflashing
+3. **Community library** - collection of mixers for common airframes
+4. **Custom development** - users create mixers for unique airframes
+5. **Safe updates** - CRC validation before loading mixer code
+
+### Mixer Development Workflow
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  User A (Quad X developer)                                  │
+├─────────────────────────────────────────────────────────────┤
+│  1. Write mixer_quad_x.c implementing standard API          │
+│  2. Compile with linker script for RAM overlay region       │
+│  3. Test on their hardware                                  │
+│  4. Share quad_x.bin with community                         │
+└─────────────────────────────────────────────────────────────┘
+                      │
+                      ▼ shares .bin file
+┌─────────────────────────────────────────────────────────────┐
+│  User B (same hardware, Quad X airframe)                    │
+├─────────────────────────────────────────────────────────────┤
+│  1. Download quad_x.bin to SD card                          │
+│  2. Configure dRehmFlight to load "mixers/quad_x.bin"       │
+│  3. Fly with verified mixer - no compilation needed         │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ### Dependencies on Current Plan
 
@@ -324,12 +396,12 @@ This future project depends on successful completion of the PrecompLib example:
 - [ ] Confirm callback pattern keeps library device-independent
 - [ ] Test binary distribution workflow on F4/G4/F7/H7 targets
 
-### Overlay Binaries Are Always Device-Specific
+### Mixer Binaries: Device-Specific but Shareable
 
-Unlike the infrastructure library, **overlay binaries cannot be made portable**:
-- Compiled for specific RAM execution address (position-dependent)
-- RAM addresses vary by device and linker script
-- Users must compile overlays for their target configuration
+Mixer binaries are **position-dependent** (compiled for specific RAM address), but:
+- Users with **same board + same linker script** can share directly
+- Standard BoardConfig targets (NUCLEO_F411RE, MATEK_H743VI, etc.) define standard overlay regions
+- Community can maintain mixer collections per BoardConfig target
 
 ## References
 
