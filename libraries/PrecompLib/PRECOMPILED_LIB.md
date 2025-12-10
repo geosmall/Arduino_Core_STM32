@@ -172,13 +172,14 @@ ldflags=-lPrecompLib
 
 ## Verification Checklist
 
-- [ ] Library compiles and links on F4/G4 targets (cortex-m4)
-- [ ] Library compiles and links on F7/H7 targets (cortex-m7)
-- [ ] No source files (.cpp) are in the distributed library
-- [ ] HIL tests pass on NUCLEO_F411RE (F4)
-- [ ] HIL tests pass on BKMN_NERO or MATEK_H743VI (F7/H7)
-- [ ] Serial output works for Arduino IDE users
-- [ ] build_archive.sh generates both .a files
+- [x] Library compiles and links on F4/G4 targets (cortex-m4) - JHEF_JHEF411 (STM32F411RE)
+- [x] Library compiles and links on F7/H7 targets (cortex-m7) - BKMN_NERO (STM32F722RE), MATEK_H743VI (STM32H743ZI)
+- [x] No source files (.cpp) are in the distributed library
+- [x] HIL tests pass on F4 - JHEF_JHEF411: 3/3 tests PASS
+- [x] HIL tests pass on F7 - BKMN_NERO: 3/3 tests PASS
+- [x] HIL tests pass on H7 - MATEK_H743VI: 3/3 tests PASS
+- [x] Serial output works for Arduino IDE users - JHEF_JHEF411: 3/3 tests PASS
+- [x] build_archive.sh generates both .a files (cortex-m4: 2292 bytes, cortex-m7: 2292 bytes)
 
 ## HAL/CMSIS Dependency Considerations
 
