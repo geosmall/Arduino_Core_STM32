@@ -2,6 +2,15 @@
 
 A demonstration of Arduino's `precompiled=true` feature for binary-only distribution on STM32 targets.
 
+## Purpose & Context
+
+PrecompLib is an **educational reference implementation** demonstrating Arduino's precompiled library feature. It serves as a technical example, not a core component of the dRehmFlight business model.
+
+**Role in Project:**
+- Technical demonstration of `precompiled=true` workflow
+- Reference for future closed-source Arduino library distribution
+- Validates multi-architecture binary distribution (cortex-m4, cortex-m7)
+
 ## Overview
 
 PrecompLib provides CRC-16 CCITT checksum calculation as a precompiled static library. This serves as a reference implementation for distributing proprietary code without exposing source files.
@@ -136,16 +145,11 @@ Both RTT (HIL testing) and Serial (Arduino IDE) output modes verified.
 
 ## Building from Source
 
-The source code is maintained separately in `PrecompLib-dev/` (not distributed). To rebuild the archives:
+The source code is maintained separately (not distributed with the Arduino core).
 
-```bash
-cd PrecompLib-dev
-./scripts/build_archive.sh
-```
-
-This generates:
-- `output/cortex-m4/fpv4-sp-d16-hard/libPrecompLib.a`
-- `output/cortex-m7/fpv4-sp-d16-hard/libPrecompLib.a`
+The precompiled archives are:
+- `cortex-m4/fpv4-sp-d16-hard/libPrecompLib.a` (F4 + G4)
+- `cortex-m7/fpv4-sp-d16-hard/libPrecompLib.a` (F7 + H7)
 
 ## Library Structure
 

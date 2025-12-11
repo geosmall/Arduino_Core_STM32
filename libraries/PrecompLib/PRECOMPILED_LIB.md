@@ -1,5 +1,14 @@
 # Precompiled Library Example for STM32 Targets
 
+## Purpose & Context
+
+This document details the implementation of PrecompLib, an **educational reference** demonstrating Arduino's precompiled library feature.
+
+**PrecompLib Remains Valuable For:**
+- Educational example of Arduino `precompiled=true` feature
+- Reference for any closed-source Arduino library distribution
+- Potential pattern for bootloader distribution (header + binary)
+
 ## Goal
 Create a simple example library demonstrating Arduino's precompiled library feature (`precompiled=true`) for STM32 F4, G4, F7, and H7 targets. This demonstrates **binary-only distribution** - header + .a files only, no source code distributed. Ideal for sharing proprietary code.
 
@@ -52,12 +61,13 @@ libraries/PrecompLib/
 
 **Development Repository** (separate, not distributed):
 ```
-PrecompLib-dev/
+PrecompLib-dev/                    # Maintained outside Arduino_Core_STM32
 ├── src/
 │   ├── PrecompLib.h               # Header (copied to distribution)
 │   └── PrecompLib.cpp             # Source (PROPRIETARY - not distributed)
-└── scripts/
-    └── build_archive.sh           # Generates .a files for all targets
+├── scripts/
+│   └── build_archive.sh           # Generates .a files for all targets
+└── output/                        # Build artifacts
 ```
 
 ## Implementation Steps
@@ -257,11 +267,11 @@ If you need to distribute proprietary code that uses HAL/CMSIS:
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## Future Project: Mixer Overlay System for dRehmFlight
+## Historical Note: Mixer Overlay System Concept
 
-Building on the precompiled library patterns established above, a future project will create a **mixer overlay system** enabling dRehmFlight users to develop, share, and dynamically load airframe-specific mixer configurations.
+> **Note:** This section documents a mixer overlay concept explored during PrecompLib development. The architecture remains technically valid and may inform future implementation.
 
-### Use Case: Shareable Mixer Code
+### Original Concept: Shareable Mixer Code
 
 dRehmFlight users with similar airframes and hardware can share pre-developed and verified mixers:
 - **Quad X**, **Quad +**, **Hex Y6**, **Octo X** - standard configurations
