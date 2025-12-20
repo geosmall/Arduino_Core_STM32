@@ -189,6 +189,15 @@ tools.hid_upload.upload.params.verbose=-d
 tools.hid_upload.upload.params.quiet=n
 tools.hid_upload.upload.pattern="{path}/{cmd}" "{build.path}/{build.project_name}.bin" {serial.port.file}
 
+# Upload using UF2 bootloader (1200 baud touch triggers bootloader, then copy UF2)
+tools.uf2_upload.path={runtime.tools.STM32Tools.path}
+tools.uf2_upload.busybox=
+tools.uf2_upload.busybox.windows={path}/win/busybox.exe
+tools.uf2_upload.cmd=uf2_upload.sh
+tools.uf2_upload.upload.params.verbose=-v
+tools.uf2_upload.upload.params.quiet=
+tools.uf2_upload.upload.pattern="{busybox}" sh "{runtime.platform.path}/system/extras/{cmd}" "{build.path}/{build.project_name}.bin" {build.flash_offset}
+
 # Upload using Maple bootloader over DFU
 tools.maple_upload.script=maple_upload.sh
 tools.maple_upload.busybox=

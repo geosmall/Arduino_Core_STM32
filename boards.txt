@@ -3442,7 +3442,7 @@ FlightCtr.name=Flight Controller Boards
 FlightCtr.build.core=arduino
 FlightCtr.build.board=Genericflight
 FlightCtr.build.variant_h=variant_{build.board}.h
-FlightCtr.build.st_extra_flags=-D{build.product_line} {build.enable_usb} {build.xSerial}
+FlightCtr.build.st_extra_flags=-D{build.product_line} {build.enable_usb} {build.xSerial} {build.bootloader_flags}
 FlightCtr.build.fpu=-mfpu=fpv4-sp-d16
 FlightCtr.build.float-abi=-mfloat-abi=hard
 FlightCtr.build.flash_offset=0x0
@@ -3503,6 +3503,12 @@ FlightCtr.menu.upload_method.jlinkMethod=STM32CubeProgrammer (J-Link)
 FlightCtr.menu.upload_method.jlinkMethod.upload.protocol=3
 FlightCtr.menu.upload_method.jlinkMethod.upload.options=
 FlightCtr.menu.upload_method.jlinkMethod.upload.tool=stm32CubeProg
+
+FlightCtr.menu.upload_method.tinyuf2Method=UF2 Bootloader
+FlightCtr.menu.upload_method.tinyuf2Method.upload.protocol=uf2
+FlightCtr.menu.upload_method.tinyuf2Method.upload.tool=uf2_upload
+FlightCtr.menu.upload_method.tinyuf2Method.build.flash_offset=0x10000
+FlightCtr.menu.upload_method.tinyuf2Method.build.bootloader_flags=-DBL_TINYUF2
 
 FlightCtr.menu.upload_method.clipboard=Clipboard (Copy Path)
 FlightCtr.menu.upload_method.clipboard.upload.protocol=0
