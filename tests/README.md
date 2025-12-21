@@ -37,7 +37,7 @@ This directory contains unit tests, integration tests, and hardware validation t
 |------|-------------|-----------|
 | **FIFO_Unit_Tests** | Ring buffer data structure | AUnit (15 tests) |
 | **BoardConfig_Test** | Compile-time board config | AUnit (3 tests) |
-| **AUnit_HIL** | AUnit + HIL integration demo | AUnit (3 tests) |
+| **AUnit_HIL** | AUnit + HIL integration demo | AUnit (4 tests) |
 
 ### Hardware Required
 
