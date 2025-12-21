@@ -425,7 +425,7 @@ void setup() {
 
 **AUnit Integration**: v1.7.1 testing framework with `aunit_hil.h` wrapper
 - 18 total tests (LittleFS: 8, SDFS: 7, framework: 3)
-- Usage: `./system/ci/aflash.sh tests/LittleFS_Unit_Tests --use-rtt --build-id`
+- Usage: `./system/ci/aflash.sh tests/LittleFS_IT --use-rtt --build-id`
 
 ### Board Configuration System ✅ **COMPLETED**
 

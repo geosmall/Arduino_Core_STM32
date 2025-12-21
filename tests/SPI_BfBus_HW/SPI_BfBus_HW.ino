@@ -1,5 +1,5 @@
 /*
- * bf_bus_test.ino - Hardware validation test for Betaflight bus abstraction
+ * SPI_BfBus_HW.ino - Hardware validation test for Betaflight bus abstraction
  *
  * Purpose: Validate bf_bus.h/.cpp SPI wrapper functions work correctly
  *          with actual hardware (ICM-42688-P on NUCLEO_F411RE)

@@ -212,7 +212,7 @@ static constexpr Channel motor4 = {PB0_ALT1, 3, 0, 0};  // ✅ Correct
 ### Phase 1: Storage Migration
 1. Rewire SPI flash from SPI3→SPI2 (4 jumper moves)
 2. Update config to JHEF storage settings
-3. Run LittleFS_Unit_Tests to validate
+3. Run LittleFS_IT to validate
 4. **Expected**: All 8 tests pass
 
 ### Phase 2: IMU Migration

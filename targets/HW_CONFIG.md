@@ -292,7 +292,7 @@ void SystemClock_Config(void) {
 
 ### Hardware Unit Tests
 
-**Board Configuration Tests** (`tests/BoardConfig_Test/BoardConfig_Test.ino`):
+**Board Configuration Tests** (`tests/BoardConfig_UT/BoardConfig_UT.ino`):
 ```cpp
 #include <Arduino.h>
 #include "../../../../ci_log.h"
@@ -369,7 +369,7 @@ void loop() {
 }
 ```
 
-**Storage Tests** (`tests/Generic_Storage_LittleFS_Unit_Tests/Generic_Storage_LittleFS_Unit_Tests.ino`):
+**Storage Tests** (`tests/Storage_LittleFS_IT/Storage_LittleFS_IT.ino`):
 ```cpp
 #include <Arduino.h>
 #include <Storage.h>
@@ -446,20 +446,20 @@ void loop() {
 **Hardware Configuration Tests**:
 ```bash
 # Test board configuration on NUCLEO_F411RE
-./system/ci/aflash.sh tests/BoardConfig_Test --use-rtt --build-id
+./system/ci/aflash.sh tests/BoardConfig_UT --use-rtt --build-id
 
 # Test storage configurations
-./system/ci/aflash.sh tests/Generic_Storage_LittleFS_Unit_Tests --use-rtt --build-id
+./system/ci/aflash.sh tests/Storage_LittleFS_IT --use-rtt --build-id
 ./system/ci/aflash.sh tests/Generic_Storage_SDFS_Unit_Tests --use-rtt --build-id
 ```
 
 **Multi-Board Testing**:
 ```bash
 # NUCLEO_F411RE (automatic configuration selection)
-arduino-cli compile --fqbn STMicroelectronics:stm32:Nucleo_64:pnum=NUCLEO_F411RE tests/BoardConfig_Test/
+arduino-cli compile --fqbn STMicroelectronics:stm32:Nucleo_64:pnum=NUCLEO_F411RE tests/BoardConfig_UT/
 
 # BlackPill F411CE (automatic configuration selection)
-arduino-cli compile --fqbn STMicroelectronics:stm32:GenF4:pnum=BLACKPILL_F411CE tests/BoardConfig_Test/
+arduino-cli compile --fqbn STMicroelectronics:stm32:GenF4:pnum=BLACKPILL_F411CE tests/BoardConfig_UT/
 ```
 
 **Production Builds**:

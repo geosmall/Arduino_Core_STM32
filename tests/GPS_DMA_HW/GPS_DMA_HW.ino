@@ -1,23 +1,20 @@
 /**
- * GPS_DMA_Test.ino - GPS test with UART DMA reception
+ * GPS_DMA_HW.ino - GPS test with UART DMA reception
  *
  * Supports two modes:
  *   1. GPS_LOOPBACK_TEST defined: Loopback test with simulated NMEA (no GPS hardware)
  *   2. GPS_LOOPBACK_TEST undefined: Real GPS module test
  *
- * Hardware setup:
- *   Loopback mode: Jumper PB6 (TX) to PB7 (RX)
- *   GPS mode:      GPS TX -> PB7, GPS VCC -> 3.3V, GPS GND -> GND
+ * Hardware setup (loopback jumper PB6/TX to PB7/RX):
+ *   - NUCLEO_F411RE: PB6=D10, PB7=D22 (USART1)
+ *   - NUCLEO_H753ZI: PB6=D1, PB7=D0 (USART1 via ALT pins)
+ *   - BlackPill F411CE: PB6/PB7 directly
+ *   GPS mode: GPS TX -> PB7, GPS VCC -> 3.3V, GPS GND -> GND
  *
- * Supported boards:
- *   BlackPill F411CE (8MHz crystal):
- *     ./system/ci/aflash.sh tests/GPS_DMA_Test STMicroelectronics:stm32:FlightCtr:pnum=JHEF_JHEF411 --use-rtt --build-id
- *
- *   BlackPill F411CE (25MHz crystal):
- *     ./system/ci/aflash.sh tests/GPS_DMA_Test STMicroelectronics:stm32:GenF4:pnum=BLACKPILL_F411CE --use-rtt --build-id
- *
- *   Nucleo H753ZI:
- *     ./system/ci/aflash.sh tests/GPS_DMA_Test STMicroelectronics:stm32:Nucleo_144:pnum=NUCLEO_H753ZI --use-rtt --build-id
+ * Run examples:
+ *   ./system/ci/aflash.sh tests/GPS_DMA_HW --use-rtt --build-id
+ *   ./system/ci/aflash.sh tests/GPS_DMA_HW STMicroelectronics:stm32:GenF4:pnum=BLACKPILL_F411CE --use-rtt --build-id
+ *   ./system/ci/aflash.sh tests/GPS_DMA_HW STMicroelectronics:stm32:Nucleo_144:pnum=NUCLEO_H753ZI --use-rtt --build-id
  */
 
 //==============================================================================

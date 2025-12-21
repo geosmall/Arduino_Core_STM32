@@ -220,7 +220,7 @@ make check          # Verify environment
 ./system/ci/aflash.sh libraries/ICM42688P/examples/example-selftest --use-rtt --build-id
 
 # Storage system unit testing
-./system/ci/aflash.sh tests/LittleFS_Unit_Tests --use-rtt --build-id
+./system/ci/aflash.sh tests/LittleFS_IT --use-rtt --build-id
 ./system/ci/aflash.sh tests/SDFS_Unit_Tests --use-rtt --build-id
 
 # Configuration management testing

@@ -1,11 +1,11 @@
 /**
- * FIFO_Unit_Tests.ino - Unit tests for FIFO.h lock-free ring buffer
+ * FIFO_UT.ino - Unit tests for FIFO.h lock-free ring buffer
  *
  * Tests the FIFO utility imported from UVOS_Duino with bug fixes:
  * - Copy constructor fix (proper base class initialization)
  * - PutWithOverwrite race condition fix (write data before advancing tail)
  *
- * Run with: ./system/ci/aflash.sh tests/FIFO_Unit_Tests --use-rtt --build-id
+ * Run with: ./system/ci/aflash.sh tests/FIFO_UT --use-rtt --build-id
  */
 
 #include <aunit_hil.h>

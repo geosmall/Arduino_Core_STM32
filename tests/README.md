@@ -6,9 +6,9 @@ This directory contains unit tests, integration tests, and hardware validation t
 
 | Category | Description | CI Automatable | Example |
 |----------|-------------|----------------|---------|
-| **Unit Tests** | Test single component in isolation, no hardware dependencies | Yes | FIFO_Unit_Tests |
-| **Integration Tests** | Test multiple components working together, may need storage | Partial | LittleFS_Unit_Tests |
-| **Hardware Validation** | Verify hardware peripherals with physical connections | No | UART_DMA_Unit_Tests |
+| **Unit Tests** | Test single component in isolation, no hardware dependencies | Yes | FIFO_UT |
+| **Integration Tests** | Test multiple components working together, may need storage | Partial | LittleFS_IT |
+| **Hardware Validation** | Verify hardware peripherals with physical connections | No | UART_DMA_HW |
 
 ---
 
@@ -35,24 +35,24 @@ This directory contains unit tests, integration tests, and hardware validation t
 
 | Test | Description | Framework |
 |------|-------------|-----------|
-| **FIFO_Unit_Tests** | Ring buffer data structure | AUnit (15 tests) |
-| **BoardConfig_Test** | Compile-time board config | AUnit (3 tests) |
+| **FIFO_UT** | Ring buffer data structure | AUnit (15 tests) |
+| **BoardConfig_UT** | Compile-time board config | AUnit (3 tests) |
 | **AUnit_HIL** | AUnit + HIL integration demo | AUnit (4 tests) |
 
 ### Hardware Required
 
-| Test | Hardware | Description |
-|------|----------|-------------|
-| **LittleFS_Unit_Tests** | SPI Flash (W25Q128JV) | Filesystem operations |
-| **SDFS_Unit_Tests** | SD Card | FAT filesystem operations |
-| **Generic_Storage_LittleFS_Unit_Tests** | SPI Flash | Storage abstraction layer |
-| **Generic_Storage_SDFS_Unit_Tests** | SD Card | Storage abstraction layer |
-| **minIniStorage_LittleFS_Unit_Tests** | SPI Flash | INI config management |
-| **minIniStorage_SDFS_Unit_Tests** | SD Card | INI config management |
-| **UART_DMA_Unit_Tests** | Loopback (PB6↔PB7) | UART DMA reception |
-| **GPS_DMA_Test** | Loopback or GPS module | GPS NMEA parsing |
-| **IBus_PB7_Test** | RC receiver (IBus) | RC channel parsing |
-| **bf_bus_test** | ICM-42688-P IMU | SPI device validation |
+| Test | Hardware | Description | Framework |
+|------|----------|-------------|-----------|
+| **LittleFS_IT** | SPI Flash (W25Q128JV) | Filesystem operations | AUnit (8 tests) |
+| **SDFS_IT** | SD Card | FAT filesystem operations | AUnit (7 tests) |
+| **Storage_LittleFS_IT** | SPI Flash | Storage abstraction layer | AUnit (5 tests) |
+| **Storage_SDFS_IT** | SD Card | Storage abstraction layer | AUnit (5 tests) |
+| **minIni_LittleFS_IT** | SPI Flash | INI config management | AUnit (5 tests) |
+| **minIni_SDFS_IT** | SD Card | INI config management | AUnit (5 tests) |
+| **UART_DMA_HW** | Loopback (PB6↔PB7) | UART DMA reception | ci_log.h |
+| **GPS_DMA_HW** | Loopback or GPS module | GPS NMEA parsing | ci_log.h |
+| **SerialRx_IBus_HW** | RC receiver (IBus) | RC channel parsing | ci_log.h |
+| **SPI_BfBus_HW** | ICM-42688-P IMU | SPI device validation | ci_log.h |
 
 ---
 
@@ -60,13 +60,13 @@ This directory contains unit tests, integration tests, and hardware validation t
 
 | Hardware | Tests |
 |----------|-------|
-| **None** | FIFO_Unit_Tests, BoardConfig_Test, AUnit_HIL |
-| **SPI Flash** | LittleFS_Unit_Tests, Generic_Storage_LittleFS_Unit_Tests, minIniStorage_LittleFS_Unit_Tests |
-| **SD Card** | SDFS_Unit_Tests, Generic_Storage_SDFS_Unit_Tests, minIniStorage_SDFS_Unit_Tests |
-| **UART Loopback (PB6↔PB7)** | UART_DMA_Unit_Tests, GPS_DMA_Test (loopback mode) |
-| **External IMU** | bf_bus_test (ICM-42688-P) |
-| **GPS Module** | GPS_DMA_Test (GPS mode) |
-| **RC Receiver** | IBus_PB7_Test (FlySky IBus) |
+| **None** | FIFO_UT, BoardConfig_UT, AUnit_HIL |
+| **SPI Flash** | LittleFS_IT, Storage_LittleFS_IT, minIni_LittleFS_IT |
+| **SD Card** | SDFS_IT, Storage_SDFS_IT, minIni_SDFS_IT |
+| **UART Loopback (PB6↔PB7)** | UART_DMA_HW, GPS_DMA_HW (loopback mode) |
+| **External IMU** | SPI_BfBus_HW (ICM-42688-P) |
+| **GPS Module** | GPS_DMA_HW (GPS mode) |
+| **RC Receiver** | SerialRx_IBus_HW (FlySky IBus) |
 
 ---
 
@@ -76,10 +76,10 @@ All tests support the CI/HIL workflow via `aflash.sh`:
 
 ```bash
 # Run a test with RTT output
-./system/ci/aflash.sh tests/FIFO_Unit_Tests --use-rtt --build-id
+./system/ci/aflash.sh tests/FIFO_UT --use-rtt --build-id
 
 # Run with specific FQBN
-./system/ci/aflash.sh tests/GPS_DMA_Test STMicroelectronics:stm32:FlightCtr:pnum=JHEF_JHEF411 --use-rtt --build-id
+./system/ci/aflash.sh tests/GPS_DMA_HW STMicroelectronics:stm32:FlightCtr:pnum=JHEF_JHEF411 --use-rtt --build-id
 ```
 
 Default FQBN: `STMicroelectronics:stm32:Nucleo_64:pnum=NUCLEO_F411RE`
@@ -134,21 +134,21 @@ Current names and what they would be under the naming convention:
 
 | Current Name | Follows Convention? | Suggested Name (if renaming) |
 |--------------|---------------------|------------------------------|
-| `FIFO_Unit_Tests` | ⚠️ Partial | `FIFO_UT` |
-| `BoardConfig_Test` | ⚠️ Partial | `BoardConfig_UT` |
+| `FIFO_UT` | ✅ Yes | - |
+| `BoardConfig_UT` | ✅ Yes | - |
 | `AUnit_HIL` | ✅ Yes | - |
-| `LittleFS_Unit_Tests` | ⚠️ Partial | `LittleFS_IT` |
-| `SDFS_Unit_Tests` | ⚠️ Partial | `SDFS_IT` |
-| `Generic_Storage_LittleFS_Unit_Tests` | ⚠️ Partial | `Storage_LittleFS_IT` |
-| `Generic_Storage_SDFS_Unit_Tests` | ⚠️ Partial | `Storage_SDFS_IT` |
-| `minIniStorage_LittleFS_Unit_Tests` | ⚠️ Partial | `minIni_LittleFS_IT` |
-| `minIniStorage_SDFS_Unit_Tests` | ⚠️ Partial | `minIni_SDFS_IT` |
-| `UART_DMA_Unit_Tests` | ⚠️ Partial | `UART_DMA_HW` |
-| `GPS_DMA_Test` | ⚠️ Partial | `GPS_DMA_HW` |
-| `IBus_PB7_Test` | ❌ No | `SerialRx_IBus_HW` |
-| `bf_bus_test` | ❌ No | `SPI_BfBus_HW` |
+| `LittleFS_IT` | ✅ Yes | - |
+| `SDFS_IT` | ✅ Yes | - |
+| `Storage_LittleFS_IT` | ✅ Yes | - |
+| `Storage_SDFS_IT` | ✅ Yes | - |
+| `minIni_LittleFS_IT` | ✅ Yes | - |
+| `minIni_SDFS_IT` | ✅ Yes | - |
+| `UART_DMA_HW` | ✅ Yes | - |
+| `GPS_DMA_HW` | ✅ Yes | - |
+| `SerialRx_IBus_HW` | ✅ Yes | - |
+| `SPI_BfBus_HW` | ✅ Yes | - |
 
-*Note: `AUnit_Pilot_Test` was renamed to `AUnit_HIL` to demonstrate the convention. Other existing tests are not being renamed; this table is for reference when creating new tests or if future cleanup is desired.*
+*All tests now follow the naming convention.*
 
 ### Documentation Template
 

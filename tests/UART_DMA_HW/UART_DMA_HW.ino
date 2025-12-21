@@ -1,17 +1,16 @@
 /**
- * UART_DMA_Loopback.ino - Stress test for UART DMA RX implementation
+ * UART_DMA_HW.ino - Stress test for UART DMA RX implementation
  *
  * Tests:
  * 1. Mode switching: INT -> DMA -> INT -> DMA
  * 2. Stress test: Multiple iterations, larger payloads
  * 3. Buffer wraparound in circular DMA mode
  *
- * Hardware setup:
- * - NUCLEO_F411RE: Jumper D1 (PB6/TX) to D0 (PB7/RX) on CN9 Arduino header
- * - NUCLEO_H753ZI: Jumper D1 (PB6/TX) to D0 (PB7/RX) on CN8 Arduino header
- *   Note: H7 uses ALT pins (PB6_ALT2/PB7_ALT1) for USART1 instead of LPUART1
+ * Hardware setup (loopback jumper PB6/TX to PB7/RX):
+ * - NUCLEO_F411RE: PB6=D10, PB7=D22 (USART1)
+ * - NUCLEO_H753ZI: PB6=D1, PB7=D0 (USART1 via ALT pins)
  *
- * Run with: ./system/ci/aflash.sh tests/UART_DMA_Loopback --use-rtt --build-id
+ * Run with: ./system/ci/aflash.sh tests/UART_DMA_HW --use-rtt --build-id
  */
 
 /*******************************************************************************
