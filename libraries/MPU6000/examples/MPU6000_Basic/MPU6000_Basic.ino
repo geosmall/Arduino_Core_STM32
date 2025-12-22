@@ -28,6 +28,15 @@
  *   MOSI → PA7 (SPI1_MOSI)
  *   CS   → PA4 (GPIO)
  *
+ * Hardware Setup - OPEN_REVO (OpenPilot Revolution):
+ *   On-board MPU-6000/MPU-6500 on SPI1
+ *   -----------------
+ *   SCK  → PA5 (SPI1_SCK)
+ *   MISO → PA6 (SPI1_MISO)
+ *   MOSI → PA7 (SPI1_MOSI)
+ *   CS   → PA4 (GPIO)
+ *   EXTI → PC4 (Interrupt)
+ *
  * License: GPL v3 (Betaflight-derived library)
  */
 
@@ -36,9 +45,11 @@
 
 // Board configuration
 #if defined(ARDUINO_NUCLEO_F411RE)
-#include "../../../../targets/NUCLEO_F411RE_JHEF411.h"
+  #include "../../../../targets/NUCLEO_F411RE_JHEF411.h"
+#elif defined(ARDUINO_OPEN_REVO)
+  #include "../../../../targets/OPEN-REVO.h"
 #else
-#include "../../../../targets/BLACKPILL_F411CE.h"
+  #include "../../../../targets/BLACKPILL_F411CE.h"
 #endif
 
 // BoardConfig integration for dynamic pin and frequency configuration

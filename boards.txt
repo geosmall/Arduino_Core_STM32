@@ -3483,6 +3483,17 @@ FlightCtr.menu.pnum.JHEF_JHEF411.build.product_line=STM32F411xE
 FlightCtr.menu.pnum.JHEF_JHEF411.build.variant=STM32F4xx/F411C(C-E)(U-Y)
 FlightCtr.menu.pnum.JHEF_JHEF411.build.variant_h=variant_JHEF_JHEF411.h
 
+# OpenPilot Revolution F405
+FlightCtr.menu.pnum.OPEN_REVO=OpenPilot Revolution (F405)
+FlightCtr.menu.pnum.OPEN_REVO.upload.maximum_size=1048576
+FlightCtr.menu.pnum.OPEN_REVO.upload.maximum_data_size=131072
+FlightCtr.menu.pnum.OPEN_REVO.build.mcu=cortex-m4
+FlightCtr.menu.pnum.OPEN_REVO.build.series=STM32F4xx
+FlightCtr.menu.pnum.OPEN_REVO.build.board=OPEN_REVO
+FlightCtr.menu.pnum.OPEN_REVO.build.product_line=STM32F405xx
+FlightCtr.menu.pnum.OPEN_REVO.build.variant=STM32F4xx/F405RGT_F415RGT
+FlightCtr.menu.pnum.OPEN_REVO.build.variant_h=variant_OPEN_REVO.h
+
 # Upload menu
 FlightCtr.menu.upload_method.swdMethod=STM32CubeProgrammer (SWD)
 FlightCtr.menu.upload_method.swdMethod.upload.protocol=0

@@ -7,7 +7,7 @@
 #pragma once
 
 // Include ConfigTypes.h from targets/config directory
-#include "../../../../targets/config/ConfigTypes.h"
+#include "config/ConfigTypes.h"
 
 // Board: REVO
 // Manufacturer: OPEN
