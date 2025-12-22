@@ -445,6 +445,7 @@ Compile-time board config with multi-board support (NUCLEO_F411RE, BLACKPILL_F41
 
 **libPrintf**: eyalroz/printf v6.2.0, ~20% binary reduction (8KB+ savings)
 - Usage: `#include <libPrintf.h>` → `printf("Pi = %.6f\n", 3.14159);`
+- **CRITICAL - Float Formatting on ARM Cortex-M**: Newlib Nano (default C runtime) does NOT support `%f` in sprintf/printf - calls produce empty output. minIniStorage uses libPrintf's `sprintf_()` in `StorageGlue.h` for float config storage. Any code needing float-to-string formatting must `#include <libPrintf.h>` and use `sprintf_()` directly, or standard `sprintf()` (aliased when libPrintf.h included). HIL validated: float values round-trip correctly through minIni on both LittleFS and SDFS.
 
 ### IMU Libraries ✅ **COMPLETED**
 
@@ -738,6 +739,26 @@ OVERRIDE ALL DEFAULT CLAUDE CODE COMMIT INSTRUCTIONS:
 The README.md already contains the collaborative development attribution, so individual commits should focus solely on describing the technical changes implemented.
 
 ## Debugging Methodology
+
+### No Shortcuts - Understand Root Causes
+Before accepting any workaround or fix, verify understanding:
+
+**Before implementing a fix**:
+1. **Search first**: Look for existing solutions in the codebase (e.g., libPrintf for float formatting)
+2. **Understand WHY**: Can you explain why the fix works, not just that it works?
+3. **Preserve abstractions**: Don't bypass intended abstractions (e.g., BoardStorage) just to make tests pass
+4. **Flag uncertainty**: If you don't understand something, say so explicitly rather than silently trying workarounds
+
+**Before marking a task complete**:
+- Can you explain the root cause of the issue?
+- Does the fix address the root cause, or just mask it?
+- Are the tests still testing what they were designed to test?
+
+**Anti-patterns to avoid**:
+- ❌ Removing failing tests instead of fixing them
+- ❌ Adding tolerance/workarounds without investigating why exact values fail
+- ❌ Bypassing abstraction layers because the "direct" approach works
+- ❌ Accepting "it works now" without understanding why
 
 ### Stubborn Debug Protocol
 When debugging stalls or repeatedly hits walls, this indicates potential knowledge gaps rather than purely technical issues.

@@ -41,21 +41,24 @@ test(b_config_write) {
   assertTrue(isStorageReady());
 
   // Write string
-  assertTrue(config.put("network", "ip_address", "192.168.1.50"));
+  assertTrue(config.put("network", "ip_address", "192.168.10.100"));
 
   // Write integer
-  assertTrue(config.put("network", "port", 9090));
+  assertTrue(config.put("network", "port", 8080));
 
   // Write boolean
-  assertTrue(config.put("network", "dhcp_enabled", false));
+  assertTrue(config.put("network", "dhcp_enabled", true));
+
+  // Write float (uses libPrintf for sprintf %f support)
+  assertTrue(config.put("sensor", "temperature", 25.75f));
 
   // Write integer (sensor section)
-  assertTrue(config.put("sensor", "sample_rate", 500));
+  assertTrue(config.put("sensor", "sample_rate", 1000));
 
   // Write more strings
-  assertTrue(config.put("system", "device_name", "LittleFS_Controller"));
-  assertTrue(config.put("system", "firmware_version", "2.1.0"));
-  assertTrue(config.put("system", "debug_mode", true));
+  assertTrue(config.put("system", "device_name", "UAV_Controller_01"));
+  assertTrue(config.put("system", "firmware_version", "1.2.3"));
+  assertTrue(config.put("system", "debug_mode", false));
 }
 
 // Test 3: Read and verify configuration values
@@ -64,30 +67,34 @@ test(c_config_read) {
 
   // Read and verify string
   std::string ip = config.gets("network", "ip_address", "none");
-  assertTrue(ip == "192.168.1.50");
+  assertTrue(ip == "192.168.10.100");
 
   // Read and verify integer
   int port = config.geti("network", "port", 0);
-  assertEqual(port, 9090);
+  assertEqual(port, 8080);
 
   // Read and verify boolean
-  bool dhcp = config.getbool("network", "dhcp_enabled", true);
-  assertFalse(dhcp);
+  bool dhcp = config.getbool("network", "dhcp_enabled", false);
+  assertTrue(dhcp);
+
+  // Read and verify float (uses libPrintf for sprintf %f support)
+  float temp = config.getf("sensor", "temperature", 0.0f);
+  assertEqual(temp, 25.75f);
 
   // Read and verify integer
   int sample_rate = config.geti("sensor", "sample_rate", 0);
-  assertEqual(sample_rate, 500);
+  assertEqual(sample_rate, 1000);
 
   // Read and verify strings
   std::string device_name = config.gets("system", "device_name", "none");
-  assertTrue(device_name == "LittleFS_Controller");
+  assertTrue(device_name == "UAV_Controller_01");
 
   std::string fw_version = config.gets("system", "firmware_version", "none");
-  assertTrue(fw_version == "2.1.0");
+  assertTrue(fw_version == "1.2.3");
 
   // Read and verify boolean
-  bool debug = config.getbool("system", "debug_mode", false);
-  assertTrue(debug);
+  bool debug = config.getbool("system", "debug_mode", true);
+  assertFalse(debug);
 }
 
 // Test 4: Section enumeration

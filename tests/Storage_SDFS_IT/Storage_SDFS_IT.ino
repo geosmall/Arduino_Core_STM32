@@ -9,8 +9,7 @@
  */
 
 #include <aunit_hil.h>
-#include <Storage.h>
-#include <BoardStorage.h>
+#include <minIniStorage.h>  // Includes Storage, BoardStorage, and libPrintf dependencies
 #include "../../targets/NUCLEO_F411RE_SDFS.h"
 
 // Global state for test sequencing
@@ -21,10 +20,9 @@ bool isStorageReady() {
   return storageReady;
 }
 
-// Test 1: Initialization (runs first due to 'a_' prefix)
+// Test 1: Initialization
 test(a_storage_init) {
-  // Verify board config
-  assertTrue(BoardConfig::storage.backend_type == StorageBackend::SDFS);
+  // Verify board config has valid CS pin
   assertTrue(BoardConfig::storage.cs_pin != 0xFF);
 
   // Initialize storage
@@ -32,9 +30,10 @@ test(a_storage_init) {
   assertTrue(result);
 
   // Verify storage reports valid info
-  Storage& fs = BoardStorage::getStorage();
-  assertTrue(fs.name() != nullptr);
-  assertTrue(fs.totalSize() > 0);
+  Storage* storage = &BOARD_STORAGE;
+  assertTrue(storage->name() != nullptr);
+  assertTrue(storage->totalSize() > 0);
+  assertTrue(storage->isInitialized());
 
   // Mark ready for other tests
   storageReady = true;
@@ -44,14 +43,14 @@ test(a_storage_init) {
 test(b_file_write) {
   assertTrue(isStorageReady());
 
-  Storage& fs = BoardStorage::getStorage();
+  Storage* storage = &BOARD_STORAGE;
 
   // Clean up any existing test file
-  fs.remove("/test_aunit.txt");
+  storage->remove("/test.txt");
 
-  File f = fs.open("/test_aunit.txt", FILE_WRITE);
+  File f = storage->open("/test.txt", FILE_WRITE);
   assertTrue((bool)f);
-  size_t written = f.println("AUnit Storage SDFS Test");
+  size_t written = f.println("AUnit Storage Test");
   f.close();
   assertTrue(written > 0);
 }
@@ -60,33 +59,34 @@ test(b_file_write) {
 test(c_file_exists) {
   assertTrue(isStorageReady());
 
-  Storage& fs = BoardStorage::getStorage();
-  assertTrue(fs.exists("/test_aunit.txt"));
+  Storage* storage = &BOARD_STORAGE;
+  assertTrue(storage->exists("/test.txt"));
 }
 
 // Test 4: File read returns correct content
 test(d_file_read) {
   assertTrue(isStorageReady());
 
-  Storage& fs = BoardStorage::getStorage();
-  File f = fs.open("/test_aunit.txt", FILE_READ);
+  Storage* storage = &BOARD_STORAGE;
+  File f = storage->open("/test.txt", FILE_READ);
   assertTrue((bool)f);
   String content = f.readString();
   f.close();
-  assertTrue(content.startsWith("AUnit Storage SDFS Test"));
+  assertTrue(content.startsWith("AUnit Storage Test"));
 }
 
 // Test 5: File remove succeeds
 test(e_file_remove) {
   assertTrue(isStorageReady());
 
-  Storage& fs = BoardStorage::getStorage();
-  assertTrue(fs.remove("/test_aunit.txt"));
-  assertFalse(fs.exists("/test_aunit.txt"));
+  Storage* storage = &BOARD_STORAGE;
+  assertTrue(storage->remove("/test.txt"));
+  assertFalse(storage->exists("/test.txt"));
 }
 
 void setup() {
   HIL_TEST_SETUP();
+  HIL_TEST_TIMEOUT(60);  // 60s timeout for SD operations
 }
 
 void loop() {

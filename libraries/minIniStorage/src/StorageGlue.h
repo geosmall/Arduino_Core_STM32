@@ -16,6 +16,7 @@
 #include <Arduino.h>
 #include <Storage.h>
 #include <BoardStorage.h>
+#include <libPrintf.h>  // Embedded printf with float support (replaces sprintf)
 
 // Temporarily disable debug output to isolate issue
 #define DEBUG_PRINT(x)
@@ -126,5 +127,5 @@ static int ini_remove_impl(const char* filename) {
 
 /* for floating-point support, define additional types and functions */
 #define INI_REAL                        float
-#define ini_ftoa(string,value)          sprintf((string),"%f",(value))
+#define ini_ftoa(string,value)          sprintf_((string),"%f",(value))  // Use libPrintf directly
 #define ini_atof(string)                (INI_REAL)strtod((string),NULL)

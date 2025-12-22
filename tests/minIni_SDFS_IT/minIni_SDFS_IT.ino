@@ -49,6 +49,9 @@ test(b_config_write) {
   // Write boolean
   assertTrue(config.put("network", "dhcp_enabled", true));
 
+  // Write float (uses libPrintf for sprintf %f support)
+  assertTrue(config.put("sensor", "temperature", 25.75f));
+
   // Write integer (sensor section)
   assertTrue(config.put("sensor", "sample_rate", 1000));
 
@@ -73,6 +76,10 @@ test(c_config_read) {
   // Read and verify boolean
   bool dhcp = config.getbool("network", "dhcp_enabled", false);
   assertTrue(dhcp);
+
+  // Read and verify float (uses libPrintf for sprintf %f support)
+  float temp = config.getf("sensor", "temperature", 0.0f);
+  assertEqual(temp, 25.75f);
 
   // Read and verify integer
   int sample_rate = config.geti("sensor", "sample_rate", 0);
