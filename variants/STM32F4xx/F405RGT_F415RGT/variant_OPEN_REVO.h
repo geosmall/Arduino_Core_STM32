@@ -193,6 +193,15 @@
 /* HAL configuration */
 #define HSE_VALUE               8000000U
 
+/*----------------------------------------------------------------------------
+ *        TinyUF2 Bootloader Parameters
+ *----------------------------------------------------------------------------*/
+/* Must match TinyUF2 bootloader: https://github.com/geosmall/tinyuf2
+ * Magic value: src/board_api.h (DBL_TAP_MAGIC)
+ * RAM address: ports/stm32f4/boards.h (TINYUF2_DBL_TAP_REG) */
+#define TINYUF2_DBL_TAP_MAGIC  0xf01669efUL
+#define TINYUF2_DBL_TAP_ADDR   0x2001FFFCUL  /* Top of 128KB RAM (F405) */
+
 /* Extra HAL modules */
 #if !defined(HAL_DAC_MODULE_DISABLED)
   #define HAL_DAC_MODULE_ENABLED

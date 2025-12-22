@@ -3484,7 +3484,7 @@ FlightCtr.menu.pnum.JHEF_JHEF411.build.variant=STM32F4xx/F411C(C-E)(U-Y)
 FlightCtr.menu.pnum.JHEF_JHEF411.build.variant_h=variant_JHEF_JHEF411.h
 
 # OpenPilot Revolution F405
-FlightCtr.menu.pnum.OPEN_REVO=OpenPilot Revolution (F405)
+FlightCtr.menu.pnum.OPEN_REVO=OpenPilot Revo F4 (OPEN)
 FlightCtr.menu.pnum.OPEN_REVO.upload.maximum_size=1048576
 FlightCtr.menu.pnum.OPEN_REVO.upload.maximum_data_size=131072
 FlightCtr.menu.pnum.OPEN_REVO.build.mcu=cortex-m4
