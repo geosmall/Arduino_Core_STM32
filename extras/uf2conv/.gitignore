@@ -1,0 +1,4 @@
+# Build artifacts
+uf2conv
+uf2conv.exe
+*.o
