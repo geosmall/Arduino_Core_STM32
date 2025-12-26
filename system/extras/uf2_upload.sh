@@ -3,7 +3,7 @@
 # Usage: uf2_upload.sh <binary.bin> <flash_offset>
 #
 # This script:
-# 1. Converts .bin to .uf2 format using uf2conv.py
+# 1. Converts .bin to .uf2 format using native uf2conv (or Python fallback)
 # 2. Copies .uf2 file to the UF2 bootloader drive
 #
 # Requires: Device must already be in bootloader mode
@@ -78,22 +78,42 @@ fi
 # Generate .uf2 filename
 UF2_FILE="${BIN_FILE%.bin}.uf2"
 
-# Find uf2conv.py
+# Find uf2conv (native binary preferred, Python fallback)
 UF2CONV=""
+UF2CONV_TYPE=""
 SCRIPT_DIR="$(dirname "$0")"
+CORE_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+# First try native binary
 for path in \
-    "$SCRIPT_DIR/uf2conv.py" \
-    "$SCRIPT_DIR/../uf2conv.py" \
-    "/usr/local/bin/uf2conv.py" \
-    "$HOME/.local/bin/uf2conv.py"; do
-    if [ -f "$path" ]; then
+    "$CORE_DIR/extras/uf2conv/uf2conv" \
+    "$CORE_DIR/extras/uf2conv/uf2conv.exe" \
+    "/usr/local/bin/uf2conv"; do
+    if [ -x "$path" ]; then
         UF2CONV="$path"
+        UF2CONV_TYPE="native"
         break
     fi
 done
 
+# Fall back to Python
 if [ -z "$UF2CONV" ]; then
-    echo "Error: uf2conv.py not found"
+    for path in \
+        "$SCRIPT_DIR/uf2conv.py" \
+        "$SCRIPT_DIR/../uf2conv.py" \
+        "/usr/local/bin/uf2conv.py" \
+        "$HOME/.local/bin/uf2conv.py"; do
+        if [ -f "$path" ]; then
+            UF2CONV="$path"
+            UF2CONV_TYPE="python"
+            break
+        fi
+    done
+fi
+
+if [ -z "$UF2CONV" ]; then
+    echo "Error: uf2conv not found (tried native binary and Python)"
+    echo "Build native: cd $CORE_DIR/extras/uf2conv && make"
     exit 1
 fi
 
@@ -101,6 +121,7 @@ echo ""
 echo "Converting to UF2 format..."
 echo "  Input:  $(basename "$BIN_FILE")"
 echo "  Offset: $FLASH_OFFSET"
+echo "  Tool:   $UF2CONV_TYPE"
 
 # Convert offset to absolute address for STM32 flash (base = 0x08000000)
 FLASH_BASE=0x08000000
@@ -108,7 +129,11 @@ FLASH_ADDR=$(printf "0x%08X" $((FLASH_BASE + FLASH_OFFSET)))
 echo "  Address: $FLASH_ADDR"
 
 # Convert to UF2
-python3 "$UF2CONV" -f "$UF2_FAMILY" -b "$FLASH_ADDR" -c -o "$UF2_FILE" "$BIN_FILE" > /dev/null 2>&1
+if [ "$UF2CONV_TYPE" = "native" ]; then
+    "$UF2CONV" -f "$UF2_FAMILY" -b "$FLASH_ADDR" -o "$UF2_FILE" "$BIN_FILE" > /dev/null 2>&1
+else
+    python3 "$UF2CONV" -f "$UF2_FAMILY" -b "$FLASH_ADDR" -c -o "$UF2_FILE" "$BIN_FILE" > /dev/null 2>&1
+fi
 CONV_RESULT=$?
 
 if [ $CONV_RESULT -ne 0 ] || [ ! -f "$UF2_FILE" ]; then
