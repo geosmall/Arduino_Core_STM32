@@ -1,6 +1,6 @@
 #!/bin/sh
 # UF2 Upload Script for UF2 Bootloader
-# Usage: uf2_upload.sh <binary.bin> <flash_offset>
+# Usage: uf2_upload.sh <binary.bin> <flash_offset> [platform_path]
 #
 # This script:
 # 1. Converts .bin to .uf2 format using native uf2conv
@@ -11,6 +11,7 @@
 
 BIN_FILE="$1"
 FLASH_OFFSET="$2"
+PLATFORM_PATH="$3"
 
 # STM32F4 family ID for UF2
 UF2_FAMILY="0x57755a57"
@@ -78,11 +79,17 @@ fi
 # Generate .uf2 filename
 UF2_FILE="${BIN_FILE%.bin}.uf2"
 
+# Determine platform/core directory
+if [ -n "$PLATFORM_PATH" ]; then
+    CORE_DIR="$PLATFORM_PATH"
+else
+    # Fallback: derive from script location (for manual invocation)
+    SCRIPT_DIR="$(dirname "$0")"
+    CORE_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+fi
+
 # Find native uf2conv binary
 UF2CONV=""
-SCRIPT_DIR="$(dirname "$0")"
-CORE_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
-
 for path in \
     "$CORE_DIR/extras/uf2conv/uf2conv" \
     "$CORE_DIR/extras/uf2conv/uf2conv.exe" \

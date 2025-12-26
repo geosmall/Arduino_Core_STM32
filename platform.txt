@@ -196,7 +196,7 @@ tools.uf2_upload.busybox.windows={path}/win/busybox.exe
 tools.uf2_upload.cmd=uf2_upload.sh
 tools.uf2_upload.upload.params.verbose=-v
 tools.uf2_upload.upload.params.quiet=
-tools.uf2_upload.upload.pattern="{busybox}" sh "{runtime.platform.path}/system/extras/{cmd}" "{build.path}/{build.project_name}.bin" {build.flash_offset}
+tools.uf2_upload.upload.pattern="{busybox}" sh "{runtime.platform.path}/system/extras/{cmd}" "{build.path}/{build.project_name}.bin" {build.flash_offset} "{runtime.platform.path}"
 
 # Upload using Maple bootloader over DFU
 tools.maple_upload.script=maple_upload.sh
