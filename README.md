@@ -92,6 +92,69 @@ arduino-cli core install STM32_Robotics:stm32
 ./system/ci/env_check_quick.sh true
 ```
 
+## UF2 Bootloader Support
+
+This core includes support for UF2 bootloaders (like TinyUF2) which allow drag-and-drop firmware uploads.
+
+### uf2conv Tool
+
+The `uf2conv` tool converts `.bin` files to `.uf2` format for UF2 bootloaders.
+
+**Pre-built binaries** are included for all platforms:
+```
+extras/uf2conv/bin/
+├── linux-x64/uf2conv
+├── windows-x64/uf2conv.exe
+├── macos-x64/uf2conv
+└── macos-arm64/uf2conv
+```
+
+The upload script (`system/extras/uf2_upload.sh`) automatically selects the correct binary for your OS.
+
+### Building from Source
+
+If you need to build uf2conv yourself:
+
+```bash
+cd extras/uf2conv
+make
+```
+
+Requires: GCC or compatible C compiler.
+
+### GitHub Actions
+
+Pre-built binaries are automatically built via GitHub Actions when changes are pushed to `extras/uf2conv/`. The workflow:
+
+- **Trigger**: Push to `dev`/`main`/`ardu_ci` branches, or manual dispatch
+- **Platforms**: Linux x64, Windows x64, macOS x64, macOS ARM64
+- **Workflow file**: `.github/workflows/build-uf2conv.yml`
+
+To update binaries manually:
+1. Go to **Actions** → **Build uf2conv** → **Run workflow**
+2. Download the `uf2conv-all-platforms` artifact
+3. Replace files in `extras/uf2conv/bin/`
+
+### Manual Usage
+
+```bash
+# Convert binary to UF2 format
+./extras/uf2conv/bin/linux-x64/uf2conv -b 0x08010000 -f 0x57755a57 -o firmware.uf2 firmware.bin
+
+# Options:
+#   -b <addr>  Base address (default: 0x08010000 for TinyUF2)
+#   -f <id>    Family ID (default: 0x57755a57 for STM32F4)
+#   -o <file>  Output file (default: flash.uf2)
+```
+
+### Arduino IDE Integration
+
+Select **TinyUF2** as the upload method in Tools menu. The upload process:
+1. Converts `.bin` to `.uf2` using the native uf2conv tool
+2. Copies `.uf2` to the mounted UF2 bootloader drive
+
+**Note**: Device must be in bootloader mode (double-tap reset) before upload.
+
 ## Quick Start
 
 ### Build and Upload
@@ -187,7 +250,8 @@ make check          # Verify environment
 │   └── xensiv-dps3xx/     # Infineon barometric pressure sensor (DPS310/DPS368)
 ├── cmake/                 # CMake build system and examples
 ├── extras/
-│   └── betaflight_converter/  # Betaflight → BoardConfig converter with validation
+│   ├── betaflight_converter/  # Betaflight → BoardConfig converter with validation
+│   └── uf2conv/               # Native UF2 format converter (bin → uf2)
 ├── system/
 │   ├── ci/                # Build and test automation scripts
 │   └── extras/            # Arduino build hooks (prebuild/postbuild)
