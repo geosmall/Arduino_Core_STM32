@@ -1,4 +1,4 @@
-# Build artifacts
-uf2conv
-uf2conv.exe
+# Build artifacts (root level only, bin/ is tracked)
+/uf2conv
+/uf2conv.exe
 *.o

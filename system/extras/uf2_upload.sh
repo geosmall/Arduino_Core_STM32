@@ -88,17 +88,48 @@ else
     CORE_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 fi
 
-# Find native uf2conv binary
+# Find native uf2conv binary based on OS
 UF2CONV=""
-for path in \
-    "$CORE_DIR/extras/uf2conv/uf2conv" \
-    "$CORE_DIR/extras/uf2conv/uf2conv.exe" \
-    "/usr/local/bin/uf2conv"; do
-    if [ -x "$path" ]; then
-        UF2CONV="$path"
-        break
-    fi
-done
+case "$OS_TYPE" in
+    linux)
+        for path in \
+            "$CORE_DIR/extras/uf2conv/bin/linux-x64/uf2conv" \
+            "$CORE_DIR/extras/uf2conv/uf2conv" \
+            "/usr/local/bin/uf2conv"; do
+            if [ -x "$path" ]; then
+                UF2CONV="$path"
+                break
+            fi
+        done
+        ;;
+    macos)
+        # Check for ARM64 (Apple Silicon) vs x64
+        if [ "$(uname -m)" = "arm64" ]; then
+            MACOS_BIN="$CORE_DIR/extras/uf2conv/bin/macos-arm64/uf2conv"
+        else
+            MACOS_BIN="$CORE_DIR/extras/uf2conv/bin/macos-x64/uf2conv"
+        fi
+        for path in \
+            "$MACOS_BIN" \
+            "$CORE_DIR/extras/uf2conv/uf2conv" \
+            "/usr/local/bin/uf2conv"; do
+            if [ -x "$path" ]; then
+                UF2CONV="$path"
+                break
+            fi
+        done
+        ;;
+    windows)
+        for path in \
+            "$CORE_DIR/extras/uf2conv/bin/windows-x64/uf2conv.exe" \
+            "$CORE_DIR/extras/uf2conv/uf2conv.exe"; do
+            if [ -x "$path" ]; then
+                UF2CONV="$path"
+                break
+            fi
+        done
+        ;;
+esac
 
 if [ -z "$UF2CONV" ]; then
     echo "Error: uf2conv not found"
