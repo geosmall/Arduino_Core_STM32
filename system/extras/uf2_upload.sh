@@ -1,10 +1,12 @@
 #!/bin/sh
 # UF2 Upload Script for UF2 Bootloader
-# Usage: uf2_upload.sh <binary.bin> <flash_offset> [platform_path]
+# Usage: uf2_upload.sh <binary.bin> <flash_offset> [platform_path] [uf2_family]
 #
 # This script:
 # 1. Converts .bin to .uf2 format using native uf2conv
 # 2. Copies .uf2 file to the UF2 bootloader drive
+#
+# Family IDs: 0x57755a57 (STM32F4), 0x53b80f00 (STM32F7), 0x6db66082 (STM32H7)
 #
 # Requires: Device must already be in bootloader mode
 # Compatible with: bash, dash, ash, BusyBox sh
@@ -12,9 +14,14 @@
 BIN_FILE="$1"
 FLASH_OFFSET="$2"
 PLATFORM_PATH="$3"
+UF2_FAMILY_ARG="$4"
 
-# STM32F4 family ID for UF2
-UF2_FAMILY="0x57755a57"
+# UF2 family ID - use passed value or default to STM32F4
+if [ -n "$UF2_FAMILY_ARG" ]; then
+    UF2_FAMILY="$UF2_FAMILY_ARG"
+else
+    UF2_FAMILY="0x57755a57"
+fi
 
 # Detect OS
 detect_os() {
@@ -141,6 +148,7 @@ echo ""
 echo "Converting to UF2 format..."
 echo "  Input:  $(basename "$BIN_FILE")"
 echo "  Offset: $FLASH_OFFSET"
+echo "  Family: $UF2_FAMILY"
 
 # Convert offset to absolute address for STM32 flash (base = 0x08000000)
 FLASH_BASE=0x08000000

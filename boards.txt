@@ -3460,6 +3460,7 @@ FlightCtr.menu.pnum.MATEK_H743VI.build.product_line=STM32H743xx
 FlightCtr.menu.pnum.MATEK_H743VI.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial}
 FlightCtr.menu.pnum.MATEK_H743VI.build.variant=STM32H7xx/H742V(G-I)(H-T)_H743V(G-I)(H-T)_H750VBT_H753VI(H-T)
 FlightCtr.menu.pnum.MATEK_H743VI.build.variant_h=variant_MATEK_H743VI.h
+FlightCtr.menu.pnum.MATEK_H743VI.build.uf2_family=0x6db66082
 
 # NERO F7
 FlightCtr.menu.pnum.BKMN_NERO=NERO F7 (BKMN)
@@ -3471,6 +3472,7 @@ FlightCtr.menu.pnum.BKMN_NERO.build.board=BKMN_NERO
 FlightCtr.menu.pnum.BKMN_NERO.build.product_line=STM32F722xx
 FlightCtr.menu.pnum.BKMN_NERO.build.variant=STM32F7xx/F722R(C-E)T_F730R8T_F732RET
 FlightCtr.menu.pnum.BKMN_NERO.build.variant_h=variant_BKMN_NERO.h
+FlightCtr.menu.pnum.BKMN_NERO.build.uf2_family=0x53b80f00
 
 # NOXE V3
 FlightCtr.menu.pnum.JHEF_JHEF411=NOXE V3 (JHEF)
@@ -3482,6 +3484,7 @@ FlightCtr.menu.pnum.JHEF_JHEF411.build.board=JHEF_JHEF411
 FlightCtr.menu.pnum.JHEF_JHEF411.build.product_line=STM32F411xE
 FlightCtr.menu.pnum.JHEF_JHEF411.build.variant=STM32F4xx/F411C(C-E)(U-Y)
 FlightCtr.menu.pnum.JHEF_JHEF411.build.variant_h=variant_JHEF_JHEF411.h
+FlightCtr.menu.pnum.JHEF_JHEF411.build.uf2_family=0x57755a57
 
 # OpenPilot Revolution F405
 FlightCtr.menu.pnum.OPEN_REVO=OpenPilot Revo F4 (OPEN)
@@ -3493,6 +3496,7 @@ FlightCtr.menu.pnum.OPEN_REVO.build.board=OPEN_REVO
 FlightCtr.menu.pnum.OPEN_REVO.build.product_line=STM32F405xx
 FlightCtr.menu.pnum.OPEN_REVO.build.variant=STM32F4xx/F405RGT_F415RGT
 FlightCtr.menu.pnum.OPEN_REVO.build.variant_h=variant_OPEN_REVO.h
+FlightCtr.menu.pnum.OPEN_REVO.build.uf2_family=0x57755a57
 
 # Upload menu
 FlightCtr.menu.upload_method.swdMethod=STM32CubeProgrammer (SWD)

@@ -219,6 +219,11 @@
 // Value of the External oscillator in Hz
 #define HSE_VALUE             8000000U  // NERO uses 8 MHz crystal
 
+// TinyUF2 double-tap bootloader support
+// Address at end of 64K DTCM RAM: 0x20000000 + 0x10000 - 4 = 0x2000FFFC
+#define TINYUF2_DBL_TAP_ADDR  0x2000FFFCUL
+#define TINYUF2_DBL_TAP_MAGIC 0xf01669efUL
+
 // SDMMC signals not available
 #define SDMMC_CKIN_NA
 #define SDMMC_CDIR_NA
