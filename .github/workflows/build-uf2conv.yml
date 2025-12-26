@@ -1,0 +1,100 @@
+# Build native uf2conv tool for multiple platforms
+# Triggered on changes to uf2conv source or manual dispatch
+
+name: Build uf2conv
+
+on:
+  push:
+    paths:
+      - 'extras/uf2conv/**'
+    branches:
+      - master
+      - ardu_ci
+  pull_request:
+    paths:
+      - 'extras/uf2conv/**'
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: uf2conv-linux-x64
+            binary: uf2conv
+          - os: windows-latest
+            artifact: uf2conv-windows-x64
+            binary: uf2conv.exe
+          - os: macos-latest
+            artifact: uf2conv-macos-x64
+            binary: uf2conv
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build uf2conv
+        working-directory: extras/uf2conv
+        run: make
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: extras/uf2conv/${{ matrix.binary }}
+          retention-days: 90
+
+  # macOS ARM64 cross-compile from x64 runner
+  build-macos-arm64:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build uf2conv for ARM64
+        working-directory: extras/uf2conv
+        run: |
+          make clean 2>/dev/null || true
+          make CFLAGS="-O2 -Wall -Wextra -target arm64-apple-macos11"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: uf2conv-macos-arm64
+          path: extras/uf2conv/uf2conv
+          retention-days: 90
+
+  # Create combined release artifact
+  package:
+    needs: [build, build-macos-arm64]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List artifacts
+        run: find artifacts -type f -ls
+
+      - name: Create release package
+        run: |
+          mkdir -p release
+          cp artifacts/uf2conv-linux-x64/uf2conv release/uf2conv-linux-x64
+          cp artifacts/uf2conv-windows-x64/uf2conv.exe release/uf2conv-windows-x64.exe
+          cp artifacts/uf2conv-macos-x64/uf2conv release/uf2conv-macos-x64
+          cp artifacts/uf2conv-macos-arm64/uf2conv release/uf2conv-macos-arm64
+          chmod +x release/uf2conv-*
+          ls -la release/
+
+      - name: Upload combined package
+        uses: actions/upload-artifact@v4
+        with:
+          name: uf2conv-all-platforms
+          path: release/
+          retention-days: 90

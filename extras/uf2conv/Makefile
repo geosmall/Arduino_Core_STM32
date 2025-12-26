@@ -2,7 +2,7 @@
 # Builds native binary for current platform
 
 CC ?= gcc
-CFLAGS = -O2 -Wall -Wextra
+CFLAGS ?= -O2 -Wall -Wextra
 
 # Output binary name (platform-specific)
 ifeq ($(OS),Windows_NT)
