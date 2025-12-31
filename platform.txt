@@ -217,6 +217,31 @@ tools.clipboard_upload.upload.params.quiet=
 # tools.clipboard_upload.upload.pattern="{busybox}" sh "{path}/{cmd}" "{build.path}/{build.project_name}"
 tools.clipboard_upload.upload.pattern="{busybox}" sh "{runtime.platform.path}/system/extras/{cmd}" "{build.path}/{build.project_name}"
 
+# Bootloader burning tools
+# ----------------------------------------
+
+# UF2 Bootloader flash via J-Link (using STM32CubeProgrammer with J-Link protocol)
+tools.jlink_bootloader.path={runtime.tools.STM32Tools.path}
+tools.jlink_bootloader.busybox=
+tools.jlink_bootloader.busybox.windows={path}/win/busybox.exe
+tools.jlink_bootloader.erase.params.verbose=
+tools.jlink_bootloader.erase.params.quiet=
+tools.jlink_bootloader.erase.pattern=
+tools.jlink_bootloader.bootloader.params.verbose=
+tools.jlink_bootloader.bootloader.params.quiet=
+tools.jlink_bootloader.bootloader.pattern="{busybox}" sh "{path}/stm32CubeProg.sh" 3 "{runtime.platform.path}/bootloaders/{build.bootloader_bin}" 0x08000000
+
+# UF2 Bootloader flash via ST-Link (using STM32CubeProgrammer with SWD protocol)
+tools.stlink_bootloader.path={runtime.tools.STM32Tools.path}
+tools.stlink_bootloader.busybox=
+tools.stlink_bootloader.busybox.windows={path}/win/busybox.exe
+tools.stlink_bootloader.erase.params.verbose=
+tools.stlink_bootloader.erase.params.quiet=
+tools.stlink_bootloader.erase.pattern=
+tools.stlink_bootloader.bootloader.params.verbose=
+tools.stlink_bootloader.bootloader.params.quiet=
+tools.stlink_bootloader.bootloader.pattern="{busybox}" sh "{path}/stm32CubeProg.sh" 0 "{runtime.platform.path}/bootloaders/{build.bootloader_bin}" 0x08000000
+
 # Debugger configuration (general options)
 # ----------------------------------------
 # EXPERIMENTAL feature:

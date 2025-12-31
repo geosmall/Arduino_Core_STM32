@@ -15,6 +15,7 @@ libraries/*/examples/*/build/
 extras/*/build/
 cmake/examples/*/build/
 *.bin
+!bootloaders/*.bin
 *.hex
 *.elf
 *.map
