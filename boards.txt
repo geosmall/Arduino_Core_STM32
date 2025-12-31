@@ -593,8 +593,6 @@ GenF4.menu.pnum.BLACKPILL_F411CE.build.product_line=STM32F411xE
 GenF4.menu.pnum.BLACKPILL_F411CE.build.variant=STM32F4xx/F411C(C-E)(U-Y)
 GenF4.menu.pnum.BLACKPILL_F411CE.build.variant_h=variant_{build.board}.h
 GenF4.menu.pnum.BLACKPILL_F411CE.build.peripheral_pins=-DCUSTOM_PERIPHERAL_PINS
-# Note: This bootloader is for 8MHz HSE crystal (WeAct Studio BlackPill)
-GenF4.menu.pnum.BLACKPILL_F411CE.build.bootloader_bin=bootloader-blackpill_f411ce_8mhz-v1.0.0.bin
 
 # Core board F401RCT6
 # https://stm32-base.org/boards/STM32F401RCT6-STM32F-Core-Board
@@ -1382,12 +1380,6 @@ GenF4.menu.upload_method.clipboard=Clipboard (Copy Path)
 GenF4.menu.upload_method.clipboard.upload.protocol=0
 GenF4.menu.upload_method.clipboard.upload.options=-g
 GenF4.menu.upload_method.clipboard.upload.tool=clipboard_upload
-
-# Bootloader burning menu
-GenF4.menu.bootloader.jlink=J-Link
-GenF4.menu.bootloader.jlink.bootloader.tool=jlink_bootloader
-GenF4.menu.bootloader.stlink=ST-Link
-GenF4.menu.bootloader.stlink.bootloader.tool=stlink_bootloader
 
 ################################################################################
 # Generic F7
@@ -3515,6 +3507,21 @@ FlightCtr.menu.pnum.OPEN_REVO.build.uf2_family=0x57755a57
 FlightCtr.menu.pnum.OPEN_REVO.build.uf2_flash_offset=0x10000
 FlightCtr.menu.pnum.OPEN_REVO.build.bootloader_bin=bootloader-revo_f405-v1.0.0.bin
 
+# BlackPill F411CE 8MHz (WeAct Studio)
+FlightCtr.menu.pnum.BLACKPILL_F411CE_8MHZ=BlackPill F411CE 8MHz
+FlightCtr.menu.pnum.BLACKPILL_F411CE_8MHZ.upload.maximum_size=458752
+FlightCtr.menu.pnum.BLACKPILL_F411CE_8MHZ.upload.maximum_data_size=131072
+FlightCtr.menu.pnum.BLACKPILL_F411CE_8MHZ.build.mcu=cortex-m4
+FlightCtr.menu.pnum.BLACKPILL_F411CE_8MHZ.build.series=STM32F4xx
+FlightCtr.menu.pnum.BLACKPILL_F411CE_8MHZ.build.board=BLACKPILL_F411CE
+FlightCtr.menu.pnum.BLACKPILL_F411CE_8MHZ.build.product_line=STM32F411xE
+FlightCtr.menu.pnum.BLACKPILL_F411CE_8MHZ.build.variant=STM32F4xx/F411C(C-E)(U-Y)
+FlightCtr.menu.pnum.BLACKPILL_F411CE_8MHZ.build.variant_h=variant_BLACKPILL_F411CE.h
+FlightCtr.menu.pnum.BLACKPILL_F411CE_8MHZ.build.peripheral_pins=-DCUSTOM_PERIPHERAL_PINS
+FlightCtr.menu.pnum.BLACKPILL_F411CE_8MHZ.build.uf2_family=0x57755a57
+FlightCtr.menu.pnum.BLACKPILL_F411CE_8MHZ.build.uf2_flash_offset=0x10000
+FlightCtr.menu.pnum.BLACKPILL_F411CE_8MHZ.build.bootloader_bin=bootloader-blackpill_f411ce_8mhz-v1.0.0.bin
+
 # Upload menu
 FlightCtr.menu.upload_method.swdMethod=STM32CubeProgrammer (SWD)
 FlightCtr.menu.upload_method.swdMethod.upload.protocol=0
@@ -3546,12 +3553,6 @@ FlightCtr.menu.upload_method.clipboard=Clipboard (Copy Path)
 FlightCtr.menu.upload_method.clipboard.upload.protocol=0
 FlightCtr.menu.upload_method.clipboard.upload.options=-g
 FlightCtr.menu.upload_method.clipboard.upload.tool=clipboard_upload
-
-# Bootloader burning menu
-FlightCtr.menu.bootloader.jlink=J-Link
-FlightCtr.menu.bootloader.jlink.bootloader.tool=jlink_bootloader
-FlightCtr.menu.bootloader.stlink=ST-Link
-FlightCtr.menu.bootloader.stlink.bootloader.tool=stlink_bootloader
 
 ################################################################################
 # Serialx activation

@@ -1,0 +1,26 @@
+# Programmers for burning UF2 bootloaders
+# See platform.txt for tool definitions
+
+# J-Link (via STM32CubeProgrammer)
+jlink.name=J-Link
+jlink.protocol=jlink
+jlink.bootloader.tool=jlink_bootloader
+jlink.bootloader.tool.default=jlink_bootloader
+
+# J-Link with full chip erase
+jlink_erase.name=J-Link (Erase All)
+jlink_erase.protocol=jlink
+jlink_erase.bootloader.tool=jlink_bootloader_erase
+jlink_erase.bootloader.tool.default=jlink_bootloader_erase
+
+# ST-Link (via STM32CubeProgrammer)
+stlink.name=ST-Link
+stlink.protocol=stlink
+stlink.bootloader.tool=stlink_bootloader
+stlink.bootloader.tool.default=stlink_bootloader
+
+# ST-Link with full chip erase
+stlink_erase.name=ST-Link (Erase All)
+stlink_erase.protocol=stlink
+stlink_erase.bootloader.tool=stlink_bootloader_erase
+stlink_erase.bootloader.tool.default=stlink_bootloader_erase

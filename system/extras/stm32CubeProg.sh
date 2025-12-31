@@ -106,6 +106,33 @@ FILEPATH=$2
 OFFSET=$3
 ADDRESS=$(printf "0x%x" $((ADDRESS + OFFSET)))
 
+# Check for unsubstituted Arduino variables (e.g., {build.bootloader_bin})
+case "$FILEPATH" in
+  *{build.*}*)
+    echo "############################################################"
+    echo "## ERROR: No bootloader defined for this board"
+    echo "##"
+    echo "## The selected board does not have a bootloader configured."
+    echo "## Only boards with TinyUF2 bootloader support can use"
+    echo "## Tools -> Burn Bootloader."
+    echo "##"
+    echo "## Supported boards are under: FlightCtr"
+    echo "##   - BlackPill F411CE 8MHz"
+    echo "##   - NOXE V3"
+    echo "##   - NERO F7"
+    echo "##   - MATEK H743VI"
+    echo "##   - OpenPilot Revo F4"
+    echo "############################################################"
+    exit 1
+    ;;
+esac
+
+# Check if file exists
+if [ ! -f "$FILEPATH" ]; then
+  echo "Error: File not found: $FILEPATH"
+  exit 1
+fi
+
 # Protocol $1
 # 1x: Erase all sectors
 if [ "$1" -ge 10 ]; then
