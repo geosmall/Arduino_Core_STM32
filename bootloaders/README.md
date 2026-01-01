@@ -107,3 +107,11 @@ Arduino sketches are automatically converted to UF2 format when using the **UF2 
 | App start address | 0x08010000 (64KB offset) |
 | UF2 Family IDs | F4: 0x57755a57, F7: 0x53b80f00, H7: 0x6db66082 |
 | Double-tap magic | 0xf01669ef |
+
+## License & Attribution
+
+These bootloaders leverage work from [TinyUF2](https://github.com/adafruit/tinyuf2)
+and [TinyUSB](https://github.com/hathach/tinyusb), both under MIT License.
+
+**TinyUF2** - Copyright (c) 2020 Ha Thach
+**TinyUSB** - Copyright (c) 2018, hathach (tinyusb.org) 
