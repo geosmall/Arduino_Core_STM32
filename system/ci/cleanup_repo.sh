@@ -18,9 +18,9 @@ rm -rf test_logs/ 2>/dev/null || true
 echo "Removing auto-generated build_id.h files..."
 find . -name "build_id.h" -delete 2>/dev/null || true
 
-# Remove binary artifacts (excluding library documentation)
+# Remove binary artifacts (excluding bootloaders and library documentation)
 echo "Removing binary artifacts..."
-find . -name "*.bin" -delete 2>/dev/null || true
+find . -name "*.bin" -not -path "./bootloaders/*" -delete 2>/dev/null || true
 find . -name "*.hex" -delete 2>/dev/null || true
 find . -name "*.elf" -delete 2>/dev/null || true
 # Remove .map files but exclude library docs (e.g., Doxygen HTML imagemaps)
