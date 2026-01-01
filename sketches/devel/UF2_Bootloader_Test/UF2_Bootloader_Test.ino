@@ -12,7 +12,7 @@
 
 #include <bootloader.h>
 
-#define LED_PIN PC13  // BlackPill onboard LED (active low)
+#define LED_PIN LED_BUILTIN  // onboard LED (active low)
 
 void setup() {
   pinMode(LED_PIN, OUTPUT);

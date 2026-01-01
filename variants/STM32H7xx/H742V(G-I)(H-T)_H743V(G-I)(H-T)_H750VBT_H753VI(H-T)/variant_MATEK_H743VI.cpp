@@ -199,13 +199,13 @@ WEAK void SystemClock_Config(void)
   PeriphClkInitStruct.PLL3.PLL3M = 1;
   PeriphClkInitStruct.PLL3.PLL3N = 24;
   PeriphClkInitStruct.PLL3.PLL3P = 2;
-  PeriphClkInitStruct.PLL3.PLL3Q = 6;
+  PeriphClkInitStruct.PLL3.PLL3Q = 4;   // 192 MHz / 4 = 48 MHz (USB)
   PeriphClkInitStruct.PLL3.PLL3R = 2;
   PeriphClkInitStruct.PLL3.PLL3RGE = RCC_PLL3VCIRANGE_3;
   PeriphClkInitStruct.PLL3.PLL3VCOSEL = RCC_PLL3VCOWIDE;
   PeriphClkInitStruct.PLL3.PLL3FRACN = 0.0;
   PeriphClkInitStruct.AdcClockSelection = RCC_ADCCLKSOURCE_PLL2;
-  PeriphClkInitStruct.UsbClockSelection = RCC_USBCLKSOURCE_HSI48;
+  PeriphClkInitStruct.UsbClockSelection = RCC_USBCLKSOURCE_PLL3;
   PeriphClkInitStruct.QspiClockSelection = RCC_QSPICLKSOURCE_D1HCLK;
   PeriphClkInitStruct.SdmmcClockSelection = RCC_SDMMCCLKSOURCE_PLL;
   PeriphClkInitStruct.Lpuart1ClockSelection = RCC_LPUART1CLKSOURCE_PLL3;
@@ -218,6 +218,54 @@ WEAK void SystemClock_Config(void)
   PeriphClkInitStruct.Spi6ClockSelection = RCC_SPI6CLKSOURCE_D3PCLK1;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK) {
     Error_Handler();
+  }
+}
+
+/*
+ * Power saving mode, mcu runs significantly cooler
+ * Sysclock 240 Mhz, bus clocks 120 Mhz
+ */
+void SysClkHalfSpeed()
+{
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {};
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
+                                | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2
+                                | RCC_CLOCKTYPE_D3PCLK1 | RCC_CLOCKTYPE_D1PCLK1;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.SYSCLKDivider = RCC_SYSCLK_DIV2;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB3CLKDivider = RCC_APB3_DIV2;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_APB1_DIV2;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV2;
+  RCC_ClkInitStruct.APB4CLKDivider = RCC_APB4_DIV2;
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK) {
+    Error_Handler();
+  } else {
+    SystemCoreClockUpdate();
+  }
+}
+
+/*
+ * Full speed - sysclk from PLL1 P - 480 Mhz
+ * Sysclock 480 Mhz, bus clocks 240 Mhz
+ */
+void SysClkFullSpeed()
+{
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {};
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
+                                | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2
+                                | RCC_CLOCKTYPE_D3PCLK1 | RCC_CLOCKTYPE_D1PCLK1;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.SYSCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB3CLKDivider = RCC_APB3_DIV2;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_APB1_DIV2;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV2;
+  RCC_ClkInitStruct.APB4CLKDivider = RCC_APB4_DIV2;
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK) {
+    Error_Handler();
+  } else {
+    SystemCoreClockUpdate();
   }
 }
 

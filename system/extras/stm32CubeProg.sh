@@ -147,7 +147,7 @@ fi
 case $PROTOCOL in
   0)
     PORT="SWD"
-    MODE="mode=UR"
+    # Note: mode=UR (Under Reset) fails if NRST not wired to programmer
     shift 3
     ;;
   1)
@@ -164,7 +164,7 @@ case $PROTOCOL in
     ;;
   3)
     PORT="JLINK"
-    MODE="mode=UR"
+    # Note: mode=UR (Under Reset) fails on H7, omit for J-Link
     shift 3
     ;;
   *)

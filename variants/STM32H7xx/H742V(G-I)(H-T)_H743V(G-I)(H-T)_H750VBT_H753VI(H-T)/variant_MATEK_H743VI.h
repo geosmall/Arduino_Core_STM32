@@ -215,17 +215,18 @@
 #endif
 
 // UART Definitions
+// MATEK H743-WLITE: UART3 on TX3/RX3 pads (directly accessible)
 #ifndef SERIAL_UART_INSTANCE
-  #define SERIAL_UART_INSTANCE  101
+  #define SERIAL_UART_INSTANCE  3
 #endif
 
 // Default pin used for generic 'Serial' instance
 // Mandatory for Firmata
 #ifndef PIN_SERIAL_RX
-  #define PIN_SERIAL_RX         PA10
+  #define PIN_SERIAL_RX         PD9
 #endif
 #ifndef PIN_SERIAL_TX
-  #define PIN_SERIAL_TX         PA9
+  #define PIN_SERIAL_TX         PD8
 #endif
 
 // Extra HAL modules
@@ -241,6 +242,17 @@
 #if !defined(HAL_SD_MODULE_DISABLED)
   #define HAL_SD_MODULE_ENABLED
 #endif
+
+// MATEK H743-WLITE uses 8 MHz crystal
+#define HSE_VALUE             8000000U
+
+/*----------------------------------------------------------------------------
+ *        TinyUF2 Bootloader double-tap support
+ *----------------------------------------------------------------------------*/
+/* Magic value must match ports/stm32h7/boards.h
+ * RAM address: ports/stm32h7/linker/h743xx.ld (_board_dfu_dbl_tap) */
+#define TINYUF2_DBL_TAP_MAGIC  0xf01669efUL
+#define TINYUF2_DBL_TAP_ADDR   0x2001FFFCUL  /* Top of 128KB DTCM */
 
 /*----------------------------------------------------------------------------
  *        Arduino objects - C++ only

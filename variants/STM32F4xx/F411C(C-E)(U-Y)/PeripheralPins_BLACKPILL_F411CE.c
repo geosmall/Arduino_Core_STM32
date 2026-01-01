@@ -14,7 +14,7 @@
  * Automatically generated from STM32F411C(C-E)Ux.xml, STM32F411C(C-E)Yx.xml
  * CubeMX DB release 6.0.20
  */
-#if defined(ARDUINO_BLACKPILL_F411CE)
+#if defined(ARDUINO_BLACKPILL_F411CE) || defined(ARDUINO_BLACKPILL_F411CE_8MHZ)
 #include "Arduino.h"
 #include "PeripheralPins.h"
 
