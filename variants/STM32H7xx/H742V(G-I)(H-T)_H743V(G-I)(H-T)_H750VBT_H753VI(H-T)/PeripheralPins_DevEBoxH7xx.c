@@ -17,7 +17,7 @@
  * STM32H753VIHx.xml, STM32H753VITx.xml
  * CubeMX DB release 6.0.30
  */
-#if defined(ARDUINO_DevEBoxH743VITX) || defined(ARDUINO_DevEBoxH750VBTX)
+#if defined(ARDUINO_DevEBoxH743VITX) || defined(ARDUINO_DevEBoxH750VBTX) || defined(ARDUINO_DEVEBOX_H743)
 #include "Arduino.h"
 #include "PeripheralPins.h"
 

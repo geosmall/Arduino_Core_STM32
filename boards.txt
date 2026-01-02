@@ -3465,6 +3465,22 @@ FlightCtr.menu.pnum.MATEK_H743VI.build.uf2_family=0x6db66082
 FlightCtr.menu.pnum.MATEK_H743VI.build.uf2_flash_offset=0x20000
 FlightCtr.menu.pnum.MATEK_H743VI.build.bootloader_bin=bootloader-matek_h743-v1.0.1.bin
 
+# DevEBox H743
+FlightCtr.menu.pnum.DEVEBOX_H743=DevEBox H743VITx
+FlightCtr.menu.pnum.DEVEBOX_H743.upload.maximum_size=1966080
+FlightCtr.menu.pnum.DEVEBOX_H743.upload.maximum_data_size=524288
+FlightCtr.menu.pnum.DEVEBOX_H743.build.mcu=cortex-m7
+FlightCtr.menu.pnum.DEVEBOX_H743.build.series=STM32H7xx
+FlightCtr.menu.pnum.DEVEBOX_H743.build.board=DEVEBOX_H743
+FlightCtr.menu.pnum.DEVEBOX_H743.build.product_line=STM32H743xx
+FlightCtr.menu.pnum.DEVEBOX_H743.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial} {build.bootloader_flags}
+FlightCtr.menu.pnum.DEVEBOX_H743.build.variant=STM32H7xx/H742V(G-I)(H-T)_H743V(G-I)(H-T)_H750VBT_H753VI(H-T)
+FlightCtr.menu.pnum.DEVEBOX_H743.build.variant_h=variant_DEVEBOX_H743.h
+FlightCtr.menu.pnum.DEVEBOX_H743.build.peripheral_pins=-DCUSTOM_PERIPHERAL_PINS
+FlightCtr.menu.pnum.DEVEBOX_H743.build.uf2_family=0x6db66082
+FlightCtr.menu.pnum.DEVEBOX_H743.build.uf2_flash_offset=0x20000
+FlightCtr.menu.pnum.DEVEBOX_H743.build.bootloader_bin=bootloader-devebox_h743-v1.0.1.bin
+
 # NERO F7
 FlightCtr.menu.pnum.BKMN_NERO=NERO F7 (BKMN)
 FlightCtr.menu.pnum.BKMN_NERO.upload.maximum_size=524288
