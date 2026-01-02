@@ -28,7 +28,7 @@ detect_os() {
     case "$(uname -s)" in
         Linux*)  echo "linux" ;;
         Darwin*) echo "macos" ;;
-        MINGW*|MSYS*|CYGWIN*) echo "windows" ;;
+        MINGW*|MSYS*|CYGWIN*|Windows_NT*) echo "windows" ;;
         *)       echo "unknown" ;;
     esac
 }
@@ -55,15 +55,10 @@ find_uf2_drive() {
             done
             ;;
         windows)
-            for letter in C D E F G H I J K; do
-                drive="/$letter"
-                if [ -f "$drive/INFO_UF2.TXT" ]; then
-                    echo "$drive"
-                    return 0
-                fi
-                drive="/$(echo $letter | tr 'A-Z' 'a-z')"
-                if [ -f "$drive/INFO_UF2.TXT" ]; then
-                    echo "$drive"
+            # Enumerate mounted drives via df (more robust than fixed letter iteration)
+            for drive in $(df | tail -n +2 | cut -d: -f1); do
+                if [ -f "${drive}:/INFO_UF2.TXT" ]; then
+                    echo "${drive}:"
                     return 0
                 fi
             done
