@@ -24,3 +24,9 @@ stlink_erase.name=ST-Link (Erase All)
 stlink_erase.protocol=stlink
 stlink_erase.bootloader.tool=stlink_bootloader_erase
 stlink_erase.bootloader.tool.default=stlink_bootloader_erase
+
+# DFU (USB) - requires entering DFU mode first (hold BOOT + reset)
+dfu.name=DFU (USB) - Hold BOOT + Reset first
+dfu.protocol=dfu
+dfu.bootloader.tool=dfu_bootloader
+dfu.bootloader.tool.default=dfu_bootloader

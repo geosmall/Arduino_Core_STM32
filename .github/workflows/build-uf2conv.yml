@@ -10,7 +10,6 @@ on:
     branches:
       - dev
       - main
-      - ardu_ci
     tags:
       - 'uf2conv-v*'  # e.g., uf2conv-v1.0.0
   pull_request:

@@ -268,6 +268,19 @@ tools.stlink_bootloader_erase.bootloader.params.verbose=
 tools.stlink_bootloader_erase.bootloader.params.quiet=
 tools.stlink_bootloader_erase.bootloader.pattern="{busybox}" sh "{runtime.platform.path}/system/extras/{cmd}" 10 "{runtime.platform.path}/bootloaders/{build.bootloader_bin}" 0x0
 
+# Burn bootloader using DFU (USB)
+# Requires board to be in DFU mode first (hold BOOT button + reset)
+tools.dfu_bootloader.path={runtime.tools.STM32Tools.path}
+tools.dfu_bootloader.busybox=
+tools.dfu_bootloader.busybox.windows={path}/win/busybox.exe
+tools.dfu_bootloader.cmd=dfu-util.sh
+tools.dfu_bootloader.erase.params.verbose=
+tools.dfu_bootloader.erase.params.quiet=
+tools.dfu_bootloader.erase.pattern=
+tools.dfu_bootloader.bootloader.params.verbose=-v
+tools.dfu_bootloader.bootloader.params.quiet=
+tools.dfu_bootloader.bootloader.pattern="{busybox}" sh "{path}/{cmd}" -a 0 -s 0x08000000:leave -D "{runtime.platform.path}/bootloaders/{build.bootloader_bin}"
+
 # Debugger configuration (general options)
 # ----------------------------------------
 # EXPERIMENTAL feature:
