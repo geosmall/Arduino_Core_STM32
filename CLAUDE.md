@@ -13,10 +13,12 @@ This is a fork of the upstream [stm32duino/Arduino_Core_STM32](https://github.co
 - **HIL testing framework** - Production-grade CI/CD workflow with build traceability
 
 **IMPORTANT - Development Environment Symlink:**
-The installed Arduino STM32 core at `~/.arduino15/packages/STMicroelectronics/hardware/stm32/2.7.1` is a **symlink** to this repository (`/home/geo/Arduino/Arduino_Core_STM32`). This means:
+The installed Arduino STM32 core at `~/.arduino15/packages/STM32_Robotics/hardware/stm32/1.1.0` is a **symlink** to this repository (`/home/geo/Arduino/Arduino_Core_STM32`). This means:
 - There is NO library conflict between "installed" and "local" libraries - they are the same files
 - When debugging library issues, don't chase phantom "library priority" problems
-- All paths resolving to `.arduino15/.../stm32/2.7.1/` actually point to this repo
+- All paths resolving to `.arduino15/.../stm32/1.1.0/` actually point to this repo
+
+To set up this symlink for development, see the workspace [README.md](../README.md#local-development-with-symlink).
 
 ### Repository Structure
 
@@ -44,7 +46,7 @@ The installed Arduino STM32 core at `~/.arduino15/packages/STMicroelectronics/ha
 - ❌ **DO NOT use** `arduino-cli upload` directly - use `aflash.sh` wrapper instead
 
 **Why CI scripts are mandatory:**
-1. Environment validation (Arduino CLI 1.3.0, STM32 Core 2.7.1)
+1. Environment validation (Arduino CLI, STM32 Robotics Core)
 2. Build traceability (Git SHA + UTC timestamp)
 3. Deterministic builds (cache management)
 4. HIL testing integration (RTT, exit wildcard detection)
@@ -66,7 +68,7 @@ Enhanced build workflow with environment validation and device auto-detection:
 ```
 
 **Key Features**:
-- **Environment Validation**: Arduino CLI (1.3.0) and STM32 Core (2.7.1) validation
+- **Environment Validation**: Arduino CLI and STM32 Robotics Core validation
 - **Build Traceability**: Git SHA + UTC timestamp integration
 - **Device Auto-Detection**: 50+ STM32 device IDs supported
 - **Cache Management**: `--clean-cache` for deterministic builds
@@ -77,13 +79,13 @@ The CI scripts wrap arduino-cli with additional validation and features:
 ```bash
 # Install STM32 core
 arduino-cli core update-index
-arduino-cli core install STMicroelectronics:stm32
+arduino-cli core install STM32_Robotics:stm32
 
 # Compile sketch
-arduino-cli compile --fqbn STMicroelectronics:stm32:Nucleo_64:pnum=NUCLEO_F411RE <sketch_directory>
+arduino-cli compile --fqbn STM32_Robotics:stm32:Nucleo_64:pnum=NUCLEO_F411RE <sketch_directory>
 
 # Upload to board
-arduino-cli upload --fqbn STMicroelectronics:stm32:Nucleo_64:pnum=NUCLEO_F411RE <sketch_directory>
+arduino-cli upload --fqbn STM32_Robotics:stm32:Nucleo_64:pnum=NUCLEO_F411RE <sketch_directory>
 
 # List available/connected boards
 arduino-cli board listall
@@ -102,7 +104,7 @@ make upload            # Compile and upload to board
 make clean             # Clean build artifacts
 ```
 
-Default FQBN: `STMicroelectronics:stm32:Nucleo_64:pnum=NUCLEO_F411RE`
+Default FQBN: `STM32_Robotics:stm32:Nucleo_64:pnum=NUCLEO_F411RE`
 
 ### Build Scripts
 Enhanced build workflow with environment validation and device auto-detection:
@@ -120,7 +122,7 @@ Enhanced build workflow with environment validation and device auto-detection:
 ```
 
 **Key Features**:
-- **Environment Validation**: Arduino CLI (1.3.0) and STM32 Core (2.7.1) validation
+- **Environment Validation**: Arduino CLI and STM32 Robotics Core validation
 - **Build Traceability**: Git SHA + UTC timestamp integration
 - **Device Auto-Detection**: 50+ STM32 device IDs supported
 - **Cache Management**: `--clean-cache` for deterministic builds
@@ -133,12 +135,12 @@ Enhanced build workflow with environment validation and device auto-detection:
 
 **FQBN Specification**:
 - `aflash.sh` accepts optional FQBN as second positional argument (after sketch directory)
-- Default FQBN: `STMicroelectronics:stm32:Nucleo_64:pnum=NUCLEO_F411RE`
+- Default FQBN: `STM32_Robotics:stm32:Nucleo_64:pnum=NUCLEO_F411RE`
 - **CRITICAL**: Match FQBN to connected hardware to ensure correct pin mappings and peripherals
 - Examples:
   ```bash
   # BLACKPILL_F411CE (when connected)
-  ./system/ci/aflash.sh libraries/MPU9250/examples/MPU9250_Basic STMicroelectronics:stm32:GenF4:pnum=BLACKPILL_F411CE --use-rtt --build-id
+  ./system/ci/aflash.sh libraries/MPU9250/examples/MPU9250_Basic STM32_Robotics:stm32:GenF4:pnum=BLACKPILL_F411CE --use-rtt --build-id
 
   # NUCLEO_F411RE (default)
   ./system/ci/aflash.sh libraries/MPU9250/examples/MPU9250_Basic --use-rtt --build-id
@@ -202,29 +204,29 @@ cmake --build <build_folder>
 **Build Configuration**:
 - `boards.txt` - Arduino IDE board definitions and menus
 - `platform.txt` - Toolchain and compiler settings
-- Board selection uses FQBN format: `STMicroelectronics:stm32:<board_group>:pnum=<specific_board>`
+- Board selection uses FQBN format: `STM32_Robotics:stm32:<board_group>:pnum=<specific_board>`
 
 ## Target Hardware and Applications
 
 ### Primary Development Boards
-- **Nucleo F411RE** (Primary): `STMicroelectronics:stm32:Nucleo_64:pnum=NUCLEO_F411RE`
+- **Nucleo F411RE** (Primary): `STM32_Robotics:stm32:Nucleo_64:pnum=NUCLEO_F411RE`
   - **HIL Setup**: On-board ST-Link V2.1 reflashed to J-Link firmware
   - **Serial Monitor**: Available via J-Link connection (connected CDC ACM serial monitor)
   - **Programming**: J-Run execution via reflashed J-Link interface
-- **BlackPill F411CE** (Secondary): `STMicroelectronics:stm32:GenF4:pnum=BLACKPILL_F411CE`
+- **BlackPill F411CE** (Secondary): `STM32_Robotics:stm32:GenF4:pnum=BLACKPILL_F411CE`
   - **CRITICAL**: Must specify FQBN when using `aflash.sh` to ensure correct BoardConfig pin mappings
-  - **Example**: `./system/ci/aflash.sh <sketch> STMicroelectronics:stm32:GenF4:pnum=BLACKPILL_F411CE --use-rtt`
-- **NERO F7 Flight Controller**: `STMicroelectronics:stm32:FlightCtr:pnum=BKMN_NERO`
+  - **Example**: `./system/ci/aflash.sh <sketch> STM32_Robotics:stm32:GenF4:pnum=BLACKPILL_F411CE --use-rtt`
+- **NERO F7 Flight Controller**: `STM32_Robotics:stm32:FlightCtr:pnum=BKMN_NERO`
   - **MCU**: STM32F722RET6
   - **IMU**: ICM-20602 on SPI1 (PA7/PA6/PA5/PC4)
   - **Variant**: `variant_BKMN_NERO.h` in `variants/STM32F7xx/F722R(C-E)T_F730R8T_F732RET/`
   - **BoardConfig**: Available at `targets/BKMN-NERO.h`
-  - **Example**: `./system/ci/aflash.sh <sketch> STMicroelectronics:stm32:FlightCtr:pnum=BKMN_NERO --use-rtt`
-- **MATEK H743-WLITE**: `STMicroelectronics:stm32:FlightCtr:pnum=MATEK_H743VI`
+  - **Example**: `./system/ci/aflash.sh <sketch> STM32_Robotics:stm32:FlightCtr:pnum=BKMN_NERO --use-rtt`
+- **MATEK H743-WLITE**: `STM32_Robotics:stm32:FlightCtr:pnum=MATEK_H743VI`
   - **MCU**: STM32H743VIT6
   - **IMU**: ICM42688P on SPI1
   - **BoardConfig**: Available at `targets/MTKS-MATEKH743.h`
-  - **Example**: `./system/ci/aflash.sh <sketch> STMicroelectronics:stm32:FlightCtr:pnum=MATEK_H743VI --use-rtt`
+  - **Example**: `./system/ci/aflash.sh <sketch> STM32_Robotics:stm32:FlightCtr:pnum=MATEK_H743VI --use-rtt`
 
 **Important**: Examples using BoardConfig system (e.g., MPU9250, LittleFS, ICM206xx) auto-detect board via `ARDUINO_*` defines. The FQBN must match the connected hardware to ensure correct pin assignments and peripheral configurations.
 
