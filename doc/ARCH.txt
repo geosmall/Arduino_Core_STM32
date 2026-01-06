@@ -1,0 +1,31 @@
++-------------------------------------------------+
+|                 Application                     |
+|     dRehmFlight (first reference target)        |
++-----------------------+-------------------------+
+                        |
++-----------------------v-------------------------+
+|              Platform services                  |
+|  - IMU wrapper (6dof / 9dof)                    |
+|  - Storage abstraction + config (minIni)        |
+|  - Logging (ci_log) + test/HIL hooks            |
++-----------------------+-------------------------+
+                        |
++-----------------------v-------------------------+
+|                 Device drivers                  |
+|  - IMU sensor backends                          |
+|    (ICM42688P, MPU-6000/9250, etc.)             |
+|  - SPI flash, SD card drivers                   |
++-----------------------+-------------------------+
+                        |
++-----------------------v-------------------------+
+|              STM32 Robotics Core                |
+|  - Boards/variants for STM32 FC boards          |
+|  - Arduino build integration (IDE + CLI)        |
+|  - Upload methods: UF2 / DFU / ST-Link / J-Link |
++-----------------------+-------------------------+
+                        |
++-----------------------v-------------------------+
+|                    Hardware                     |
+|  Off-the-shelf STM32 flight controller boards   |
+|  (timers, UARTs, SPI, IMU, flash/SD, GPS, etc.) |
++-------------------------------------------------+
