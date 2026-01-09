@@ -12,21 +12,21 @@
 #endif /* BL_LEGACY_LEAF */
 
 /*
- * TinyUF2 bootloader support
+ * BootUF2 bootloader support
  *
- * Board variant MUST define TINYUF2_DBL_TAP_MAGIC and TINYUF2_DBL_TAP_ADDR
- * to match the TinyUF2 bootloader build. Source of truth:
- *   https://github.com/geosmall/tinyuf2
+ * Board variant MUST define BOOTUF2_DBL_TAP_MAGIC and BOOTUF2_DBL_TAP_ADDR
+ * to match the BootUF2 bootloader build. Source of truth:
+ *   https://github.com/geosmall/bootuf2
  *   - Magic value: src/board_api.h (DBL_TAP_MAGIC)
- *   - RAM address: ports/stm32f4/boards.h (TINYUF2_DBL_TAP_REG)
+ *   - RAM address: ports/stm32f4/boards.h (BOOTUF2_DBL_TAP_REG)
  *
  * Example for F4 (64KB RAM):
- *   #define TINYUF2_DBL_TAP_MAGIC  0xf01669efUL
- *   #define TINYUF2_DBL_TAP_ADDR   0x2000FFFCUL
+ *   #define BOOTUF2_DBL_TAP_MAGIC  0xf01669efUL
+ *   #define BOOTUF2_DBL_TAP_ADDR   0x2000FFFCUL
  */
-#if defined(BL_TINYUF2)
-  #if !defined(TINYUF2_DBL_TAP_MAGIC) || !defined(TINYUF2_DBL_TAP_ADDR)
-    #error "BL_TINYUF2 requires variant to define TINYUF2_DBL_TAP_MAGIC and TINYUF2_DBL_TAP_ADDR"
+#if defined(BL_BOOTUF2)
+  #if !defined(BOOTUF2_DBL_TAP_MAGIC) || !defined(BOOTUF2_DBL_TAP_ADDR)
+    #error "BL_BOOTUF2 requires variant to define BOOTUF2_DBL_TAP_MAGIC and BOOTUF2_DBL_TAP_ADDR"
   #endif
 
   /**
@@ -39,10 +39,10 @@
    *   if (cmd == "bl") { enterBootloader(); }
    */
   static inline void enterBootloader(void) {
-    *((volatile uint32_t *)TINYUF2_DBL_TAP_ADDR) = TINYUF2_DBL_TAP_MAGIC;
+    *((volatile uint32_t *)BOOTUF2_DBL_TAP_ADDR) = BOOTUF2_DBL_TAP_MAGIC;
     NVIC_SystemReset();
   }
-#endif /* BL_TINYUF2 */
+#endif /* BL_BOOTUF2 */
 
 #ifdef __cplusplus
 extern "C" {

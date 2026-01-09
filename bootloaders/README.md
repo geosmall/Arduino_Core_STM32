@@ -97,7 +97,7 @@ Arduino sketches are automatically converted to UF2 format when using the **UF2 
 ### Application doesn't start
 
 - Verify the application was compiled with correct flash offset (0x10000 for most boards)
-- Check that `BL_TINYUF2` build flag is set in boards.txt
+- Check that `BL_BOOTUF2` build flag is set in boards.txt
 
 ## Technical Details
 
@@ -110,8 +110,8 @@ Arduino sketches are automatically converted to UF2 format when using the **UF2 
 
 ## License & Attribution
 
-These bootloaders leverage work from [TinyUF2](https://github.com/adafruit/tinyuf2)
-and [TinyUSB](https://github.com/hathach/tinyusb), both under MIT License.
+These bootloaders are built from [BootUF2](https://github.com/geosmall/bootuf2), which is based on
+[TinyUF2](https://github.com/adafruit/tinyuf2) and [TinyUSB](https://github.com/hathach/tinyusb), both under MIT License.
 
 **TinyUF2** - Copyright (c) 2020 Ha Thach
 **TinyUSB** - Copyright (c) 2018, hathach (tinyusb.org) 

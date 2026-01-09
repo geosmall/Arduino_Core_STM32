@@ -10,7 +10,7 @@
  *
  *******************************************************************************
  * BlackPill F411CE 8MHz variant
- * WeAct Studio v3.1 with 8 MHz crystal and TinyUF2 bootloader
+ * WeAct Studio v3.1 with 8 MHz crystal and BootUF2 bootloader
  */
 #if defined(ARDUINO_BLACKPILL_F411CE_8MHZ)
 #include "pins_arduino.h"

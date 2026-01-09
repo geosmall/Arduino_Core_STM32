@@ -113,7 +113,7 @@ case "$FILEPATH" in
     echo "## ERROR: No bootloader defined for this board"
     echo "##"
     echo "## The selected board does not have a bootloader configured."
-    echo "## Only boards with TinyUF2 bootloader support can use"
+    echo "## Only boards with UF2 bootloader support can use"
     echo "## Tools -> Burn Bootloader."
     echo "##"
     echo "## Supported boards are under: FlightCtr"

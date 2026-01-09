@@ -244,12 +244,12 @@
 #endif
 
 /*----------------------------------------------------------------------------
- *        TinyUF2 Bootloader double-tap support
+ *        BootUF2 Bootloader double-tap support
  *----------------------------------------------------------------------------*/
-/* Magic value must match ports/stm32h7/boards.h
+/* Magic value must match BootUF2 ports/stm32h7/boards.h
  * RAM address: ports/stm32h7/linker/h743xx.ld (_board_dfu_dbl_tap) */
-#define TINYUF2_DBL_TAP_MAGIC  0xf01669efUL
-#define TINYUF2_DBL_TAP_ADDR   0x2001FFFCUL  /* Top of 128KB DTCM */
+#define BOOTUF2_DBL_TAP_MAGIC  0xf01669efUL
+#define BOOTUF2_DBL_TAP_ADDR   0x2001FFFCUL  /* Top of 128KB DTCM */
 
 /*----------------------------------------------------------------------------
  *        Arduino objects - C++ only

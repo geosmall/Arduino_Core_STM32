@@ -7,7 +7,7 @@
  * 1. Button hold: Hold KEY button while pressing RESET (bootloader level)
  * 2. CLI command: Type "bl" in Serial Monitor (app level)
  *
- * Build with: UF2 Bootloader upload method (enables -DBL_TINYUF2)
+ * Build with: UF2 Bootloader upload method (enables -DBL_BOOTUF2)
  */
 
 #include <bootloader.h>
@@ -40,10 +40,10 @@ void setup() {
   Serial.println("  2. Type 'bl' here");
   Serial.println();
 
-#ifdef BL_TINYUF2
-  Serial.println("[OK] BL_TINYUF2 defined - enterBootloader() available");
+#ifdef BL_BOOTUF2
+  Serial.println("[OK] BL_BOOTUF2 defined - enterBootloader() available");
 #else
-  Serial.println("[WARN] BL_TINYUF2 NOT defined!");
+  Serial.println("[WARN] BL_BOOTUF2 NOT defined!");
   Serial.println("       Select 'UF2 Bootloader' upload method");
 #endif
 
@@ -65,12 +65,12 @@ void loop() {
     cmd.trim();
 
     if (cmd == "bl") {
-#ifdef BL_TINYUF2
+#ifdef BL_BOOTUF2
       Serial.println("Entering bootloader...");
       delay(100);  // Let message flush
       enterBootloader();
 #else
-      Serial.println("Error: BL_TINYUF2 not defined");
+      Serial.println("Error: BL_BOOTUF2 not defined");
 #endif
     } else if (cmd.length() > 0) {
       Serial.print("Unknown: ");
