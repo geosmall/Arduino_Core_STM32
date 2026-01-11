@@ -48,6 +48,8 @@ void setup() {
 
 static bool signal_lost = false;
 static uint32_t frame_count = 0;
+static uint32_t last_print_time = 0;
+static const uint32_t PRINT_INTERVAL_MS = 100;  // 10 Hz output throttle
 
 #ifdef USE_RTT
 static const uint32_t TEST_DURATION_MS = 15000;
@@ -66,11 +68,26 @@ void loop() {
     CI_LOGF("Frames failed:   %lu\n", rc.getFramesFailed());
     CI_LOG_FLOAT("Loss rate:       ", rc.getFrameLossPercent(), 2);
     CI_LOG("%\n");
+
+    // Pass/fail criteria
+    float loss = rc.getFrameLossPercent();
+    uint32_t received = rc.getFramesReceived();
+
+    if (received < 100) {
+      CI_LOG("*FAIL* Insufficient frames received (minimum 100)\n");
+    } else if (loss > 1.0f) {
+      CI_LOG("*FAIL* Frame loss exceeds 1% threshold\n");
+    } else {
+      CI_LOG("*PASS* IBus reception validated\n");
+    }
+
     CI_LOG("*STOP*\n");
     while (1);
   }
 #endif
 
+  // Call update() at full speed to drain serial buffer before overflow
+  // IBus arrives at 143 Hz (32 bytes/frame), buffer is only 128 bytes
   rc.update();
 
   if (rc.available()) {
@@ -78,12 +95,18 @@ void loop() {
     if (rc.getMessage(&msg)) {
       frame_count++;
 
-      // Print first 6 channels (AETR + 2 aux)
-      CI_LOGF("[%4lu] Ch1:%4d Ch2:%4d Ch3:%4d Ch4:%4d Ch5:%4d Ch6:%4d\n",
-              frame_count,
-              msg.channels[0], msg.channels[1],
-              msg.channels[2], msg.channels[3],
-              msg.channels[4], msg.channels[5]);
+      // Throttle output to 10 Hz (non-blocking)
+      uint32_t now = millis();
+      if (now - last_print_time >= PRINT_INTERVAL_MS) {
+        last_print_time = now;
+
+        // Print first 6 channels (AETR + 2 aux)
+        CI_LOGF("[%4lu] Ch1:%4d Ch2:%4d Ch3:%4d Ch4:%4d Ch5:%4d Ch6:%4d\n",
+                frame_count,
+                msg.channels[0], msg.channels[1],
+                msg.channels[2], msg.channels[3],
+                msg.channels[4], msg.channels[5]);
+      }
 
       signal_lost = false;
     }
@@ -95,6 +118,4 @@ void loop() {
       signal_lost = true;
     }
   }
-
-  delay(100);  // 10 Hz output
 }

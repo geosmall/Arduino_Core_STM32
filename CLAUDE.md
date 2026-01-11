@@ -25,7 +25,6 @@ To set up this symlink for development, see the workspace [README.md](../README.
 - `cores/arduino/` - Core Arduino implementation for STM32
 - `variants/` - Board-specific pin definitions and configurations
 - `system/` - STM32Cube HAL drivers and CMSIS
-  - `system/ci/` - Build and test automation scripts
   - `system/extras/` - Arduino build hooks (prebuild/postbuild)
 - `libraries/` - Core STM32 + robotics libraries
   - Core: `SPI`, `Wire`, `SoftwareSerial`, `CMSIS_DSP`, `SEGGER_RTT`
@@ -39,11 +38,13 @@ To set up this symlink for development, see the workspace [README.md](../README.
 
 ## Build Systems and Commands
 
-**IMPORTANT - CI Scripts Are Required:**
-- ✅ **ALWAYS use** `./system/ci/build.sh` and `./system/ci/aflash.sh` for building and testing
-- ✅ **ALWAYS use** `./system/ci/cleanup_repo.sh` before commits
+**IMPORTANT - CI Scripts Are Required (Located at Workspace Level):**
+- ✅ **ALWAYS use** `./ci/build.sh` and `./ci/aflash.sh` for building and testing (from workspace root)
+- ✅ **ALWAYS use** `./ci/cleanup_repo.sh` before commits
 - ❌ **DO NOT use** `arduino-cli compile` directly - use `build.sh` wrapper instead
 - ❌ **DO NOT use** `arduino-cli upload` directly - use `aflash.sh` wrapper instead
+
+**Note:** CI scripts are located at the workspace level (`Arduino/ci/`), not in this submodule. Run all CI commands from the workspace root (`Arduino/`).
 
 **Why CI scripts are mandatory:**
 1. Environment validation (Arduino CLI, STM32 Robotics Core)
@@ -56,15 +57,16 @@ To set up this symlink for development, see the workspace [README.md](../README.
 Enhanced build workflow with environment validation and device auto-detection:
 
 ```bash
+# Run from workspace root (Arduino/)
 # Standard build and HIL testing (USE THESE)
-./system/ci/build.sh <sketch_directory> [--build-id] [--env-check] [--use-rtt]
-./system/ci/aflash.sh <sketch_directory> [--env-check] [--use-rtt] [--build-id]
+./ci/build.sh Arduino_Core_STM32/<sketch_directory> [--build-id] [--env-check] [--use-rtt]
+./ci/aflash.sh Arduino_Core_STM32/<sketch_directory> [--env-check] [--use-rtt] [--build-id]
 
 # Environment and device utilities
-./system/ci/env_check_quick.sh         # Fast environment validation
-./system/ci/detect_device.sh           # Auto-detect STM32 via J-Link
-./system/ci/flash_auto.sh <binary>     # Program with auto-detected device
-./system/ci/cleanup_repo.sh            # Clean build artifacts before commit
+./ci/env_check_quick.sh         # Fast environment validation
+./ci/detect_device.sh           # Auto-detect STM32 via J-Link
+./ci/flash_auto.sh <binary>     # Program with auto-detected device
+./ci/cleanup_repo.sh            # Clean build artifacts before commit
 ```
 
 **Key Features**:
@@ -92,7 +94,7 @@ arduino-cli board listall
 arduino-cli board list
 
 # J-Link upload (when ST-Link reflashed to J-Link)
-./system/ci/jlink_upload.sh <path_to_binary.bin>
+./ci/jlink_upload.sh <path_to_binary.bin>
 ```
 
 ### Makefile Support
@@ -110,15 +112,16 @@ Default FQBN: `STM32_Robotics:stm32:Nucleo_64:pnum=NUCLEO_F411RE`
 Enhanced build workflow with environment validation and device auto-detection:
 
 ```bash
+# Run from workspace root (Arduino/)
 # Standard build and HIL testing
-./system/ci/build.sh <sketch_directory> [--build-id] [--env-check] [--use-rtt]
-./system/ci/aflash.sh <sketch_directory> [FQBN] [--env-check] [--use-rtt] [--build-id]
+./ci/build.sh Arduino_Core_STM32/<sketch_directory> [--build-id] [--env-check] [--use-rtt]
+./ci/aflash.sh Arduino_Core_STM32/<sketch_directory> [FQBN] [--env-check] [--use-rtt] [--build-id]
 
 # Environment and device utilities
-./system/ci/env_check_quick.sh         # Fast environment validation
-./system/ci/detect_device.sh           # Auto-detect STM32 via J-Link
-./system/ci/flash_auto.sh <binary>     # Program with auto-detected device
-./system/ci/cleanup_repo.sh            # Clean build artifacts before commit
+./ci/env_check_quick.sh         # Fast environment validation
+./ci/detect_device.sh           # Auto-detect STM32 via J-Link
+./ci/flash_auto.sh <binary>     # Program with auto-detected device
+./ci/cleanup_repo.sh            # Clean build artifacts before commit
 ```
 
 **Key Features**:
@@ -137,21 +140,21 @@ Enhanced build workflow with environment validation and device auto-detection:
 - `aflash.sh` accepts optional FQBN as second positional argument (after sketch directory)
 - Default FQBN: `STM32_Robotics:stm32:Nucleo_64:pnum=NUCLEO_F411RE`
 - **CRITICAL**: Match FQBN to connected hardware to ensure correct pin mappings and peripherals
-- Examples:
+- Examples (run from workspace root):
   ```bash
   # BLACKPILL_F411CE (when connected)
-  ./system/ci/aflash.sh libraries/MPU9250/examples/MPU9250_Basic STM32_Robotics:stm32:GenF4:pnum=BLACKPILL_F411CE --use-rtt --build-id
+  ./ci/aflash.sh Arduino_Core_STM32/libraries/MPU9250/examples/MPU9250_Basic STM32_Robotics:stm32:GenF4:pnum=BLACKPILL_F411CE --use-rtt --build-id
 
   # NUCLEO_F411RE (default)
-  ./system/ci/aflash.sh libraries/MPU9250/examples/MPU9250_Basic --use-rtt --build-id
+  ./ci/aflash.sh Arduino_Core_STM32/libraries/MPU9250/examples/MPU9250_Basic --use-rtt --build-id
   ```
 
 ### J-Link and RTT Utilities
 
 ```bash
 # J-Link utilities
-./system/ci/jrun.sh <elf> [timeout] [exit_wildcard] # J-Run execution with RTT
-./system/ci/flash.sh [--quick] <binary>             # Flash with fixed device
+./ci/jrun.sh <elf> [timeout] [exit_wildcard] # J-Run execution with RTT
+./ci/flash.sh [--quick] <binary>             # Flash with fixed device
 
 # Manual RTT Connection
 JLinkGDBServer -Device STM32F411RE -If SWD -Speed 4000 -RTTTelnetPort 19021 &
@@ -161,15 +164,15 @@ JLinkRTTClient                                     # Connect to RTT
 **Running Multiple Sequential Tests**:
 When running multiple HIL tests in a loop (e.g., for consistency validation), add a delay between runs to allow the hardware to fully reset:
 ```bash
-# Good: Add 0.5s delay between tests
+# Good: Add 0.5s delay between tests (run from workspace root)
 for i in 1 2 3 4 5; do
     echo "=== Test $i/5 ==="
-    ./system/ci/aflash.sh tests/MyTest --use-rtt --build-id 2>&1 | grep -E "(PASS|FAIL)"
+    ./ci/aflash.sh Arduino_Core_STM32/tests/MyTest --use-rtt --build-id 2>&1 | grep -E "(PASS|FAIL)"
     sleep 0.5
 done
 
 # Bad: No delay - may cause intermittent failures due to hardware state
-for i in 1 2 3 4 5; do ./system/ci/aflash.sh tests/MyTest --use-rtt --build-id; done
+for i in 1 2 3 4 5; do ./ci/aflash.sh Arduino_Core_STM32/tests/MyTest --use-rtt --build-id; done
 ```
 
 ### CMake Build System
@@ -215,18 +218,18 @@ cmake --build <build_folder>
   - **Programming**: J-Run execution via reflashed J-Link interface
 - **BlackPill F411CE** (Secondary): `STM32_Robotics:stm32:GenF4:pnum=BLACKPILL_F411CE`
   - **CRITICAL**: Must specify FQBN when using `aflash.sh` to ensure correct BoardConfig pin mappings
-  - **Example**: `./system/ci/aflash.sh <sketch> STM32_Robotics:stm32:GenF4:pnum=BLACKPILL_F411CE --use-rtt`
+  - **Example**: `./ci/aflash.sh Arduino_Core_STM32/<sketch> STM32_Robotics:stm32:GenF4:pnum=BLACKPILL_F411CE --use-rtt`
 - **NERO F7 Flight Controller**: `STM32_Robotics:stm32:FlightCtr:pnum=BKMN_NERO`
   - **MCU**: STM32F722RET6
   - **IMU**: ICM-20602 on SPI1 (PA7/PA6/PA5/PC4)
   - **Variant**: `variant_BKMN_NERO.h` in `variants/STM32F7xx/F722R(C-E)T_F730R8T_F732RET/`
   - **BoardConfig**: Available at `targets/BKMN-NERO.h`
-  - **Example**: `./system/ci/aflash.sh <sketch> STM32_Robotics:stm32:FlightCtr:pnum=BKMN_NERO --use-rtt`
+  - **Example**: `./ci/aflash.sh Arduino_Core_STM32/<sketch> STM32_Robotics:stm32:FlightCtr:pnum=BKMN_NERO --use-rtt`
 - **MATEK H743-WLITE**: `STM32_Robotics:stm32:FlightCtr:pnum=MATEK_H743VI`
   - **MCU**: STM32H743VIT6
   - **IMU**: ICM42688P on SPI1
   - **BoardConfig**: Available at `targets/MTKS-MATEKH743.h`
-  - **Example**: `./system/ci/aflash.sh <sketch> STM32_Robotics:stm32:FlightCtr:pnum=MATEK_H743VI --use-rtt`
+  - **Example**: `./ci/aflash.sh Arduino_Core_STM32/<sketch> STM32_Robotics:stm32:FlightCtr:pnum=MATEK_H743VI --use-rtt`
 
 **Important**: Examples using BoardConfig system (e.g., MPU9250, LittleFS, ICM206xx) auto-detect board via `ARDUINO_*` defines. The FQBN must match the connected hardware to ensure correct pin assignments and peripheral configurations.
 
@@ -386,10 +389,10 @@ HIL testing framework with complete build-to-runtime traceability and device aut
 - **Universal Device Support**: Auto-detection across 50+ STM32 device IDs
 - **One-Command Workflow**: Complete build+test automation with environment validation
 
-**Production Usage**:
+**Production Usage** (from workspace root):
 ```bash
-./system/ci/build.sh HIL_RTT_Test --build-id --env-check
-./system/ci/aflash.sh HIL_RTT_Test
+./ci/build.sh Arduino_Core_STM32/tests/HIL_RTT_Test --build-id --env-check
+./ci/aflash.sh Arduino_Core_STM32/tests/HIL_RTT_Test
 ```
 
 ### Unified Development Framework ✅ **COMPLETED**
@@ -427,7 +430,7 @@ void setup() {
 
 **AUnit Integration**: v1.7.1 testing framework with `aunit_hil.h` wrapper
 - 18 total tests (LittleFS: 8, SDFS: 7, framework: 3)
-- Usage: `./system/ci/aflash.sh tests/LittleFS_IT --use-rtt --build-id`
+- Usage: `./ci/aflash.sh Arduino_Core_STM32/tests/LittleFS_IT --use-rtt --build-id`
 
 ### Board Configuration System ✅ **COMPLETED**
 
@@ -522,7 +525,7 @@ Minimal-change port of dRehmFlight BETA 1.3 (Teensy-based UAV flight controller)
 2. Radio RX: PWM/PPM/DSM → SerialRx (SBUS, adapter pattern, eliminated 110 lines)
 3. Motor: Bit-bang → TimerPWM OneShot125 (TIM1/TIM3, 125-250µs)
 4. Pins: BoardConfig system (4 targets: NUCLEO_F411RE, BLACKPILL_F411CE, BKMN_NERO, MATEK_H743VI)
-5. Build: `./system/ci/aflash.sh sketches/dRehmFlight_STM32_BETA_1.3 --use-rtt --build-id`
+5. Build: `./ci/aflash.sh Arduino_Core_STM32/sketches/dRehmFlight_STM32_BETA_1.3 --use-rtt --build-id`
 
 **Port Status** ✅:
 - ✅ Compiles for all 4 targets (47.5KB binary on F411)
@@ -711,7 +714,7 @@ void loop() {
 **Cleanup Methods**:
 ```bash
 # Recommended: Use the cleanup script
-./system/ci/cleanup_repo.sh
+./ci/cleanup_repo.sh
 
 # Manual cleanup (if needed)
 find tests/ libraries/ cmake/ -name "build" -type d -exec rm -rf {} + 2>/dev/null || true
@@ -724,7 +727,7 @@ git status    # Review changes before commit
 
 **Claude Code Integration**:
 - Use the command **"cleanup repo"** for automatic repository cleanup
-- Claude will execute `./system/ci/cleanup_repo.sh` and show clean git status
+- Claude will execute `./ci/cleanup_repo.sh` and show clean git status
 
 **Pre-Commit Verification**:
 ```bash
