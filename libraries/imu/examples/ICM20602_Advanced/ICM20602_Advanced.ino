@@ -24,25 +24,10 @@
  * - Uses BKMN-NERO.h BoardConfig for pin assignments
  * - Will reject other IMU chips at runtime
  *
- * CI/HIL INTEGRATION:
- * - RTT output for automated testing
- * - Serial output for Arduino IDE
- * - Deterministic exit with "*STOP*" wildcard
  */
 
 #include <IMU.h>
-#include <ci_log.h>
 #include <SPI.h>
-#include <libPrintf.h>
-
-// CI_PRINTF requires putchar_() for libPrintf output routing
-extern "C" void putchar_(char c) {
-#ifdef USE_RTT
-    SEGGER_RTT_PutChar(0, c);
-#else
-    Serial.write(c);
-#endif
-}
 
 // Board configuration - ICM-20602 specific (NERO F7 flight controller)
 // This example requires ICM-206xx hardware. Other IMU chips will be rejected.

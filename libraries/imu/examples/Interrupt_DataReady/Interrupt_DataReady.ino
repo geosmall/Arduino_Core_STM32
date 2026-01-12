@@ -4,22 +4,14 @@
  * Demonstrates interrupt-driven raw sensor data acquisition using the IMU library.
  * Uses data-ready interrupt on INT1 pin to trigger readings when new data is available.
  *
- * HARDWARE CONFIGURATION:
+ * Hardware Configuration:
  * - Uses BoardConfig for automatic board detection (NUCLEO_F411RE / BLACKPILL_F411CE)
  * - Pin assignments and SPI frequency from board configuration
  * - Interrupt pin configured for data-ready signaling
- *
- * CI/HIL INTEGRATION:
- * - RTT output for automated testing
- * - Serial output for Arduino IDE
- * - Deterministic exit with "*STOP*" wildcard
- * - Build traceability with git SHA and timestamp
  */
 
 #include <IMU.h>
-#include <ci_log.h>
 #include <SPI.h>
-#include <libPrintf.h>
 
 // Board configuration - Multi-board support
 #if defined(ARDUINO_BKMN_NERO)
@@ -48,31 +40,25 @@ void imu_data_ready_handler() {
 }
 
 void setup() {
-    // Initialize communication (Serial or RTT)
-#ifndef USE_RTT
     Serial.begin(115200);
-    while (!Serial) delay(10);
-#endif
+    while (!Serial && millis() < 3000);
 
-    CI_LOG("\n=== IMU Library - Interrupt-Driven Data Example ===\n");
-    CI_BUILD_INFO();
-    CI_READY_TOKEN();
+    Serial.println("\n=== IMU Library - Interrupt-Driven Data Example ===\n");
 
     // Display pin configuration
-    CI_LOG("Pin Configuration (BoardConfig):\n");
-    CI_PRINTF("  CS: %d, MOSI: %d, MISO: %d, SCLK: %d\n",
+    Serial.println("Pin Configuration (BoardConfig):");
+    Serial.printf("  CS: %d, MOSI: %d, MISO: %d, SCLK: %d\n",
            (int)BoardConfig::imu.spi.cs_pin,
            (int)BoardConfig::imu.spi.mosi_pin,
            (int)BoardConfig::imu.spi.miso_pin,
            (int)BoardConfig::imu.spi.sclk_pin);
-    CI_PRINTF("  SPI Speed: %lu Hz\n", (unsigned long)BoardConfig::imu.spi.freq_hz);
+    Serial.printf("  SPI Speed: %lu Hz\n", (unsigned long)BoardConfig::imu.spi.freq_hz);
 
     if (BoardConfig::imu.int_pin != 0) {
-        CI_PRINTF("  Interrupt Pin: %d\n\n", (int)BoardConfig::imu.int_pin);
+        Serial.printf("  Interrupt Pin: %d\n\n", (int)BoardConfig::imu.int_pin);
     } else {
-        CI_LOG("  Interrupt Pin: None configured\n");
-        CI_LOG("ERROR: This example requires interrupt pin!\n");
-        CI_LOG("*STOP*\n");
+        Serial.println("  Interrupt Pin: None configured");
+        Serial.println("ERROR: This example requires interrupt pin!");
         while (1) delay(1000);
     }
 
@@ -80,13 +66,12 @@ void setup() {
     delay(5);
 
     // Initialize IMU
-    CI_LOG("Initializing IMU...\n");
+    Serial.println("Initializing IMU...");
     if (imu.Init(spi_bus, BoardConfig::imu.spi.cs_pin, BoardConfig::imu.spi.freq_hz) != IMU::Result::OK) {
-        CI_LOG("ERROR: Failed to initialize IMU!\n");
-        CI_LOG("*STOP*\n");
+        Serial.println("ERROR: Failed to initialize IMU!");
         while (1) delay(1000);
     }
-    CI_LOG("✓ IMU initialized successfully\n");
+    Serial.println("IMU initialized successfully");
 
     // Detect chip type
     IMU::ChipType chip = imu.GetChipType();
@@ -100,18 +85,14 @@ void setup() {
         case IMU::ChipType::ICM20689:   chip_name = "ICM-20689"; break;
         default: break;
     }
-    CI_PRINTF("Detected chip: %s (0x%02X)\n", chip_name, static_cast<uint8_t>(chip));
-    CI_LOG("\n");
+    Serial.printf("Detected chip: %s (0x%02X)\n\n", chip_name, static_cast<uint8_t>(chip));
 
     // Configure IMU for interrupt-driven operation
-    CI_LOG("Configuring IMU...\n");
+    Serial.println("Configuring IMU...");
 
     // Apply SAFE preset for interrupt mode (1kHz with DLPF enabled)
-    // Note: SAFE preset uses DLPF which is required for proper data-ready interrupts
-    // on MPU-6000, MPU-9250, and ICM-206xx (DLPF=0 bypass mode has irregular interrupts)
     if (imu.ApplyPreset(IMU::Preset::SAFE) != IMU::Result::OK) {
-        CI_LOG("ERROR: Failed to apply SAFE preset!\n");
-        CI_LOG("*STOP*\n");
+        Serial.println("ERROR: Failed to apply SAFE preset!");
         while (1) delay(1000);
     }
 
@@ -122,74 +103,37 @@ void setup() {
 
     // Enable data ready interrupt on INT
     if (imu.EnableDataReadyInt() != 0) {
-        CI_LOG("ERROR: Failed to enable data ready interrupt!\n");
-        CI_LOG("*STOP*\n");
+        Serial.println("ERROR: Failed to enable data ready interrupt!");
         while (1) delay(1000);
     }
 
-    CI_LOG("✓ IMU configured for interrupt-driven operation\n");
-    CI_LOG("  Preset: SAFE (1kHz with DLPF filtering)\n");
-    CI_LOG("  Gyro: ±2000 DPS, 1kHz ODR\n");
-    CI_LOG("  Accel: ±16G, 1kHz ODR\n");
-    CI_LOG("  INT1: Data Ready enabled\n\n");
+    Serial.println("IMU configured for interrupt-driven operation");
+    Serial.println("  Preset: SAFE (1kHz with DLPF filtering)");
+    Serial.println("  Gyro: +/-2000 DPS, 1kHz ODR");
+    Serial.println("  Accel: +/-16G, 1kHz ODR");
+    Serial.println("  INT1: Data Ready enabled\n");
 
-    // Collect 100 samples
-    CI_LOG("Collecting 100 samples...\n\n");
-
-    std::array<int16_t, 6> imu_data;
-    int sample_count = 0;
-    const int target_samples = 100;
-
-    while (sample_count < target_samples) {
-        if (data_ready) {
-            data_ready = false;
-
-            // Read raw IMU data
-            if (imu.ReadIMU6(imu_data) == 0) {
-                sample_count++;
-
-                // Print every 5th sample
-                if (sample_count % 5 == 0) {
-                    CI_PRINTF("Sample %d: ", sample_count);
-                    CI_PRINTF("Accel[%6d,%6d,%6d] ",
-                           imu_data[0], imu_data[1], imu_data[2]);
-                    CI_PRINTF("Gyro[%6d,%6d,%6d]\n",
-                           imu_data[3], imu_data[4], imu_data[5]);
-                }
-            }
-        }
-    }
-
-    CI_LOG("\n✓ Data collection complete\n");
-
-    // Disable interrupt
-    imu.DisableDataReadyInt();
-    detachInterrupt(digitalPinToInterrupt(BoardConfig::imu.int_pin));
-
-    CI_LOG("\n=== Test Complete ===\n");
-    CI_LOG("*STOP*\n");
+    Serial.println("Streaming interrupt-driven IMU data...\n");
 }
 
 void loop() {
-    // Nothing to do
+    static int sample_count = 0;
+
+    if (data_ready) {
+        data_ready = false;
+
+        std::array<int16_t, 6> imu_data;
+        if (imu.ReadIMU6(imu_data) == 0) {
+            sample_count++;
+
+            // Print every 20th sample (~50 Hz output at 1kHz sampling)
+            if (sample_count % 20 == 0) {
+                Serial.printf("Sample %d: ", sample_count);
+                Serial.printf("Accel[%6d,%6d,%6d] ",
+                       imu_data[0], imu_data[1], imu_data[2]);
+                Serial.printf("Gyro[%6d,%6d,%6d]\n",
+                       imu_data[3], imu_data[4], imu_data[5]);
+            }
+        }
+    }
 }
-
-/* --------------------------------------------------------------------------------------
- *  CI_PRINTF putchar_ implementation for RTT/Serial routing
- * -------------------------------------------------------------------------------------- */
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-void putchar_(char c) {
-#ifdef USE_RTT
-    SEGGER_RTT_PutChar(0, c);
-#else
-    Serial.write(c);
-#endif
-}
-
-#ifdef __cplusplus
-}
-#endif
