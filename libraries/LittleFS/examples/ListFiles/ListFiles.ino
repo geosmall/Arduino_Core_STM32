@@ -1,7 +1,6 @@
 // Print a list of all files stored on a flash memory chip
 
 #include <LittleFS.h>
-#include <ci_log.h>
 
 void Local_Error_Handler()
 {
@@ -26,11 +25,8 @@ void setup() {
   Serial.begin(115200);
   while (!Serial) delay(100); // wait until Serial/monitor is opened
 
-  CI_BUILD_INFO();
-  CI_LOG("LittleFS ListFiles test starting\n");
-  CI_READY_TOKEN();
-
-  CI_LOG("SPI Flash test...\n");
+  Serial.println("LittleFS ListFiles test starting");
+  Serial.println("SPI Flash test...");
 
   // ensure the CS pin is pulled HIGH
   pinMode(CS_PIN, OUTPUT); digitalWrite(CS_PIN, HIGH);
@@ -39,15 +35,15 @@ void setup() {
 
   res = myfs.begin(CS_PIN, SPIbus);
   if (!res) {
-    CI_LOG("initialization failed!\n");
+    Serial.println("initialization failed!");
     Local_Error_Handler();
   }
 
-  CI_LOGF("Space Used = %lu\n", (unsigned long)myfs.usedSize());
-  CI_LOGF("Filesystem Size = %lu\n", (unsigned long)myfs.totalSize());
+  Serial.printf("Space Used = %lu\n", (unsigned long)myfs.usedSize());
+  Serial.printf("Filesystem Size = %lu\n", (unsigned long)myfs.totalSize());
 
   printDirectory(myfs);
-  CI_LOG("*STOP*\n");
+  Serial.println("*STOP*");
 }
 
 
@@ -56,9 +52,9 @@ void loop() {
 
 
 void printDirectory(FS &fs) {
-  CI_LOG("Directory\n---------\n");
+  Serial.println("Directory\n---------");
   printDirectory(fs.open("/"), 0);
-  CI_LOG("\n");
+  Serial.println();
 }
 
 void printDirectory(File dir, int numSpaces) {
@@ -68,20 +64,20 @@ void printDirectory(File dir, int numSpaces) {
        break;
      }
      printSpaces(numSpaces);
-     CI_LOG(entry.name());
+     Serial.print(entry.name());
      if (entry.isDirectory()) {
-       CI_LOG("/\n");
+       Serial.println("/");
        printDirectory(entry, numSpaces+2);
      } else {
        // files have sizes, directories do not
        printSpaces(36 - numSpaces - strlen(entry.name()));
-       CI_LOGF("  %lu", (unsigned long)entry.size());
+       Serial.printf("  %lu", (unsigned long)entry.size());
        DateTimeFields datetime;
        if (entry.getModifyTime(datetime)) {
          printSpaces(4);
          printTime(datetime);
        }
-       CI_LOG("\n");
+       Serial.println();
      }
      entry.close();
    }
@@ -89,7 +85,7 @@ void printDirectory(File dir, int numSpaces) {
 
 void printSpaces(int num) {
   for (int i=0; i < num; i++) {
-    CI_LOG(" ");
+    Serial.print(" ");
   }
 }
 
@@ -98,15 +94,15 @@ void printTime(const DateTimeFields tm) {
     "January","February","March","April","May","June",
     "July","August","September","October","November","December"
   };
-  if (tm.hour < 10) CI_LOG("0");
-  CI_LOGF("%d", tm.hour);
-  CI_LOG(":");
-  if (tm.min < 10) CI_LOG("0");
-  CI_LOGF("%d", tm.min);
-  CI_LOG("  ");
-  CI_LOG(tm.mon < 12 ? months[tm.mon] : "???");
-  CI_LOG(" ");
-  CI_LOGF("%d", tm.mday);
-  CI_LOG(", ");
-  CI_LOGF("%d", tm.year + 1900);
+  if (tm.hour < 10) Serial.print("0");
+  Serial.printf("%d", tm.hour);
+  Serial.print(":");
+  if (tm.min < 10) Serial.print("0");
+  Serial.printf("%d", tm.min);
+  Serial.print("  ");
+  Serial.print(tm.mon < 12 ? months[tm.mon] : "???");
+  Serial.print(" ");
+  Serial.printf("%d", tm.mday);
+  Serial.print(", ");
+  Serial.printf("%d", tm.year + 1900);
 }

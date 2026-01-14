@@ -12,20 +12,13 @@
  */
 
 #include <libPrintf.h>
-#include <ci_log.h>
 
 void setup() {
-  #ifndef USE_RTT
-    Serial.begin(115200);
-    while (!Serial) delay(10);
-  #endif
+  Serial.begin(115200);
+  while (!Serial) delay(10);
 
-  CI_LOG("libPrintf Basic Usage Example\n");
-  CI_BUILD_INFO();
-  CI_READY_TOKEN();
-
-  // Test basic string formatting
-  CI_LOG("Testing basic printf functionality:\n");
+  Serial.println("libPrintf Basic Usage Example");
+  Serial.println("Testing basic printf functionality:");
 
   // Integer formatting
   printf("Integer: %d\n", 42);
@@ -49,26 +42,21 @@ void setup() {
   // Demonstrate stderr compatibility (important for factory code)
   fprintf(stderr, "Error message via fprintf to stderr\n");
 
-  CI_LOG("All printf functions working correctly!\n");
-  CI_LOG("*STOP*\n");
+  Serial.println("All printf functions working correctly!");
+  Serial.println("*STOP*");
 }
 
 void loop() {
   // Nothing in loop
 }
 
-// Custom putchar implementation for RTT/Serial routing
+// Custom putchar implementation for libPrintf output routing
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 void putchar_(char c) {
-#ifdef USE_RTT
-  char buf[2] = {c, '\0'};
-  SEGGER_RTT_WriteString(0, buf);
-#else
   Serial.print(c);
-#endif
 }
 
 #ifdef __cplusplus
