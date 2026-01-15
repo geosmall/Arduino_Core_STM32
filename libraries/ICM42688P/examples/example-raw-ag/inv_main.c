@@ -2,7 +2,7 @@
  * ________________________________________________________________________________________________________
  * Copyright (c) 2017 InvenSense Inc. All rights reserved.
  *
- * This software, related documentation and any modifications thereto (collectively “Software”) is subject
+ * This software, related documentation and any modifications thereto (collectively ï¿½Softwareï¿½) is subject
  * to InvenSense and its licensors' intellectual property rights under U.S. and international copyright
  * and other intellectual property rights laws.
  *
@@ -109,6 +109,10 @@ RINGBUFFER(timestamp_buffer, 64, uint64_t);
 /* Flag set from icm426xx device irq handler */
 static volatile int irq_from_device;
 
+/* Sample counter for deterministic stop (CI/IDE friendly) */
+static int sample_count = 0;
+#define MAX_SAMPLES 2000  /* 2 seconds at 1kHz ODR */
+
 /* --------------------------------------------------------------------------------------
  *  Forward declaration
  * -------------------------------------------------------------------------------------- */
@@ -150,9 +154,13 @@ int inv_main(void)
 			inv_disable_irq();
 			irq_from_device &= ~TO_MASK(INV_GPIO_INT1);
 			inv_enable_irq();
+
+			sample_count++;
 		}
 
-	} while (1);
+	} while (sample_count < MAX_SAMPLES);
+
+	return 0;
 }
 
 /* --------------------------------------------------------------------------------------

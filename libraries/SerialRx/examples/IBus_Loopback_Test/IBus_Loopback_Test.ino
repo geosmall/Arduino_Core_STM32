@@ -16,13 +16,12 @@
  *   - "*TEST_PASS*" - All validations successful
  *   - "*TEST_FAIL*" - Validation failure or timeout
  *
- * CI/HIL INTEGRATION:
- *   ./system/ci/build.sh tests/SerialRx_Loopback_Test --build-id --env-check --use-rtt
- *   ./system/ci/aflash.sh tests/SerialRx_Loopback_Test --use-rtt
+ * OUTPUT:
+ *   - 5-second test duration
+ *   - Compatible with Arduino IDE Serial Monitor and CI automation
  */
 
 #include <SerialRx.h>
-#include <ci_log.h>
 
 // Hardware configuration
 // TX: USART6 for IBus frame generation
@@ -85,18 +84,14 @@ void generateIBusFrame(uint16_t* channels, uint8_t num_channels) {
 }
 
 void setup() {
-  // Initialize Serial/RTT for test output
-#ifndef USE_RTT
   Serial.begin(115200);
   while (!Serial && millis() < 3000);
-#endif
 
-  CI_LOG("\n=== SerialRx IBus Loopback Test ===\n");
-  CI_BUILD_INFO();
-  CI_LOG("\nHardware Setup:\n");
-  CI_LOG("  Jumper: PA11 (USART6 TX) -> PA10 (USART1 RX)\n");
-  CI_LOG("  TX: USART6 @ 115200 baud (IBus generator)\n");
-  CI_LOG("  RX: USART1 @ 115200 baud (SerialRx library)\n\n");
+  Serial.println("\n=== SerialRx IBus Loopback Test ===");
+  Serial.println("\nHardware Setup:");
+  Serial.println("  Jumper: PA11 (USART6 TX) -> PA10 (USART1 RX)");
+  Serial.println("  TX: USART6 @ 115200 baud (IBus generator)");
+  Serial.println("  RX: USART1 @ 115200 baud (SerialRx library)\n");
 
   // Initialize transmitter (USART6)
   SerialTx.begin(115200);
@@ -109,14 +104,14 @@ void setup() {
   config.timeout_ms = 100;  // 100ms failsafe
 
   if (!rc.begin(config)) {
-    CI_LOG("ERROR: SerialRx initialization failed!\n");
-    CI_LOG("*TEST_FAIL*\n");
+    Serial.println("ERROR: SerialRx initialization failed!");
+    Serial.println("*TEST_FAIL*");
+    Serial.println("*STOP*");
     while (1);
   }
 
-  CI_LOG("Test starting...\n");
-  CI_READY_TOKEN();
-  delay(100);  // Allow RTT buffer to flush before test begins
+  Serial.println("Test starting...");
+  delay(100);
 
   test_start_time = millis();
 
@@ -159,21 +154,26 @@ void loop() {
 
       // Allow some tolerance due to timing
       if (received_ch1 < 1000 || received_ch1 > 2999) {
-        CI_LOGF("FAIL: Invalid Ch1 value: %d\n", received_ch1);
+        Serial.print("FAIL: Invalid Ch1 value: ");
+        Serial.println(received_ch1);
         test_failed = true;
       }
 
       // Log every 100 frames using built-in statistics
       uint32_t frames_received = rc.getFramesReceived();
       if (frames_received % 100 == 0) {
-        CI_LOGF("Progress: %lu frames RX, %lu frames TX\n", frames_received, frames_sent);
+        Serial.print("Progress: ");
+        Serial.print(frames_received);
+        Serial.print(" frames RX, ");
+        Serial.print(frames_sent);
+        Serial.println(" frames TX");
       }
     }
   }
 
   // Check for timeout (failsafe detection test)
   if (rc.timeout(200)) {
-    CI_LOG("FAIL: Unexpected timeout detected\n");
+    Serial.println("FAIL: Unexpected timeout detected");
     test_failed = true;
   }
 
@@ -194,42 +194,47 @@ void loop() {
     uint32_t frames_failed = rc.getFramesFailed();
     float loss_percent = rc.getFrameLossPercent();
 
-    CI_LOG("\n=== Test Complete ===\n");
-    CI_LOGF("Frames Sent: %lu\n", frames_sent);
-    CI_LOGF("Frames Received: %lu\n", frames_received);
-    CI_LOGF("Frames Failed (checksum): %lu\n", frames_failed);
-    CI_LOGF("Checksum Loss Rate: %.2f%%\n", loss_percent);
-    CI_LOGF("Total Loss: %lu (%.2f%%)\n",
-            frames_sent - frames_received,
-            (float)(frames_sent - frames_received) * 100.0f / frames_sent);
+    Serial.println("\n=== Test Complete ===");
+    Serial.print("Frames Sent: "); Serial.println(frames_sent);
+    Serial.print("Frames Received: "); Serial.println(frames_received);
+    Serial.print("Frames Failed (checksum): "); Serial.println(frames_failed);
+    Serial.print("Checksum Loss Rate: "); Serial.print(loss_percent); Serial.println("%");
+    float total_loss = (float)(frames_sent - frames_received) * 100.0f / frames_sent;
+    Serial.print("Total Loss: "); Serial.print(frames_sent - frames_received);
+    Serial.print(" ("); Serial.print(total_loss); Serial.println("%)");
 
     // Validation
     bool pass = true;
 
     if (frames_received < MIN_FRAMES_EXPECTED) {
-      CI_LOGF("FAIL: Too few frames received (%lu < %d)\n",
-              frames_received, MIN_FRAMES_EXPECTED);
+      Serial.print("FAIL: Too few frames received (");
+      Serial.print(frames_received);
+      Serial.print(" < ");
+      Serial.print(MIN_FRAMES_EXPECTED);
+      Serial.println(")");
       pass = false;
     }
 
     float total_loss_rate = (float)(frames_sent - frames_received) * 100.0f / frames_sent;
     if (total_loss_rate > 2.0f) {
-      CI_LOGF("FAIL: Frame loss rate too high (%.2f%% > 2.0%%)\n", total_loss_rate);
+      Serial.print("FAIL: Frame loss rate too high (");
+      Serial.print(total_loss_rate);
+      Serial.println("% > 2.0%)");
       pass = false;
     }
 
     if (test_failed) {
-      CI_LOG("FAIL: Validation errors detected\n");
+      Serial.println("FAIL: Validation errors detected");
       pass = false;
     }
 
     if (pass) {
-      CI_LOG("\n*TEST_PASS*\n");
+      Serial.println("\n*TEST_PASS*");
     } else {
-      CI_LOG("\n*TEST_FAIL*\n");
+      Serial.println("\n*TEST_FAIL*");
     }
 
-    CI_LOG("*STOP*\n");  // Exit wildcard for aflash.sh automation
+    Serial.println("*STOP*");
     while (1);  // Halt
   }
 }

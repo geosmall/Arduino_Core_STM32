@@ -3,7 +3,6 @@
 
 #include <Storage.h>
 #include <BoardStorage.h>
-#include <ci_log.h>
 
 // Include board configuration for StorageBackend enum
 #if defined(ARDUINO_BLACKPILL_F411CE)
@@ -22,57 +21,54 @@ void setup() {
   Serial.begin(115200);
   while (!Serial) delay(10);
 
-  CI_LOG("=== Generic Storage Abstraction Demo ===\n");
-  CI_BUILD_INFO();
-  CI_READY_TOKEN();
+  Serial.println("=== Generic Storage Abstraction Demo ===");
 
   // Initialize storage using board configuration
-  CI_LOG("Initializing storage...\n");
+  Serial.println("Initializing storage...");
   if (BoardStorage::begin(BoardConfig::storage)) {
     Storage& fs = BOARD_STORAGE;
 
-    CI_LOG("✓ Storage initialized successfully\n");
-    CI_LOG("Backend: ");
+    Serial.println("✓ Storage initialized successfully");
+    Serial.print("Backend: ");
     auto backend = BoardStorage::getBackendType();
     if (backend == StorageBackend::NONE) {
-      CI_LOG("NONE");
+      Serial.print("NONE");
     } else if (backend == StorageBackend::LITTLEFS) {
-      CI_LOG("LittleFS");
+      Serial.print("LittleFS");
     } else {
-      CI_LOG("SDFS");
+      Serial.print("SDFS");
     }
-    CI_LOG("\n");
-    CI_LOG("Media: ");
-    CI_LOG(fs.name());
-    CI_LOG("\n");
-    CI_LOG("Total size: ");
-    CI_LOG(String((unsigned long)fs.totalSize()).c_str());
-    CI_LOG(" bytes\n");
-    CI_LOG("Used size: ");
-    CI_LOG(String((unsigned long)fs.usedSize()).c_str());
-    CI_LOG(" bytes\n");
+    Serial.println();
+    Serial.print("Media: ");
+    Serial.println(fs.name());
+    Serial.print("Total size: ");
+    Serial.print((unsigned long)fs.totalSize());
+    Serial.println(" bytes");
+    Serial.print("Used size: ");
+    Serial.print((unsigned long)fs.usedSize());
+    Serial.println(" bytes");
 
     // Test basic file operations
-    CI_LOG("\nTesting file operations...\n");
+    Serial.println("\nTesting file operations...");
 
     File testFile = fs.open("/test.txt", FILE_WRITE);
     if (testFile) {
       testFile.println("Hello from unified storage!");
       testFile.println("Backend auto-selected by board configuration");
       testFile.close();
-      CI_LOG("✓ File written successfully\n");
+      Serial.println("✓ File written successfully");
     } else {
-      CI_LOG("✗ Failed to create test file\n");
+      Serial.println("✗ Failed to create test file");
     }
 
     if (fs.exists("/test.txt")) {
-      CI_LOG("✓ File exists\n");
+      Serial.println("✓ File exists");
 
       testFile = fs.open("/test.txt", FILE_READ);
       if (testFile) {
-        CI_LOG("File contents:\n");
+        Serial.println("File contents:");
         while (testFile.available()) {
-          CI_LOG(String((char)testFile.read()).c_str());
+          Serial.print((char)testFile.read());
         }
         testFile.close();
       }
@@ -80,21 +76,18 @@ void setup() {
 
     // Clean up
     if (fs.remove("/test.txt")) {
-      CI_LOG("✓ Test file removed\n");
+      Serial.println("✓ Test file removed");
     }
 
   } else {
-    CI_LOG("✗ Storage initialization failed: ");
-    CI_LOG(BoardStorage::getLastError());
-    CI_LOG("\n");
-    CI_LOG("Note: This is expected if storage hardware is not connected.\n");
-    CI_LOG("The unified storage interface is working correctly.\n");
+    Serial.print("✗ Storage initialization failed: ");
+    Serial.println(BoardStorage::getLastError());
+    Serial.println("Note: This is expected if storage hardware is not connected.");
+    Serial.println("The unified storage interface is working correctly.");
   }
 
-  CI_LOG("\n=== Demo Complete ===\n");
-  #ifdef USE_RTT
-  CI_LOG("*STOP*\n");
-  #endif
+  Serial.println("\n=== Demo Complete ===");
+  Serial.println("*STOP*");
 }
 
 void loop() {

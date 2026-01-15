@@ -22,7 +22,6 @@
  */
 
 #include <PWMOutputBank.h>
-#include <ci_log.h>
 #include "../../../../targets/NUCLEO_F411RE_LITTLEFS.h"
 
 // PWM Output Banks
@@ -80,50 +79,57 @@ void escCaptureCallback() {
 }
 
 void setup() {
-#ifndef USE_RTT
   Serial.begin(115200);
   while (!Serial && millis() < 3000);
-#endif
 
-  CI_LOG("=== DualTimerPWM Verification Test ===\n");
-  CI_LOG("Board: NUCLEO_F411RE\n");
-  CI_BUILD_INFO();
-  CI_LOG("\n");
+  Serial.println("=== DualTimerPWM Verification Test ===");
+  Serial.println("Board: NUCLEO_F411RE");
+  Serial.println();
 
   // ========== Configure Servo PWM (TIM3 @ 50 Hz) ==========
-  CI_LOGF("Initializing Servo PWM (TIM3 @ %lu Hz)...\n", BoardConfig::Servo::frequency_hz);
+  Serial.print("Initializing Servo PWM (TIM3 @ ");
+  Serial.print(BoardConfig::Servo::frequency_hz);
+  Serial.println(" Hz)...");
   if (!servo_pwm.Init(BoardConfig::Servo::timer, BoardConfig::Servo::frequency_hz)) {
-    CI_LOG("ERROR: Servo PWM Init failed\n");
+    Serial.println("ERROR: Servo PWM Init failed");
+    Serial.println("*STOP*");
     while (1);
   }
 
   auto& servo_ch = BoardConfig::Servo::servo1;
   if (!servo_pwm.AttachChannel(servo_ch.ch, servo_ch.pin, servo_ch.min_us, servo_ch.max_us)) {
-    CI_LOG("ERROR: Servo PWM AttachChannel failed\n");
+    Serial.println("ERROR: Servo PWM AttachChannel failed");
+    Serial.println("*STOP*");
     while (1);
   }
 
   servo_pwm.SetPulseWidth(servo_ch.ch, 1500);  // 1500 µs center position
   servo_pwm.Start();
-  CI_LOG("✓ Servo PWM: PB4 (D5) - 1500 µs @ 50 Hz\n\n");
+  Serial.println("Servo PWM: PB4 (D5) - 1500 us @ 50 Hz");
+  Serial.println();
 
   // ========== Configure ESC PWM (TIM4 @ 1 kHz) ==========
-  CI_LOGF("Initializing ESC PWM (TIM4 @ %lu Hz)...\n", BoardConfig::ESC::frequency_hz);
+  Serial.print("Initializing ESC PWM (TIM4 @ ");
+  Serial.print(BoardConfig::ESC::frequency_hz);
+  Serial.println(" Hz)...");
   if (!esc_pwm.Init(BoardConfig::ESC::timer, BoardConfig::ESC::frequency_hz)) {
-    CI_LOG("ERROR: ESC PWM Init failed\n");
+    Serial.println("ERROR: ESC PWM Init failed");
+    Serial.println("*STOP*");
     while (1);
   }
 
   auto& esc_ch = BoardConfig::ESC::esc1;
   if (!esc_pwm.AttachChannel(esc_ch.ch, esc_ch.pin, esc_ch.min_us, esc_ch.max_us)) {
-    CI_LOG("ERROR: ESC PWM AttachChannel failed\n");
+    Serial.println("ERROR: ESC PWM AttachChannel failed");
+    Serial.println("*STOP*");
     while (1);
   }
 
   // Set midpoint: (125 + 250) / 2 = 187.5 µs
   esc_pwm.SetPulseWidth(esc_ch.ch, 187);
   esc_pwm.Start();
-  CI_LOG("✓ ESC PWM: PB6 (D10) - 187 µs @ 1000 Hz\n\n");
+  Serial.println("ESC PWM: PB6 (D10) - 187 us @ 1000 Hz");
+  Serial.println();
 
   // ========== Configure Input Capture (TIM2 with 2 channels) ==========
   // Configure timer base
@@ -135,24 +141,23 @@ void setup() {
   const uint32_t SERVO_CAPTURE_CH = 1;
   tim2.setMode(SERVO_CAPTURE_CH, TIMER_INPUT_CAPTURE_RISING, SERVO_CAPTURE_PIN);
   tim2.attachInterrupt(SERVO_CAPTURE_CH, servoCaptureCallback);
-  CI_LOG("✓ Servo Capture: PA0 (A0, TIM2_CH1)\n");
+  Serial.println("Servo Capture: PA0 (A0, TIM2_CH1)");
 
   // Configure CH3 for ESC measurement (local pin definitions, not in target config)
   const uint32_t ESC_CAPTURE_PIN = PB10;  // TIM2_CH3 (Arduino D6)
   const uint32_t ESC_CAPTURE_CH = 3;
   tim2.setMode(ESC_CAPTURE_CH, TIMER_INPUT_CAPTURE_RISING, ESC_CAPTURE_PIN);
   tim2.attachInterrupt(ESC_CAPTURE_CH, escCaptureCallback);
-  CI_LOG("✓ ESC Capture: PB10 (D6, TIM2_CH3)\n");
+  Serial.println("ESC Capture: PB10 (D6, TIM2_CH3)");
 
   // Start the timer
   tim2.resume();
-  CI_LOG("\n");
+  Serial.println();
 
-  CI_LOG("Jumper Connections Required:\n");
-  CI_LOG("1. D5 → A0 (Servo PWM to capture)\n");
-  CI_LOG("2. D10 → D6 (ESC PWM to capture)\n\n");
-
-  CI_READY_TOKEN();
+  Serial.println("Jumper Connections Required:");
+  Serial.println("1. D5 -> A0 (Servo PWM to capture)");
+  Serial.println("2. D10 -> D6 (ESC PWM to capture)");
+  Serial.println();
 }
 
 void loop() {
@@ -164,11 +169,12 @@ void loop() {
   // Timeout if no measurements after 15 seconds
   const uint32_t TIMEOUT_MS = 15000;
   if (millis() - start_time > TIMEOUT_MS && measurement_count == 0) {
-    CI_LOG("\n✗ TIMEOUT: No measurements received after 15 seconds\n");
-    CI_LOG("Check jumper connections:\n");
-    CI_LOG("  1. D5 → A0 (servo measurement)\n");
-    CI_LOG("  2. D10 → D6 (ESC measurement)\n");
-    CI_LOG("*STOP*\n");
+    Serial.println();
+    Serial.println("TIMEOUT: No measurements received after 15 seconds");
+    Serial.println("Check jumper connections:");
+    Serial.println("  1. D5 -> A0 (servo measurement)");
+    Serial.println("  2. D10 -> D6 (ESC measurement)");
+    Serial.println("*STOP*");
     while(1); // Halt
   }
 
@@ -179,16 +185,17 @@ void loop() {
     float measured_freq = 1000000.0 / servo_period_us;
     bool servo_valid = (measured_freq >= 49.0 && measured_freq <= 51.0);
 
-    CI_LOG("[SERVO] Period: ");
-    CI_LOGF("%lu µs, Freq: ", servo_period_us);
-    CI_LOG_FLOAT("", measured_freq, 2);
-    CI_LOG(" Hz - ");
+    Serial.print("[SERVO] Period: ");
+    Serial.print(servo_period_us);
+    Serial.print(" us, Freq: ");
+    Serial.print(measured_freq, 2);
+    Serial.print(" Hz - ");
 
     if (servo_valid) {
-      CI_LOG("✓ PASS (49-51 Hz)\n");
+      Serial.println("PASS (49-51 Hz)");
       servo_measured = true;
     } else {
-      CI_LOG("✗ FAIL (expected 49-51 Hz)\n");
+      Serial.println("FAIL (expected 49-51 Hz)");
     }
   }
 
@@ -199,16 +206,17 @@ void loop() {
     float measured_freq = 1000000.0 / esc_period_us;
     bool esc_valid = (measured_freq >= 980.0 && measured_freq <= 1020.0);
 
-    CI_LOG("[ESC]   Period: ");
-    CI_LOGF("%lu µs, Freq: ", esc_period_us);
-    CI_LOG_FLOAT("", measured_freq, 2);
-    CI_LOG(" Hz - ");
+    Serial.print("[ESC]   Period: ");
+    Serial.print(esc_period_us);
+    Serial.print(" us, Freq: ");
+    Serial.print(measured_freq, 2);
+    Serial.print(" Hz - ");
 
     if (esc_valid) {
-      CI_LOG("✓ PASS (980-1020 Hz)\n");
+      Serial.println("PASS (980-1020 Hz)");
       esc_measured = true;
     } else {
-      CI_LOG("✗ FAIL (expected 980-1020 Hz)\n");
+      Serial.println("FAIL (expected 980-1020 Hz)");
     }
   }
 
@@ -218,11 +226,11 @@ void loop() {
     servo_measured = false;
     esc_measured = false;
 
-    CI_LOG("\n");
+    Serial.println();
 
     if (measurement_count >= 3) {
-      CI_LOG("Hardware Validation Complete\n");
-      CI_LOG("*STOP*\n");
+      Serial.println("Hardware Validation Complete");
+      Serial.println("*STOP*");
       while(1); // Halt for HIL framework
     }
   }

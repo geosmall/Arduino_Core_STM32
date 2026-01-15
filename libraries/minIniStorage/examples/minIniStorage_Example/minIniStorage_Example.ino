@@ -19,45 +19,43 @@
  */
 
 #include <minIniStorage.h>
-#include <ci_log.h>
 
 // Board target configuration - update to match your hardware setup:
 // For SDFS (SD Card): NUCLEO_F411RE_SDFS.h
 // For LittleFS (SPI Flash): NUCLEO_F411RE_LITTLEFS.h
-#include "../../../../../targets/NUCLEO_F411RE_SDFS.h"
+#include "../../../../../targets/NUCLEO_F411RE_LITTLEFS.h"
 
 void setup() {
   Serial.begin(115200);
   while (!Serial) delay(10);
 
-  CI_LOG("=== minIniStorage Example ===\n");
-  CI_LOG("minIni v1.5 Configuration Management Demo\n");
-  CI_BUILD_INFO();
-  CI_READY_TOKEN();
-  CI_LOG("\n");
+  Serial.println("=== minIniStorage Example ===");
+  Serial.println("minIni v1.5 Configuration Management Demo");
+  Serial.println();
 
   // Create minIniStorage instance for settings file
   minIniStorage config("settings.ini");
 
   // Initialize storage with board configuration
-  CI_LOG("Initializing storage...\n");
+  Serial.println("Initializing storage...");
   if (config.begin(BoardConfig::storage)) {
-    CI_LOG("✓ Storage initialized successfully\n");
-    CI_LOG("Total size: ");
-    CI_LOG(String((unsigned long)(config.totalSize() / 1024)).c_str());
-    CI_LOG(" KB\n");
-    CI_LOG("Used size: ");
-    CI_LOG(String((unsigned long)(config.usedSize() / 1024)).c_str());
-    CI_LOG(" KB\n");
-    CI_LOG("\n");
+    Serial.println("Storage initialized successfully");
+    Serial.print("Total size: ");
+    Serial.print((unsigned long)(config.totalSize() / 1024));
+    Serial.println(" KB");
+    Serial.print("Used size: ");
+    Serial.print((unsigned long)(config.usedSize() / 1024));
+    Serial.println(" KB");
+    Serial.println();
   } else {
-    CI_LOG("✗ Storage initialization failed\n");
-    CI_LOG("Check hardware connections and target configuration\n");
+    Serial.println("Storage initialization failed");
+    Serial.println("Check hardware connections and target configuration");
+    Serial.println("*STOP*");
     return;
   }
 
   // === Writing Configuration Values ===
-  CI_LOG("=== Writing Configuration ===\n");
+  Serial.println("=== Writing Configuration ===");
 
   // Network settings
   config.put("network", "ip_address", "192.168.1.100");
@@ -74,88 +72,86 @@ void setup() {
   config.put("system", "firmware_version", "1.0.0");
   config.put("system", "debug_mode", false);
 
-  CI_LOG("Configuration written to settings.ini\n");
-  CI_LOG("\n");
+  Serial.println("Configuration written to settings.ini");
+  Serial.println();
 
   // === Reading Configuration Values ===
-  CI_LOG("=== Reading Configuration ===\n");
+  Serial.println("=== Reading Configuration ===");
 
   // Read network settings
   std::string ip = config.gets("network", "ip_address", "192.168.1.1");
   int port = config.geti("network", "port", 80);
   bool dhcp = config.getbool("network", "dhcp_enabled", false);
 
-  CI_LOG("IP Address: "); CI_LOG(ip.c_str()); CI_LOG("\n");
-  CI_LOG("Port: "); CI_LOG(String(port).c_str()); CI_LOG("\n");
-  CI_LOG("DHCP: "); CI_LOG(dhcp ? "Enabled" : "Disabled"); CI_LOG("\n");
-  CI_LOG("\n");
+  Serial.print("IP Address: "); Serial.println(ip.c_str());
+  Serial.print("Port: "); Serial.println(port);
+  Serial.print("DHCP: "); Serial.println(dhcp ? "Enabled" : "Disabled");
+  Serial.println();
 
   // Read sensor settings
   float temp_offset = config.getf("sensor", "temperature_offset", 0.0);
   int sample_rate = config.geti("sensor", "sample_rate", 100);
   bool sensor_enabled = config.getbool("sensor", "enabled", false);
 
-  CI_LOG("Temperature Offset: "); CI_LOG(String(temp_offset).c_str()); CI_LOG("\n");
-  CI_LOG("Sample Rate: "); CI_LOG(String(sample_rate).c_str()); CI_LOG(" Hz\n");
-  CI_LOG("Sensor: "); CI_LOG(sensor_enabled ? "Enabled" : "Disabled"); CI_LOG("\n");
-  CI_LOG("\n");
+  Serial.print("Temperature Offset: "); Serial.println(temp_offset);
+  Serial.print("Sample Rate: "); Serial.print(sample_rate); Serial.println(" Hz");
+  Serial.print("Sensor: "); Serial.println(sensor_enabled ? "Enabled" : "Disabled");
+  Serial.println();
 
   // Read system settings
   std::string device_name = config.gets("system", "device_name", "Unknown");
   std::string fw_version = config.gets("system", "firmware_version", "0.0.0");
   bool debug = config.getbool("system", "debug_mode", false);
 
-  CI_LOG("Device Name: "); CI_LOG(device_name.c_str()); CI_LOG("\n");
-  CI_LOG("Firmware: "); CI_LOG(fw_version.c_str()); CI_LOG("\n");
-  CI_LOG("Debug Mode: "); CI_LOG(debug ? "Enabled" : "Disabled"); CI_LOG("\n");
-  CI_LOG("\n");
+  Serial.print("Device Name: "); Serial.println(device_name.c_str());
+  Serial.print("Firmware: "); Serial.println(fw_version.c_str());
+  Serial.print("Debug Mode: "); Serial.println(debug ? "Enabled" : "Disabled");
+  Serial.println();
 
   // === minIni v1.5 New Features ===
-  CI_LOG("=== minIni v1.5 Features ===\n");
+  Serial.println("=== minIni v1.5 Features ===");
 
   // Check if sections exist
-  CI_LOG("Has 'network' section: ");
-  CI_LOG(config.hassection("network") ? "Yes" : "No"); CI_LOG("\n");
+  Serial.print("Has 'network' section: ");
+  Serial.println(config.hassection("network") ? "Yes" : "No");
 
-  CI_LOG("Has 'bluetooth' section: ");
-  CI_LOG(config.hassection("bluetooth") ? "Yes" : "No"); CI_LOG("\n");
+  Serial.print("Has 'bluetooth' section: ");
+  Serial.println(config.hassection("bluetooth") ? "Yes" : "No");
 
   // Check if specific keys exist
-  CI_LOG("Has 'network.ip_address': ");
-  CI_LOG(config.haskey("network", "ip_address") ? "Yes" : "No"); CI_LOG("\n");
+  Serial.print("Has 'network.ip_address': ");
+  Serial.println(config.haskey("network", "ip_address") ? "Yes" : "No");
 
-  CI_LOG("Has 'network.password': ");
-  CI_LOG(config.haskey("network", "password") ? "Yes" : "No"); CI_LOG("\n");
-  CI_LOG("\n");
+  Serial.print("Has 'network.password': ");
+  Serial.println(config.haskey("network", "password") ? "Yes" : "No");
+  Serial.println();
 
   // === Section and Key Enumeration ===
-  CI_LOG("=== Configuration Structure ===\n");
+  Serial.println("=== Configuration Structure ===");
 
   // Enumerate all sections
   for (int i = 0; ; i++) {
     std::string section = config.getsection(i);
     if (section.empty()) break;
 
-    CI_LOG("Section: "); CI_LOG(section.c_str()); CI_LOG("\n");
+    Serial.print("Section: "); Serial.println(section.c_str());
 
     // Enumerate keys in this section
     for (int j = 0; ; j++) {
       std::string key = config.getkey(section, j);
       if (key.empty()) break;
 
-      CI_LOG("  Key: "); CI_LOG(key.c_str()); CI_LOG("\n");
+      Serial.print("  Key: "); Serial.println(key.c_str());
     }
   }
-  CI_LOG("\n");
+  Serial.println();
 
   // === Demonstration Complete ===
-  CI_LOG("=== Example Complete ===\n");
-  CI_LOG("minIniStorage successfully demonstrated!\n");
-  CI_LOG("Check your storage device - settings.ini has been created\n");
+  Serial.println("=== Example Complete ===");
+  Serial.println("minIniStorage successfully demonstrated!");
+  Serial.println("Check your storage device - settings.ini has been created");
 
-  #ifdef USE_RTT
-  CI_LOG("*STOP*\n");
-  #endif
+  Serial.println("*STOP*");
 }
 
 void loop() {
