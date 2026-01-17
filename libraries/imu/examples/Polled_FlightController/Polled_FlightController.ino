@@ -34,7 +34,7 @@ extern "C" void putchar_(char c) {
 #elif defined(ARDUINO_BLACKPILL_F411CE)
 #include "../../../../targets/BLACKPILL_F411CE.h"
 #else
-#include "../../../../targets/NUCLEO_F411RE_JHEF411.h"
+#include "../../../../targets/NUCLEO_F411RE_LITTLEFS.h"
 #endif
 
 // Create SPI instance using BoardConfig (software CS control)

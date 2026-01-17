@@ -16,15 +16,14 @@
  * Protocol: SBUS @ 100000 baud
  * Expected: 16 RC channels (0-2047 range, typical 172-1811)
  *
- * Board Configuration:
- *   NUCLEO_F411RE: Uses USART1 (RX=PA10, TX=PA9)
+ * Board Configuration (from BoardConfig::rc_receiver):
+ *   NUCLEO_F411RE_LITTLEFS: Uses USART1 (RX=PA10, TX=PA9)
  *   BLACKPILL_F411CE: Uses UART1 (RX=PB3, TX=PA15)
- *   JHEF411: Uses USART2 (RX=PA3, TX=PA2)
  */
 
 #include <SerialRx.h>
 #include <ci_log.h>
-#include "../../../../../targets/NUCLEO_F411RE_JHEF411.h"
+#include "../../../../targets/NUCLEO_F411RE_LITTLEFS.h"
 
 // Create HardwareSerial instance using BoardConfig
 HardwareSerial SerialRC(BoardConfig::rc_receiver.rx_pin,
