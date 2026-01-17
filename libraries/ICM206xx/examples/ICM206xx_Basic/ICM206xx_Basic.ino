@@ -19,7 +19,6 @@
  */
 
 #include <ICM206xx.h>
-#include <ci_log.h>
 #include "../../../../targets/BKMN-NERO.h"
 
 // SPI configuration from BoardConfig
@@ -32,63 +31,64 @@ SPIClass spi_bus(BoardConfig::imu_spi.mosi_pin,
 ICM206xx imu;
 
 void setup() {
-  // Initialize Serial for non-RTT mode
-#ifndef USE_RTT
   Serial.begin(115200);
-  while (!Serial && millis() < 3000); // Wait for Serial with timeout
-#endif
+  while (!Serial && millis() < 3000);
 
-  CI_LOG("=== ICM-206xx Basic Test ===\n");
-  CI_BUILD_INFO();
-  CI_READY_TOKEN();
+  Serial.println("=== ICM-206xx Basic Test ===");
 
   // Initialize ICM-206xx
-  CI_LOG("Initializing ICM-206xx...\n");
-  CI_LOGF("Board: BKMN-NERO (STM32F7X2)\n");
-  CI_LOGF("IMU SPI: CS=%d, MOSI=%d, MISO=%d, SCLK=%d\n",
-          BoardConfig::imu_spi.cs_pin,
-          BoardConfig::imu_spi.mosi_pin,
-          BoardConfig::imu_spi.miso_pin,
-          BoardConfig::imu_spi.sclk_pin);
+  Serial.println("Initializing ICM-206xx...");
+  Serial.println("Board: BKMN-NERO (STM32F7X2)");
+  Serial.print("IMU SPI: CS=");
+  Serial.print(BoardConfig::imu_spi.cs_pin);
+  Serial.print(", MOSI=");
+  Serial.print(BoardConfig::imu_spi.mosi_pin);
+  Serial.print(", MISO=");
+  Serial.print(BoardConfig::imu_spi.miso_pin);
+  Serial.print(", SCLK=");
+  Serial.println(BoardConfig::imu_spi.sclk_pin);
 
   if (!imu.begin(spi_bus, ICM206xx_CS_PIN, ICM206xx_SPI_FREQ)) {
-    CI_LOG("ERROR: ICM-206xx initialization failed!\n");
-    CI_LOG("Check connections:\n");
-    CI_LOG("  - SPI MOSI, MISO, SCK\n");
-    CI_LOG("  - CS pin\n");
-    CI_LOG("  - 3.3V power\n");
-    CI_LOG("*STOP*\n");
+    Serial.println("ERROR: ICM-206xx initialization failed!");
+    Serial.println("Check connections:");
+    Serial.println("  - SPI MOSI, MISO, SCK");
+    Serial.println("  - CS pin");
+    Serial.println("  - 3.3V power");
+    Serial.println("*STOP*");
     while (1);
   }
 
-  CI_LOG("ICM-206xx initialized successfully\n");
+  Serial.println("ICM-206xx initialized successfully");
 
   // Read WHO_AM_I register
   uint8_t who_am_i = imu.whoAmI();
-  CI_LOGF("WHO_AM_I: 0x%02X ", who_am_i);
+  Serial.print("WHO_AM_I: 0x");
+  Serial.print(who_am_i, HEX);
 
   // Display detected chip
   const char* chip_name = imu.getChipName();
-  CI_LOGF("(%s detected) ✓\n", chip_name);
+  Serial.print(" (");
+  Serial.print(chip_name);
+  Serial.println(" detected) ✓");
 
   // Verify chip variant
   ChipVariant variant = imu.getChipVariant();
   if (variant == ChipVariant::UNKNOWN) {
-    CI_LOG("WARNING: Unknown chip variant\n");
+    Serial.println("WARNING: Unknown chip variant");
   }
 
   // Configure DLPF (250 Hz gyro, 218 Hz accel bandwidth)
   imu.setDLPF(0, 0);
-  CI_LOG("DLPF configured: Gyro 250 Hz, Accel 218 Hz\n");
+  Serial.println("DLPF configured: Gyro 250 Hz, Accel 218 Hz");
 
   // Set ranges
   imu.setGyroFSR(2000);  // ±2000 dps
   imu.setAccelFSR(16);   // ±16g
 
-  CI_LOG("Gyro FSR: ±2000 dps\n");
-  CI_LOG("Accel FSR: ±16g\n");
-  CI_LOG("\nStarting data acquisition...\n");
-  CI_LOG("---\n");
+  Serial.println("Gyro FSR: ±2000 dps");
+  Serial.println("Accel FSR: ±16g");
+  Serial.println("\nStarting data acquisition...");
+  Serial.println("---");
 
   delay(100);
 }
@@ -108,37 +108,39 @@ void loop() {
     if (millis() - last_print >= 100) {
       last_print = millis();
 
-      CI_LOGF("Sample %lu:\n", sample_count);
+      Serial.print("Sample ");
+      Serial.println(sample_count);
 
       // Print gyro data
-      CI_LOG("  Gyro (dps): ");
-      CI_LOG_FLOAT("X=", gx, 2);
-      CI_LOG(", ");
-      CI_LOG_FLOAT("Y=", gy, 2);
-      CI_LOG(", ");
-      CI_LOG_FLOAT("Z=", gz, 2);
-      CI_LOG("\n");
+      Serial.print("  Gyro (dps): X=");
+      Serial.print(gx, 2);
+      Serial.print(", Y=");
+      Serial.print(gy, 2);
+      Serial.print(", Z=");
+      Serial.println(gz, 2);
 
       // Print accel data
-      CI_LOG("  Accel (g):  ");
-      CI_LOG_FLOAT("X=", ax, 3);
-      CI_LOG(", ");
-      CI_LOG_FLOAT("Y=", ay, 3);
-      CI_LOG(", ");
-      CI_LOG_FLOAT("Z=", az, 3);
-      CI_LOG("\n");
-      CI_LOG("---\n");
+      Serial.print("  Accel (g):  X=");
+      Serial.print(ax, 3);
+      Serial.print(", Y=");
+      Serial.print(ay, 3);
+      Serial.print(", Z=");
+      Serial.println(az, 3);
+      Serial.println("---");
     }
 
     // Stop after 50 samples (5 seconds at 10 Hz)
     if (sample_count >= 50) {
-      CI_LOGF("\nTest complete: %lu samples collected\n", sample_count);
-      CI_LOGF("%s basic test PASSED ✓\n", imu.getChipName());
-      CI_LOG("*STOP*\n");
+      Serial.print("\nTest complete: ");
+      Serial.print(sample_count);
+      Serial.println(" samples collected");
+      Serial.print(imu.getChipName());
+      Serial.println(" basic test PASSED ✓");
+      Serial.println("*STOP*");
       while (1);
     }
   } else {
-    CI_LOG("ERROR: Failed to read IMU data\n");
+    Serial.println("ERROR: Failed to read IMU data");
   }
 
   delay(10);  // 100 Hz loop rate

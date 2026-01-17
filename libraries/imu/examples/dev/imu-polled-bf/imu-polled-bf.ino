@@ -25,7 +25,8 @@
  * - Lower ODRs (1k/2k) may match loop rate exactly
  *
  * HARDWARE CONFIGURATION:
- * - Uses BoardConfig for automatic board detection (NUCLEO_F411RE / BLACKPILL_F411CE)
+ * - Uses BoardConfig for automatic board detection
+ * - Supported: NUCLEO_F411RE, BLACKPILL_F411CE (requires ICM-42688-P IMU)
  * - Pin assignments and SPI frequency from board configuration
  * - No interrupt pin required
  *
@@ -52,11 +53,11 @@ extern "C" void putchar_(char c) {
     Serial.write(c);
 }
 
-// Board configuration
+// Board configuration (requires ICM-42688-P)
 #if defined(ARDUINO_BLACKPILL_F411CE)
 #include "../../../../targets/BLACKPILL_F411CE.h"
 #else
-#include "../../../../targets/NUCLEO_F411RE_JHEF411.h"
+#include "../../../../targets/NUCLEO_F411RE_LITTLEFS.h"
 #endif
 
 // ============================================================================

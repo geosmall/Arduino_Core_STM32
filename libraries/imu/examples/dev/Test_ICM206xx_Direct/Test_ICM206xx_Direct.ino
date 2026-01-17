@@ -10,17 +10,18 @@
  *   - ICM-20689 (WHO_AM_I = 0x98)
  *
  * Hardware Platforms:
- *   - NUCLEO_F411RE (with JHEF411 config)
+ *   - NUCLEO_F411RE (with LittleFS config)
  *   - NERO F7 Flight Controller (BKMN-NERO target, ICM-20602 on SPI1)
  *
  * Build & Test:
- *   NUCLEO: ./system/ci/aflash.sh libraries/imu/examples/Test_ICM206xx_Direct --use-rtt
- *   NERO:   ./system/ci/aflash.sh libraries/imu/examples/Test_ICM206xx_Direct STMicroelectronics:stm32:FlightCtr:pnum=BKMN_NERO --use-rtt
+ *   NUCLEO: ./ci/saflash.sh Arduino_Core_STM32/libraries/imu/examples/dev/Test_ICM206xx_Direct
+ *   NERO:   ./ci/saflash.sh Arduino_Core_STM32/libraries/imu/examples/dev/Test_ICM206xx_Direct STM32_Robotics:stm32:FlightCtr:pnum=BKMN_NERO
+ *
+ * License: GPL v3 (Betaflight-derived library)
  */
 
 #include <Arduino.h>
 #include <SPI.h>
-#include <ci_log.h>
 #include <IMU_Driver.h>  // This will trigger library detection
 // Direct access to internal classes
 #include "../../../src/bus/DeviceBusSPI.h"
@@ -32,9 +33,9 @@
 #include "../../../../targets/BKMN-NERO.h"
 #elif defined(ARDUINO_NUCLEO_F411RE)
 // NUCLEO_F411RE development board
-#include "../../../../targets/NUCLEO_F411RE_JHEF411.h"
+#include "../../../../targets/NUCLEO_F411RE_LITTLEFS.h"
 #else
-#error "This example requires NERO F7 (FQBN: STMicroelectronics:stm32:FlightCtr:pnum=BKMN_NERO) or NUCLEO_F411RE"
+#error "This example requires NERO F7 (FQBN: STM32_Robotics:stm32:FlightCtr:pnum=BKMN_NERO) or NUCLEO_F411RE"
 #endif
 
 // BoardConfig integration for dynamic pin configuration
@@ -56,22 +57,24 @@ ICM206xx* imu = nullptr;
 
 void setup()
 {
-    // Initialize Serial for non-RTT mode
-#ifndef USE_RTT
     Serial.begin(115200);
     while (!Serial && millis() < 3000);
-#endif
 
-    CI_LOG("=== ICM206xx Direct Driver Test ===\n");
-    CI_BUILD_INFO();
-    CI_READY_TOKEN();
+    Serial.println("=== ICM206xx Direct Driver Test ===");
 
     // Display pin configuration from BoardConfig
-    CI_LOG("\nPin Configuration (BoardConfig):\n");
-    CI_LOGF("  CS: 0x%02X, MOSI: 0x%02X, MISO: 0x%02X, SCLK: 0x%02X\n",
-           (int)ICM206XX_CS_PIN, (int)ICM206XX_MOSI_PIN,
-           (int)ICM206XX_MISO_PIN, (int)ICM206XX_SCLK_PIN);
-    CI_LOGF("  SPI Speed: %lu Hz\n\n", (unsigned long)ICM206XX_SPI_FREQ);
+    Serial.println("Pin Configuration (BoardConfig):");
+    Serial.print("  CS: ");
+    Serial.print((int)ICM206XX_CS_PIN);
+    Serial.print(", MOSI: ");
+    Serial.print((int)ICM206XX_MOSI_PIN);
+    Serial.print(", MISO: ");
+    Serial.print((int)ICM206XX_MISO_PIN);
+    Serial.print(", SCLK: ");
+    Serial.println((int)ICM206XX_SCLK_PIN);
+    Serial.print("  SPI Speed: ");
+    Serial.print((unsigned long)ICM206XX_SPI_FREQ);
+    Serial.println(" Hz");
 
     // Initialize SPI with BoardConfig pins
     spi_bus.begin();
@@ -80,24 +83,34 @@ void setup()
     bus = new DeviceBusSPI(&spi_bus, ICM206XX_CS_PIN);
     bus->setFreq(ICM206XX_SPI_FREQ);
 
-    CI_LOG("Attempting ICM206xx detection...\n");
+    Serial.println("Attempting ICM206xx detection...");
 
     // Detect ICM206xx (factory pattern with 20 retries)
     imu = ICM206xx::detect(bus);
 
     if (!imu) {
-        CI_LOG("*FAIL* ICM206xx detection failed\n");
-        CI_LOG("*STOP*\n");
+        Serial.println("*FAIL* ICM206xx detection failed");
+        Serial.println("*STOP*");
         while (1);
     }
 
-    CI_LOGF("*PASS* Detected: %s (WHO_AM_I=0x%02X)\n", imu->typeName(), imu->whoAmI_);
-    CI_LOG_FLOAT("Gyro scale: ", imu->gyrScale_, 6); CI_LOG(" dps/LSB\n");
-    CI_LOG_FLOAT("Accel scale: ", imu->accScale_, 6); CI_LOG(" G/LSB\n");
-    CI_LOGF("Sampling rate: %u Hz\n", imu->samplingRateHz_);
+    Serial.print("*PASS* Detected: ");
+    Serial.print(imu->typeName());
+    Serial.print(" (WHO_AM_I=0x");
+    Serial.print(imu->whoAmI_, HEX);
+    Serial.println(")");
+    Serial.print("Gyro scale: ");
+    Serial.print(imu->gyrScale_, 6);
+    Serial.println(" dps/LSB");
+    Serial.print("Accel scale: ");
+    Serial.print(imu->accScale_, 6);
+    Serial.println(" G/LSB");
+    Serial.print("Sampling rate: ");
+    Serial.print(imu->samplingRateHz_);
+    Serial.println(" Hz");
 
-    CI_LOG("\nStreaming data (5 seconds)...\n");
-    CI_LOG("Format: Scaled values (G and dps)\n\n");
+    Serial.println("\nStreaming data (5 seconds)...");
+    Serial.println("Format: Scaled values (G and dps)\n");
 }
 
 void loop()
@@ -113,14 +126,20 @@ void loop()
 
     // Print at ~10 Hz
     if (millis() - last_print_ms >= 100) {
-        CI_LOGF("Sample %lu: ", sample_count);
-        CI_LOG_FLOAT("ax=", data[0] * imu->accScale_, 2);
-        CI_LOG_FLOAT(" ay=", data[1] * imu->accScale_, 2);
-        CI_LOG_FLOAT(" az=", data[2] * imu->accScale_, 2);
-        CI_LOG_FLOAT(" | gx=", data[3] * imu->gyrScale_, 1);
-        CI_LOG_FLOAT(" gy=", data[4] * imu->gyrScale_, 1);
-        CI_LOG_FLOAT(" gz=", data[5] * imu->gyrScale_, 1);
-        CI_LOG("\n");
+        Serial.print("Sample ");
+        Serial.print(sample_count);
+        Serial.print(": ax=");
+        Serial.print(data[0] * imu->accScale_, 2);
+        Serial.print(" ay=");
+        Serial.print(data[1] * imu->accScale_, 2);
+        Serial.print(" az=");
+        Serial.print(data[2] * imu->accScale_, 2);
+        Serial.print(" | gx=");
+        Serial.print(data[3] * imu->gyrScale_, 1);
+        Serial.print(" gy=");
+        Serial.print(data[4] * imu->gyrScale_, 1);
+        Serial.print(" gz=");
+        Serial.println(data[5] * imu->gyrScale_, 1);
 
         last_print_ms = millis();
     }
@@ -129,12 +148,14 @@ void loop()
     if (millis() - start_ms >= 5000) {
         float read_rate_hz = sample_count / 5.0f;
 
-        CI_LOG("\n=== Test Complete ===\n");
-        CI_LOGF("Total samples: %lu\n", sample_count);
-        CI_LOG_FLOAT("Read rate: ", read_rate_hz, 1);
-        CI_LOG(" Hz\n");
-        CI_LOG("*PASS*\n");
-        CI_LOG("*STOP*\n");
+        Serial.println("\n=== Test Complete ===");
+        Serial.print("Total samples: ");
+        Serial.println(sample_count);
+        Serial.print("Read rate: ");
+        Serial.print(read_rate_hz, 1);
+        Serial.println(" Hz");
+        Serial.println("*PASS*");
+        Serial.println("*STOP*");
         while (1);
     }
 }

@@ -17,7 +17,6 @@
  * - Uses BoardConfig for automatic board detection (BKMN_NERO)
  * - Pin assignments and SPI frequency from board configuration
  * - Interrupt pin configured for data-ready signaling (PB2/EXTI2)
- * - Supports multiple board targets with single codebase
  *
  * Hardware Setup - BKMN-NERO (STM32F722):
  *   ICM-20602 → NERO FC
@@ -30,16 +29,10 @@
  *   CS   → PC4 (GPIO)
  *   INT  → PB2 (EXTI2)
  *
- * CI/HIL INTEGRATION:
- * - RTT output for automated testing
- * - Serial output for Arduino IDE
- * - Build traceability with git SHA and timestamp
- *
  * License: GPL v3 (Betaflight-derived library)
  */
 
 #include <ICM206xx.h>
-#include <ci_log.h>
 #include "../../../../targets/BKMN-NERO.h"
 
 // BoardConfig integration for dynamic pin and frequency configuration
@@ -77,86 +70,92 @@ void icm206xx_data_ready_isr() {
 }
 
 void setup() {
-  // Initialize Serial for non-RTT mode
-#ifndef USE_RTT
   Serial.begin(115200);
   while (!Serial && millis() < 3000);
-#endif
 
-  CI_LOG("=== ICM-206xx Interrupt-Driven Example ===\n");
-  CI_BUILD_INFO();
-  CI_READY_TOKEN();
+  Serial.println("=== ICM-206xx Interrupt-Driven Example ===");
 
   // Display pin configuration from BoardConfig
-  CI_LOG("Pin Configuration (BoardConfig):\n");
-  CI_LOGF("  CS: %d, MOSI: %d, MISO: %d, SCLK: %d\n",
-         (int)ICM206xx_CS_PIN, (int)ICM206xx_MOSI_PIN,
-         (int)ICM206xx_MISO_PIN, (int)ICM206xx_SCLK_PIN);
-  CI_LOGF("  SPI Speed: %lu Hz\n", (unsigned long)ICM206xx_SPI_FREQ);
+  Serial.println("Pin Configuration (BoardConfig):");
+  Serial.print("  CS: ");
+  Serial.print((int)ICM206xx_CS_PIN);
+  Serial.print(", MOSI: ");
+  Serial.print((int)ICM206xx_MOSI_PIN);
+  Serial.print(", MISO: ");
+  Serial.print((int)ICM206xx_MISO_PIN);
+  Serial.print(", SCLK: ");
+  Serial.println((int)ICM206xx_SCLK_PIN);
+  Serial.print("  SPI Speed: ");
+  Serial.print((unsigned long)ICM206xx_SPI_FREQ);
+  Serial.println(" Hz");
   if (ICM206xx_INT_PIN != 0) {
-    CI_LOGF("  Interrupt Pin: %d\n", (int)ICM206xx_INT_PIN);
+    Serial.print("  Interrupt Pin: ");
+    Serial.println((int)ICM206xx_INT_PIN);
   } else {
-    CI_LOG("  Interrupt Pin: None (polling mode)\n");
+    Serial.println("  Interrupt Pin: None (polling mode)");
   }
 
   // Initialize ICM-206xx
-  CI_LOG("\nInitializing ICM-206xx...\n");
+  Serial.println("Initializing ICM-206xx...");
 
   if (!imu.begin(spi_bus, ICM206xx_CS_PIN, ICM206xx_SPI_FREQ)) {
-    CI_LOG("ERROR: ICM-206xx initialization failed!\n");
-    CI_LOG("Check connections:\n");
-    CI_LOG("  - SPI MOSI, MISO, SCK\n");
-    CI_LOG("  - CS pin\n");
-    CI_LOG("  - 3.3V power\n");
-    CI_LOG("*STOP*\n");
+    Serial.println("ERROR: ICM-206xx initialization failed!");
+    Serial.println("Check connections:");
+    Serial.println("  - SPI MOSI, MISO, SCK");
+    Serial.println("  - CS pin");
+    Serial.println("  - 3.3V power");
+    Serial.println("*STOP*");
     while (1);
   }
 
-  CI_LOG("ICM-206xx initialized successfully\n");
+  Serial.println("ICM-206xx initialized successfully");
 
   // Read WHO_AM_I register
   uint8_t who_am_i = imu.whoAmI();
-  CI_LOGF("WHO_AM_I: 0x%02X ", who_am_i);
+  Serial.print("WHO_AM_I: 0x");
+  Serial.print(who_am_i, HEX);
 
   // Display detected chip
   const char* chip_name = imu.getChipName();
-  CI_LOGF("(%s detected) ✓\n", chip_name);
+  Serial.print(" (");
+  Serial.print(chip_name);
+  Serial.println(" detected) ✓");
 
   // Verify chip variant
   ChipVariant variant = imu.getChipVariant();
   if (variant == ChipVariant::UNKNOWN) {
-    CI_LOG("WARNING: Unknown chip variant\n");
+    Serial.println("WARNING: Unknown chip variant");
   }
 
   // Configure DLPF (176 Hz gyro, 218 Hz accel bandwidth, 1 kHz internal rate)
   // DLPF must be 1-6 to enable 1 kHz sample rate (DLPF=0 uses 8 kHz)
   imu.setDLPF(1, 1);  // Gyro DLPF=1, Accel DLPF=1
-  CI_LOG("DLPF configured: Gyro 176 Hz, Accel 218 Hz (1kHz internal)\n");
+  Serial.println("DLPF configured: Gyro 176 Hz, Accel 218 Hz (1kHz internal)");
 
   // Set sample rate divider to 0 (1kHz output)
   imu.setSampleRateDivider(0);  // 1kHz / (1+0) = 1kHz
-  CI_LOG("Sample rate divider: 0 (1kHz output)\n");
+  Serial.println("Sample rate divider: 0 (1kHz output)");
 
   // Set ranges
   imu.setGyroFSR(2000);  // ±2000 dps
   imu.setAccelFSR(16);   // ±16g
 
-  CI_LOG("Gyro FSR: ±2000 dps\n");
-  CI_LOG("Accel FSR: ±16g\n");
+  Serial.println("Gyro FSR: ±2000 dps");
+  Serial.println("Accel FSR: ±16g");
 
   // Setup interrupt if pin is configured
   // Note: Data-ready interrupts are automatically enabled by the driver
   if (ICM206xx_INT_PIN != 0) {
     pinMode(ICM206xx_INT_PIN, INPUT);
     attachInterrupt(digitalPinToInterrupt(ICM206xx_INT_PIN), icm206xx_data_ready_isr, RISING);
-    CI_LOG("✓ Data-ready interrupt configured (1kHz)\n");
+    Serial.println("✓ Data-ready interrupt configured (1kHz)");
   } else {
-    CI_LOG("⚠ No interrupt pin - using polling mode\n");
+    Serial.println("⚠ No interrupt pin - using polling mode");
   }
 
-  CI_LOG("\nStarting interrupt-driven data acquisition...\n");
-  CI_LOG("Target: 1000 Hz sample rate\n");
-  CI_LOG("---\n");
+  Serial.println("Starting interrupt-driven data acquisition...");
+  Serial.println("Target: 1000 Hz sample rate");
+  Serial.println("---");
 
   last_report_time = millis();
   delay(100);
@@ -187,36 +186,37 @@ void loop() {
     float sample_rate = (samples_collected * 1000.0f) / report_interval;
     float interrupt_rate = (interrupt_count * 1000.0f) / report_interval;
 
-    CI_LOG("\n=== Statistics ===\n");
-    CI_LOGF("Sample Rate: ");
-    CI_LOG_FLOAT("", sample_rate, 1);
-    CI_LOG(" Hz\n");
+    Serial.println("\n=== Statistics ===");
+    Serial.print("Sample Rate: ");
+    Serial.print(sample_rate, 1);
+    Serial.println(" Hz");
 
     if (ICM206xx_INT_PIN != 0) {
-      CI_LOGF("Interrupt Rate: ");
-      CI_LOG_FLOAT("", interrupt_rate, 1);
-      CI_LOG(" Hz\n");
+      Serial.print("Interrupt Rate: ");
+      Serial.print(interrupt_rate, 1);
+      Serial.println(" Hz");
     }
 
-    CI_LOGF("Samples: %lu, Errors: %lu\n", samples_collected, read_errors);
+    Serial.print("Samples: ");
+    Serial.print(samples_collected);
+    Serial.print(", Errors: ");
+    Serial.println(read_errors);
 
-    CI_LOG("Latest Data:\n");
-    CI_LOG("  Gyro (dps): ");
-    CI_LOG_FLOAT("X=", gx, 2);
-    CI_LOG(", ");
-    CI_LOG_FLOAT("Y=", gy, 2);
-    CI_LOG(", ");
-    CI_LOG_FLOAT("Z=", gz, 2);
-    CI_LOG("\n");
+    Serial.println("Latest Data:");
+    Serial.print("  Gyro (dps): X=");
+    Serial.print(gx, 2);
+    Serial.print(", Y=");
+    Serial.print(gy, 2);
+    Serial.print(", Z=");
+    Serial.println(gz, 2);
 
-    CI_LOG("  Accel (g):  ");
-    CI_LOG_FLOAT("X=", ax, 3);
-    CI_LOG(", ");
-    CI_LOG_FLOAT("Y=", ay, 3);
-    CI_LOG(", ");
-    CI_LOG_FLOAT("Z=", az, 3);
-    CI_LOG("\n");
-    CI_LOG("---\n");
+    Serial.print("  Accel (g):  X=");
+    Serial.print(ax, 3);
+    Serial.print(", Y=");
+    Serial.print(ay, 3);
+    Serial.print(", Z=");
+    Serial.println(az, 3);
+    Serial.println("---");
 
     // Reset counters
     samples_collected = 0;
@@ -226,9 +226,10 @@ void loop() {
     static uint8_t report_count = 0;
     report_count++;
     if (report_count >= 5) {
-      CI_LOG("\nTest complete: 5 seconds of 1kHz streaming ✓\n");
-      CI_LOGF("%s interrupt-driven test PASSED ✓\n", imu.getChipName());
-      CI_LOG("*STOP*\n");
+      Serial.println("\nTest complete: 5 seconds of 1kHz streaming ✓");
+      Serial.print(imu.getChipName());
+      Serial.println(" interrupt-driven test PASSED ✓");
+      Serial.println("*STOP*");
       while (1);
     }
   }
