@@ -17,13 +17,14 @@
  * Expected: 16 RC channels (0-2047 range, typical 172-1811)
  *
  * Board Configuration (from BoardConfig::rc_receiver):
- *   NUCLEO_F411RE_LITTLEFS: Uses USART1 (RX=PA10, TX=PA9)
- *   BLACKPILL_F411CE: Uses UART1 (RX=PB3, TX=PA15)
+ *   MATEK H743-WLITE: Uses USART1 (RX=PA10) @ 100000 baud
+ *
+ * Note: MATEK H743 has hardware SBUS inverter on RX1 pad
  */
 
 #include <SerialRx.h>
 #include <ci_log.h>
-#include "../../../../targets/NUCLEO_F411RE_LITTLEFS.h"
+#include "../../../../targets/MTKS-MATEKH743.h"
 
 // Create HardwareSerial instance using BoardConfig
 HardwareSerial SerialRC(BoardConfig::rc_receiver.rx_pin,
