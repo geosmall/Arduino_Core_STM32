@@ -18,33 +18,26 @@
  * - Bank 2: 0x03-0x05 ACCEL_CONFIG_STATIC2-4 (Accel AAF)
  *
  * HARDWARE CONFIGURATION:
- * - Target: NUCLEO_F411RE with JHEF411 breakout board (ICM-42688-P)
- * - Uses NUCLEO_F411RE_JHEF411.h BoardConfig for pin assignments
+ * - Uses BoardConfig for automatic board detection (NUCLEO_F411RE / BLACKPILL_F411CE)
+ * - Pin assignments and SPI frequency from board configuration
  * - Will reject other IMU chips at runtime
- *
- * CI/HIL INTEGRATION:
- * - RTT output for automated testing
- * - Serial output for Arduino IDE
- * - Deterministic exit with "*STOP*" wildcard
  */
 
 #include <IMU.h>
-#include <ci_log.h>
 #include <SPI.h>
 #include <libPrintf.h>
 
-// CI_PRINTF requires putchar_() for libPrintf output routing
+// libPrintf requires putchar_() for output routing
 extern "C" void putchar_(char c) {
-#ifdef USE_RTT
-    SEGGER_RTT_PutChar(0, c);
-#else
     Serial.write(c);
-#endif
 }
 
-// Board configuration - ICM-42688-P specific (NUCLEO_F411RE with JHEF411 breakout)
-// This example requires ICM-42688-P hardware. Other IMU chips will be rejected.
-#include "../../../../targets/NUCLEO_F411RE_JHEF411.h"
+// Board configuration
+#if defined(ARDUINO_BLACKPILL_F411CE)
+#include "../../../../targets/BLACKPILL_F411CE.h"
+#else
+#include "../../../../targets/NUCLEO_F411RE_LITTLEFS.h"
+#endif
 
 // ============================================================================
 // ICM-42688-P Register Definitions (Bank 0 unless noted)
@@ -214,12 +207,12 @@ void dumpConfiguration() {
     uint8_t accel_cfg = imu.ReadReg_Ex(REG_ACCEL_CONFIG0);
     uint8_t ui_cfg = imu.ReadReg_Ex(REG_GYRO_ACCEL_CONFIG0);
 
-    CI_PRINTF("  PWR_MGMT0:          0x%02X\n", pwr);
-    CI_PRINTF("  GYRO_CONFIG0:       0x%02X (FSR=%d, ODR=%d)\n",
+    printf("  PWR_MGMT0:          0x%02X\n", pwr);
+    printf("  GYRO_CONFIG0:       0x%02X (FSR=%d, ODR=%d)\n",
            gyro_cfg, (gyro_cfg >> 5) & 0x07, gyro_cfg & 0x0F);
-    CI_PRINTF("  ACCEL_CONFIG0:      0x%02X (FSR=%d, ODR=%d)\n",
+    printf("  ACCEL_CONFIG0:      0x%02X (FSR=%d, ODR=%d)\n",
            accel_cfg, (accel_cfg >> 5) & 0x07, accel_cfg & 0x0F);
-    CI_PRINTF("  GYRO_ACCEL_CONFIG0: 0x%02X (Gyro UI=%d, Accel UI=%d)\n",
+    printf("  GYRO_ACCEL_CONFIG0: 0x%02X (Gyro UI=%d, Accel UI=%d)\n",
            ui_cfg, ui_cfg & 0x0F, (ui_cfg >> 4) & 0x0F);
 
     // Read AAF config from Bank 1
@@ -227,14 +220,14 @@ void dumpConfiguration() {
     uint8_t gyro_aaf3 = imu.ReadReg_Ex(BANK1_GYRO_CONFIG3);
     uint8_t gyro_aaf4 = imu.ReadReg_Ex(BANK1_GYRO_CONFIG4);
     uint8_t gyro_aaf5 = imu.ReadReg_Ex(BANK1_GYRO_CONFIG5);
-    CI_PRINTF("  Gyro AAF:           delt=%d, deltSqr=%d, bitshift=%d\n",
+    printf("  Gyro AAF:           delt=%d, deltSqr=%d, bitshift=%d\n",
            gyro_aaf3, gyro_aaf4 | ((gyro_aaf5 & 0x0F) << 8), gyro_aaf5 >> 4);
 
     selectBank(BANK_2);
     uint8_t accel_aaf2 = imu.ReadReg_Ex(BANK2_ACCEL_CONFIG2);
     uint8_t accel_aaf3 = imu.ReadReg_Ex(BANK2_ACCEL_CONFIG3);
     uint8_t accel_aaf4 = imu.ReadReg_Ex(BANK2_ACCEL_CONFIG4);
-    CI_PRINTF("  Accel AAF:          delt=%d, deltSqr=%d, bitshift=%d\n",
+    printf("  Accel AAF:          delt=%d, deltSqr=%d, bitshift=%d\n",
            accel_aaf2 >> 1, accel_aaf3 | ((accel_aaf4 & 0x0F) << 8), accel_aaf4 >> 4);
 
     selectBank(BANK_0);
@@ -258,72 +251,67 @@ uint16_t odrCodeToHz(uint8_t code) {
 // ============================================================================
 
 void setup() {
-    // Initialize communication (Serial or RTT)
-#ifndef USE_RTT
     Serial.begin(115200);
     while (!Serial) delay(10);
-#endif
 
-    CI_LOG("\n=== IMU Library - ICM-42688-P Advanced Configuration ===\n");
-    CI_BUILD_INFO();
-    CI_READY_TOKEN();
+    Serial.println("\n=== IMU Library - ICM-42688-P Advanced Configuration ===");
 
     // Display pin configuration
-    CI_LOG("Pin Configuration (BoardConfig):\n");
-    CI_PRINTF("  CS: %d, MOSI: %d, MISO: %d, SCLK: %d\n",
+    Serial.println("Pin Configuration (BoardConfig):");
+    printf("  CS: %d, MOSI: %d, MISO: %d, SCLK: %d\n",
            (int)BoardConfig::imu.spi.cs_pin,
            (int)BoardConfig::imu.spi.mosi_pin,
            (int)BoardConfig::imu.spi.miso_pin,
            (int)BoardConfig::imu.spi.sclk_pin);
-    CI_PRINTF("  SPI Speed: %lu Hz\n\n", (unsigned long)BoardConfig::imu.spi.freq_hz);
+    printf("  SPI Speed: %lu Hz\n", (unsigned long)BoardConfig::imu.spi.freq_hz);
 
     // Give IMU time to stabilize
     delay(5);
 
     // Initialize IMU
-    CI_LOG("Initializing IMU...\n");
+    Serial.println("Initializing IMU...");
     if (imu.Init(spi_bus, BoardConfig::imu.spi.cs_pin, BoardConfig::imu.spi.freq_hz) != IMU::Result::OK) {
-        CI_LOG("ERROR: Failed to initialize IMU!\n");
-        CI_LOG("*STOP*\n");
+        Serial.println("ERROR: Failed to initialize IMU!");
+        Serial.println("*STOP*");
         while (1) delay(1000);
     }
 
     // Check chip type - this example is ICM-42688-P specific
     IMU::ChipType chip = imu.GetChipType();
     if (chip != IMU::ChipType::ICM42688_P) {
-        CI_PRINTF("ERROR: This example requires ICM-42688-P (detected 0x%02X)\n",
+        printf("ERROR: This example requires ICM-42688-P (detected 0x%02X)\n",
                static_cast<uint8_t>(chip));
-        CI_LOG("Use generic examples for other IMU chips.\n");
-        CI_LOG("*STOP*\n");
+        Serial.println("Use generic examples for other IMU chips.");
+        Serial.println("*STOP*");
         while (1) delay(1000);
     }
-    CI_LOG("Detected chip: ICM-42688-P (0x47)\n\n");
+    Serial.println("Detected chip: ICM-42688-P (0x47)\n");
 
     // ========================================================================
     // STEP 1: Show default configuration after Init()
     // ========================================================================
-    CI_LOG("--- Step 1: Default Configuration ---\n");
+    Serial.println("--- Step 1: Default Configuration ---");
     dumpConfiguration();
 
     // ========================================================================
     // STEP 2: Apply SAFE preset as baseline
     // ========================================================================
-    CI_LOG("\n--- Step 2: Apply SAFE Preset (baseline) ---\n");
+    Serial.println("\n--- Step 2: Apply SAFE Preset (baseline) ---");
     if (imu.ApplyPreset(IMU::Preset::SAFE) != IMU::Result::OK) {
-        CI_LOG("ERROR: Failed to apply SAFE preset!\n");
-        CI_LOG("*STOP*\n");
+        Serial.println("ERROR: Failed to apply SAFE preset!");
+        Serial.println("*STOP*");
         while (1) delay(1000);
     }
-    CI_LOG("SAFE preset applied and verified\n");
+    Serial.println("SAFE preset applied and verified");
     dumpConfiguration();
 
     // Collect baseline samples
-    CI_LOG("\nCollecting 10 samples with SAFE preset...\n");
+    Serial.println("\nCollecting 10 samples with SAFE preset...");
     for (int i = 0; i < 10; i++) {
         std::array<int16_t, 6> data;
         if (imu.ReadIMU6(data) == 0) {
             if (i % 2 == 0) {
-                CI_PRINTF("  [%d] Accel[%6d,%6d,%6d] Gyro[%6d,%6d,%6d]\n",
+                printf("  [%d] Accel[%6d,%6d,%6d] Gyro[%6d,%6d,%6d]\n",
                        i, data[0], data[1], data[2], data[3], data[4], data[5]);
             }
         }
@@ -333,40 +321,40 @@ void setup() {
     // ========================================================================
     // STEP 3: Custom configuration using _Ex APIs
     // ========================================================================
-    CI_LOG("\n--- Step 3: Custom Configuration via _Ex APIs ---\n");
-    CI_LOG("Configuring: 8kHz ODR, 997Hz AAF, low-latency UI filters\n\n");
+    Serial.println("\n--- Step 3: Custom Configuration via _Ex APIs ---");
+    Serial.println("Configuring: 8kHz ODR, 997Hz AAF, low-latency UI filters\n");
 
     // Set ODR to 8kHz (maximum rate)
-    CI_LOG("Setting Gyro ODR to 8kHz...\n");
+    Serial.println("Setting Gyro ODR to 8kHz...");
     setGyroODR(ODR_8KHZ);
 
-    CI_LOG("Setting Accel ODR to 8kHz...\n");
+    Serial.println("Setting Accel ODR to 8kHz...");
     setAccelODR(ODR_8KHZ);
 
     // Set AAF to widest bandwidth (997 Hz)
-    CI_LOG("Setting Gyro AAF to 997 Hz...\n");
+    Serial.println("Setting Gyro AAF to 997 Hz...");
     setGyroAAF(AAF_997HZ.delt, AAF_997HZ.deltSqr, AAF_997HZ.bitshift);
 
-    CI_LOG("Setting Accel AAF to 997 Hz...\n");
+    Serial.println("Setting Accel AAF to 997 Hz...");
     setAccelAAF(AAF_997HZ.delt, AAF_997HZ.deltSqr, AAF_997HZ.bitshift);
 
     // Set UI filters to low latency mode
-    CI_LOG("Setting UI filters to low-latency mode...\n");
+    Serial.println("Setting UI filters to low-latency mode...");
     setUIFilters(UI_BW_LOW_LATENCY_X2, UI_BW_LOW_LATENCY_X2);
 
     // Wait for filters to stabilize
     delay(50);
 
-    CI_LOG("\nCustom configuration applied:\n");
+    Serial.println("\nCustom configuration applied:");
     dumpConfiguration();
 
     // Collect samples with custom config
-    CI_LOG("\nCollecting 10 samples with custom 8kHz config...\n");
+    Serial.println("\nCollecting 10 samples with custom 8kHz config...");
     for (int i = 0; i < 10; i++) {
         std::array<int16_t, 6> data;
         if (imu.ReadIMU6(data) == 0) {
             if (i % 2 == 0) {
-                CI_PRINTF("  [%d] Accel[%6d,%6d,%6d] Gyro[%6d,%6d,%6d]\n",
+                printf("  [%d] Accel[%6d,%6d,%6d] Gyro[%6d,%6d,%6d]\n",
                        i, data[0], data[1], data[2], data[3], data[4], data[5]);
             }
         }
@@ -376,26 +364,26 @@ void setup() {
     // ========================================================================
     // STEP 4: Demonstrate FSR change using SetGyroFSR_Ex
     // ========================================================================
-    CI_LOG("\n--- Step 4: FSR Configuration via SetGyroFSR_Ex ---\n");
+    Serial.println("\n--- Step 4: FSR Configuration via SetGyroFSR_Ex ---");
 
-    CI_LOG("Setting Gyro FSR to +/-250 DPS (highest resolution)...\n");
+    Serial.println("Setting Gyro FSR to +/-250 DPS (highest resolution)...");
     if (imu.SetGyroFSR_Ex(GyroFSR::DPS_250) != IMU::Result::OK) {
-        CI_LOG("ERROR: Failed to set gyro FSR!\n");
+        Serial.println("ERROR: Failed to set gyro FSR!");
     }
 
-    CI_LOG("Setting Accel FSR to +/-2G (highest resolution)...\n");
+    Serial.println("Setting Accel FSR to +/-2G (highest resolution)...");
     if (imu.SetAccelFSR_Ex(AccelFSR::G_2) != IMU::Result::OK) {
-        CI_LOG("ERROR: Failed to set accel FSR!\n");
+        Serial.println("ERROR: Failed to set accel FSR!");
     }
 
-    CI_PRINTF("Gyro sensitivity: %.1f LSB/dps\n", imu.GetGyroSensitivity());
-    CI_PRINTF("Accel sensitivity: %.1f LSB/g\n", imu.GetAccelSensitivity());
+    printf("Gyro sensitivity: %.1f LSB/dps\n", imu.GetGyroSensitivity());
+    printf("Accel sensitivity: %.1f LSB/g\n", imu.GetAccelSensitivity());
 
-    CI_LOG("\nConfiguration after FSR change:\n");
+    Serial.println("\nConfiguration after FSR change:");
     dumpConfiguration();
 
     // Collect samples with high-resolution FSR
-    CI_LOG("\nCollecting 10 samples with +/-250 DPS / +/-2G FSR...\n");
+    Serial.println("\nCollecting 10 samples with +/-250 DPS / +/-2G FSR...");
     for (int i = 0; i < 10; i++) {
         std::array<int16_t, 6> data;
         if (imu.ReadIMU6(data) == 0) {
@@ -407,7 +395,7 @@ void setup() {
                 float gx = data[3] / imu.GetGyroSensitivity();
                 float gy = data[4] / imu.GetGyroSensitivity();
                 float gz = data[5] / imu.GetGyroSensitivity();
-                CI_PRINTF("  [%d] Accel(g): %6.3f,%6.3f,%6.3f | Gyro(dps): %6.2f,%6.2f,%6.2f\n",
+                printf("  [%d] Accel(g): %6.3f,%6.3f,%6.3f | Gyro(dps): %6.2f,%6.2f,%6.2f\n",
                        i, ax, ay, az, gx, gy, gz);
             }
         }
@@ -417,17 +405,17 @@ void setup() {
     // ========================================================================
     // STEP 5: Return to BALANCED preset
     // ========================================================================
-    CI_LOG("\n--- Step 5: Return to BALANCED Preset ---\n");
+    Serial.println("\n--- Step 5: Return to BALANCED Preset ---");
     if (imu.ApplyPreset(IMU::Preset::BALANCED) != IMU::Result::OK) {
-        CI_LOG("ERROR: Failed to apply BALANCED preset!\n");
-        CI_LOG("*STOP*\n");
+        Serial.println("ERROR: Failed to apply BALANCED preset!");
+        Serial.println("*STOP*");
         while (1) delay(1000);
     }
-    CI_LOG("BALANCED preset applied and verified\n");
+    Serial.println("BALANCED preset applied and verified");
     dumpConfiguration();
 
-    CI_LOG("\n=== ICM-42688-P Advanced Configuration Complete ===\n");
-    CI_LOG("*STOP*\n");
+    Serial.println("\n=== ICM-42688-P Advanced Configuration Complete ===");
+    Serial.println("*STOP*");
 }
 
 void loop() {

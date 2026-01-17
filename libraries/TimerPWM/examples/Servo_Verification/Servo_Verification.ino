@@ -23,12 +23,15 @@
 #define PWM_TIMER TIM3
 const uint32_t PWM_PIN = PB0_ALT1;          // A3 on Nucleo (TIM3_CH3)
 const uint32_t PWM_CHANNEL = 3;             // TIM3_CH3
-const uint32_t PWM_FREQUENCY_HZ = 50;       // Standard servo frequency
-const uint32_t SERVO_MIN_US = 1000;
-const uint32_t SERVO_MAX_US = 2000;
+const uint32_t PWM_FREQUENCY_HZ = 50;       // 50 Hz for servo
 
 const uint32_t CAPTURE_PIN = PB10;          // D6 on Nucleo
 const uint32_t CAPTURE_CHANNEL = 3;         // TIM2_CH3
+
+// Servo pulse width limits
+const uint32_t SERVO_MIN_US = 1000;
+const uint32_t SERVO_MAX_US = 2000;
+const uint32_t SERVO_CENTER_US = 1500;
 
 // ============================================================================
 // Test Infrastructure
@@ -40,12 +43,9 @@ volatile uint32_t capture_period_us = 0;
 volatile bool measurement_ready = false;
 
 void captureCallback() {
-  // Hardware interrupt ensures precise timing measurement
-  // Callback fires immediately on rising edge
   static uint32_t last_capture = 0;
   uint32_t current_capture = tim2.getCaptureCompare(CAPTURE_CHANNEL);
 
-  // Calculate period in microseconds
   uint32_t period_us = current_capture - last_capture;
   last_capture = current_capture;
 
@@ -62,40 +62,40 @@ void setup() {
 
   Serial.println("=== Servo PWM Verification Test ===");
   Serial.println("Board: NUCLEO_F411RE");
+  Serial.print("PWM Timer: TIM3 @ ");
+  Serial.print(PWM_FREQUENCY_HZ);
+  Serial.println(" Hz");
+  Serial.println("PWM Output: PB0 (A3)");
+  Serial.print("PWM Pulse: ");
+  Serial.print(SERVO_CENTER_US);
+  Serial.println(" us");
+  Serial.println("Input Capture: PB10 (D6)");
+  Serial.println("Connect jumper: A3 -> D6");
   Serial.println();
 
   // Configure PWM Output
   if (!pwm.Init(PWM_TIMER, PWM_FREQUENCY_HZ)) {
     Serial.println("ERROR: Failed to initialize PWM timer");
+    Serial.println("*STOP*");
     while (1);
   }
-  Serial.print("PWM Timer: TIM3 @ ");
-  Serial.print(PWM_FREQUENCY_HZ);
-  Serial.println(" Hz");
 
-  // Attach channel with servo pulse range
   if (!pwm.AttachChannel(PWM_CHANNEL, PWM_PIN, SERVO_MIN_US, SERVO_MAX_US)) {
     Serial.println("ERROR: Failed to attach PWM channel");
+    Serial.println("*STOP*");
     while (1);
   }
-  Serial.println("PWM Output: PB0 (A3)");
 
-  // Set 1500 us pulse width (center position)
-  pwm.SetPulseWidth(PWM_CHANNEL, 1500);
+  // Set center position (1500 us)
+  pwm.SetPulseWidth(PWM_CHANNEL, SERVO_CENTER_US);
   pwm.Start();
-  Serial.println("PWM Pulse: 1500 us");
-  Serial.println();
 
-  // Configure Input Capture on TIM2
-  tim2.setPrescaleFactor(99);     // 100 MHz / 100 = 1 MHz tick rate
-  tim2.setOverflow(0xFFFFFFFF);   // Max period (32-bit timer)
+  // Configure Input Capture
+  tim2.setPrescaleFactor(99);      // 100 MHz / 100 = 1 MHz tick rate
+  tim2.setOverflow(0xFFFFFFFF);    // Max period (32-bit timer)
   tim2.setMode(CAPTURE_CHANNEL, TIMER_INPUT_CAPTURE_RISING, CAPTURE_PIN);
   tim2.attachInterrupt(CAPTURE_CHANNEL, captureCallback);
   tim2.resume();
-
-  Serial.println("Input Capture: PB10 (D6)");
-  Serial.println("Connect jumper: A3 -> D6");
-  Serial.println();
 }
 
 void loop() {
@@ -105,9 +105,8 @@ void loop() {
   // Timeout if no measurements after 15 seconds
   const uint32_t TIMEOUT_MS = 15000;
   if (millis() - start_time > TIMEOUT_MS && measurement_count == 0) {
-    Serial.println();
-    Serial.println("TIMEOUT: No measurements received after 15 seconds");
-    Serial.println("Check jumper connection: A3 -> D6");
+    Serial.println("TIMEOUT: No measurements received");
+    Serial.println("Check jumper: A3 -> D6");
     Serial.println("*STOP*");
     while(1);
   }
@@ -131,8 +130,6 @@ void loop() {
     } else {
       Serial.println("FAIL: Frequency out of range (expected 49-51 Hz)");
     }
-
-    Serial.println();
 
     // Stop after 3 successful measurements
     measurement_count++;

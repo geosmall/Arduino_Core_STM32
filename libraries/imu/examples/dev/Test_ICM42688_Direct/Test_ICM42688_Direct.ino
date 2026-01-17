@@ -7,18 +7,20 @@
  * Hardware Setup:
  *   - NUCLEO_F411RE ONLY (with JHEF411 config)
  *   - ICM42688P on SPI1 (PA4/PA5/PA6/PA7)
- *
- * Build/Flash:
- *   ./system/ci/aflash.sh libraries/imu/examples/Test_ICM42688_Direct --use-rtt
  */
 
 #include <SPI.h>
-#include <ci_log.h>
+#include <libPrintf.h>
 #include <IMU.h>  // This triggers compilation of all imu library .cpp files
 
 // Direct access to internal components (normally not needed by users)
 #include "../../../src/bus/DeviceBusSPI.h"
 #include "../../../src/devices/ICM42688.h"
+
+// printf_() output routing
+extern "C" void putchar_(char c) {
+    Serial.write(c);
+}
 
 // Board configuration - NUCLEO_F411RE ONLY
 #if defined(ARDUINO_NUCLEO_F411RE)
@@ -44,21 +46,17 @@ DeviceBusSPI* bus = nullptr;
 ICM42688* imu = nullptr;
 
 void setup() {
-#ifndef USE_RTT
   Serial.begin(115200);
   while (!Serial && millis() < 3000);
-#endif
 
-  CI_LOG("=== ICM42688 Driver Test ===\n");
-  CI_BUILD_INFO();
-  CI_READY_TOKEN();
+  Serial.println("=== ICM42688 Driver Test ===");
 
   // Display pin configuration from BoardConfig
-  CI_LOG("\nPin Configuration (BoardConfig):\n");
-  CI_LOGF("  CS: 0x%02X, MOSI: 0x%02X, MISO: 0x%02X, SCLK: 0x%02X\n",
+  Serial.println("\nPin Configuration (BoardConfig):");
+  printf_("  CS: 0x%02X, MOSI: 0x%02X, MISO: 0x%02X, SCLK: 0x%02X\n",
          (int)IMU_CS_PIN, (int)IMU_MOSI_PIN,
          (int)IMU_MISO_PIN, (int)IMU_SCLK_PIN);
-  CI_LOGF("  SPI Speed: %lu Hz\n\n", (unsigned long)IMU_SPI_FREQ);
+  printf_("  SPI Speed: %lu Hz\n\n", (unsigned long)IMU_SPI_FREQ);
 
   // Initialize SPI with BoardConfig pins
   spi_bus.begin();
@@ -66,28 +64,28 @@ void setup() {
   // Create bus interface
   bus = new DeviceBusSPI(&spi_bus, IMU_CS_PIN);
   bus->setFreq(IMU_SPI_FREQ);
-  CI_LOG("DeviceBusSPI created\n");
+  Serial.println("DeviceBusSPI created");
 
   delay(100);  // IMU power-up delay
 
   // Detect IMU (factory pattern)
-  CI_LOG("Detecting IMU...\n");
+  Serial.println("Detecting IMU...");
   imu = ICM42688::detect(bus);
 
   if (!imu) {
-    CI_LOG("✗ IMU detection failed\n");
-    CI_LOG("*TEST_FAIL*\n");
-    CI_LOG("*STOP*\n");
+    Serial.println("✗ IMU detection failed");
+    Serial.println("*TEST_FAIL*");
+    Serial.println("*STOP*");
     while(1);
   }
 
-  CI_LOGF("✓ Detected: %s (WHO_AM_I=0x%02X)\n", imu->typeName(), imu->whoAmI_);
-  CI_LOG_FLOAT("  Accel scale: ", imu->accScale_, 6); CI_LOG(" G/LSB\n");
-  CI_LOG_FLOAT("  Gyro scale: ", imu->gyrScale_, 6); CI_LOG(" DPS/LSB\n");
-  CI_LOGF("  Sampling rate: %d Hz\n", imu->samplingRateHz_);
+  printf_("✓ Detected: %s (WHO_AM_I=0x%02X)\n", imu->typeName(), imu->whoAmI_);
+  printf_("  Accel scale: %.6f G/LSB\n", imu->accScale_);
+  printf_("  Gyro scale: %.6f DPS/LSB\n", imu->gyrScale_);
+  printf_("  Sampling rate: %d Hz\n", imu->samplingRateHz_);
 
-  CI_LOG("✓ Initialization complete\n");
-  CI_LOG("\nStarting data read test (5 seconds)...\n");
+  Serial.println("✓ Initialization complete");
+  Serial.println("\nStarting data read test (5 seconds)...");
 }
 
 void loop() {
@@ -109,7 +107,7 @@ void loop() {
     lastPrint = millis();
 
     // Print raw values
-    CI_LOGF("Raw: A[%6d,%6d,%6d]  G[%6d,%6d,%6d]\n",
+    printf_("Raw: A[%6d,%6d,%6d]  G[%6d,%6d,%6d]\n",
             data[0], data[1], data[2],
             data[3], data[4], data[5]);
 
@@ -121,26 +119,21 @@ void loop() {
     float gy = data[4] * imu->gyrScale_;
     float gz = data[5] * imu->gyrScale_;
 
-    CI_LOG("Scaled: A[");
-    CI_LOG_FLOAT("", ax, 3); CI_LOG(",");
-    CI_LOG_FLOAT("", ay, 3); CI_LOG(",");
-    CI_LOG_FLOAT("", az, 3); CI_LOG("]G  G[");
-    CI_LOG_FLOAT("", gx, 2); CI_LOG(",");
-    CI_LOG_FLOAT("", gy, 2); CI_LOG(",");
-    CI_LOG_FLOAT("", gz, 2); CI_LOG("]DPS\n");
+    printf_("Scaled: A[%.3f,%.3f,%.3f]G  G[%.2f,%.2f,%.2f]DPS\n",
+            ax, ay, az, gx, gy, gz);
   }
 
   // Test duration: 5 seconds
   if (millis() - testStart > 5000) {
-    CI_LOGF("\n✓ Test complete: %d reads in 5 seconds\n", readCount);
-    CI_LOGF("  Read rate: ~%d Hz\n", readCount / 5);
+    printf_("\n✓ Test complete: %d reads in 5 seconds\n", readCount);
+    printf_("  Read rate: ~%d Hz\n", readCount / 5);
 
     // Validation checks
     bool pass = true;
 
     // Check read count (should be close to loop rate)
     if (readCount < 100) {  // At least 20 Hz average
-      CI_LOG("✗ Warning: Low read count\n");
+      Serial.println("✗ Warning: Low read count");
       pass = false;
     }
 
@@ -148,12 +141,12 @@ void loop() {
     // But we got here, so communication is working
 
     if (pass) {
-      CI_LOG("*TEST_PASS*\n");
+      Serial.println("*TEST_PASS*");
     } else {
-      CI_LOG("*TEST_FAIL*\n");
+      Serial.println("*TEST_FAIL*");
     }
 
-    CI_LOG("*STOP*\n");
+    Serial.println("*STOP*");
     while(1);
   }
 }

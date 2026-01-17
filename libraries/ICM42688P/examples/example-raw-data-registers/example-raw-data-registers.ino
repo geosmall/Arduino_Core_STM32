@@ -10,12 +10,14 @@
  * - Interrupt pin configured for data-ready signaling (PC4/EXTI4)
  * - Supports multiple board targets with single codebase
  *
- * OUTPUT:
- * - Runs for 2 seconds (2000 samples at 1kHz ODR) then stops
- * - Compatible with Arduino IDE Serial Monitor and CI automation
+ * CI/HIL INTEGRATION:
+ * - RTT output for automated testing
+ * - Serial output for Arduino IDE
+ * - Build traceability with git SHA and timestamp
  */
 
 #include "icm42688p.h"
+#include <ci_log.h>
 #include <SPI.h>
 #include <cstring>
 
@@ -23,7 +25,7 @@
 #if defined(ARDUINO_BLACKPILL_F411CE)
 #include "../../../../targets/BLACKPILL_F411CE.h"
 #else
-#include "../../../../targets/NUCLEO_F411RE_LITTLEFS.h"
+#include "../../../../targets/NUCLEO_F411RE_JHEF411.h"
 #endif
 
 #include "inv_main.h"
@@ -63,13 +65,18 @@ extern "C" {
 char buf[128];
 
 void setup() {
+    // Initialize the Arduino hardware
+#ifndef USE_RTT
     Serial.begin(115200);
     while (!Serial) delay(10);
+#endif
 
-    Serial.println("=== ICM42688P Raw Data Registers ===");
+    CI_LOG("=== ICM42688P Raw Data Registers ===\n");
+    CI_BUILD_INFO();
+    CI_READY_TOKEN();
 
     // Display pin configuration from BoardConfig
-    Serial.println("Pin Configuration (BoardConfig):");
+    CI_LOG("Pin Configuration (BoardConfig):\n");
     printf("  CS: %d, MOSI: %d, MISO: %d, SCLK: %d\n",
            (int)IMU_CS_PIN, (int)IMU_MOSI_PIN,
            (int)IMU_MISO_PIN, (int)IMU_SCLK_PIN);
@@ -77,24 +84,21 @@ void setup() {
     if (IMU_INT_PIN != 0) {
         printf("  Interrupt Pin: %d\n", (int)IMU_INT_PIN);
     } else {
-        Serial.println("  Interrupt Pin: None (polling mode)");
+        CI_LOG("  Interrupt Pin: None (polling mode)\n");
     }
 
     // Setup interrupt if pin is configured
     if (IMU_INT_PIN != 0) {
         pinMode(IMU_INT_PIN, INPUT);
         // Note: attachInterrupt will be called by inv_gpio_sensor_irq_init() from within inv_main()
-        Serial.println("Interrupt pin configured");
+        CI_LOG("✓ Interrupt pin configured\n");
     }
 
     // Give ICM-42688P some time to stabilize
     delay(5);
 
-    // Run data acquisition for 2 seconds (2000 samples at 1kHz)
+    // Call the main function of the Invensense example (PRESERVE THIS!)
     inv_main();
-
-    // Signal completion for CI automation
-    Serial.println("*STOP*");
 }
 
 void loop() {
@@ -109,9 +113,10 @@ void loop() {
 extern "C" {
 #endif
 
-// libPrintf putchar_ implementation for Serial output
+// libPrintf putchar_ implementation for RTT
 void putchar_(char c) {
-    Serial.print(c);
+    char buf[2] = {c, '\0'};
+    CI_LOG(buf);
 }
 
 /* This variable contains the number of nested calls to disable_irq */
@@ -135,12 +140,7 @@ void inv_enable_irq(void)
 
 int inv_uart_mngr_puts(inv_uart_num_t uart_num, const char* s, unsigned short l)
 {
-    // Output the formatted string from InvenSense library
-    static char temp_buf[256];
-    int copy_len = (l < sizeof(temp_buf) - 1) ? l : sizeof(temp_buf) - 1;
-    memcpy(temp_buf, s, copy_len);
-    temp_buf[copy_len] = '\0';
-    Serial.print(temp_buf);
+    CI_LOG(s);
     return 1;
 }
 

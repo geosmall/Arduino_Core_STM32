@@ -6,17 +6,18 @@
  *
  * Hardware: NUCLEO_F411RE with ICM42688P on breadboard
  * Expected: WHO_AM_I = 0x47 (ICM42688P) or 0x4B (ICM42605)
- *
- * Build/Flash:
- *   ./system/ci/build.sh libraries/imu/examples/Test_BusOnly --use-rtt --build-id
- *   ./system/ci/aflash.sh libraries/imu/examples/Test_BusOnly --use-rtt
  */
 
 #include <SPI.h>
-#include <ci_log.h>
+#include <libPrintf.h>
 
 // Include bus abstraction from library src
 #include "../../../src/bus/DeviceBusSPI.h"
+
+// printf_() output routing
+extern "C" void putchar_(char c) {
+    Serial.write(c);
+}
 
 // Pin configuration for NUCLEO_F411RE
 namespace BoardConfig {
@@ -39,18 +40,14 @@ namespace BoardConfig {
 DeviceBusSPI *bus = nullptr;
 
 void setup() {
-#ifndef USE_RTT
   Serial.begin(115200);
   while (!Serial && millis() < 3000);
-#endif
 
-  CI_LOG("=== IMU Bus Abstraction Test ===\n");
-  CI_BUILD_INFO();
-  CI_READY_TOKEN();
+  Serial.println("=== IMU Bus Abstraction Test ===");
 
   // Initialize SPI bus
   SPI.begin();
-  CI_LOGF("SPI initialized (MOSI=%d, MISO=%d, SCLK=%d, CS=%d)\n",
+  printf_("SPI initialized (MOSI=%d, MISO=%d, SCLK=%d, CS=%d)\n",
           BoardConfig::imu::spi::mosi_pin,
           BoardConfig::imu::spi::miso_pin,
           BoardConfig::imu::spi::sclk_pin,
@@ -59,7 +56,7 @@ void setup() {
   // Create bus interface
   bus = new DeviceBusSPI(&SPI, BoardConfig::imu::spi::cs_pin);
   bus->setFreq(1000000);  // 1MHz for initial communication
-  CI_LOG("DeviceBusSPI created (1MHz)\n");
+  Serial.println("DeviceBusSPI created (1MHz)");
 
   // Small delay for IMU power-up
   delay(100);
@@ -71,29 +68,29 @@ void setup() {
   // Read WHO_AM_I register
   uint8_t who_am_i = bus->readReg(ICM42688_WHO_AM_I_REG);
 
-  CI_LOGF("WHO_AM_I register (0x%02X) = 0x%02X\n",
+  printf_("WHO_AM_I register (0x%02X) = 0x%02X\n",
           ICM42688_WHO_AM_I_REG, who_am_i);
 
   // Verify chip ID
   if (who_am_i == ICM42688_WHO_AM_I_VALUE) {
-    CI_LOG("✓ ICM42688P detected\n");
-    CI_LOG("*TEST_PASS*\n");
+    Serial.println("✓ ICM42688P detected");
+    Serial.println("*TEST_PASS*");
   } else if (who_am_i == ICM42605_WHO_AM_I_VALUE) {
-    CI_LOG("✓ ICM42605 detected\n");
-    CI_LOG("*TEST_PASS*\n");
+    Serial.println("✓ ICM42605 detected");
+    Serial.println("*TEST_PASS*");
   } else {
-    CI_LOGF("✗ Unknown/Invalid WHO_AM_I: 0x%02X (expected 0x47 or 0x4B)\n",
+    printf_("✗ Unknown/Invalid WHO_AM_I: 0x%02X (expected 0x47 or 0x4B)\n",
             who_am_i);
-    CI_LOG("*TEST_FAIL*\n");
+    Serial.println("*TEST_FAIL*");
   }
 
   // Test multi-byte read (read WHO_AM_I + BANK_SEL together)
   uint8_t regs[2];
   bus->readRegs(ICM42688_WHO_AM_I_REG, regs, 2);
-  CI_LOGF("Multi-byte read: WHO_AM_I=0x%02X, BANK_SEL=0x%02X\n",
+  printf_("Multi-byte read: WHO_AM_I=0x%02X, BANK_SEL=0x%02X\n",
           regs[0], regs[1]);
 
-  CI_LOG("*STOP*\n");
+  Serial.println("*STOP*");
 }
 
 void loop() {

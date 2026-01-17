@@ -17,26 +17,15 @@
  * - Uses BoardConfig for automatic board detection (NUCLEO_F411RE / BLACKPILL_F411CE)
  * - Pin assignments and SPI frequency from board configuration
  * - No interrupt pin required
- *
- * CI/HIL INTEGRATION:
- * - RTT output for automated testing
- * - Serial output for Arduino IDE
- * - Deterministic exit with "*STOP*" wildcard
- * - Build traceability with git SHA and timestamp
  */
 
 #include <IMU.h>
-#include <ci_log.h>
 #include <SPI.h>
 #include <libPrintf.h>
 
-// CI_PRINTF requires putchar_() for libPrintf output routing
+// printf_() output routing for libPrintf
 extern "C" void putchar_(char c) {
-#ifdef USE_RTT
-    SEGGER_RTT_PutChar(0, c);
-#else
     Serial.write(c);
-#endif
 }
 
 // Board configuration - Multi-board support
@@ -58,37 +47,32 @@ SPIClass spi_bus(BoardConfig::imu.spi.mosi_pin,
 IMU imu;
 
 void setup() {
-    // Initialize communication (Serial or RTT)
-#ifndef USE_RTT
     Serial.begin(115200);
-    while (!Serial) delay(10);
-#endif
+    while (!Serial && millis() < 3000);
 
-    CI_LOG("\n=== IMU Library - Polled Flight Controller Example ===\n");
-    CI_BUILD_INFO();
-    CI_READY_TOKEN();
+    Serial.println("\n=== IMU Library - Polled Flight Controller Example ===");
 
     // Display pin configuration
-    CI_LOG("Pin Configuration (BoardConfig):\n");
-    CI_PRINTF("  CS: %d, MOSI: %d, MISO: %d, SCLK: %d\n",
+    Serial.println("Pin Configuration (BoardConfig):");
+    printf_("  CS: %d, MOSI: %d, MISO: %d, SCLK: %d\n",
            (int)BoardConfig::imu.spi.cs_pin,
            (int)BoardConfig::imu.spi.mosi_pin,
            (int)BoardConfig::imu.spi.miso_pin,
            (int)BoardConfig::imu.spi.sclk_pin);
-    CI_PRINTF("  SPI Speed: %lu Hz\n", (unsigned long)BoardConfig::imu.spi.freq_hz);
-    CI_LOG("  Polling Mode: No interrupt pin required\n\n");
+    printf_("  SPI Speed: %lu Hz\n", (unsigned long)BoardConfig::imu.spi.freq_hz);
+    Serial.println("  Polling Mode: No interrupt pin required\n");
 
     // Give IMU time to stabilize
     delay(5);
 
     // Initialize IMU (applies BALANCED preset by default)
-    CI_LOG("Initializing IMU...\n");
+    Serial.println("Initializing IMU...");
     if (imu.Init(spi_bus, BoardConfig::imu.spi.cs_pin, BoardConfig::imu.spi.freq_hz) != IMU::Result::OK) {
-        CI_LOG("ERROR: Failed to initialize IMU!\n");
-        CI_LOG("*STOP*\n");
+        Serial.println("ERROR: Failed to initialize IMU!");
+        Serial.println("*STOP*");
         while (1) delay(1000);
     }
-    CI_LOG("✓ IMU initialized successfully\n");
+    Serial.println("✓ IMU initialized successfully");
 
     // Detect chip type
     IMU::ChipType chip = imu.GetChipType();
@@ -102,30 +86,30 @@ void setup() {
         case IMU::ChipType::ICM20689:   chip_name = "ICM-20689"; break;
         default: break;
     }
-    CI_PRINTF("Detected chip: %s (0x%02X)\n", chip_name, static_cast<uint8_t>(chip));
+    printf_("Detected chip: %s (0x%02X)\n", chip_name, static_cast<uint8_t>(chip));
 
-    CI_LOG("\n");
+    Serial.println();
 
     // Apply BALANCED preset (already default, but explicit for demonstration)
     // BALANCED: 4kHz gyro, 1kHz accel, ±2000dps/±16g, optimized for 2kHz PID loop
-    CI_LOG("Applying BALANCED preset...\n");
+    Serial.println("Applying BALANCED preset...");
     if (imu.ApplyPreset(IMU::Preset::BALANCED) != IMU::Result::OK) {
-        CI_LOG("ERROR: Preset apply/verify failed!\n");
-        CI_LOG("*STOP*\n");
+        Serial.println("ERROR: Preset apply/verify failed!");
+        Serial.println("*STOP*");
         while (1) delay(1000);
     }
-    CI_LOG("Preset verified OK\n");
+    Serial.println("Preset verified OK");
 
-    CI_LOG("✓ IMU configured for polled operation\n");
-    CI_LOG("  Preset: BALANCED (recommended for 2kHz PID loop)\n");
-    CI_LOG("  Gyro: ±2000 DPS, 4kHz ODR\n");
-    CI_LOG("  Accel: ±16G, 1kHz ODR\n");
-    CI_LOG("  AAF: Gyro 258 Hz, Accel 170 Hz\n");
-    CI_LOG("  UI Filters: Code 15, 1st-order\n");
-    CI_LOG("  Mode: Continuous 2kHz polling loop\n\n");
+    Serial.println("✓ IMU configured for polled operation");
+    Serial.println("  Preset: BALANCED (recommended for 2kHz PID loop)");
+    Serial.println("  Gyro: ±2000 DPS, 4kHz ODR");
+    Serial.println("  Accel: ±16G, 1kHz ODR");
+    Serial.println("  AAF: Gyro 258 Hz, Accel 170 Hz");
+    Serial.println("  UI Filters: Code 15, 1st-order");
+    Serial.println("  Mode: Continuous 2kHz polling loop\n");
 
-    CI_LOG("Starting continuous 2kHz polling loop...\n");
-    CI_LOG("Will print 20 samples over ~10 seconds\n\n");
+    Serial.println("Starting continuous 2kHz polling loop...");
+    Serial.println("Will print 20 samples over ~10 seconds\n");
 }
 
 void loop() {
@@ -152,14 +136,14 @@ void loop() {
             float gy = imu_data[4] / imu.GetGyroSensitivity();
             float gz = imu_data[5] / imu.GetGyroSensitivity();
 
-            CI_PRINTF("[%lu] Accel(g): %.3f, %.3f, %.3f | Gyro(dps): %.2f, %.2f, %.2f\n",
+            printf_("[%lu] Accel(g): %.3f, %.3f, %.3f | Gyro(dps): %.2f, %.2f, %.2f\n",
                    sample_count, ax, ay, az, gx, gy, gz);
         }
 
         // Stop after 20 prints (10 seconds)
         if (sample_count >= 20000) {
-            CI_PRINTF("\n✓ Completed %lu samples\n", (unsigned long)sample_count);
-            CI_LOG("*STOP*\n");
+            printf_("\n✓ Completed %lu samples\n", (unsigned long)sample_count);
+            Serial.println("*STOP*");
             while (1) delay(1000);
         }
     }

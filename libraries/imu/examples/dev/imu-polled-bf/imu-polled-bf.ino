@@ -32,12 +32,6 @@
  * REFERENCE:
  * - Icm42688p Analysis & Guidance.md - Filter configuration guide (Section 2, 9)
  * - Betaflight driver: src/main/drivers/accgyro/accgyro_spi_icm426xx.c
- *
- * CI/HIL INTEGRATION:
- * - RTT output for automated testing
- * - Serial output for Arduino IDE
- * - Deterministic exit with "*STOP*" wildcard
- * - Build traceability with git SHA and timestamp
  */
 
 // ========================================================================
@@ -50,16 +44,12 @@
 // #define BF_ODR_1K   // 1kHz gyro + accel
 
 #include <IMU.h>
-#include <ci_log.h>
 #include <SPI.h>
+#include <libPrintf.h>
 
-// CI_PRINTF requires putchar_() for libPrintf output routing
+// printf_() output routing
 extern "C" void putchar_(char c) {
-#ifdef USE_RTT
-    SEGGER_RTT_PutChar(0, c);
-#else
     Serial.write(c);
-#endif
 }
 
 // Board configuration
@@ -209,70 +199,65 @@ void dumpConfiguration() {
     uint8_t accel_cfg = imu.ReadReg_Ex(REG_ACCEL_CONFIG0);
     uint8_t ui_cfg = imu.ReadReg_Ex(REG_GYRO_ACCEL_CONFIG0);
 
-    CI_PRINTF("  GYRO_CONFIG0:       0x%02X (FSR=%d, ODR=%d)\n",
-              gyro_cfg, (gyro_cfg >> 5) & 0x07, gyro_cfg & 0x0F);
-    CI_PRINTF("  ACCEL_CONFIG0:      0x%02X (FSR=%d, ODR=%d)\n",
-              accel_cfg, (accel_cfg >> 5) & 0x07, accel_cfg & 0x0F);
-    CI_PRINTF("  GYRO_ACCEL_CONFIG0: 0x%02X (Gyro UI=%d, Accel UI=%d)\n",
-              ui_cfg, ui_cfg & 0x0F, (ui_cfg >> 4) & 0x0F);
+    printf_("  GYRO_CONFIG0:       0x%02X (FSR=%d, ODR=%d)\n",
+            gyro_cfg, (gyro_cfg >> 5) & 0x07, gyro_cfg & 0x0F);
+    printf_("  ACCEL_CONFIG0:      0x%02X (FSR=%d, ODR=%d)\n",
+            accel_cfg, (accel_cfg >> 5) & 0x07, accel_cfg & 0x0F);
+    printf_("  GYRO_ACCEL_CONFIG0: 0x%02X (Gyro UI=%d, Accel UI=%d)\n",
+            ui_cfg, ui_cfg & 0x0F, (ui_cfg >> 4) & 0x0F);
 
     // Read AAF config from Bank 1
     selectBank(BANK_1);
     uint8_t gyro_aaf3 = imu.ReadReg_Ex(BANK1_GYRO_CONFIG3);
     uint8_t gyro_aaf4 = imu.ReadReg_Ex(BANK1_GYRO_CONFIG4);
     uint8_t gyro_aaf5 = imu.ReadReg_Ex(BANK1_GYRO_CONFIG5);
-    CI_PRINTF("  Gyro AAF:           delt=%d, deltSqr=%d, bitshift=%d\n",
-              gyro_aaf3, gyro_aaf4 | ((gyro_aaf5 & 0x0F) << 8), gyro_aaf5 >> 4);
+    printf_("  Gyro AAF:           delt=%d, deltSqr=%d, bitshift=%d\n",
+            gyro_aaf3, gyro_aaf4 | ((gyro_aaf5 & 0x0F) << 8), gyro_aaf5 >> 4);
 
     selectBank(BANK_2);
     uint8_t accel_aaf2 = imu.ReadReg_Ex(BANK2_ACCEL_CONFIG2);
     uint8_t accel_aaf3 = imu.ReadReg_Ex(BANK2_ACCEL_CONFIG3);
     uint8_t accel_aaf4 = imu.ReadReg_Ex(BANK2_ACCEL_CONFIG4);
-    CI_PRINTF("  Accel AAF:          delt=%d, deltSqr=%d, bitshift=%d\n",
-              accel_aaf2 >> 1, accel_aaf3 | ((accel_aaf4 & 0x0F) << 8), accel_aaf4 >> 4);
+    printf_("  Accel AAF:          delt=%d, deltSqr=%d, bitshift=%d\n",
+            accel_aaf2 >> 1, accel_aaf3 | ((accel_aaf4 & 0x0F) << 8), accel_aaf4 >> 4);
 
     selectBank(BANK_0);
 }
 
 void setup() {
-    // Initialize communication (Serial or RTT)
-#ifndef USE_RTT
     Serial.begin(115200);
-    while (!Serial) delay(10);
-#endif
+    while (!Serial && millis() < 3000);
 
-    CI_LOG("\n=== IMU Library - Betaflight Configuration ===\n");
-    CI_BUILD_INFO();
-    CI_READY_TOKEN();
+    Serial.println("\n=== IMU Library - Betaflight Configuration ===");
 
     // Display configuration
-    CI_LOG("Betaflight ICM-42688-P Configuration:\n");
-    CI_LOG("  ODR: " ODR_STRING " (gyro + accel)\n");
-    CI_LOG("  FSR: +/-2000 DPS gyro, +/-16G accel\n");
-    CI_LOG("  AAF: 258 Hz (both)\n");
-    CI_LOG("  UI: Code 15 (low-latency), 2nd-order\n\n");
+    Serial.println("Betaflight ICM-42688-P Configuration:");
+    Serial.println("  ODR: " ODR_STRING " (gyro + accel)");
+    Serial.println("  FSR: +/-2000 DPS gyro, +/-16G accel");
+    Serial.println("  AAF: 258 Hz (both)");
+    Serial.println("  UI: Code 15 (low-latency), 2nd-order\n");
 
     // Display pin configuration
-    CI_LOG("Pin Configuration (BoardConfig):\n");
-    CI_PRINTF("  CS: %d, MOSI: %d, MISO: %d, SCLK: %d\n",
-              (int)BoardConfig::imu.spi.cs_pin,
-              (int)BoardConfig::imu.spi.mosi_pin,
-              (int)BoardConfig::imu.spi.miso_pin,
-              (int)BoardConfig::imu.spi.sclk_pin);
-    CI_PRINTF("  SPI Speed: %lu Hz\n", (unsigned long)BoardConfig::imu.spi.freq_hz);
-    CI_LOG("  Polling Mode: No interrupt pin required\n\n");
+    Serial.println("Pin Configuration (BoardConfig):");
+    printf_("  CS: %d, MOSI: %d, MISO: %d, SCLK: %d\n",
+            (int)BoardConfig::imu.spi.cs_pin,
+            (int)BoardConfig::imu.spi.mosi_pin,
+            (int)BoardConfig::imu.spi.miso_pin,
+            (int)BoardConfig::imu.spi.sclk_pin);
+    printf_("  SPI Speed: %lu Hz\n", (unsigned long)BoardConfig::imu.spi.freq_hz);
+    Serial.println("  Polling Mode: No interrupt pin required\n");
 
     // Give IMU time to stabilize
     delay(5);
 
     // Initialize IMU
-    CI_LOG("Initializing IMU...\n");
+    Serial.println("Initializing IMU...");
     if (imu.Init(spi_bus, BoardConfig::imu.spi.cs_pin, BoardConfig::imu.spi.freq_hz) != IMU::Result::OK) {
-        CI_LOG("ERROR: Failed to initialize IMU!\n");
-        CI_LOG("*STOP*\n");
+        Serial.println("ERROR: Failed to initialize IMU!");
+        Serial.println("*STOP*");
         while (1) delay(1000);
     }
-    CI_LOG("IMU initialized successfully\n");
+    Serial.println("IMU initialized successfully");
 
     // Detect chip type
     IMU::ChipType chip = imu.GetChipType();
@@ -283,59 +268,59 @@ void setup() {
         case IMU::ChipType::MPU_9250:   chip_name = "MPU-9250"; break;
         default: break;
     }
-    CI_PRINTF("Detected chip: %s (0x%02X)\n", chip_name, static_cast<uint8_t>(chip));
+    printf_("Detected chip: %s (0x%02X)\n", chip_name, static_cast<uint8_t>(chip));
 
     // Verify chip is ICM-42688-P (this example uses chip-specific register access)
     if (chip != IMU::ChipType::ICM42688_P) {
-        CI_LOG("ERROR: This example requires ICM-42688-P!\n");
-        CI_PRINTF("Detected: %s (0x%02X)\n", chip_name, static_cast<uint8_t>(chip));
-        CI_LOG("*STOP*\n");
+        Serial.println("ERROR: This example requires ICM-42688-P!");
+        printf_("Detected: %s (0x%02X)\n", chip_name, static_cast<uint8_t>(chip));
+        Serial.println("*STOP*");
         while (1) delay(1000);
     }
-    CI_LOG("\n");
+    Serial.println();
 
     // Configure IMU using ACRO preset as baseline (8kHz, +/-2000dps, +/-16g)
-    CI_LOG("Applying ACRO preset as baseline...\n");
+    Serial.println("Applying ACRO preset as baseline...");
     if (imu.ApplyPreset(IMU::Preset::ACRO) != IMU::Result::OK) {
-        CI_LOG("ERROR: Failed to apply ACRO preset!\n");
-        CI_LOG("*STOP*\n");
+        Serial.println("ERROR: Failed to apply ACRO preset!");
+        Serial.println("*STOP*");
         while (1) delay(1000);
     }
-    CI_LOG("ACRO preset applied\n\n");
+    Serial.println("ACRO preset applied\n");
 
     // Apply Betaflight-specific configuration via direct register access
-    CI_LOG("Applying Betaflight configuration...\n");
+    Serial.println("Applying Betaflight configuration...");
 
     // 1. Set ODR (configurable via #define)
-    CI_LOG("  Setting ODR to " ODR_STRING "...\n");
+    Serial.println("  Setting ODR to " ODR_STRING "...");
     setGyroODR(ODR_CODE);
     setAccelODR(ODR_CODE);
 
     // 2. Set AAF to 258 Hz (Betaflight default)
-    CI_LOG("  Setting AAF to 258 Hz...\n");
+    Serial.println("  Setting AAF to 258 Hz...");
     setGyroAAF(AAF_258HZ_DELT, AAF_258HZ_DELTSQR, AAF_258HZ_BITSHIFT);
     setAccelAAF(AAF_258HZ_DELT, AAF_258HZ_DELTSQR, AAF_258HZ_BITSHIFT);
 
     // 3. Set UI filters to code 15 (low-latency) - Betaflight default
-    CI_LOG("  Setting UI filters to low-latency mode...\n");
+    Serial.println("  Setting UI filters to low-latency mode...");
     setUIFilters(UI_BW_LOW_LATENCY_X2, UI_BW_LOW_LATENCY_X2);
 
     // Wait for configuration to stabilize
     delay(10);
 
-    CI_LOG("\nBetaflight configuration complete.\n");
-    CI_LOG("Final register state:\n");
+    Serial.println("\nBetaflight configuration complete.");
+    Serial.println("Final register state:");
     dumpConfiguration();
 
-    CI_LOG("\nIMU configured for Betaflight operation\n");
-    CI_LOG("  Gyro: +/-2000 DPS, " ODR_STRING " ODR\n");
-    CI_LOG("  Accel: +/-16G, " ODR_STRING " ODR\n");
-    CI_LOG("  AAF: 258 Hz (both)\n");
-    CI_LOG("  UI: Code 15 (low-latency), 2nd-order\n");
-    CI_LOG("  Mode: Continuous 2kHz polling loop\n\n");
+    Serial.println("\nIMU configured for Betaflight operation");
+    Serial.println("  Gyro: +/-2000 DPS, " ODR_STRING " ODR");
+    Serial.println("  Accel: +/-16G, " ODR_STRING " ODR");
+    Serial.println("  AAF: 258 Hz (both)");
+    Serial.println("  UI: Code 15 (low-latency), 2nd-order");
+    Serial.println("  Mode: Continuous 2kHz polling loop\n");
 
-    CI_LOG("Starting continuous 2kHz polling loop...\n");
-    CI_LOG("Will print 20 samples over ~10 seconds\n\n");
+    Serial.println("Starting continuous 2kHz polling loop...");
+    Serial.println("Will print 20 samples over ~10 seconds\n");
 }
 
 void loop() {
@@ -354,18 +339,18 @@ void loop() {
 
         // Print every 500 samples (~4Hz at 2kHz loop)
         if (sample_count % 500 == 0) {
-            CI_PRINTF("Sample %lu: ", sample_count);
-            CI_PRINTF("Accel[%6d,%6d,%6d] ",
-                      imu_data[0], imu_data[1], imu_data[2]);
-            CI_PRINTF("Gyro[%6d,%6d,%6d]\n",
-                      imu_data[3], imu_data[4], imu_data[5]);
+            printf_("Sample %lu: ", sample_count);
+            printf_("Accel[%6d,%6d,%6d] ",
+                    imu_data[0], imu_data[1], imu_data[2]);
+            printf_("Gyro[%6d,%6d,%6d]\n",
+                    imu_data[3], imu_data[4], imu_data[5]);
         }
 
         // Exit after 10000 samples (~5 seconds)
         if (sample_count >= 10000) {
-            CI_LOG("\nData collection complete\n");
-            CI_LOG("\n=== Test Complete ===\n");
-            CI_LOG("*STOP*\n");
+            Serial.println("\nData collection complete");
+            Serial.println("\n=== Test Complete ===");
+            Serial.println("*STOP*");
             while(1); // Halt
         }
     }
