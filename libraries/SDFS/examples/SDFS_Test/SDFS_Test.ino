@@ -1,11 +1,7 @@
 /*
  * SDFS Test Example
  *
- * Single sketch supporting both Arduino IDE (Serial) and J-Run/RTT modes.
- * Controlled via USE_RTT compile flag for deterministic HIL testing.
- *
- * Arduino IDE mode: Serial output with manual monitoring
- * J-Run/RTT mode:   RTT output with deterministic exit tokens
+ * Tests SD card filesystem operations via SPI interface.
  *
  * Hardware connections (via BoardConfig):
  * - NUCLEO_F411RE: MOSI: PC12, MISO: PC11, SCLK: PC10, CS: PD2
@@ -14,7 +10,12 @@
  */
 
 #include <SDFS.h>
-#include <ci_log.h>
+#include <libPrintf.h>
+
+// printf_() output routing
+extern "C" void putchar_(char c) {
+    Serial.write(c);
+}
 
 // Board configuration for hardware abstraction
 #if defined(ARDUINO_BLACKPILL_F411CE)
@@ -35,163 +36,121 @@
 SDFS_SPI sdfs;
 
 void setup() {
-#ifndef USE_RTT
-  // Arduino IDE mode: Initialize Serial and wait
   Serial.begin(115200);
-  while (!Serial) {
-    delay(10);
-  }
-#else
-  // RTT mode: Initialize RTT
-  SEGGER_RTT_Init();
-#endif
-  
+  while (!Serial && millis() < 3000);
+
   // Test header
-  CI_LOG("SDFS Test Example\n");
-  CI_LOG("=========================\n");
-  
-#ifdef USE_RTT
-  // J-Run mode: Enhanced header with build traceability
-  CI_LOG("Mode: J-Run/RTT (deterministic)\n");
-#if defined(ARDUINO_BLACKPILL_F411CE)
-  CI_LOG("Target: BLACKPILL_F411CE\n");
-#elif defined(ARDUINO_BKMN_NERO)
-  CI_LOG("Target: NERO F7 (BKMN)\n");
-#else
-  CI_LOG("Target: NUCLEO_F411RE\n");
-#endif
-  CI_BUILD_INFO();
-  CI_READY_TOKEN();
-#else
-  // Arduino IDE mode: Manual monitoring
-  CI_LOG("Mode: Arduino IDE (manual)\n");
-#endif
-  
+  Serial.println("SDFS Test Example");
+  Serial.println("=========================");
+  Serial.println("Mode: Arduino IDE (manual)");
+
   // Configure SPI pins
   SPI.setMOSI(SPI_MOSI);
   SPI.setMISO(SPI_MISO);
   SPI.setSCLK(SPI_SCLK);
-  
+
   // Initialize SDFS
-  CI_LOG("Initializing SD card...");
+  Serial.print("Initializing SD card...");
   if (sdfs.begin(CS_PIN)) {
-    CI_LOG(" SUCCESS\n");
-    
+    Serial.println(" SUCCESS");
+
     // Display card information
-    CI_LOGF("Media: %s\n", sdfs.getMediaName());
-    CI_LOGF("Total Size: %lu MB\n", sdfs.totalSize() / (1024 * 1024));
-    CI_LOGF("Used Size: %lu MB\n", sdfs.usedSize() / (1024 * 1024));
-    
+    printf_("Media: %s\n", sdfs.getMediaName());
+    printf_("Total Size: %lu MB\n", (unsigned long)(sdfs.totalSize() / (1024 * 1024)));
+    printf_("Used Size: %lu MB\n", (unsigned long)(sdfs.usedSize() / (1024 * 1024)));
+
     // Test file operations
     testFileOperations();
-    
+
   } else {
-    CI_LOG(" FAILED\n");
-    CI_LOG("Check connections and card insertion\n");
+    Serial.println(" FAILED");
+    Serial.println("Check connections and card insertion");
   }
-  
+
   // Test completion
-  CI_LOG("\nAll tests completed!\n");
-  
-#ifdef USE_RTT
-  // J-Run mode: Deterministic exit token
-  CI_LOG("*STOP*\n");
-#else
-  // Arduino IDE mode: Continuous signaling
-  CI_LOG("Test complete - looping with *STOP* signals\n");
-#endif
+  Serial.println("\nAll tests completed!");
+  Serial.println("Test complete - looping with *STOP* signals");
 }
 
 void loop() {
-#ifdef USE_RTT
-  // J-Run mode: Single execution with halt
-  delay(1000);
-#else
-  // Arduino IDE mode: Periodic signaling for HIL compatibility
-  CI_LOG("*STOP*\n");
+  // Periodic signaling for HIL compatibility
+  Serial.println("*STOP*");
   delay(5000);
-#endif
 }
 
 void testFileOperations() {
-  CI_LOG("\nTesting file operations:\n");
+  Serial.println("\nTesting file operations:");
 
   // Debug: Check if filesystem is mounted
   bool mount_result = sdfs.begin(CS_PIN);
-  CI_LOGF("Filesystem mounted: %s\n", mount_result ? "YES" : "NO");
+  printf_("Filesystem mounted: %s\n", mount_result ? "YES" : "NO");
 
   // Test direct root directory access after mount failure
   if (!mount_result) {
-    CI_LOG("Mount failed - testing basic SD card operations...\n");
-    // We know SD card init succeeds, so this is a filesystem mount issue
+    Serial.println("Mount failed - testing basic SD card operations...");
     return; // Skip file operations if mount failed
   }
 
   // Try to trigger more disk reads to see what FatFs is trying to access
-  CI_LOG("Testing exists() calls to trigger disk I/O...\n");
-  CI_LOGF("  exists(\"/\"): %s\n", sdfs.exists("/") ? "YES" : "NO");
-  CI_LOGF("  exists(\"/LAGER.CFG\"): %s\n", sdfs.exists("/LAGER.CFG") ? "YES" : "NO");
-  CI_LOGF("  exists(\"/LOG000.TXT\"): %s\n", sdfs.exists("/LOG000.TXT") ? "YES" : "NO");
+  Serial.println("Testing exists() calls to trigger disk I/O...");
+  printf_("  exists(\"/\"): %s\n", sdfs.exists("/") ? "YES" : "NO");
+  printf_("  exists(\"/LAGER.CFG\"): %s\n", sdfs.exists("/LAGER.CFG") ? "YES" : "NO");
+  printf_("  exists(\"/LOG000.TXT\"): %s\n", sdfs.exists("/LOG000.TXT") ? "YES" : "NO");
 
   // Test 1: Write a file
-  CI_LOG("Writing test file...");
+  Serial.print("Writing test file...");
   File testFile = sdfs.open("/TEST.TXT", FILE_WRITE_BEGIN);
   if (testFile) {
-    CI_LOG(" File opened successfully\n");
+    Serial.println(" File opened successfully");
     size_t written = testFile.println("Hello from SDFS Unified Test!");
-    CI_LOGF("  Wrote %u bytes\n", written);
-    testFile.printf("Mode: %s\n",
-#ifdef USE_RTT
-      "J-Run/RTT");
-#else
-      "Arduino IDE");
-#endif
-    testFile.printf("millis: %lu\n", millis());
+    printf_("  Wrote %u bytes\n", written);
+    testFile.print("Mode: Arduino IDE\n");
+    testFile.print("millis: ");
+    testFile.println(millis());
     testFile.close();
-    CI_LOG("  File closed - Write test OK\n");
+    Serial.println("  File closed - Write test OK");
   } else {
-    CI_LOG(" FAILED - Could not open file for writing\n");
-    // Try to understand why
-    CI_LOGF("  exists(\"/\"): %s\n", sdfs.exists("/") ? "YES" : "NO");
-    CI_LOGF("  exists(\"/TEST.TXT\"): %s\n", sdfs.exists("/TEST.TXT") ? "YES" : "NO");
+    Serial.println(" FAILED - Could not open file for writing");
+    printf_("  exists(\"/\"): %s\n", sdfs.exists("/") ? "YES" : "NO");
+    printf_("  exists(\"/TEST.TXT\"): %s\n", sdfs.exists("/TEST.TXT") ? "YES" : "NO");
     return;
   }
-  
+
   // Test 2: Read the file back
-  CI_LOG("Reading test file...");
+  Serial.print("Reading test file...");
   testFile = sdfs.open("/TEST.TXT", FILE_READ);
   if (testFile) {
-    CI_LOG(" OK\n");
-    CI_LOG("File contents:\n");
+    Serial.println(" OK");
+    Serial.println("File contents:");
     while (testFile.available()) {
       char c = testFile.read();
-      CI_LOGF("%c", c);
+      printf_("%c", c);
     }
     testFile.close();
   } else {
-    CI_LOG(" FAILED\n");
+    Serial.println(" FAILED");
   }
-  
+
   // Test 3: List root directory
-  CI_LOG("\nRoot directory listing:\n");
+  Serial.println("\nRoot directory listing:");
   File root = sdfs.open("/");
   if (root) {
     int fileCount = 0;
     while (true) {
       File entry = root.openNextFile();
       if (!entry) break;
-      
+
       fileCount++;
-      CI_LOGF("%s %s", entry.isDirectory() ? "DIR " : "FILE", entry.name());
+      printf_("%s %s", entry.isDirectory() ? "DIR " : "FILE", entry.name());
       if (!entry.isDirectory()) {
-        CI_LOGF(" (%lu bytes)", entry.size());
+        printf_(" (%lu bytes)", (unsigned long)entry.size());
       }
-      CI_LOG("\n");
+      Serial.println();
       entry.close();
     }
-    CI_LOGF("Total files found: %d\n", fileCount);
+    printf_("Total files found: %d\n", fileCount);
     root.close();
   } else {
-    CI_LOG("FAILED to open root directory!\n");
+    Serial.println("FAILED to open root directory!");
   }
 }
