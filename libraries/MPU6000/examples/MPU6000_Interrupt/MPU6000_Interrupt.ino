@@ -5,21 +5,10 @@
  * This example uses the data-ready interrupt to achieve precise 1kHz sampling.
  *
  * HARDWARE CONFIGURATION:
- * - Uses BoardConfig for automatic board detection (BLACKPILL_F411CE)
+ * - Uses BoardConfig for automatic board detection
  * - Pin assignments and SPI frequency from board configuration
- * - Interrupt pin configured for data-ready signaling (PB2/EXTI2)
+ * - Interrupt pin configured for data-ready signaling
  * - Supports multiple board targets with single codebase
- *
- * Hardware Setup - BLACKPILL_F411CE:
- *   MPU-6000 → Blackpill
- *   -----------------
- *   VCC  → 3.3V
- *   GND  → GND
- *   SCK  → PB13 (SPI2_SCK)
- *   MISO → PB14 (SPI2_MISO)
- *   MOSI → PB15 (SPI2_MOSI)
- *   CS   → PB12 (GPIO)
- *   INT  → PB2 (EXTI2)
  *
  * Hardware Setup - NUCLEO_F411RE:
  *   MPU-6000 → NUCLEO
@@ -32,29 +21,25 @@
  *   CS   → PA4 (GPIO)
  *   INT  → PB3 (EXTI3)
  *
- * Hardware Setup - OPEN_REVO (OpenPilot Revolution):
- *   On-board MPU-6000/MPU-6500 on SPI1
+ * Hardware Setup - BLACKPILL_F411CE:
+ *   MPU-6000 → Blackpill
  *   -----------------
- *   SCK  → PA5 (SPI1_SCK)
- *   MISO → PA6 (SPI1_MISO)
- *   MOSI → PA7 (SPI1_MOSI)
- *   CS   → PA4 (GPIO)
- *   INT  → PC4 (EXTI4)
- *
- * CI/HIL INTEGRATION:
- * - RTT output for automated testing
- * - Serial output for Arduino IDE
- * - Build traceability with git SHA and timestamp
+ *   VCC  → 3.3V
+ *   GND  → GND
+ *   SCK  → PB13 (SPI2_SCK)
+ *   MISO → PB14 (SPI2_MISO)
+ *   MOSI → PB15 (SPI2_MOSI)
+ *   CS   → PB12 (GPIO)
+ *   INT  → PB2 (EXTI2)
  *
  * License: GPL v3 (Betaflight-derived library)
  */
 
 #include <MPU6000.h>
-#include <ci_log.h>
 
 // Board configuration
 #if defined(ARDUINO_NUCLEO_F411RE)
-  #include "../../../../targets/NUCLEO_F411RE_JHEF411.h"
+  #include "../../../../targets/NUCLEO_F411RE_HIL005.h"
 #elif defined(ARDUINO_OPEN_REVO)
   #include "../../../../targets/OPEN-REVO.h"
 #else
@@ -97,81 +82,86 @@ void mpu6000_data_ready_isr() {
 }
 
 void setup() {
-  // Initialize Serial for non-RTT mode
-#ifndef USE_RTT
   Serial.begin(115200);
   while (!Serial && millis() < 3000);
-#endif
 
-  CI_LOG("=== MPU-6000 Interrupt-Driven Example ===\n");
-  CI_BUILD_INFO();
-  CI_READY_TOKEN();
+  Serial.println("=== MPU-6000 Interrupt-Driven Example ===");
 
   // Display pin configuration from BoardConfig
-  CI_LOG("Pin Configuration (BoardConfig):\n");
-  CI_LOGF("  CS: %d, MOSI: %d, MISO: %d, SCLK: %d\n",
-         (int)MPU6000_CS_PIN, (int)MPU6000_MOSI_PIN,
-         (int)MPU6000_MISO_PIN, (int)MPU6000_SCLK_PIN);
-  CI_LOGF("  SPI Speed: %lu Hz\n", (unsigned long)MPU6000_SPI_FREQ);
+  Serial.println("Pin Configuration (BoardConfig):");
+  Serial.print("  CS: ");
+  Serial.print((int)MPU6000_CS_PIN);
+  Serial.print(", MOSI: ");
+  Serial.print((int)MPU6000_MOSI_PIN);
+  Serial.print(", MISO: ");
+  Serial.print((int)MPU6000_MISO_PIN);
+  Serial.print(", SCLK: ");
+  Serial.println((int)MPU6000_SCLK_PIN);
+  Serial.print("  SPI Speed: ");
+  Serial.print((unsigned long)MPU6000_SPI_FREQ);
+  Serial.println(" Hz");
   if (MPU6000_INT_PIN != 0) {
-    CI_LOGF("  Interrupt Pin: %d\n", (int)MPU6000_INT_PIN);
+    Serial.print("  Interrupt Pin: ");
+    Serial.println((int)MPU6000_INT_PIN);
   } else {
-    CI_LOG("  Interrupt Pin: None (polling mode)\n");
+    Serial.println("  Interrupt Pin: None (polling mode)");
   }
 
   // Initialize MPU-6000
-  CI_LOG("\nInitializing MPU-6000...\n");
+  Serial.println("\nInitializing MPU-6000...");
 
   if (!imu.begin(spi_bus, MPU6000_CS_PIN, MPU6000_SPI_FREQ)) {
-    CI_LOG("ERROR: MPU-6000 initialization failed!\n");
-    CI_LOG("Check connections:\n");
-    CI_LOG("  - SPI MOSI, MISO, SCK\n");
-    CI_LOG("  - CS pin\n");
-    CI_LOG("  - 3.3V power\n");
-    CI_LOG("*STOP*\n");
+    Serial.println("ERROR: MPU-6000 initialization failed!");
+    Serial.println("Check connections:");
+    Serial.println("  - SPI MOSI, MISO, SCK");
+    Serial.println("  - CS pin");
+    Serial.println("  - 3.3V power");
+    Serial.println("*STOP*");
     while (1);
   }
 
-  CI_LOG("MPU-6000 initialized successfully\n");
+  Serial.println("MPU-6000 initialized successfully");
 
   // Read WHO_AM_I register
   uint8_t who_am_i = imu.whoAmI();
-  CI_LOGF("WHO_AM_I: 0x%02X ", who_am_i);
+  Serial.print("WHO_AM_I: 0x");
+  Serial.print(who_am_i, HEX);
+  Serial.print(" ");
 
   if (who_am_i == 0x68) {
-    CI_LOG("(MPU-6000 detected) ✓\n");
+    Serial.println("(MPU-6000 detected) ✓");
   } else {
-    CI_LOG("(Expected 0x68, detection may have failed)\n");
+    Serial.println("(Expected 0x68, detection may have failed)");
   }
 
   // Configure for 1kHz operation
   // DLPF = 0 (256 Hz bandwidth, 8kHz internal sample rate)
   // SMPLRT_DIV = 7 (8kHz / (1+7) = 1kHz output)
   imu.setDLPF(0);
-  CI_LOG("DLPF configured: 256 Hz bandwidth (8kHz internal)\n");
+  Serial.println("DLPF configured: 256 Hz bandwidth (8kHz internal)");
 
   imu.setSampleRateDivider(7);  // 8kHz / (1+7) = 1kHz
-  CI_LOG("Sample rate divider: 7 (target 1kHz output)\n");
+  Serial.println("Sample rate divider: 7 (target 1kHz output)");
 
   // Set ranges
   imu.setGyroFSR(2000);  // ±2000 dps
   imu.setAccelFSR(16);   // ±16g
 
-  CI_LOG("Gyro FSR: ±2000 dps\n");
-  CI_LOG("Accel FSR: ±16g\n");
+  Serial.println("Gyro FSR: ±2000 dps");
+  Serial.println("Accel FSR: ±16g");
 
   // Setup interrupt if pin is configured
   if (MPU6000_INT_PIN != 0) {
     pinMode(MPU6000_INT_PIN, INPUT);
     attachInterrupt(digitalPinToInterrupt(MPU6000_INT_PIN), mpu6000_data_ready_isr, RISING);
-    CI_LOG("✓ Data-ready interrupt configured (1kHz)\n");
+    Serial.println("✓ Data-ready interrupt configured (1kHz)");
   } else {
-    CI_LOG("⚠ No interrupt pin - using polling mode\n");
+    Serial.println("⚠ No interrupt pin - using polling mode");
   }
 
-  CI_LOG("\nStarting interrupt-driven data acquisition...\n");
-  CI_LOG("Target: 1000 Hz sample rate\n");
-  CI_LOG("---\n");
+  Serial.println("\nStarting interrupt-driven data acquisition...");
+  Serial.println("Target: 1000 Hz sample rate");
+  Serial.println("---");
 
   last_report_time = millis();
   delay(100);
@@ -204,36 +194,37 @@ void loop() {
     float sample_rate = (samples_collected * 1000.0f) / report_interval;
     float interrupt_rate = (interrupt_count * 1000.0f) / report_interval;
 
-    CI_LOG("\n=== Statistics ===\n");
-    CI_LOGF("Sample Rate: ");
-    CI_LOG_FLOAT("", sample_rate, 1);
-    CI_LOG(" Hz\n");
+    Serial.println("\n=== Statistics ===");
+    Serial.print("Sample Rate: ");
+    Serial.print(sample_rate, 1);
+    Serial.println(" Hz");
 
     if (MPU6000_INT_PIN != 0) {
-      CI_LOGF("Interrupt Rate: ");
-      CI_LOG_FLOAT("", interrupt_rate, 1);
-      CI_LOG(" Hz\n");
+      Serial.print("Interrupt Rate: ");
+      Serial.print(interrupt_rate, 1);
+      Serial.println(" Hz");
     }
 
-    CI_LOGF("Samples: %lu, Errors: %lu\n", samples_collected, read_errors);
+    Serial.print("Samples: ");
+    Serial.print(samples_collected);
+    Serial.print(", Errors: ");
+    Serial.println(read_errors);
 
-    CI_LOG("Latest Data:\n");
-    CI_LOG("  Gyro (dps): ");
-    CI_LOG_FLOAT("X=", gx, 2);
-    CI_LOG(", ");
-    CI_LOG_FLOAT("Y=", gy, 2);
-    CI_LOG(", ");
-    CI_LOG_FLOAT("Z=", gz, 2);
-    CI_LOG("\n");
+    Serial.println("Latest Data:");
+    Serial.print("  Gyro (dps): X=");
+    Serial.print(gx, 2);
+    Serial.print(", Y=");
+    Serial.print(gy, 2);
+    Serial.print(", Z=");
+    Serial.println(gz, 2);
 
-    CI_LOG("  Accel (g):  ");
-    CI_LOG_FLOAT("X=", ax, 3);
-    CI_LOG(", ");
-    CI_LOG_FLOAT("Y=", ay, 3);
-    CI_LOG(", ");
-    CI_LOG_FLOAT("Z=", az, 3);
-    CI_LOG("\n");
-    CI_LOG("---\n");
+    Serial.print("  Accel (g):  X=");
+    Serial.print(ax, 3);
+    Serial.print(", Y=");
+    Serial.print(ay, 3);
+    Serial.print(", Z=");
+    Serial.println(az, 3);
+    Serial.println("---");
 
     // Reset counters
     samples_collected = 0;
@@ -243,9 +234,9 @@ void loop() {
     static uint8_t report_count = 0;
     report_count++;
     if (report_count >= 5) {
-      CI_LOG("\nTest complete: 5 seconds of 1kHz streaming ✓\n");
-      CI_LOG("MPU-6000 interrupt-driven test PASSED ✓\n");
-      CI_LOG("*STOP*\n");
+      Serial.println("\nTest complete: 5 seconds of 1kHz streaming ✓");
+      Serial.println("MPU-6000 interrupt-driven test PASSED ✓");
+      Serial.println("*STOP*");
       while (1);
     }
   }

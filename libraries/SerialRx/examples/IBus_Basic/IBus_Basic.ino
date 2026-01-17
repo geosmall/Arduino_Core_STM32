@@ -13,19 +13,19 @@
  * Expected: 14 RC channels (1000-2000 us typical range)
  *
  * Board Configuration:
- *   NUCLEO_F411RE_JHEF411: Uses USART2 (RX=PA3, TX=PA2)
+ *   NUCLEO_F411RE_HIL005: Uses USART1 (RX=PB7, TX=PB6)
  *   MTKS-MATEKH743: Uses LPUART1 (RX=PA10, TX=PA9)
  */
 
 #include <SerialRx.h>
-#include <ci_log.h>
 
-// Board target selection - uncomment ONE target
+// Board target selection
 #if defined(ARDUINO_NUCLEO_H743ZI) || defined(ARDUINO_GENERIC_H743ZITX)
   #include "../../../../../targets/MTKS-MATEKH743.h"
+#elif defined(ARDUINO_NUCLEO_F411RE)
+  #include "../../../../../targets/NUCLEO_F411RE_HIL005.h"
 #else
-  // Default: NUCLEO_F411RE with JHEF411 pin mapping
-  #include "../../../../../targets/NUCLEO_F411RE_JHEF411.h"
+  #include "../../../../../targets/BLACKPILL_F411CE.h"
 #endif
 
 // Create HardwareSerial instance using BoardConfig
@@ -36,14 +36,11 @@ HardwareSerial SerialRC(BoardConfig::rc_receiver.rx_pin,
 SerialRx rc;
 
 void setup() {
-  // Initialize Serial for debug output (not needed with RTT)
-#ifndef USE_RTT
   Serial.begin(115200);
   while (!Serial && millis() < 3000);
-#endif
 
-  CI_LOG("IBus RC Receiver - Basic Example\n");
-  CI_LOG("===================================\n");
+  Serial.println("IBus RC Receiver - Basic Example");
+  Serial.println("===================================");
 
   // Configure RC receiver using BoardConfig
   SerialRx::Config config;
@@ -54,34 +51,34 @@ void setup() {
   config.idle_threshold_us = BoardConfig::rc_receiver.idle_threshold_us;
 
   if (rc.begin(config)) {
-    CI_LOGF("RC Receiver initialized (RX=0x%02X, TX=0x%02X, %lu baud)\n",
-            BoardConfig::rc_receiver.rx_pin,
-            BoardConfig::rc_receiver.tx_pin,
-            BoardConfig::rc_receiver.baud_rate);
-    CI_LOGF("Software idle detection: %s (%lu us threshold)\n",
-            BoardConfig::rc_receiver.idle_threshold_us > 0 ? "ENABLED" : "DISABLED",
-            BoardConfig::rc_receiver.idle_threshold_us);
-    CI_LOG("Waiting for IBus frames...\n\n");
+    Serial.print("RC Receiver initialized (RX=0x");
+    Serial.print(BoardConfig::rc_receiver.rx_pin, HEX);
+    Serial.print(", TX=0x");
+    Serial.print(BoardConfig::rc_receiver.tx_pin, HEX);
+    Serial.print(", ");
+    Serial.print(BoardConfig::rc_receiver.baud_rate);
+    Serial.println(" baud)");
+    Serial.print("Software idle detection: ");
+    Serial.print(BoardConfig::rc_receiver.idle_threshold_us > 0 ? "ENABLED" : "DISABLED");
+    Serial.print(" (");
+    Serial.print(BoardConfig::rc_receiver.idle_threshold_us);
+    Serial.println(" us threshold)");
+    Serial.println("Waiting for IBus frames...\n");
   } else {
-    CI_LOG("ERROR: Failed to initialize RC receiver!\n");
+    Serial.println("ERROR: Failed to initialize RC receiver!");
+    Serial.println("*STOP*");
     while (1);  // Halt on error
   }
-
-  CI_BUILD_INFO();
-  CI_READY_TOKEN();
 }
 
 // Track signal state for failsafe reporting
 static bool signal_lost = false;
 
-// HIL testing mode: Run for 15 seconds then exit
-#ifdef USE_RTT
+// Test duration: 15 seconds then exit
 static const uint32_t TEST_DURATION_MS = 15000;
 static uint32_t test_start_time = 0;
-#endif
 
 void loop() {
-#ifdef USE_RTT
   // Initialize test timer on first loop iteration
   if (test_start_time == 0) {
     test_start_time = millis();
@@ -89,15 +86,17 @@ void loop() {
 
   // Check if 15-second test duration elapsed
   if (millis() - test_start_time >= TEST_DURATION_MS) {
-    CI_LOG("\n=== 15-Second Test Complete ===\n");
-    CI_LOGF("Frames received: %lu\n", rc.getFramesReceived());
-    CI_LOGF("Frames failed:   %lu\n", rc.getFramesFailed());
-    CI_LOG_FLOAT("Loss rate:       ", rc.getFrameLossPercent(), 2);
-    CI_LOG("%\n");
-    CI_LOG("*STOP*\n");
-    while (1);  // Halt for deterministic HIL testing
+    Serial.println("\n=== 15-Second Test Complete ===");
+    Serial.print("Frames received: ");
+    Serial.println(rc.getFramesReceived());
+    Serial.print("Frames failed:   ");
+    Serial.println(rc.getFramesFailed());
+    Serial.print("Loss rate:       ");
+    Serial.print(rc.getFrameLossPercent(), 2);
+    Serial.println("%");
+    Serial.println("*STOP*");
+    while (1);  // Halt for deterministic testing
   }
-#endif
 
   // Update RC receiver (polls Serial.available())
   rc.update();
@@ -111,12 +110,22 @@ void loop() {
       if (millis() - last_print >= 100) {
         last_print = millis();
         // Print all 14 IBus channels on single line
-        CI_LOGF("%d %d %d %d %d %d %d %d %d %d %d %d %d %d | Rx:%lu\n",
-                msg.channels[0], msg.channels[1], msg.channels[2],
-                msg.channels[3], msg.channels[4], msg.channels[5],
-                msg.channels[6], msg.channels[7], msg.channels[8],
-                msg.channels[9], msg.channels[10], msg.channels[11],
-                msg.channels[12], msg.channels[13], rc.getFramesReceived());
+        Serial.print(msg.channels[0]); Serial.print(" ");
+        Serial.print(msg.channels[1]); Serial.print(" ");
+        Serial.print(msg.channels[2]); Serial.print(" ");
+        Serial.print(msg.channels[3]); Serial.print(" ");
+        Serial.print(msg.channels[4]); Serial.print(" ");
+        Serial.print(msg.channels[5]); Serial.print(" ");
+        Serial.print(msg.channels[6]); Serial.print(" ");
+        Serial.print(msg.channels[7]); Serial.print(" ");
+        Serial.print(msg.channels[8]); Serial.print(" ");
+        Serial.print(msg.channels[9]); Serial.print(" ");
+        Serial.print(msg.channels[10]); Serial.print(" ");
+        Serial.print(msg.channels[11]); Serial.print(" ");
+        Serial.print(msg.channels[12]); Serial.print(" ");
+        Serial.print(msg.channels[13]);
+        Serial.print(" | Rx:");
+        Serial.println(rc.getFramesReceived());
       }
     }
   }
@@ -125,12 +134,14 @@ void loop() {
   if (rc.timeout(1000)) {
     if (!signal_lost) {
       uint32_t time_since = rc.timeSinceLastMessage();
-      CI_LOGF("WARNING: RC signal timeout (%lu ms since last message)\n", time_since);
+      Serial.print("WARNING: RC signal timeout (");
+      Serial.print(time_since);
+      Serial.println(" ms since last message)");
       signal_lost = true;
     }
   } else {
     if (signal_lost) {
-      CI_LOG("RC signal recovered\n");
+      Serial.println("RC signal recovered");
       signal_lost = false;
     }
   }
