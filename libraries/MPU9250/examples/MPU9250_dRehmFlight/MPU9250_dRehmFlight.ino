@@ -35,20 +35,14 @@
  *   MOSI → PB15 (SPI2_MOSI)
  *   CS   → PB12 (GPIO)
  *
- * CI/HIL INTEGRATION:
- * - RTT output for automated testing
- * - Serial output for Arduino IDE
- * - Build traceability with git SHA and timestamp
- *
  * License: GPL v3 (Betaflight-derived library)
  */
 
 #include <MPU9250.h>
-#include <ci_log.h>
 
 // Board configuration
 #if defined(ARDUINO_NUCLEO_F411RE)
-#include "../../../../targets/NUCLEO_F411RE_JHEF411.h"
+#include "../../../../targets/NUCLEO_F411RE_LITTLEFS.h"
 #else
 #include "../../../../targets/BLACKPILL_F411CE.h"
 #endif
@@ -80,48 +74,52 @@ unsigned long last_report_time = 0;
 unsigned long loop_start_time = 0;
 
 void setup() {
-  // Initialize Serial for non-RTT mode
-#ifndef USE_RTT
   Serial.begin(115200);
   while (!Serial && millis() < 3000);
-#endif
 
-  CI_LOG("=== MPU-9250 dRehmFlight Configuration ===\n");
-  CI_BUILD_INFO();
-  CI_READY_TOKEN();
+  Serial.println("=== MPU-9250 dRehmFlight Configuration ===");
 
   // Display pin configuration from BoardConfig
-  CI_LOG("Pin Configuration (BoardConfig):\n");
-  CI_LOGF("  CS: %d, MOSI: %d, MISO: %d, SCLK: %d\n",
-         (int)MPU9250_CS_PIN, (int)MPU9250_MOSI_PIN,
-         (int)MPU9250_MISO_PIN, (int)MPU9250_SCLK_PIN);
-  CI_LOGF("  SPI Speed: %lu Hz\n", (unsigned long)MPU9250_SPI_FREQ);
+  Serial.println("Pin Configuration (BoardConfig):");
+  Serial.print("  CS: ");
+  Serial.print((int)MPU9250_CS_PIN);
+  Serial.print(", MOSI: ");
+  Serial.print((int)MPU9250_MOSI_PIN);
+  Serial.print(", MISO: ");
+  Serial.print((int)MPU9250_MISO_PIN);
+  Serial.print(", SCLK: ");
+  Serial.println((int)MPU9250_SCLK_PIN);
+  Serial.print("  SPI Speed: ");
+  Serial.print((unsigned long)MPU9250_SPI_FREQ);
+  Serial.println(" Hz");
 
   // Initialize MPU-9250
-  CI_LOG("\nInitializing MPU-9250...\n");
+  Serial.println("Initializing MPU-9250...");
 
   if (!imu.begin(spi_bus, MPU9250_CS_PIN, MPU9250_SPI_FREQ)) {
-    CI_LOG("ERROR: MPU-9250 initialization failed!\n");
-    CI_LOG("Check connections:\n");
-    CI_LOG("  - SPI MOSI, MISO, SCK\n");
-    CI_LOG("  - CS pin\n");
-    CI_LOG("  - 3.3V power\n");
-    CI_LOG("*STOP*\n");
+    Serial.println("ERROR: MPU-9250 initialization failed!");
+    Serial.println("Check connections:");
+    Serial.println("  - SPI MOSI, MISO, SCK");
+    Serial.println("  - CS pin");
+    Serial.println("  - 3.3V power");
+    Serial.println("*STOP*");
     while (1);
   }
 
-  CI_LOG("MPU-9250 initialized successfully\n");
+  Serial.println("MPU-9250 initialized successfully");
 
   // Read WHO_AM_I register
   uint8_t who_am_i = imu.whoAmI();
-  CI_LOGF("WHO_AM_I: 0x%02X ", who_am_i);
+  Serial.print("WHO_AM_I: 0x");
+  Serial.print(who_am_i, HEX);
+  Serial.print(" ");
 
   if (who_am_i == 0x71) {
-    CI_LOG("(MPU-9250 detected) ✓\n");
+    Serial.println("(MPU-9250 detected) ✓");
   } else if (who_am_i == 0x73) {
-    CI_LOG("(MPU-9255 detected) ✓\n");
+    Serial.println("(MPU-9255 detected) ✓");
   } else {
-    CI_LOG("(Expected 0x71 or 0x73, detection may have failed)\n");
+    Serial.println("(Expected 0x71 or 0x73, detection may have failed)");
   }
 
   // Configure MPU-9250 to match dRehmFlight Teensy BETA 1.3
@@ -135,24 +133,24 @@ void setup() {
   //   (SMPLRT_DIV doesn't divide the 8 kHz path, only the 1 kHz path)
   // - dRehmFlight polls at 2 kHz, so 8 kHz sensor provides fresh data
   imu.setDLPF(0, 0);  // Gyro DLPF=0, Accel DLPF=0 (wide bandwidth, DLPF off)
-  CI_LOG("DLPF configured: Wide bandwidth (Gyro 250 Hz, Accel 460 Hz)\n");
+  Serial.println("DLPF configured: Wide bandwidth (Gyro 250 Hz, Accel 460 Hz)");
 
   imu.setSampleRateDivider(0);  // Matches setSrd(0) in Teensy dRehmFlight
-  CI_LOG("Sample rate divider: 0 (8 kHz on-sensor with DLPF_CFG=0)\n");
-  CI_LOG("Note: SMPLRT_DIV doesn't affect 8 kHz path (see imu_hal.md)\n");
+  Serial.println("Sample rate divider: 0 (8 kHz on-sensor with DLPF_CFG=0)");
+  Serial.println("Note: SMPLRT_DIV doesn't affect 8 kHz path (see imu_hal.md)");
 
   // Set ranges to match dRehmFlight defaults
   // From Teensy code: #define GYRO_250DPS (default), #define ACCEL_2G (default)
   imu.setGyroFSR(250);   // ±250 dps (high resolution for stable flight)
   imu.setAccelFSR(2);    // ±2g (sufficient for level flight)
 
-  CI_LOG("Gyro FSR: ±250 dps (dRehmFlight default)\n");
-  CI_LOG("Accel FSR: ±2g (dRehmFlight default)\n");
+  Serial.println("Gyro FSR: ±250 dps (dRehmFlight default)");
+  Serial.println("Accel FSR: ±2g (dRehmFlight default)");
 
-  CI_LOG("\nStarting polling-mode data acquisition...\n");
-  CI_LOG("Target: 2000 Hz loop rate (matches dRehmFlight)\n");
-  CI_LOG("On-sensor: 8 kHz (fresh data every poll)\n");
-  CI_LOG("---\n");
+  Serial.println("\nStarting polling-mode data acquisition...");
+  Serial.println("Target: 2000 Hz loop rate (matches dRehmFlight)");
+  Serial.println("On-sensor: 8 kHz (fresh data every poll)");
+  Serial.println("---");
 
   delay(100);  // Brief settling delay before starting measurements
   last_report_time = millis();
@@ -182,38 +180,38 @@ void loop() {
 
     float sample_rate = (samples_collected * 1000.0f) / report_interval;
 
-    CI_LOG("\n=== Statistics ===\n");
-    CI_LOGF("Sample Rate: ");
-    CI_LOG_FLOAT("", sample_rate, 1);
-    CI_LOG(" Hz (target: 2000 Hz)\n");
+    Serial.println("\n=== Statistics ===");
+    Serial.print("Sample Rate: ");
+    Serial.print(sample_rate, 1);
+    Serial.println(" Hz (target: 2000 Hz)");
 
-    CI_LOGF("Samples: %lu, Errors: %lu\n", samples_collected, read_errors);
+    Serial.print("Samples: ");
+    Serial.print(samples_collected);
+    Serial.print(", Errors: ");
+    Serial.println(read_errors);
 
-    CI_LOG("Latest Data:\n");
-    CI_LOG("  Gyro (dps): ");
-    CI_LOG_FLOAT("X=", gx, 2);
-    CI_LOG(", ");
-    CI_LOG_FLOAT("Y=", gy, 2);
-    CI_LOG(", ");
-    CI_LOG_FLOAT("Z=", gz, 2);
-    CI_LOG("\n");
+    Serial.println("Latest Data:");
+    Serial.print("  Gyro (dps): X=");
+    Serial.print(gx, 2);
+    Serial.print(", Y=");
+    Serial.print(gy, 2);
+    Serial.print(", Z=");
+    Serial.println(gz, 2);
 
-    CI_LOG("  Accel (g):  ");
-    CI_LOG_FLOAT("X=", ax, 3);
-    CI_LOG(", ");
-    CI_LOG_FLOAT("Y=", ay, 3);
-    CI_LOG(", ");
-    CI_LOG_FLOAT("Z=", az, 3);
-    CI_LOG("\n");
+    Serial.print("  Accel (g):  X=");
+    Serial.print(ax, 3);
+    Serial.print(", Y=");
+    Serial.print(ay, 3);
+    Serial.print(", Z=");
+    Serial.println(az, 3);
 
-    CI_LOG("  Mag (µT):   ");
-    CI_LOG_FLOAT("X=", mx, 1);
-    CI_LOG(", ");
-    CI_LOG_FLOAT("Y=", my, 1);
-    CI_LOG(", ");
-    CI_LOG_FLOAT("Z=", mz, 1);
-    CI_LOG("\n");
-    CI_LOG("---\n");
+    Serial.print("  Mag (µT):   X=");
+    Serial.print(mx, 1);
+    Serial.print(", Y=");
+    Serial.print(my, 1);
+    Serial.print(", Z=");
+    Serial.println(mz, 1);
+    Serial.println("---");
 
     // Reset counters
     samples_collected = 0;
@@ -222,9 +220,9 @@ void loop() {
     static uint8_t report_count = 0;
     report_count++;
     if (report_count >= 5) {
-      CI_LOG("\nTest complete: 5 seconds of 2kHz polling ✓\n");
-      CI_LOG("MPU-9250 dRehmFlight configuration test PASSED ✓\n");
-      CI_LOG("*STOP*\n");
+      Serial.println("\nTest complete: 5 seconds of 2kHz polling ✓");
+      Serial.println("MPU-9250 dRehmFlight configuration test PASSED ✓");
+      Serial.println("*STOP*");
       while (1);
     }
   }

@@ -28,20 +28,14 @@
  *   MOSI → PB15 (SPI2_MOSI)
  *   CS   → PB12 (GPIO)
  *
- * CI/HIL INTEGRATION:
- * - RTT output for automated testing
- * - Serial output for Arduino IDE
- * - Build traceability with git SHA and timestamp
- *
  * License: GPL v3 (Betaflight-derived library)
  */
 
 #include <MPU9250.h>
-#include <ci_log.h>
 
 // Board configuration
 #if defined(ARDUINO_NUCLEO_F411RE)
-#include "../../../../targets/NUCLEO_F411RE_JHEF411.h"
+#include "../../../../targets/NUCLEO_F411RE_LITTLEFS.h"
 #else
 #include "../../../../targets/BLACKPILL_F411CE.h"
 #endif
@@ -62,85 +56,75 @@ SPIClass spi_bus(BoardConfig::imu.spi.mosi_pin,
 MPU9250 imu;
 
 void setup() {
-  // Initialize Serial for non-RTT mode
-#ifndef USE_RTT
   Serial.begin(115200);
   while (!Serial && millis() < 3000);
-#endif
 
-  CI_LOG("=== MPU-9250 Magnetometer Calibration ===\n");
-  CI_BUILD_INFO();
-  CI_READY_TOKEN();
+  Serial.println("=== MPU-9250 Magnetometer Calibration ===");
 
   // Display pin configuration from BoardConfig
-  CI_LOG("Pin Configuration (BoardConfig):\n");
-  CI_LOGF("  CS: %d, MOSI: %d, MISO: %d, SCLK: %d\n",
-         (int)MPU9250_CS_PIN, (int)MPU9250_MOSI_PIN,
-         (int)MPU9250_MISO_PIN, (int)MPU9250_SCLK_PIN);
-  CI_LOGF("  SPI Speed: %lu Hz\n", (unsigned long)MPU9250_SPI_FREQ);
+  Serial.println("Pin Configuration (BoardConfig):");
+  Serial.print("  CS: ");
+  Serial.print((int)MPU9250_CS_PIN);
+  Serial.print(", MOSI: ");
+  Serial.print((int)MPU9250_MOSI_PIN);
+  Serial.print(", MISO: ");
+  Serial.print((int)MPU9250_MISO_PIN);
+  Serial.print(", SCLK: ");
+  Serial.println((int)MPU9250_SCLK_PIN);
+  Serial.print("  SPI Speed: ");
+  Serial.print((unsigned long)MPU9250_SPI_FREQ);
+  Serial.println(" Hz");
 
   // Initialize MPU-9250
-  CI_LOG("\nInitializing MPU-9250...\n");
+  Serial.println("Initializing MPU-9250...");
 
   if (!imu.begin(spi_bus, MPU9250_CS_PIN, MPU9250_SPI_FREQ)) {
-    CI_LOG("ERROR: MPU-9250 initialization failed!\n");
-    CI_LOG("Check connections:\n");
-    CI_LOG("  - SPI MOSI, MISO, SCK\n");
-    CI_LOG("  - CS pin\n");
-    CI_LOG("  - 3.3V power\n");
-    CI_LOG("*STOP*\n");
+    Serial.println("ERROR: MPU-9250 initialization failed!");
+    Serial.println("Check connections:");
+    Serial.println("  - SPI MOSI, MISO, SCK");
+    Serial.println("  - CS pin");
+    Serial.println("  - 3.3V power");
+    Serial.println("*STOP*");
     while (1);
   }
 
-  CI_LOG("MPU-9250 initialized successfully\n");
+  Serial.println("MPU-9250 initialized successfully");
 
   // Read WHO_AM_I register
   uint8_t who_am_i = imu.whoAmI();
-  CI_LOGF("WHO_AM_I: 0x%02X ", who_am_i);
+  Serial.print("WHO_AM_I: 0x");
+  Serial.print(who_am_i, HEX);
+  Serial.print(" ");
 
   if (who_am_i == 0x71) {
-    CI_LOG("(MPU-9250 detected) ✓\n");
+    Serial.println("(MPU-9250 detected) ✓");
   } else if (who_am_i == 0x73) {
-    CI_LOG("(MPU-9255 detected) ✓\n");
+    Serial.println("(MPU-9255 detected) ✓");
   } else {
-    CI_LOG("(Expected 0x71 or 0x73, detection may have failed)\n");
+    Serial.println("(Expected 0x71 or 0x73, detection may have failed)");
   }
 
-  CI_LOG("\n=== Magnetometer Calibration Procedure ===\n");
-  CI_LOG("This calibration corrects for:\n");
-  CI_LOG("  - Hard iron bias (constant magnetic offsets)\n");
-  CI_LOG("  - Soft iron distortion (non-uniform magnetic fields)\n");
-  CI_LOG("\n");
-  CI_LOG("INSTRUCTIONS:\n");
-  CI_LOG("  1. When calibration starts, you have 15 seconds\n");
-  CI_LOG("  2. Rotate the IMU in a figure-8 pattern\n");
-  CI_LOG("  3. Move slowly and smoothly in ALL directions\n");
-  CI_LOG("  4. Try to cover a complete sphere of orientations\n");
-  CI_LOG("  5. Calibration will complete automatically\n");
-  CI_LOG("\n");
-  CI_LOG("Press any key to start calibration...\n");
-
-  // Wait for user input (skip in RTT mode)
-#ifndef USE_RTT
-  while (!Serial.available()) {
-    delay(100);
-  }
-  while (Serial.available()) {
-    Serial.read();  // Clear buffer
-  }
-#else
-  delay(3000);  // 3 second delay in RTT mode
-#endif
-
-  CI_LOG("\nStarting calibration in 3 seconds...\n");
+  Serial.println("\n=== Magnetometer Calibration Procedure ===");
+  Serial.println("This calibration corrects for:");
+  Serial.println("  - Hard iron bias (constant magnetic offsets)");
+  Serial.println("  - Soft iron distortion (non-uniform magnetic fields)");
+  Serial.println();
+  Serial.println("INSTRUCTIONS:");
+  Serial.println("  1. When calibration starts, you have 15 seconds");
+  Serial.println("  2. Rotate the IMU in a figure-8 pattern");
+  Serial.println("  3. Move slowly and smoothly in ALL directions");
+  Serial.println("  4. Try to cover a complete sphere of orientations");
+  Serial.println("  5. Calibration will complete automatically");
+  Serial.println();
+  Serial.println("Starting calibration in 3 seconds...");
   delay(1000);
-  CI_LOG("3...\n");
+  Serial.println("3...");
   delay(1000);
-  CI_LOG("2...\n");
+  Serial.println("2...");
   delay(1000);
-  CI_LOG("1...\n");
+  Serial.println("1...");
   delay(1000);
-  CI_LOG("\n*** START FIGURE-8 MOTION NOW! ***\n\n");
+  Serial.println("\n*** START FIGURE-8 MOTION NOW! ***\n");
 
   // Perform calibration
   unsigned long cal_start = millis();
@@ -148,15 +132,17 @@ void setup() {
   unsigned long cal_duration = millis() - cal_start;
 
   if (!cal_success) {
-    CI_LOG("\nERROR: Calibration failed!\n");
-    CI_LOG("Check that magnetometer is working properly.\n");
-    CI_LOG("*STOP*\n");
+    Serial.println("\nERROR: Calibration failed!");
+    Serial.println("Check that magnetometer is working properly.");
+    Serial.println("*STOP*");
     while (1);
   }
 
-  CI_LOG("\n=== Calibration Complete! ===\n");
-  CI_LOGF("Duration: %lu seconds\n", cal_duration / 1000);
-  CI_LOG("\n");
+  Serial.println("\n=== Calibration Complete! ===");
+  Serial.print("Duration: ");
+  Serial.print(cal_duration / 1000);
+  Serial.println(" seconds");
+  Serial.println();
 
   // Get calibration values
   float bias_x, bias_y, bias_z;
@@ -164,49 +150,51 @@ void setup() {
   imu.getMagCalibration(bias_x, bias_y, bias_z, scale_x, scale_y, scale_z);
 
   // Display calibration values
-  CI_LOG("=== Calibration Values ===\n");
-  CI_LOG("Copy these values into your application:\n\n");
-  CI_LOG("// Magnetometer calibration\n");
-  CI_LOG("float mag_bias_x = ");
-  CI_LOG_FLOAT("", bias_x, 2);
-  CI_LOG(";\n");
-  CI_LOG("float mag_bias_y = ");
-  CI_LOG_FLOAT("", bias_y, 2);
-  CI_LOG(";\n");
-  CI_LOG("float mag_bias_z = ");
-  CI_LOG_FLOAT("", bias_z, 2);
-  CI_LOG(";\n");
-  CI_LOG("float mag_scale_x = ");
-  CI_LOG_FLOAT("", scale_x, 3);
-  CI_LOG(";\n");
-  CI_LOG("float mag_scale_y = ");
-  CI_LOG_FLOAT("", scale_y, 3);
-  CI_LOG(";\n");
-  CI_LOG("float mag_scale_z = ");
-  CI_LOG_FLOAT("", scale_z, 3);
-  CI_LOG(";\n\n");
-  CI_LOG("// In setup():\n");
-  CI_LOG("imu.setMagCalibration(mag_bias_x, mag_bias_y, mag_bias_z,\n");
-  CI_LOG("                      mag_scale_x, mag_scale_y, mag_scale_z);\n\n");
+  Serial.println("=== Calibration Values ===");
+  Serial.println("Copy these values into your application:\n");
+  Serial.println("// Magnetometer calibration");
+  Serial.print("float mag_bias_x = ");
+  Serial.print(bias_x, 2);
+  Serial.println(";");
+  Serial.print("float mag_bias_y = ");
+  Serial.print(bias_y, 2);
+  Serial.println(";");
+  Serial.print("float mag_bias_z = ");
+  Serial.print(bias_z, 2);
+  Serial.println(";");
+  Serial.print("float mag_scale_x = ");
+  Serial.print(scale_x, 3);
+  Serial.println(";");
+  Serial.print("float mag_scale_y = ");
+  Serial.print(scale_y, 3);
+  Serial.println(";");
+  Serial.print("float mag_scale_z = ");
+  Serial.print(scale_z, 3);
+  Serial.println(";\n");
+  Serial.println("// In setup():");
+  Serial.println("imu.setMagCalibration(mag_bias_x, mag_bias_y, mag_bias_z,");
+  Serial.println("                      mag_scale_x, mag_scale_y, mag_scale_z);\n");
 
   // Verify calibration by reading a few samples
-  CI_LOG("=== Verification (5 samples) ===\n");
+  Serial.println("=== Verification (5 samples) ===");
   for (int i = 0; i < 5; i++) {
     float mx, my, mz;
     if (imu.readMagnetometer(mx, my, mz)) {
-      CI_LOGF("Sample %d: ", i + 1);
-      CI_LOG_FLOAT("X=", mx, 1);
-      CI_LOG(", ");
-      CI_LOG_FLOAT("Y=", my, 1);
-      CI_LOG(", ");
-      CI_LOG_FLOAT("Z=", mz, 1);
-      CI_LOG(" µT\n");
+      Serial.print("Sample ");
+      Serial.print(i + 1);
+      Serial.print(": X=");
+      Serial.print(mx, 1);
+      Serial.print(", Y=");
+      Serial.print(my, 1);
+      Serial.print(", Z=");
+      Serial.print(mz, 1);
+      Serial.println(" µT");
     }
     delay(100);
   }
 
-  CI_LOG("\nCalibration complete! ✓\n");
-  CI_LOG("*STOP*\n");
+  Serial.println("\nCalibration complete! ✓");
+  Serial.println("*STOP*");
 }
 
 void loop() {

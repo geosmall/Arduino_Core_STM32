@@ -13,14 +13,14 @@
  * - Uses BoardConfig for automatic board detection (BLACKPILL_F411CE)
  * - Pin assignments and SPI frequency from board configuration
  *
+ * License: GPL v3 (Betaflight-derived library)
  */
 
 #include <MPU9250.h>
-#include <ci_log.h>
 
 // Board configuration
 #if defined(ARDUINO_NUCLEO_F411RE)
-#include "../../../../targets/NUCLEO_F411RE_JHEF411.h"
+#include "../../../../targets/NUCLEO_F411RE_LITTLEFS.h"
 #else
 #include "../../../../targets/BLACKPILL_F411CE.h"
 #endif
@@ -41,48 +41,52 @@ SPIClass spi_bus(BoardConfig::imu.spi.mosi_pin,
 MPU9250 imu;
 
 void setup() {
-  // Initialize Serial for non-RTT mode
-#ifndef USE_RTT
   Serial.begin(115200);
-  while (!Serial && millis() < 3000); // Wait for Serial with timeout
-#endif
+  while (!Serial && millis() < 3000);
 
-  CI_LOG("=== MPU-9250 Basic Test ===\n");
-  CI_BUILD_INFO();
-  CI_READY_TOKEN();
+  Serial.println("=== MPU-9250 Basic Test ===");
 
   // Display pin configuration from BoardConfig
-  CI_LOG("Pin Configuration (BoardConfig):\n");
-  CI_LOGF("  CS: %d, MOSI: %d, MISO: %d, SCLK: %d\n",
-         (int)MPU9250_CS_PIN, (int)MPU9250_MOSI_PIN,
-         (int)MPU9250_MISO_PIN, (int)MPU9250_SCLK_PIN);
-  CI_LOGF("  SPI Speed: %lu Hz\n", (unsigned long)MPU9250_SPI_FREQ);
+  Serial.println("Pin Configuration (BoardConfig):");
+  Serial.print("  CS: ");
+  Serial.print((int)MPU9250_CS_PIN);
+  Serial.print(", MOSI: ");
+  Serial.print((int)MPU9250_MOSI_PIN);
+  Serial.print(", MISO: ");
+  Serial.print((int)MPU9250_MISO_PIN);
+  Serial.print(", SCLK: ");
+  Serial.println((int)MPU9250_SCLK_PIN);
+  Serial.print("  SPI Speed: ");
+  Serial.print((unsigned long)MPU9250_SPI_FREQ);
+  Serial.println(" Hz");
 
   // Initialize MPU-9250
-  CI_LOG("\nInitializing MPU-9250...\n");
+  Serial.println("Initializing MPU-9250...");
 
   if (!imu.begin(spi_bus, MPU9250_CS_PIN, MPU9250_SPI_FREQ)) {
-    CI_LOG("ERROR: MPU-9250 initialization failed!\n");
-    CI_LOG("Check connections:\n");
-    CI_LOG("  - SPI MOSI, MISO, SCK\n");
-    CI_LOG("  - CS pin\n");
-    CI_LOG("  - 3.3V power\n");
-    CI_LOG("*STOP*\n");
+    Serial.println("ERROR: MPU-9250 initialization failed!");
+    Serial.println("Check connections:");
+    Serial.println("  - SPI MOSI, MISO, SCK");
+    Serial.println("  - CS pin");
+    Serial.println("  - 3.3V power");
+    Serial.println("*STOP*");
     while (1);
   }
 
-  CI_LOG("MPU-9250 initialized successfully\n");
+  Serial.println("MPU-9250 initialized successfully");
 
   // Read WHO_AM_I register
   uint8_t who_am_i = imu.whoAmI();
-  CI_LOGF("WHO_AM_I: 0x%02X ", who_am_i);
+  Serial.print("WHO_AM_I: 0x");
+  Serial.print(who_am_i, HEX);
+  Serial.print(" ");
 
   if (who_am_i == 0x71) {
-    CI_LOG("(MPU-9250 detected) ✓\n");
+    Serial.println("(MPU-9250 detected) ✓");
   } else if (who_am_i == 0x73) {
-    CI_LOG("(MPU-9255 detected) ✓\n");
+    Serial.println("(MPU-9255 detected) ✓");
   } else {
-    CI_LOGF("(Expected 0x71 or 0x73, detection may have failed)\n");
+    Serial.println("(Expected 0x71 or 0x73, detection may have failed)");
   }
 
   // Configure DLPF (wide bandwidth for testing)
@@ -91,17 +95,17 @@ void setup() {
   // This example polls at 100 Hz, so intermediate samples are ignored.
   // See libraries/imu/imu_hal.md for standard SAFE/SMOOTH/BALANCED/ACRO presets.
   imu.setDLPF(0, 0);
-  CI_LOG("DLPF configured: Gyro=250Hz, Accel=460Hz (wide bandwidth)\n");
-  CI_LOG("Note: On-sensor rate is 8kHz, but polling at 100Hz for this demo\n");
+  Serial.println("DLPF configured: Gyro=250Hz, Accel=460Hz (wide bandwidth)");
+  Serial.println("Note: On-sensor rate is 8kHz, but polling at 100Hz for this demo");
 
   // Set ranges
   imu.setGyroFSR(2000);  // ±2000 dps
   imu.setAccelFSR(16);   // ±16g
 
-  CI_LOG("Gyro FSR: ±2000 dps\n");
-  CI_LOG("Accel FSR: ±16g\n");
-  CI_LOG("\nStarting data acquisition...\n");
-  CI_LOG("---\n");
+  Serial.println("Gyro FSR: ±2000 dps");
+  Serial.println("Accel FSR: ±16g");
+  Serial.println("\nStarting data acquisition...");
+  Serial.println("---");
 
   delay(100);
 }
@@ -121,37 +125,39 @@ void loop() {
     if (millis() - last_print >= 100) {
       last_print = millis();
 
-      CI_LOGF("Sample %lu:\n", sample_count);
+      Serial.print("Sample ");
+      Serial.print(sample_count);
+      Serial.println(":");
 
       // Print gyro data
-      CI_LOG("  Gyro (dps): ");
-      CI_LOG_FLOAT("X=", gx, 2);
-      CI_LOG(", ");
-      CI_LOG_FLOAT("Y=", gy, 2);
-      CI_LOG(", ");
-      CI_LOG_FLOAT("Z=", gz, 2);
-      CI_LOG("\n");
+      Serial.print("  Gyro (dps): X=");
+      Serial.print(gx, 2);
+      Serial.print(", Y=");
+      Serial.print(gy, 2);
+      Serial.print(", Z=");
+      Serial.println(gz, 2);
 
       // Print accel data
-      CI_LOG("  Accel (g):  ");
-      CI_LOG_FLOAT("X=", ax, 3);
-      CI_LOG(", ");
-      CI_LOG_FLOAT("Y=", ay, 3);
-      CI_LOG(", ");
-      CI_LOG_FLOAT("Z=", az, 3);
-      CI_LOG("\n");
-      CI_LOG("---\n");
+      Serial.print("  Accel (g):  X=");
+      Serial.print(ax, 3);
+      Serial.print(", Y=");
+      Serial.print(ay, 3);
+      Serial.print(", Z=");
+      Serial.println(az, 3);
+      Serial.println("---");
     }
 
     // Stop after 50 samples (5 seconds at 10 Hz)
     if (sample_count >= 50) {
-      CI_LOGF("\nTest complete: %lu samples collected\n", sample_count);
-      CI_LOG("MPU-9250 basic test PASSED ✓\n");
-      CI_LOG("*STOP*\n");
+      Serial.print("\nTest complete: ");
+      Serial.print(sample_count);
+      Serial.println(" samples collected");
+      Serial.println("MPU-9250 basic test PASSED ✓");
+      Serial.println("*STOP*");
       while (1);
     }
   } else {
-    CI_LOG("ERROR: Failed to read IMU data\n");
+    Serial.println("ERROR: Failed to read IMU data");
   }
 
   delay(10);  // 100 Hz loop rate

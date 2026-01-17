@@ -33,20 +33,14 @@
  *   CS   → PB12 (GPIO)
  *   INT  → PB2 (EXTI2)
  *
- * CI/HIL INTEGRATION:
- * - RTT output for automated testing
- * - Serial output for Arduino IDE
- * - Build traceability with git SHA and timestamp
- *
  * License: GPL v3 (Betaflight-derived library)
  */
 
 #include <MPU9250.h>
-#include <ci_log.h>
 
 // Board configuration
 #if defined(ARDUINO_NUCLEO_F411RE)
-#include "../../../../targets/NUCLEO_F411RE_JHEF411.h"
+#include "../../../../targets/NUCLEO_F411RE_LITTLEFS.h"
 #else
 #include "../../../../targets/BLACKPILL_F411CE.h"
 #endif
@@ -87,53 +81,58 @@ void mpu9250_data_ready_isr() {
 }
 
 void setup() {
-  // Initialize Serial for non-RTT mode
-#ifndef USE_RTT
   Serial.begin(115200);
   while (!Serial && millis() < 3000);
-#endif
 
-  CI_LOG("=== MPU-9250 Interrupt-Driven Example ===\n");
-  CI_BUILD_INFO();
-  CI_READY_TOKEN();
+  Serial.println("=== MPU-9250 Interrupt-Driven Example ===");
 
   // Display pin configuration from BoardConfig
-  CI_LOG("Pin Configuration (BoardConfig):\n");
-  CI_LOGF("  CS: %d, MOSI: %d, MISO: %d, SCLK: %d\n",
-         (int)MPU9250_CS_PIN, (int)MPU9250_MOSI_PIN,
-         (int)MPU9250_MISO_PIN, (int)MPU9250_SCLK_PIN);
-  CI_LOGF("  SPI Speed: %lu Hz\n", (unsigned long)MPU9250_SPI_FREQ);
+  Serial.println("Pin Configuration (BoardConfig):");
+  Serial.print("  CS: ");
+  Serial.print((int)MPU9250_CS_PIN);
+  Serial.print(", MOSI: ");
+  Serial.print((int)MPU9250_MOSI_PIN);
+  Serial.print(", MISO: ");
+  Serial.print((int)MPU9250_MISO_PIN);
+  Serial.print(", SCLK: ");
+  Serial.println((int)MPU9250_SCLK_PIN);
+  Serial.print("  SPI Speed: ");
+  Serial.print((unsigned long)MPU9250_SPI_FREQ);
+  Serial.println(" Hz");
   if (MPU9250_INT_PIN != 0) {
-    CI_LOGF("  Interrupt Pin: %d\n", (int)MPU9250_INT_PIN);
+    Serial.print("  Interrupt Pin: ");
+    Serial.println((int)MPU9250_INT_PIN);
   } else {
-    CI_LOG("  Interrupt Pin: None (polling mode)\n");
+    Serial.println("  Interrupt Pin: None (polling mode)");
   }
 
   // Initialize MPU-9250
-  CI_LOG("\nInitializing MPU-9250...\n");
+  Serial.println("Initializing MPU-9250...");
 
   if (!imu.begin(spi_bus, MPU9250_CS_PIN, MPU9250_SPI_FREQ)) {
-    CI_LOG("ERROR: MPU-9250 initialization failed!\n");
-    CI_LOG("Check connections:\n");
-    CI_LOG("  - SPI MOSI, MISO, SCK\n");
-    CI_LOG("  - CS pin\n");
-    CI_LOG("  - 3.3V power\n");
-    CI_LOG("*STOP*\n");
+    Serial.println("ERROR: MPU-9250 initialization failed!");
+    Serial.println("Check connections:");
+    Serial.println("  - SPI MOSI, MISO, SCK");
+    Serial.println("  - CS pin");
+    Serial.println("  - 3.3V power");
+    Serial.println("*STOP*");
     while (1);
   }
 
-  CI_LOG("MPU-9250 initialized successfully\n");
+  Serial.println("MPU-9250 initialized successfully");
 
   // Read WHO_AM_I register
   uint8_t who_am_i = imu.whoAmI();
-  CI_LOGF("WHO_AM_I: 0x%02X ", who_am_i);
+  Serial.print("WHO_AM_I: 0x");
+  Serial.print(who_am_i, HEX);
+  Serial.print(" ");
 
   if (who_am_i == 0x71) {
-    CI_LOG("(MPU-9250 detected) ✓\n");
+    Serial.println("(MPU-9250 detected) ✓");
   } else if (who_am_i == 0x73) {
-    CI_LOG("(MPU-9255 detected) ✓\n");
+    Serial.println("(MPU-9255 detected) ✓");
   } else {
-    CI_LOG("(Expected 0x71 or 0x73, detection may have failed)\n");
+    Serial.println("(Expected 0x71 or 0x73, detection may have failed)");
   }
 
   // Configure SMOOTH preset (see libraries/imu/imu_hal.md)
@@ -144,38 +143,36 @@ void setup() {
   // Note: SMPLRT_DIV only effective when 0 < DLPF_CFG < 7 (per MPU-9250 datasheet)
   // For BALANCED/ACRO presets (DLPF_CFG=0), see imu_hal.md for software decimation approach.
   imu.setDLPF(1, 1);  // Gyro DLPF=1, Accel DLPF=1
-  CI_LOG("DLPF configured: 184 Hz bandwidth (1kHz internal) - SMOOTH preset\n");
+  Serial.println("DLPF configured: 184 Hz bandwidth (1kHz internal) - SMOOTH preset");
 
   imu.setSampleRateDivider(0);  // 1kHz / (1+0) = 1kHz
-  CI_LOG("Sample rate divider: 0 (1kHz output)\n");
+  Serial.println("Sample rate divider: 0 (1kHz output)");
 
   // Set ranges
   imu.setGyroFSR(2000);  // ±2000 dps
   imu.setAccelFSR(16);   // ±16g
 
-  CI_LOG("Gyro FSR: ±2000 dps\n");
-  CI_LOG("Accel FSR: ±16g\n");
+  Serial.println("Gyro FSR: ±2000 dps");
+  Serial.println("Accel FSR: ±16g");
 
   // Setup interrupt if pin is configured
   if (MPU9250_INT_PIN != 0) {
     pinMode(MPU9250_INT_PIN, INPUT);
     attachInterrupt(digitalPinToInterrupt(MPU9250_INT_PIN), mpu9250_data_ready_isr, RISING);
-    CI_LOG("✓ Data-ready interrupt configured (1kHz)\n");
+    Serial.println("✓ Data-ready interrupt configured (1kHz)");
   } else {
-    CI_LOG("⚠ No interrupt pin - using polling mode\n");
+    Serial.println("⚠ No interrupt pin - using polling mode");
   }
 
-  CI_LOG("\nStarting interrupt-driven data acquisition...\n");
-  CI_LOG("Target: 1000 Hz sample rate\n");
-  CI_LOG("---\n");
+  Serial.println("Starting interrupt-driven data acquisition...");
+  Serial.println("Target: 1000 Hz sample rate");
+  Serial.println("---");
 
   last_report_time = millis();
   delay(100);
 }
 
 void loop() {
-  static unsigned long loop_start = 0;
-
   // Check if data is ready (interrupt-driven or polling)
   if (MPU9250_INT_PIN != 0) {
     // Interrupt-driven mode
@@ -200,36 +197,37 @@ void loop() {
     float sample_rate = (samples_collected * 1000.0f) / report_interval;
     float interrupt_rate = (interrupt_count * 1000.0f) / report_interval;
 
-    CI_LOG("\n=== Statistics ===\n");
-    CI_LOGF("Sample Rate: ");
-    CI_LOG_FLOAT("", sample_rate, 1);
-    CI_LOG(" Hz\n");
+    Serial.println("\n=== Statistics ===");
+    Serial.print("Sample Rate: ");
+    Serial.print(sample_rate, 1);
+    Serial.println(" Hz");
 
     if (MPU9250_INT_PIN != 0) {
-      CI_LOGF("Interrupt Rate: ");
-      CI_LOG_FLOAT("", interrupt_rate, 1);
-      CI_LOG(" Hz\n");
+      Serial.print("Interrupt Rate: ");
+      Serial.print(interrupt_rate, 1);
+      Serial.println(" Hz");
     }
 
-    CI_LOGF("Samples: %lu, Errors: %lu\n", samples_collected, read_errors);
+    Serial.print("Samples: ");
+    Serial.print(samples_collected);
+    Serial.print(", Errors: ");
+    Serial.println(read_errors);
 
-    CI_LOG("Latest Data:\n");
-    CI_LOG("  Gyro (dps): ");
-    CI_LOG_FLOAT("X=", gx, 2);
-    CI_LOG(", ");
-    CI_LOG_FLOAT("Y=", gy, 2);
-    CI_LOG(", ");
-    CI_LOG_FLOAT("Z=", gz, 2);
-    CI_LOG("\n");
+    Serial.println("Latest Data:");
+    Serial.print("  Gyro (dps): X=");
+    Serial.print(gx, 2);
+    Serial.print(", Y=");
+    Serial.print(gy, 2);
+    Serial.print(", Z=");
+    Serial.println(gz, 2);
 
-    CI_LOG("  Accel (g):  ");
-    CI_LOG_FLOAT("X=", ax, 3);
-    CI_LOG(", ");
-    CI_LOG_FLOAT("Y=", ay, 3);
-    CI_LOG(", ");
-    CI_LOG_FLOAT("Z=", az, 3);
-    CI_LOG("\n");
-    CI_LOG("---\n");
+    Serial.print("  Accel (g):  X=");
+    Serial.print(ax, 3);
+    Serial.print(", Y=");
+    Serial.print(ay, 3);
+    Serial.print(", Z=");
+    Serial.println(az, 3);
+    Serial.println("---");
 
     // Reset counters
     samples_collected = 0;
@@ -239,9 +237,9 @@ void loop() {
     static uint8_t report_count = 0;
     report_count++;
     if (report_count >= 5) {
-      CI_LOG("\nTest complete: 5 seconds of 1kHz streaming ✓\n");
-      CI_LOG("MPU-9250 interrupt-driven test PASSED ✓\n");
-      CI_LOG("*STOP*\n");
+      Serial.println("\nTest complete: 5 seconds of 1kHz streaming ✓");
+      Serial.println("MPU-9250 interrupt-driven test PASSED ✓");
+      Serial.println("*STOP*");
       while (1);
     }
   }
