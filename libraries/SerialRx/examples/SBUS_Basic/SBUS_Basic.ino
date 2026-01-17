@@ -17,14 +17,14 @@
  * Expected: 16 RC channels (0-2047 range, typical 172-1811)
  *
  * Board Configuration (from BoardConfig::rc_receiver):
- *   MATEK H743-WLITE: Uses USART1 (RX=PA10) @ 100000 baud
+ *   HIL-006 (DevEBox H743): Uses USART1 (RX=PA10) @ 100000 baud
  *
- * Note: MATEK H743 has hardware SBUS inverter on RX1 pad
+ * Note: STM32H7 UART supports hardware RX inversion (RXINV bit)
  */
 
 #include <SerialRx.h>
 #include <ci_log.h>
-#include "../../../../targets/MTKS-MATEKH743.h"
+#include "../../../../targets/DEVEBOX_H743_HIL006.h"
 
 // Create HardwareSerial instance using BoardConfig
 HardwareSerial SerialRC(BoardConfig::rc_receiver.rx_pin,
