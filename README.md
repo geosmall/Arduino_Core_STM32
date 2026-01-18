@@ -64,12 +64,12 @@ UF2 bootloaders enable drag-and-drop firmware upload without a debugger.
 
 | Board | MCU | Bootloader |
 |-------|-----|------------|
-| BlackPill F411CE (8MHz) | STM32F411CE | `bootloader-blackpill_f411ce_8mhz-v1.0.1.bin` |
-| NOXE V3 | STM32F411CE | `bootloader-noxe_v3-v1.0.1.bin` |
-| OpenPilot Revo | STM32F405RG | `bootloader-revo_f405-v1.0.1.bin` |
-| NERO F7 | STM32F722RE | `bootloader-nero_f7-v1.0.1.bin` |
-| MATEK H743 | STM32H743VI | `bootloader-matek_h743-v1.0.1.bin` |
-| DevEBox H743 | STM32H743VI | `bootloader-devebox_h743-v1.0.1.bin` |
+| BlackPill F411CE (8MHz) | STM32F411CE | `bootuf2-blackpill_f411ce_8mhz-v1.0.0.bin` |
+| NOXE V3 | STM32F411CE | `bootuf2-noxe_v3-v1.0.0.bin` |
+| OpenPilot Revo | STM32F405RG | `bootuf2-revo_f405-v1.0.0.bin` |
+| NERO F7 | STM32F722RE | `bootuf2-nero_f7-v1.0.0.bin` |
+| MATEK H743 | STM32H743VI | `bootuf2-matek_h743-v1.0.0.bin` |
+| DevEBox H743 | STM32H743VI | `bootuf2-devebox_h743-v1.0.0.bin` |
 
 Bootloader binaries are in `bootloaders/`.
 
