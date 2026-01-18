@@ -44,7 +44,6 @@ namespace BoardConfig {
   static constexpr GPSConfig gps{PA2, PA3, 9600};
 
   // Servo outputs - none configured (flight controller config)
-  // See NUCLEO_F411RE_JHEF411_SERVOS.h for variant with servo support
   namespace Servo {
     static constexpr uint32_t frequency_hz = 50;
 
