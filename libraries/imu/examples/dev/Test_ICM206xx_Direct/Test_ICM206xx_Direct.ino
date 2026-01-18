@@ -9,13 +9,11 @@
  *   - ICM-20602 (WHO_AM_I = 0x12)
  *   - ICM-20689 (WHO_AM_I = 0x98)
  *
- * Hardware Platforms:
- *   - NUCLEO_F411RE (with LittleFS config)
+ * Hardware Platform:
  *   - NERO F7 Flight Controller (BKMN-NERO target, ICM-20602 on SPI1)
  *
  * Build & Test:
- *   NUCLEO: ./ci/saflash.sh Arduino_Core_STM32/libraries/imu/examples/dev/Test_ICM206xx_Direct
- *   NERO:   ./ci/saflash.sh Arduino_Core_STM32/libraries/imu/examples/dev/Test_ICM206xx_Direct STM32_Robotics:stm32:FlightCtr:pnum=BKMN_NERO
+ *   ./ci/saflash.sh Arduino_Core_STM32/libraries/imu/examples/dev/Test_ICM206xx_Direct STM32_Robotics:stm32:FlightCtr:pnum=BKMN_NERO
  *
  * License: GPL v3 (Betaflight-derived library)
  */
@@ -27,15 +25,11 @@
 #include "../../../src/bus/DeviceBusSPI.h"
 #include "../../../src/devices/ICM206xx.h"
 
-// Board configuration - Multi-board support
-#if defined(STM32F722xx)
-// NERO F7 Flight Controller (BKMN-NERO)
+// Board configuration - NERO F7 only (has ICM-20602)
+#if defined(ARDUINO_BKMN_NERO)
 #include "../../../../targets/BKMN-NERO.h"
-#elif defined(ARDUINO_NUCLEO_F411RE)
-// NUCLEO_F411RE development board
-#include "../../../../targets/NUCLEO_F411RE_HIL001.h"
 #else
-#error "This example requires NERO F7 (FQBN: STM32_Robotics:stm32:FlightCtr:pnum=BKMN_NERO) or NUCLEO_F411RE"
+#error "This example requires NERO F7 (FQBN: STM32_Robotics:stm32:FlightCtr:pnum=BKMN_NERO)"
 #endif
 
 // BoardConfig integration for dynamic pin configuration
