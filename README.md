@@ -1,10 +1,8 @@
-# STM32 Arduino Core Development Environment
+# STM32 Robotics Arduino Core
 
-A focused STM32 Arduino development environment with CI/CD automation capabilities.
+A focused STM32 Arduino core for robotics and flight controller development.
 
 ## Installation via Arduino Board Manager
-
-The easiest way to install this core:
 
 1. Open **Arduino IDE**
 2. Go to **File → Preferences**
@@ -16,377 +14,142 @@ The easiest way to install this core:
 5. Search for **"STM32 Robotics"**
 6. Click **Install**
 
-This installs the complete STM32 Robotics Core with all robotics libraries.
-
-For development workflows (CI/HIL testing, build scripts), see [Prerequisites](#prerequisites) below.
-
 ## Overview
 
-This repository contains a **fork of the STM32 Arduino Core** with simplified variant selection. It's designed for developing autonomous systems such as drone flight control systems with real-time data logging, sensor and configuration data management.
+This is a **fork of the STM32 Arduino Core** optimized for robotics applications including drone flight controllers, real-time data logging, and sensor management.
 
-## Target Hardware
+## Supported Hardware
 
-- **Primary**: STM32F411 (Nucleo F411RE, BlackPill F411CE)
-- **Secondary**: STM32F405, STM32F722 (common in flight controllers)
-- **Advanced**: STM32H743 (high-performance flight controllers)
+| Category | Boards |
+|----------|--------|
+| Development | Nucleo F411RE, BlackPill F411CE |
+| Flight Controllers | NOXE V3 (F411), OpenPilot Revo (F405), NERO F7 (F722), MATEK H743 |
 
 ## Key Features
 
-- **Unified Development Framework**: Single codebase supporting Arduino IDE and CI/HIL workflows with `ci_log.h` abstraction
-- **Production HIL Testing Framework**: Complete build-to-runtime traceability with J-Link + RTT integration
-- **Enhanced Build-ID Integration**: Git SHA + UTC timestamp tracking for firmware traceability
-- **Universal Device Detection**: Auto-detect any STM32 via J-Link for programming
-- **Sub-20ms Ready Token Detection**: Deterministic HIL test initialization (5.2ms achieved)
-- **Unified Storage Systems**: LittleFS (SPI flash), SDFS (SD card), and Generic Storage abstraction with minIni configuration management
-- **IMU Integration**: High-level C++ wrapper (IMU library) supporting 6-DOF and 9-DOF sensors (ICM42688P, MPU-6000, MPU-9250) with chip detection, magnetometer calibration, and manufacturer self-test
-- **Betaflight Config Converter**: Python tool converting Betaflight unified targets to BoardConfig headers with PeripheralPins.c validation and ALT variant handling
-- **libPrintf Integration**: Embedded printf library eliminating nanofp complexity with 20KB+ binary savings
-- **AUnit Testing Framework**: Comprehensive unit testing with HIL integration (18 tests across storage systems)
-- **Real-time Debugging**: SEGGER RTT v8.62 integration for printf-style debugging
-- **Flight Controller Focus**: Optimized for UAV applications with deterministic testing
-
-## Prerequisites
-
-### Core Build Environment
-
-#### Required (Basic Compilation)
-- **Arduino CLI** v1.3.0 (locked version for build consistency)
-  - Manages STM32 core and ARM GCC toolchain automatically
-  - Installation: https://arduino.github.io/arduino-cli/latest/installation/
-- **STM32 Robotics Core** (this repository)
-  - Includes ARM GCC 12.x toolchain (xpack-arm-none-eabi-gcc-12.2.1-1.2)
-  - Install via Board Manager (see [Installation](#installation-via-arduino-board-manager) above)
-
-#### Optional (Hardware Testing & Debugging)
-- **SEGGER J-Link** v8.62+ (for HIL testing with RTT debugging)
-  - `JLinkExe` - Flash programming and device detection
-  - `JRun` - Execute with RTT capture (HIL testing)
-  - `JLinkGDBServer` - GDB server with RTT support
-  - `JLinkRTTClient` - Real-time terminal client
-  - Installation: https://www.segger.com/downloads/jlink/
-  - Note: Requires ST-Link V2.1 reflashed to J-Link firmware for NUCLEO boards
-  - STM32CubeProgrammer - for Arduino IDE ST-Link and J-Link uploads
-  - Installation: https://www.st.com/en/development-tools/stm32cubeprog.html
-
-### System Tools (Linux/macOS)
-
-#### Build Scripts
-- **bash** - CI/CD automation scripts
-- **git** - Version control and build-ID generation
-
-#### Optional (Device Detection)
-- **lsusb** - USB device enumeration (Linux only)
-  - Ubuntu/Debian: `sudo apt-get install usbutils`
-
-### Installation (CLI)
-```bash
-# Add custom board manager URL
-arduino-cli config add board_manager.additional_urls \
-  https://github.com/geosmall/BoardManagerFiles/raw/main/package_stm32_robotics_index.json
-
-# Install STM32 Robotics core
-arduino-cli core update-index
-arduino-cli core install STM32_Robotics:stm32
-
-# Verify installation
-./system/ci/env_check_quick.sh true
-```
-
-## UF2 Bootloader Support
-
-This core includes support for UF2 bootloaders which allow drag-and-drop firmware uploads without requiring a debugger or programmer.
-
-### Supported Boards
-
-Pre-built bootloader binaries are included for these flight controller boards:
-
-| Board | MCU | Bootloader Binary |
-|-------|-----|-------------------|
-| BlackPill F411CE (8MHz) | STM32F411CE | `bootloader-blackpill_f411ce_8mhz-v1.0.1.bin` |
-| NOXE V3 | STM32F411CE | `bootloader-noxe_v3-v1.0.1.bin` |
-| OpenPilot Revo | STM32F405RG | `bootloader-revo_f405-v1.0.1.bin` |
-| BKMN NERO | STM32F722RE | `bootloader-nero_f7-v1.0.1.bin` |
-| MATEK H743 | STM32H743VI | `bootloader-matek_h743-v1.0.1.bin` |
-
-Bootloader binaries are located in `bootloaders/`.
-
-### Initial Bootloader Installation
-
-Flash the bootloader to a new board (one-time setup) using one of these methods:
-
-**Via Arduino IDE (easiest):**
-
-1. Select your board: Tools → Board → STM32 Robotics → FlightCtr → [your board]
-2. Select programmer: Tools → Programmer
-   - **DFU (USB)** - No debugger needed, but requires entering DFU mode first
-   - **J-Link** or **ST-Link** - Requires debugger hardware
-3. For DFU: Hold BOOT button while pressing RESET to enter DFU mode
-4. Click: Tools → Burn Bootloader
-
-**Via DFU command line (no debugger required):**
-
-1. Hold BOOT button while pressing RESET (or power on while holding BOOT)
-2. Board appears as USB DFU device
-3. Flash the bootloader:
-
-```bash
-~/.arduino15/packages/STMicroelectronics/tools/STM32Tools/2.2.1/dfu-util.sh \
-  -a 0 -s 0x08000000:leave -D bootloaders/bootloader-blackpill_f411ce_8mhz-v1.0.1.bin
-```
-
-**Via J-Link:**
-
-```bash
-JLinkExe -device STM32F411CE -if SWD -speed 4000 -autoconnect 1
-> loadfile bootloaders/bootloader-blackpill_f411ce_8mhz-v1.0.1.bin 0x08000000
-> r
-> go
-> exit
-```
-
-**Via STM32CubeProgrammer CLI:**
-
-```bash
-STM32_Programmer_CLI -c port=SWD -w bootloaders/bootloader-blackpill_f411ce_8mhz-v1.0.1.bin 0x08000000 -rst
-```
-
-Once installed, the bootloader persists across firmware updates.
-
-### Uploading Firmware via UF2
-
-After bootloader installation, upload sketches without a debugger:
-
-1. **Enter bootloader mode**: Double-tap the reset button (LED will pulse)
-2. **A USB drive appears**: Named `UF2BOOT` or similar
-3. **Copy the .uf2 file**: Drag firmware to the drive, or use Arduino IDE
-
-**Arduino IDE**: Select **UF2 Bootloader** as the upload method in Tools menu. The upload process:
-1. Converts `.bin` to `.uf2` using the uf2conv tool
-2. Copies `.uf2` to the mounted bootloader drive
-
-### uf2conv Tool
-
-The `uf2conv` tool converts `.bin` files to `.uf2` format. **Pre-built binaries are included** for all platforms - no compilation required:
-
-```
-extras/uf2conv/bin/
-├── linux-x64/uf2conv
-├── windows-x64/uf2conv.exe
-├── macos-x64/uf2conv
-└── macos-arm64/uf2conv
-```
-
-The upload script (`system/extras/uf2_upload.sh`) automatically selects the correct binary for your OS.
-
-**Manual usage** (normally handled automatically by Arduino IDE):
-```bash
-./extras/uf2conv/bin/linux-x64/uf2conv -b 0x08010000 -f 0x57755a57 -o firmware.uf2 firmware.bin
-
-# Options:
-#   -b <addr>  Base address (default: 0x08010000)
-#   -f <id>    Family ID (default: 0x57755a57 for STM32F4)
-#   -o <file>  Output file (default: flash.uf2)
-```
-
-### Building uf2conv from Source (Optional)
-
-Building from source is **not normally required** - pre-built binaries are provided. Only needed if binaries don't work on your system:
-
-```bash
-cd extras/uf2conv
-make
-```
-
-Requires: GCC or compatible C compiler.
-
-Pre-built binaries are automatically rebuilt via GitHub Actions (`.github/workflows/build-uf2conv.yml`) when source changes are pushed.
+- **Robotics Libraries**: IMU sensors, RC receivers, servo/ESC control, storage systems
+- **UF2 Bootloader Support**: Drag-and-drop firmware upload without debugger
+- **Storage Systems**: LittleFS (SPI flash), SDFS (SD card) with unified API
+- **IMU Support**: ICM42688P, MPU-6000, MPU-9250/9255 with magnetometer calibration
+- **RC Protocols**: IBus and SBUS with hardware validation
+- **PWM Control**: Hardware timer PWM for servos/ESCs with 1µs resolution
 
 ## Quick Start
 
-### Build and Upload
-```bash
-# Compile sketch
-arduino-cli compile --fqbn STMicroelectronics:stm32:Nucleo_64:pnum=NUCLEO_F411RE <sketch_directory>
+### Compile and Upload
 
-# Upload via ST-Link
-arduino-cli upload --fqbn STMicroelectronics:stm32:Nucleo_64:pnum=NUCLEO_F411RE <sketch_directory>
+```cpp
+// Blink example
+void setup() {
+  pinMode(LED_BUILTIN, OUTPUT);
+}
 
-# Upload via J-Link with auto-detection (when ST-Link reflashed)
-./system/ci/flash_auto.sh --quick <path_to_binary.bin>
+void loop() {
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(500);
+  digitalWrite(LED_BUILTIN, LOW);
+  delay(500);
+}
 ```
 
-### HIL Testing (Recommended)
+1. Select board: **Tools → Board → STM32 Robotics → Nucleo 64 → NUCLEO_F411RE**
+2. Select port: **Tools → Port → [your port]**
+3. Click **Upload**
+
+## UF2 Bootloader Support
+
+UF2 bootloaders enable drag-and-drop firmware upload without a debugger.
+
+### Supported Boards
+
+| Board | MCU | Bootloader |
+|-------|-----|------------|
+| BlackPill F411CE (8MHz) | STM32F411CE | `bootloader-blackpill_f411ce_8mhz-v1.0.1.bin` |
+| NOXE V3 | STM32F411CE | `bootloader-noxe_v3-v1.0.1.bin` |
+| OpenPilot Revo | STM32F405RG | `bootloader-revo_f405-v1.0.1.bin` |
+| NERO F7 | STM32F722RE | `bootloader-nero_f7-v1.0.1.bin` |
+| MATEK H743 | STM32H743VI | `bootloader-matek_h743-v1.0.1.bin` |
+| DevEBox H743 | STM32H743VI | `bootloader-devebox_h743-v1.0.1.bin` |
+
+Bootloader binaries are in `bootloaders/`.
+
+### Initial Bootloader Installation
+
+**Via Arduino IDE (easiest):**
+
+1. Select board: **Tools → Board → STM32 Robotics → FlightCtr → [your board]**
+2. Select programmer: **Tools → Programmer → DFU** (or J-Link/ST-Link)
+3. For DFU: Hold BOOT button while pressing RESET
+4. Click: **Tools → Burn Bootloader**
+
+**Via DFU command line:**
+
 ```bash
-# One-button build and test with environment validation
-./system/ci/aflash.sh <sketch_directory> --env-check
-
-# Unified development workflow (Arduino IDE + CI/HIL support)
-./system/ci/build.sh <sketch_directory>                    # Arduino IDE (Serial)
-./system/ci/build.sh <sketch_directory> --use-rtt          # CI/HIL (RTT)
-./system/ci/aflash.sh <sketch_directory> --use-rtt --build-id --env-check  # Complete workflow
-
-# Enhanced ready token detection with build-ID parsing (5.2ms latency)
-./system/ci/await_ready.sh [log_file] [timeout] [pattern]
-# Output: READY NUCLEO_F411RE 901dbd1-dirty 2025-09-09T10:07:44Z
+# Enter DFU mode: Hold BOOT while pressing RESET
+dfu-util -a 0 -s 0x08000000:leave -D bootloaders/bootloader-blackpill_f411ce_8mhz-v1.0.1.bin
 ```
 
-### Using Makefile (HIL_RTT_Test/)
-```bash
-make                # Compile
-make upload         # Compile and upload
-make check          # Verify environment
-```
+### Uploading via UF2
+
+After bootloader is installed:
+
+1. **Double-tap reset** - LED pulses, USB drive appears
+2. **Drag firmware.uf2** to the drive, or use Arduino IDE with **UF2 Bootloader** upload method
 
 ## Libraries
 
 ### Storage and Configuration
-- **LittleFS**: SPI flash storage for configuration and firmware
-- **SDFS v1.0.0**: SD card filesystem via SPI with LittleFS-compatible configuration
-- **Storage**: Generic storage abstraction providing unified interface for LittleFS and SDFS
-- **minIniStorage v1.5.0**: INI file configuration management with automatic storage backend selection
+- **LittleFS** - SPI flash filesystem with wear leveling
+- **SDFS** - SD card filesystem via SPI
+- **Storage** - Unified storage abstraction
+- **minIniStorage** - INI configuration management
 
-### Sensors and Hardware
-- **IMU v1.0.0**: High-level C++ wrapper for InvenSense IMU sensors with chip detection, multi-instance support, and 9-DOF magnetometer support (MPU-9250/9255)
-- **ICM42688P v1.0.0**: Low-level 6-axis IMU library with TDK InvenSense drivers, self-test, and data acquisition
-- **ICM206xx v1.0.0**: Betaflight-derived 6-axis IMU library for ICM-20601/20602/20608/20689 with auto-detection
-- **MPU6000 v1.0.0**: Betaflight-derived 6-axis IMU library for MPU-6000
-- **MPU9250 v1.0.0**: Betaflight-derived 9-axis IMU library for MPU-9250/9255 with magnetometer
-- **invensense-imu v6.0.3**: Bolder Flight Systems library for MPU-9250/MPU-6500 (I2C and SPI)
-- **xensiv-dps3xx v1.0.0**: Infineon barometric pressure sensor library for DPS310/DPS368 with I2C support, STM32H7 detection, and configurable address
-- **TinyGPSPlus v1.0.3a**: NMEA GPS parser library with CI examples for HardwareSerial and SoftwareSerial
-- **SerialRx v1.0.0**: RC receiver serial protocol parser (IBus, SBUS) with software idle detection and hardware validation
-- **TimerPWM v1.0.0**: Hardware timer PWM for servo/ESC control with 1µs resolution, explicit timer banks, and dual-timer support
-- **ms4525do v1.1.3**: MS4525DO differential pressure/airspeed sensor library (Bolder Flight Systems, I2C)
-- **STM32RTC**: Real-time clock functionality
+### Sensors
+- **IMU** - High-level wrapper for InvenSense IMUs (6-DOF and 9-DOF)
+- **ICM42688P** - TDK InvenSense 6-axis IMU with self-test
+- **ICM206xx** - ICM-20601/20602/20608/20689 support
+- **MPU6000** - MPU-6000 6-axis IMU
+- **MPU9250** - MPU-9250/9255 9-axis IMU with magnetometer
+- **xensiv-dps3xx** - DPS310/DPS368 barometric pressure sensor
+- **TinyGPSPlus** - NMEA GPS parser
+- **ms4525do** - MS4525DO airspeed sensor
 
-### Core Communication
-- **SPI**: SPI communication library
-- **Wire**: I2C communication library
-- **SoftwareSerial**: Software UART implementation
+### Control
+- **SerialRx** - RC receiver protocols (IBus, SBUS)
+- **TimerPWM** - Hardware PWM for servos/ESCs (1µs resolution)
 
-### Development and Testing
-- **SEGGER_RTT v8.62**: Real-time transfer debugging with HIL integration
-- **CMSIS_DSP**: ARM CMSIS DSP functions
-- **libPrintf v6.2.0**: Embedded printf library eliminating nanofp complexity (20KB+ binary savings)
-- **AUnit v1.7.1**: Arduino unit testing framework with HIL integration (18 comprehensive tests)
-- **PrecompLib v1.0.0**: Precompiled library demonstrating CRC-16 calculation (Cortex-M4/M7 archives)
+### Core
+- **SPI**, **Wire**, **SoftwareSerial** - Communication
+- **SEGGER_RTT** - Real-time debugging
+- **libPrintf** - Embedded printf (20KB+ smaller than newlib)
+- **STM32RTC** - Real-time clock
 
 ## Project Structure
 
 ```
-├── cores/arduino/         # STM32 Arduino core implementation
+├── cores/arduino/         # Arduino core implementation
 ├── variants/              # Board-specific pin definitions
-├── system/                # STM32Cube HAL/LL drivers and CMSIS
-├── libraries/             # Core + robotics libraries (24 libraries)
-│   ├── AUnit-1.7.1/       # Arduino unit testing framework with HIL integration
-│   ├── CMSIS_DSP/         # ARM CMSIS DSP functions
-│   ├── ICM206xx/          # Betaflight-derived ICM-206xx 6-axis IMU library
-│   ├── ICM42688P/         # Low-level 6-axis IMU library with TDK InvenSense drivers
-│   ├── imu/               # High-level C++ wrapper for InvenSense IMU sensors
-│   ├── invensense-imu/    # Bolder Flight Systems MPU-9250/MPU-6500 library
-│   ├── libPrintf/         # Embedded printf library (eyalroz/printf v6.2.0 wrapper)
-│   ├── LittleFS/          # SPI flash filesystem (littlefs-project/littlefs)
-│   ├── minIniStorage/     # Configuration management with unified storage backend
-│   ├── MPU6000/           # Betaflight-derived MPU-6000 6-axis IMU library
-│   ├── MPU9250/           # Betaflight-derived MPU-9250 9-axis IMU library
-│   ├── ms4525do/          # MS4525DO differential pressure/airspeed sensor
-│   ├── PrecompLib/        # Precompiled library with CRC-16 (Cortex-M4/M7)
-│   ├── SDFS/              # SD filesystem with LittleFS-compatible API
-│   ├── SEGGER_RTT/        # SEGGER RTT library with HIL example
-│   ├── SerialRx/          # RC receiver protocol parser (IBus, SBUS)
-│   ├── SoftwareSerial/    # Software UART implementation
-│   ├── SPI/               # SPI communication library
-│   ├── STM32RTC/          # Real-time clock library
-│   ├── Storage/           # Generic storage abstraction for LittleFS/SDFS
-│   ├── TimerPWM/          # Hardware timer PWM for servo/ESC control
-│   ├── TinyGPSPlus/       # NMEA GPS parser (mikalhart/TinyGPSPlus v1.0.3a)
-│   ├── Wire/              # I2C communication library
-│   └── xensiv-dps3xx/     # Infineon barometric pressure sensor (DPS310/DPS368)
-├── bootloaders/           # UF2 bootloader binaries for FlightCtr boards
-├── sketches/              # Application sketches (dRehmFlight flight controller)
-├── cmake/                 # CMake build system and examples
-├── extras/
-│   ├── betaflight_converter/  # Betaflight → BoardConfig converter with validation
-│   └── uf2conv/               # Native UF2 format converter (bin → uf2)
-├── system/
-│   ├── ci/                # Build and test automation scripts
-│   └── extras/            # Arduino build hooks (prebuild/postbuild)
-├── tests/                 # Unit tests and integration tests
+├── libraries/             # Robotics libraries (24 libraries)
+├── bootloaders/           # UF2 bootloader binaries
 ├── targets/               # Board configuration headers
-└── doc/                   # Technical documentation (timers, serial, peripherals)
+├── extras/
+│   ├── betaflight_converter/  # Betaflight → BoardConfig converter
+│   └── uf2conv/               # UF2 format converter
+└── doc/                   # Technical documentation
 ```
 
-### Repository Information
-- **Main Repository**: [geosmall/Arduino_Core_STM32](https://github.com/geosmall/Arduino_Core_STM32) *(stm32duino fork with enhancements)*
-- **Upstream**: [stm32duino/Arduino_Core_STM32](https://github.com/stm32duino/Arduino_Core_STM32) *(original STM32 Arduino core)*
+## Development Status
 
-## Production Development Workflow
+- **✅ Complete**: Storage (LittleFS, SDFS), IMU library (6-DOF/9-DOF), SerialRx (IBus, SBUS), TimerPWM
+- **✅ Complete**: UF2 bootloaders for 6 flight controller boards
+- **📋 Planned**: CRSF protocol support
 
-### Arduino IDE Development
-1. **Build for Serial**: `./system/ci/build.sh libraries/ICM42688P/examples/example-selftest`
-2. **Upload via Arduino IDE**: Standard Arduino workflow with Serial monitoring
+## Resources
 
-### CI/HIL Testing
-1. **Environment Check**: `./system/ci/env_check_quick.sh true` (~100ms validation)
-2. **Device Detection**: `./system/ci/detect_device.sh` (auto-detect any STM32 via J-Link)
-3. **Unified Build**: `./system/ci/build.sh <sketch> --use-rtt --build-id --env-check` (RTT mode with traceability)
-4. **HIL Testing**: `./system/ci/aflash.sh <sketch> --use-rtt --build-id --env-check` (complete workflow)
-5. **Traceability Verification**: `./system/ci/await_ready.sh` (enhanced parsing, 5.2ms latency achieved)
-6. **Real-time Debug**: SEGGER RTT v8.62 with `JLinkRTTClient` for printf output
+- **Repository**: [geosmall/Arduino_Core_STM32](https://github.com/geosmall/Arduino_Core_STM32)
+- **Upstream**: [stm32duino/Arduino_Core_STM32](https://github.com/stm32duino/Arduino_Core_STM32)
+- **Board Manager**: [geosmall/BoardManagerFiles](https://github.com/geosmall/BoardManagerFiles)
 
-### Example Workflows
-```bash
-# IMU sensor testing with self-test validation
-./system/ci/aflash.sh libraries/ICM42688P/examples/example-selftest --use-rtt --build-id
+---
 
-# Storage system unit testing
-./system/ci/aflash.sh tests/LittleFS_IT --use-rtt --build-id
-./system/ci/aflash.sh tests/SDFS_Unit_Tests --use-rtt --build-id
-
-# Configuration management testing
-./system/ci/aflash.sh tests/minIniStorage_Unit_Tests --use-rtt --build-id
-```
-
-### Build Traceability Example
-```
-Git: 901dbd1-dirty (2025-09-09T10:07:44Z)
-READY NUCLEO_F411RE 901dbd1-dirty 2025-09-09T10:07:44Z
-```
-
-## Unified Development Framework
-
-Single sketches work seamlessly in both Arduino IDE and CI/HIL environments:
-
-```cpp
-#include <ci_log.h>  // Single logging abstraction (in cores/arduino/)
-
-void setup() {
-  CI_LOG("Test starting\n");
-  CI_BUILD_INFO();    // RTT: shows build details, Serial: no-op
-  CI_READY_TOKEN();   // RTT: shows ready token, Serial: no-op
-}
-```
-
-**Key Benefits:**
-- No duplicate test sketches
-- Automatic Serial ↔ RTT switching via `USE_RTT` compile flag
-- Build traceability integration for CI/CD workflows
-- Deterministic exit tokens for automated testing
-
-## Current Development Status
-
-- **✅ Complete**: Storage systems (LittleFS, SDFS, Storage abstraction), configuration management (minIni), build/HIL framework, libPrintf integration
-- **✅ Complete**: IMU library (6-DOF and 9-DOF support: ICM42688P, MPU-6000, MPU-9250/9255 with magnetometer calibration)
-- **✅ Complete**: ICM42688P library (low-level TDK drivers with self-test and data acquisition)
-- **✅ Complete**: xensiv-dps3xx library (DPS310/DPS368 barometric pressure sensor with STM32H7 detection)
-- **✅ Complete**: SerialRx library (IBus hardware validated, SBUS implemented, software idle detection)
-- **✅ Complete**: TimerPWM library (hardware PWM for servos/ESCs, 1µs resolution, hardware validated)
-- **✅ Complete**: Betaflight Config Converter (Python tool with PeripheralPins.c validation, ALT variant handling, 53 passing tests)
-- **✅ Complete**: dRehmFlight STM32 port (BETA 1.3 flight controller, 100% flight logic preserved, pending bench validation)
-- **📋 Future**: CRSF protocol support for SerialRx
-
-## Documentation
-
-See `CLAUDE.md` for detailed build instructions, architecture overview, and development guidelines.
-
-This repository is being collaboratively developed with [Claude Code](https://claude.ai/code) for enhanced STM32 Arduino development workflows.
+This repository is collaboratively developed with [Claude Code](https://claude.ai/code).
