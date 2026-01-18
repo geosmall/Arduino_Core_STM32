@@ -169,18 +169,24 @@ Dual-USART validation:
 **Jumper**: PA11 (CN10-14) → PA10 (CN10-33)
 
 ### SBUS_Basic
-SBUS receiver testing (⚠️ not hardware validated yet):
+SBUS receiver testing with multi-board support:
 - **RTT mode**: 15-second timed test with `*STOP*` wildcard for CI/HIL
 - **Serial mode**: Continuous display for Arduino IDE
-- **IMPORTANT**: Requires inverted signal (hardware or software)
+- **Hardware RXINV**: Automatic on H7/F7/G4 via `config.invert_rx = true`
+
+**Supported Boards**:
+| Board | MCU | Hardware RXINV | External Inverter |
+|-------|-----|----------------|-------------------|
+| DevEBox H743 | STM32H7 | ✅ Yes | Not needed |
+| OpenPilot Revolution | STM32F4 | ❌ No | Required |
 
 **Usage**:
 ```bash
-# CI/HIL testing
-./system/ci/aflash.sh libraries/SerialRx/examples/SBUS_Basic --use-rtt --build-id
+# DevEBox H743 (hardware inversion)
+./ci/saflash.sh Arduino_Core_STM32/libraries/SerialRx/examples/SBUS_Basic STM32_Robotics:stm32:FlightCtr:pnum=DEVEBOX_H743
 
-# Arduino IDE
-# Upload via IDE, open Serial Monitor at 115200 baud
+# OpenPilot Revolution (external inverter required)
+./ci/saflash.sh Arduino_Core_STM32/libraries/SerialRx/examples/SBUS_Basic STM32_Robotics:stm32:FlightCtr:pnum=OPEN_REVO
 ```
 
 ## Channel Mapping
@@ -219,22 +225,34 @@ SerialRx (Transport Layer)
 ## SBUS Protocol (Implemented)
 
 **Specifications**:
-- Baudrate: 100000 (inverted signal - requires hardware inverter or GPIO config)
+- Baudrate: 100000 (8E2 framing, inverted signal)
 - Frame: 25 bytes (0x0F header, 22 channel bytes, flags, 0x00 footer)
 - Channels: 16 × 11-bit (0-2047 range)
 - Typical range: 172-1811 (1000-2000 µs equivalent)
 
 **Signal Inversion**:
-SBUS uses inverted UART signal. Options:
-1. STM32: Enable USART RX inversion (RXINV bit in USART_CR2)
-2. External inverter (transistor, 74HC04, etc.)
+SBUS uses an inverted UART signal (idle low instead of idle high). The library provides automatic hardware inversion support via the `invert_rx` config option:
+
+| MCU Family | Hardware RXINV | Notes |
+|------------|----------------|-------|
+| STM32H7 | ✅ Yes | USART_CR2_RXINV bit - no external hardware needed |
+| STM32F7 | ✅ Yes | USART_CR2_RXINV bit - no external hardware needed |
+| STM32G4 | ✅ Yes | USART_CR2_RXINV bit - no external hardware needed |
+| STM32F4 | ❌ No | Requires external inverter circuit |
+
+**External Inverter Options** (for F4):
+- Single NPN transistor with pull-up resistor
+- 74HC04 hex inverter IC
+- Dedicated SBUS inverter module
 
 **Example** (SBUS_Basic):
 ```cpp
 SerialRx::Config config;
+config.serial = &SerialRC;
 config.rx_protocol = SerialRx::SBUS;
 config.baudrate = 100000;
-// Note: Requires signal inversion hardware/software
+config.invert_rx = true;  // Enable hardware RX inversion (H7/F7/G4)
+                          // On F4: no effect, external inverter required
 rc.begin(config);
 ```
 

@@ -216,17 +216,18 @@
 #endif
 
 // UART Definitions
+// USART3 on PD8/PD9 for debug Serial (matches MATEK H743, reserves USART1 for RC receiver)
 #ifndef SERIAL_UART_INSTANCE
-  #define SERIAL_UART_INSTANCE  101
+  #define SERIAL_UART_INSTANCE  3
 #endif
 
 // Default pin used for generic 'Serial' instance
 // Mandatory for Firmata
 #ifndef PIN_SERIAL_RX
-  #define PIN_SERIAL_RX         PA10
+  #define PIN_SERIAL_RX         PD9
 #endif
 #ifndef PIN_SERIAL_TX
-  #define PIN_SERIAL_TX         PA9
+  #define PIN_SERIAL_TX         PD8
 #endif
 
 // Extra HAL modules

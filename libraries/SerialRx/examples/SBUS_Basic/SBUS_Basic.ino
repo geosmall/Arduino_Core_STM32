@@ -10,21 +10,33 @@
  *   RC Receiver VCC  → 5V (if receiver needs 5V power)
  *
  * IMPORTANT: SBUS uses inverted signal!
- *   - STM32: Enable USART RX inversion (RXINV bit in USART_CR2)
- *   - OR use external inverter (transistor, 74HC04, etc.)
+ *   - STM32F7/H7/G4: Hardware USART RX inversion (RXINV bit in USART_CR2)
+ *   - STM32F4: Requires external inverter (transistor, 74HC04, etc.)
  *
  * Protocol: SBUS @ 100000 baud
  * Expected: 16 RC channels (0-2047 range, typical 172-1811)
  *
- * Board Configuration (from BoardConfig::rc_receiver):
- *   HIL-006 (DevEBox H743): Uses USART1 (RX=PA10) @ 100000 baud
+ * Supported Boards:
+ *   - DEVEBOX_H743 (HIL-006): H7 with hardware RXINV support
+ *   - OPEN_REVO: F4 requires external inverter circuit
  *
- * Note: STM32H7 UART supports hardware RX inversion (RXINV bit)
+ * Build:
+ *   ./ci/saflash.sh Arduino_Core_STM32/libraries/SerialRx/examples/SBUS_Basic STM32_Robotics:stm32:FlightCtr:pnum=DEVEBOX_H743
+ *   ./ci/saflash.sh Arduino_Core_STM32/libraries/SerialRx/examples/SBUS_Basic STM32_Robotics:stm32:FlightCtr:pnum=OPEN_REVO
  */
 
 #include <SerialRx.h>
-#include <ci_log.h>
-#include "../../../../targets/DEVEBOX_H743_HIL006.h"
+
+// Board configuration - multi-board support
+#if defined(ARDUINO_DEVEBOX_H743)
+  #include "../../../../targets/DEVEBOX_H743_HIL006.h"
+  #define BOARD_NAME "DevEBox H743 (HIL-006)"
+#elif defined(ARDUINO_OPEN_REVO)
+  #include "../../../../targets/OPEN-REVO.h"
+  #define BOARD_NAME "OpenPilot Revolution (F405)"
+#else
+  #error "Unsupported board. Use DEVEBOX_H743 or OPEN_REVO."
+#endif
 
 // Create HardwareSerial instance using BoardConfig
 HardwareSerial SerialRC(BoardConfig::rc_receiver.rx_pin,
@@ -34,14 +46,13 @@ HardwareSerial SerialRC(BoardConfig::rc_receiver.rx_pin,
 SerialRx rc;
 
 void setup() {
-  // Initialize Serial for debug output (not needed with RTT)
-#ifndef USE_RTT
   Serial.begin(115200);
   while (!Serial && millis() < 3000);
-#endif
 
-  CI_LOG("SBUS RC Receiver - Basic Example\n");
-  CI_LOG("==================================\n");
+  Serial.println("SBUS RC Receiver - Basic Example");
+  Serial.println("==================================");
+  Serial.print("Board: ");
+  Serial.println(BOARD_NAME);
 
   // Configure RC receiver using BoardConfig
   // Note: SBUS uses 100000 baud (not 115200)
@@ -51,44 +62,45 @@ void setup() {
   config.baudrate = 100000;  // SBUS protocol baudrate (override BoardConfig default)
   config.timeout_ms = BoardConfig::rc_receiver.timeout_ms;
   config.idle_threshold_us = BoardConfig::rc_receiver.idle_threshold_us;
+  config.invert_rx = true;   // SBUS uses inverted signal - enable hardware RXINV
 
   if (rc.begin(config)) {
-    CI_LOGF("RC Receiver initialized (RX=0x%02X, TX=0x%02X, %lu baud)\n",
-            BoardConfig::rc_receiver.rx_pin,
-            BoardConfig::rc_receiver.tx_pin,
-            config.baudrate);
-    CI_LOGF("Software idle detection: %s (%lu us threshold)\n",
-            config.idle_threshold_us > 0 ? "ENABLED" : "DISABLED",
-            config.idle_threshold_us);
+    Serial.print("RC Receiver initialized (RX=0x");
+    Serial.print(BoardConfig::rc_receiver.rx_pin, HEX);
+    Serial.print(", TX=0x");
+    Serial.print(BoardConfig::rc_receiver.tx_pin, HEX);
+    Serial.print(", ");
+    Serial.print(config.baudrate);
+    Serial.println(" baud)");
+    Serial.print("Software idle detection: ");
+    Serial.print(config.idle_threshold_us > 0 ? "ENABLED" : "DISABLED");
+    Serial.print(" (");
+    Serial.print(config.idle_threshold_us);
+    Serial.println(" us threshold)");
 
-    // Enable USART RX inversion for SBUS inverted signal
-    // STM32 HAL function (requires access to UART handle)
-    // Note: This may require custom HardwareSerial modification
-    CI_LOG("WARNING: SBUS requires inverted signal!\n");
-    CI_LOG("  - Enable USART RX inversion in hardware, OR\n");
-    CI_LOG("  - Use external signal inverter\n");
+#if defined(USART_CR2_RXINV)
+    Serial.println("RX signal inversion: ENABLED (hardware RXINV)");
+#else
+    Serial.println("WARNING: Hardware RX inversion not supported on this MCU!");
+    Serial.println("  External inverter circuit required for SBUS.");
+#endif
 
-    CI_LOG("Waiting for SBUS frames...\n\n");
+    Serial.println("Waiting for SBUS frames...\n");
   } else {
-    CI_LOG("ERROR: Failed to initialize RC receiver!\n");
+    Serial.println("ERROR: Failed to initialize RC receiver!");
+    Serial.println("*STOP*");
     while (1);  // Halt on error
   }
-
-  CI_BUILD_INFO();
-  CI_READY_TOKEN();
 }
 
 // Track signal state for failsafe reporting
 static bool signal_lost = false;
 
-// HIL testing mode: Run for 15 seconds then exit
-#ifdef USE_RTT
+// Test duration: 15 seconds then exit
 static const uint32_t TEST_DURATION_MS = 15000;
 static uint32_t test_start_time = 0;
-#endif
 
 void loop() {
-#ifdef USE_RTT
   // Initialize test timer on first loop iteration
   if (test_start_time == 0) {
     test_start_time = millis();
@@ -96,11 +108,17 @@ void loop() {
 
   // Check if 15-second test duration elapsed
   if (millis() - test_start_time >= TEST_DURATION_MS) {
-    CI_LOG("\n=== 15-Second Test Complete ===\n");
-    CI_LOG("*STOP*\n");
-    while (1);  // Halt for deterministic HIL testing
+    Serial.println("\n=== 15-Second Test Complete ===");
+    Serial.print("Frames received: ");
+    Serial.println(rc.getFramesReceived());
+    Serial.print("Frames failed:   ");
+    Serial.println(rc.getFramesFailed());
+    Serial.print("Loss rate:       ");
+    Serial.print(rc.getFrameLossPercent(), 2);
+    Serial.println("%");
+    Serial.println("*STOP*");
+    while (1);  // Halt for deterministic testing
   }
-#endif
 
   // Update RC receiver (polls Serial.available())
   rc.update();
@@ -109,22 +127,36 @@ void loop() {
   if (rc.available()) {
     RCMessage msg;
     if (rc.getMessage(&msg)) {
-      // Print first 4 channels
-      CI_LOGF("Ch1: %4d  Ch2: %4d  Ch3: %4d  Ch4: %4d  ",
-              msg.channels[0], msg.channels[1],
-              msg.channels[2], msg.channels[3]);
+      // Print at 10 Hz to avoid flooding output
+      static uint32_t last_print = 0;
+      if (millis() - last_print >= 100) {
+        last_print = millis();
 
-      // Print flags if present
-      if (msg.error_flags) {
-        CI_LOGF("Flags: 0x%02X ", msg.error_flags);
-      }
+        // Print first 4 channels
+        Serial.print("Ch1:");
+        Serial.print(msg.channels[0]);
+        Serial.print(" Ch2:");
+        Serial.print(msg.channels[1]);
+        Serial.print(" Ch3:");
+        Serial.print(msg.channels[2]);
+        Serial.print(" Ch4:");
+        Serial.print(msg.channels[3]);
 
-      // Print all 16 channels on second line
-      CI_LOGF("All: ");
-      for (int i = 0; i < 16; i++) {
-        CI_LOGF("%d:%4d ", i + 1, msg.channels[i]);
+        // Print flags if present
+        if (msg.error_flags) {
+          Serial.print(" Flags:0x");
+          Serial.print(msg.error_flags, HEX);
+        }
+
+        // Print all 16 channels
+        Serial.print(" | ");
+        for (int i = 0; i < 16; i++) {
+          Serial.print(msg.channels[i]);
+          Serial.print(" ");
+        }
+        Serial.print("| Rx:");
+        Serial.println(rc.getFramesReceived());
       }
-      CI_LOG("\n");
     }
   }
 
@@ -132,15 +164,18 @@ void loop() {
   if (rc.timeout(1000)) {
     if (!signal_lost) {
       uint32_t time_since = rc.timeSinceLastMessage();
-      CI_LOGF("WARNING: RC signal timeout (%lu ms since last message)\n", time_since);
+      Serial.print("WARNING: RC signal timeout (");
+      Serial.print(time_since);
+      Serial.println(" ms since last message)");
       signal_lost = true;
     }
   } else {
     if (signal_lost) {
-      CI_LOG("RC signal recovered\n");
+      Serial.println("RC signal recovered");
       signal_lost = false;
     }
   }
 
-  delay(100);  // Print at 10 Hz
+  // No delay - fast polling required to avoid UART buffer overflow
+  // SBUS sends at ~70 Hz, UART buffer is only 64 bytes (2-3 frames)
 }

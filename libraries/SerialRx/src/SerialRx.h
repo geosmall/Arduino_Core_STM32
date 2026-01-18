@@ -40,6 +40,10 @@ public:
         bool use_dma;              // Enable DMA reception (default: false)
         uint8_t* dma_rx_buf;       // User-provided DMA buffer (use SERIAL_DMA_BUFFER on H7)
         size_t dma_rx_size;        // Buffer size (256 recommended)
+        // Signal inversion (required for SBUS)
+        bool invert_rx;            // Enable UART RX signal inversion (default: false)
+                                   // Supported on STM32F7, H7, G4 (hardware RXINV)
+                                   // F4 requires external inverter circuit
 
         // Default constructor
         Config()
@@ -50,7 +54,8 @@ public:
             , idle_threshold_us(0)
             , use_dma(false)
             , dma_rx_buf(nullptr)
-            , dma_rx_size(0) {}
+            , dma_rx_size(0)
+            , invert_rx(false) {}
     };
 
     /**

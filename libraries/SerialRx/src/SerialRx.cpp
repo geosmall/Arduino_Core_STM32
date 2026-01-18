@@ -56,6 +56,10 @@ bool SerialRx::begin(const Config& config) {
     }
 
     // Initialize serial port (DMA or interrupt mode)
+    // SBUS requires 8E2 framing (8 data bits, even parity, 2 stop bits)
+    // IBus uses standard 8N1 framing
+    uint32_t serial_config = (protocol_ == SBUS) ? SERIAL_8E2 : SERIAL_8N1;
+
     dma_enabled_ = false;
     if (config.use_dma && config.dma_rx_buf != nullptr && config.dma_rx_size > 0) {
         // Try DMA mode - reduces interrupt overhead for continuous streams
@@ -64,11 +68,31 @@ bool SerialRx::begin(const Config& config) {
         } else {
             // DMA failed (wrong buffer region on H7, unsupported UART, etc.)
             // Fall back to interrupt mode
-            serial_->begin(config.baudrate);
+            serial_->begin(config.baudrate, serial_config);
         }
     } else {
         // Standard interrupt mode
-        serial_->begin(config.baudrate);
+        serial_->begin(config.baudrate, serial_config);
+    }
+
+    // Configure RX signal inversion if requested (required for SBUS)
+    // Hardware support: STM32F7, H7, G4, L4 (USART_CR2_RXINV bit)
+    // Not supported: STM32F4 - requires external inverter circuit
+    if (config.invert_rx) {
+#if defined(USART_CR2_RXINV)
+        // Hardware RX inversion supported - set RXINV bit in CR2
+        // Note: RXINV can only be modified when UART is disabled (UE=0)
+        UART_HandleTypeDef* huart = serial_->getHandle();
+        if (huart != nullptr && huart->Instance != nullptr) {
+            // Disable UART
+            huart->Instance->CR1 &= ~USART_CR1_UE;
+            // Set RXINV bit
+            huart->Instance->CR2 |= USART_CR2_RXINV;
+            // Re-enable UART
+            huart->Instance->CR1 |= USART_CR1_UE;
+        }
+#endif
+        // F4 and other unsupported families: no action, external inverter required
     }
 
     return true;
@@ -121,8 +145,9 @@ void SerialRx::update() {
         if (expect_frame_start_) {
             expect_frame_start_ = false;
 
-            // After idle, first byte MUST be frame start (0x20 for IBus)
-            if (byte != 0x20) {
+            // After idle, first byte MUST be frame start (protocol-specific)
+            uint8_t expected_header = (protocol_ == SBUS) ? 0x0F : 0x20;
+            if (byte != expected_header) {
                 // Not a valid frame start after idle → discard byte
                 continue;
             }
