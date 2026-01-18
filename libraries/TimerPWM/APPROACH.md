@@ -170,7 +170,7 @@ void PWMOutputBank::Init(TIM_TypeDef *timer, uint32_t frequency_hz) {
 ### BoardConfig Integration Pattern
 ```cpp
 #include <PWMOutputBank.h>
-#include "targets/NUCLEO_F411RE_LITTLEFS.h"
+#include "targets/NUCLEO_F411RE_HIL001.h"
 
 PWMOutputBank pwm;
 auto& ch = BoardConfig::Servo::pwm_output;

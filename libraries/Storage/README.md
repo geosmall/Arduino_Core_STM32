@@ -60,7 +60,7 @@ Unified storage interface that abstracts LittleFS (SPI flash) and SDFS (SD card)
 ```cpp
 #include <Storage.h>
 #include <BoardStorage.h>
-#include "targets/NUCLEO_F411RE_LITTLEFS.h"  // or your board config
+#include "targets/NUCLEO_F411RE_HIL001.h"  // or your board config
 
 void setup() {
     // Initialize with board configuration
@@ -150,7 +150,7 @@ Storage inherits from the Arduino `FS` base class (defined in `cores/arduino/FS.
 Storage integrates with the BoardConfig system for automatic hardware configuration:
 
 ```cpp
-// In targets/NUCLEO_F411RE_LITTLEFS.h
+// In targets/NUCLEO_F411RE_HIL001.h
 namespace BoardConfig {
     constexpr StorageConfig storage = {
         .backend = StorageBackend::LITTLEFS,
@@ -164,7 +164,7 @@ namespace BoardConfig {
 ```
 
 The backend is selected at compile time based on your target header:
-- `NUCLEO_F411RE_LITTLEFS.h` → LittleFS on SPI flash
+- `NUCLEO_F411RE_HIL001.h` → LittleFS on SPI flash
 - `NUCLEO_F411RE_SDFS.h` → SDFS on SD card
 - `BKMN_NERO.h` → Board-specific storage configuration
 
@@ -182,7 +182,7 @@ The Storage library provides the backend for minIniStorage INI configuration:
 
 ```cpp
 #include <minIniStorage.h>
-#include "targets/NUCLEO_F411RE_LITTLEFS.h"
+#include "targets/NUCLEO_F411RE_HIL001.h"
 
 minIniStorage config("settings.ini");
 

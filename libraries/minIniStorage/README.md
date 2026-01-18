@@ -41,7 +41,7 @@ INI file configuration management integrated with the Storage abstraction layer.
 
 ```cpp
 #include <minIniStorage.h>
-#include "targets/NUCLEO_F411RE_LITTLEFS.h"
+#include "targets/NUCLEO_F411RE_HIL001.h"
 
 minIniStorage config("settings.ini");
 

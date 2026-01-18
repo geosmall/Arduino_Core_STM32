@@ -5,9 +5,9 @@
 // Include board configuration for StorageBackend enum
 #if defined(ARDUINO_BLACKPILL_F411CE)
 #include "../../../targets/BLACKPILL_F411CE.h"
-#elif defined(TARGET_NUCLEO_F411RE_LITTLEFS)
+#elif defined(TARGET_NUCLEO_F411RE_HIL001)
 // Nucleo F411RE with LittleFS SPI flash rig
-#include "../../../targets/NUCLEO_F411RE_LITTLEFS.h"
+#include "../../../targets/NUCLEO_F411RE_HIL001.h"
 #else
 // Default to NUCLEO_F411RE with SDFS
 #include "../../../targets/NUCLEO_F411RE.h"

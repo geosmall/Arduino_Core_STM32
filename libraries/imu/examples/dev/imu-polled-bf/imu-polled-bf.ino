@@ -57,7 +57,7 @@ extern "C" void putchar_(char c) {
 #if defined(ARDUINO_BLACKPILL_F411CE)
 #include "../../../../targets/BLACKPILL_F411CE.h"
 #else
-#include "../../../../targets/NUCLEO_F411RE_LITTLEFS.h"
+#include "../../../../targets/NUCLEO_F411RE_HIL001.h"
 #endif
 
 // ============================================================================

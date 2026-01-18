@@ -6,7 +6,7 @@
 
 ## Current TimerPWM Integration Pattern
 
-### Existing Pattern: NUCLEO_F411RE_LITTLEFS.h
+### Existing Pattern: NUCLEO_F411RE_HIL001.h
 
 ```cpp
 namespace BoardConfig {
@@ -47,7 +47,7 @@ namespace BoardConfig {
 
 ```cpp
 #include <PWMOutputBank.h>
-#include "targets/NUCLEO_F411RE_LITTLEFS.h"
+#include "targets/NUCLEO_F411RE_HIL001.h"
 
 PWMOutputBank esc_pwm;
 

@@ -42,7 +42,7 @@
 
 // Board configuration
 #if defined(ARDUINO_NUCLEO_F411RE)
-#include "../../../../targets/NUCLEO_F411RE_LITTLEFS.h"
+#include "../../../../targets/NUCLEO_F411RE_HIL001.h"
 #else
 #include "../../../../targets/BLACKPILL_F411CE.h"
 #endif

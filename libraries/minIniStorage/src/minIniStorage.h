@@ -9,7 +9,7 @@
  *
  *  Usage:
  *    #include <minIniStorage.h>
- *    #include "targets/NUCLEO_F411RE_LITTLEFS.h"  // or SDFS variant
+ *    #include "targets/NUCLEO_F411RE_HIL001.h"  // or SDFS variant
  *
  *    minIniStorage config("settings.ini");
  *    std::string ip = config.gets("network", "ip_address", "192.168.1.1");

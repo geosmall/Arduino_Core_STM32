@@ -19,7 +19,7 @@
   #include "../../../../targets/BLACKPILL_F411CE.h"
   #define BOARD_NAME "BLACKPILL_F411CE"
 #elif defined(ARDUINO_NUCLEO_F411RE)
-  #include "../../../../targets/NUCLEO_F411RE_LITTLEFS.h"
+  #include "../../../../targets/NUCLEO_F411RE_HIL001.h"
   #define BOARD_NAME "NUCLEO_F411RE"
 #else
   #error "Unsupported board variant. Supported: BLACKPILL_F411CE, NUCLEO_F411RE, MATEK_H743VI"

@@ -1,9 +1,9 @@
 #pragma once
 #include "config/ConfigTypes.h"
 
-// NUCLEO F411RE HIL Test Rig Configuration
+// NUCLEO F411RE HIL-001 Test Rig Configuration
 // Hardware: STM32F411RE Nucleo with breadboard peripherals
-// Validated: W25Q128JV 16MB SPI flash, various IMU breakout boards
+// Validated: ICM-42688P IMU, W25Q128JV 16MB SPI flash
 //
 // Timer Allocation:
 //   TIM1 @ 2 kHz  - Motor outputs (PA8/D7, PA9/D8, PA10/D2)

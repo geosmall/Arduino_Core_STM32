@@ -534,7 +534,7 @@ GND          →   GND
 **BoardConfig Integration Pattern**:
 ```cpp
 // Current working integration pattern (validated on hardware)
-#include "targets/NUCLEO_F411RE_LITTLEFS.h"
+#include "targets/NUCLEO_F411RE_HIL001.h"
 
 // SPIClass constructor with BoardConfig (working pattern)
 SPIClass spi(BoardConfig::imu.spi.mosi_pin,

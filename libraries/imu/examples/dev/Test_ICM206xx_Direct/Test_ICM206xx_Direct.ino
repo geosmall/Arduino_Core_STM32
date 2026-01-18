@@ -33,7 +33,7 @@
 #include "../../../../targets/BKMN-NERO.h"
 #elif defined(ARDUINO_NUCLEO_F411RE)
 // NUCLEO_F411RE development board
-#include "../../../../targets/NUCLEO_F411RE_LITTLEFS.h"
+#include "../../../../targets/NUCLEO_F411RE_HIL001.h"
 #else
 #error "This example requires NERO F7 (FQBN: STM32_Robotics:stm32:FlightCtr:pnum=BKMN_NERO) or NUCLEO_F411RE"
 #endif

@@ -22,8 +22,8 @@
 
 // Board target configuration - update to match your hardware setup:
 // For SDFS (SD Card): NUCLEO_F411RE_SDFS.h
-// For LittleFS (SPI Flash): NUCLEO_F411RE_LITTLEFS.h
-#include "../../../../../targets/NUCLEO_F411RE_LITTLEFS.h"
+// For LittleFS (SPI Flash): NUCLEO_F411RE_HIL001.h
+#include "../../../../../targets/NUCLEO_F411RE_HIL001.h"
 
 void setup() {
   Serial.begin(115200);

@@ -5,7 +5,7 @@
 // Uses Arduino pin macros for compatibility with existing code
 namespace BoardConfig {
   // Storage: No storage hardware attached by default on base Nucleo
-  // Use NUCLEO_F411RE_LITTLEFS.h or NUCLEO_F411RE_SDFS.h for storage testing
+  // Use NUCLEO_F411RE_HIL001.h or NUCLEO_F411RE_SDFS.h for storage testing
   static constexpr StorageConfig storage{StorageBackend::NONE, 0, 0, 0, 0, 0};
 
   // IMU: SPI connections via jumpers (reduced speed for reliability)

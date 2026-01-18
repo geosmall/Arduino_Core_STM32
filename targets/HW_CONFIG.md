@@ -46,7 +46,7 @@ This eliminates circular dependencies by keeping configuration external to the c
 ├── config/
 │   └── ConfigTypes.h            # Configuration structures (SPI, UART, Storage, etc.)
 ├── NUCLEO_F411RE.h              # Base development board configuration
-├── NUCLEO_F411RE_LITTLEFS.h     # Development board with LittleFS storage
+├── NUCLEO_F411RE_HIL001.h     # Development board with LittleFS storage
 ├── NUCLEO_F411RE_SDFS.h         # Development board with SDFS storage
 ├── BLACKPILL_F411CE.h           # BlackPill F411CE board configuration
 ├── NOXE_V3.h                    # Production flight controller configuration
@@ -162,7 +162,7 @@ namespace BoardConfig {
 // Uses Arduino pin macros for compatibility with existing code
 namespace BoardConfig {
   // Storage: No storage hardware attached by default on base Nucleo
-  // Use NUCLEO_F411RE_LITTLEFS.h or NUCLEO_F411RE_SDFS.h for storage testing
+  // Use NUCLEO_F411RE_HIL001.h or NUCLEO_F411RE_SDFS.h for storage testing
   static constexpr StorageConfig storage{StorageBackend::NONE, 0, 0, 0, 0, 0, 0};
 
   // IMU: SPI connections via jumpers (reduced speed for reliability)
@@ -179,7 +179,7 @@ namespace BoardConfig {
 }
 ```
 
-**With LittleFS Storage** (`targets/NUCLEO_F411RE_LITTLEFS.h`):
+**With LittleFS Storage** (`targets/NUCLEO_F411RE_HIL001.h`):
 ```cpp
 #pragma once
 #include "config/ConfigTypes.h"
@@ -333,7 +333,7 @@ void setup() {
 ```cpp
 #include <SerialRx.h>
 #include <ci_log.h>
-#include "targets/NUCLEO_F411RE_LITTLEFS.h"
+#include "targets/NUCLEO_F411RE_HIL001.h"
 
 // Create HardwareSerial instance using BoardConfig
 HardwareSerial SerialRC(BoardConfig::rc_receiver.rx_pin,
@@ -375,7 +375,7 @@ void loop() {
 #include <Storage.h>
 #include <BoardStorage.h>
 #include "../../../../ci_log.h"
-#include "../../targets/NUCLEO_F411RE_LITTLEFS.h"
+#include "../../targets/NUCLEO_F411RE_HIL001.h"
 
 void setup() {
   CI_LOG("Generic Storage LittleFS Unit Tests\n");
@@ -475,7 +475,7 @@ The Arduino build system automatically sets the correct `ARDUINO_*` define based
 - `ARDUINO_BLACKPILL_F411CE` → `targets/BLACKPILL_F411CE.h`
 - `ARDUINO_NOXE_V3` → `targets/NOXE_V3.h`
 
-Tests can override default configuration by explicitly including specific target headers (e.g., `NUCLEO_F411RE_LITTLEFS.h`).
+Tests can override default configuration by explicitly including specific target headers (e.g., `NUCLEO_F411RE_HIL001.h`).
 
 ## Benefits
 
