@@ -49,6 +49,16 @@ extern uint32_t millis(void) ;
 extern uint32_t micros(void) ;
 
 /**
+ * \brief Returns the number of microseconds since the Arduino board began running the current program.
+ *
+ * This 64-bit version overflows after approximately 49 days (limited by millis()).
+ * ISR-safe: automatically detects interrupt context and uses appropriate method.
+ *
+ * \return Number of microseconds since the program started (uint64_t)
+ */
+extern uint64_t micros64(void) ;
+
+/**
  * \brief Pauses the program for the amount of time (in milliseconds) specified as parameter.
  * (There are 1000 milliseconds in a second.)
  *

@@ -33,9 +33,14 @@ typedef enum {
 
 /* Exported constants --------------------------------------------------------*/
 /* Exported macro ------------------------------------------------------------*/
+/* Exported variables ------------------------------------------------------- */
+extern uint32_t usTicks;  /* CPU cycles per microsecond */
+
 /* Exported functions ------------------------------------------------------- */
 uint32_t getCurrentMillis(void);
 uint32_t getCurrentMicros(void);
+uint64_t getCurrentMicros64(void);
+uint64_t getCurrentMicros64ISR(void);
 
 void configIPClock(void);
 void enableClock(sourceClock_t source);

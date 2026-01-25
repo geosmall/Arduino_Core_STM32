@@ -10,6 +10,7 @@
  *
  *******************************************************************************
  */
+#include "atomic.h"
 #include "backup.h"
 #include "clock.h"
 #include "lock_resource.h"
@@ -21,24 +22,63 @@
 extern "C" {
 #endif
 
+/* ISR-safe timing support variables */
+static volatile uint32_t sysTickValStamp = 0;  /* SysTick->VAL captured at each ms tick */
+static volatile int sysTickPending = 0;        /* Flag: rollover detected but handler not yet run */
+uint32_t usTicks = 0;                          /* CPU cycles per microsecond, set in hw_config_init() */
+
 /**
-  * @brief  Function called to read the current micro second
-  * @param  None
-  * @retval None
+  * @brief  ISR-safe version of getCurrentMicros64
+  * @note   Uses ATOMIC_BLOCK to safely read timing values from interrupt context
+  * @retval Current microsecond count as 64-bit value
+  */
+uint64_t getCurrentMicros64ISR(void)
+{
+  uint32_t ms, pending, cycle_cnt;
+  ATOMIC_BLOCK(NVIC_PRIO_MAX) {
+    cycle_cnt = SysTick->VAL;
+    if (SysTick->CTRL & SysTick_CTRL_COUNTFLAG_Msk) {
+      /* SysTick rolled over but handler hasn't run yet */
+      sysTickPending = 1;
+      cycle_cnt = SysTick->VAL;  /* Re-read after rollover */
+    }
+    ms = HAL_GetTick();
+    pending = sysTickPending;
+  }
+  const uint32_t partial = (usTicks * 1000U - cycle_cnt) / usTicks;
+  return ((uint64_t)(ms + pending) * 1000ULL) + partial;
+}
+
+/**
+  * @brief  Read current microsecond count as 64-bit value
+  * @note   ISR-safe: auto-detects interrupt context and uses appropriate method
+  * @retval Current microsecond count (overflows at ~49 days due to millis() limit)
+  */
+uint64_t getCurrentMicros64(void)
+{
+  /* Use ISR version if called from interrupt context or with elevated BASEPRI */
+  if ((SCB->ICSR & SCB_ICSR_VECTACTIVE_Msk) || (__get_BASEPRI())) {
+    return getCurrentMicros64ISR();
+  }
+
+  uint32_t ms, cycle_cnt;
+  do {
+    ms = HAL_GetTick();
+    cycle_cnt = SysTick->VAL;
+  } while (ms != HAL_GetTick() || cycle_cnt > sysTickValStamp);
+
+  const uint32_t partial = (usTicks * 1000U - cycle_cnt) / usTicks;
+  return ((uint64_t)ms * 1000ULL) + partial;
+}
+
+/**
+  * @brief  Read current microsecond count (32-bit, legacy API)
+  * @note   ISR-safe wrapper around getCurrentMicros64()
+  * @retval Current microsecond count (overflows at ~71 minutes)
   */
 uint32_t getCurrentMicros(void)
 {
-  uint32_t m0 = HAL_GetTick();
-  __IO uint32_t u0 = SysTick->VAL;
-  uint32_t m1 = HAL_GetTick();
-  __IO uint32_t u1 = SysTick->VAL;
-  const uint32_t tms = SysTick->LOAD + 1;
-
-  if (m1 != m0) {
-    return (m1 * 1000 + ((tms - u1) * 1000) / tms);
-  } else {
-    return (m0 * 1000 + ((tms - u0) * 1000) / tms);
-  }
+  return (uint32_t)getCurrentMicros64();
 }
 
 /**
@@ -59,11 +99,16 @@ void noOsSystickHandler()
 void osSystickHandler() __attribute__((weak, alias("noOsSystickHandler")));
 /**
   * @brief  Function called when the tick interruption falls
+  * @note   Updates sysTickValStamp and clears sysTickPending for ISR-safe timing
   * @param  None
   * @retval None
   */
 void SysTick_Handler(void)
 {
+  ATOMIC_BLOCK(NVIC_PRIO_MAX) {
+    sysTickPending = 0;
+    sysTickValStamp = SysTick->VAL;
+  }
   HAL_IncTick();
   HAL_SYSTICK_IRQHandler();
   osSystickHandler();

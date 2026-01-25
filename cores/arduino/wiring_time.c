@@ -34,6 +34,12 @@ uint32_t micros(void)
   return getCurrentMicros();
 }
 
+// 64-bit version of micros - ISR-safe
+uint64_t micros64(void)
+{
+  return getCurrentMicros64();
+}
+
 void delay(uint32_t ms)
 {
   if (ms != 0) {

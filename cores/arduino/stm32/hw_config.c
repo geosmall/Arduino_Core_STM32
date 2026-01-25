@@ -109,6 +109,9 @@ void hw_config_init(void)
   /* Configure the system clock */
   SystemClock_Config();
 
+  /* Configure cycles per microsecond for micros64() */
+  usTicks = SystemCoreClock / 1000000;
+
   /* Initialize the CRC */
 #if defined(HAL_CRC_MODULE_ENABLED)
   HAL_CRC_Init(&hcrc);
