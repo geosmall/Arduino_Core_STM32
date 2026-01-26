@@ -22,10 +22,24 @@
 extern "C" {
 #endif
 
-/* ISR-safe timing support variables */
-static volatile uint32_t sysTickValStamp = 0;  /* SysTick->VAL captured at each ms tick */
-static volatile int sysTickPending = 0;        /* Flag: rollover detected but handler not yet run */
-uint32_t usTicks = 0;                          /* CPU cycles per microsecond, set in hw_config_init() */
+/*
+ * ISR-safe timing support variables
+ *
+ * sysTickValStamp: SysTick->VAL captured in SysTick_Handler immediately after reload.
+ *   Since SysTick counts DOWN from LOAD to 0, this value is always near LOAD (e.g., ~99999
+ *   for 100MHz). Used by main-thread reads to detect if SysTick rolled over mid-read:
+ *   if cycle_cnt > sysTickValStamp, we read a post-reload VAL but ms hasn't updated yet.
+ *
+ * sysTickPending: Set by ISR-context reads when COUNTFLAG indicates rollover occurred
+ *   but SysTick_Handler hasn't run yet. Cleared by SysTick_Handler. When set, add 1ms
+ *   to the result to account for the pending tick increment.
+ *
+ * usTicks: CPU cycles per microsecond (e.g., 100 for 100MHz). Set once during
+ *   hw_config_init() as SystemCoreClock / 1000000.
+ */
+static volatile uint32_t sysTickValStamp = 0;
+static volatile int sysTickPending = 0;
+uint32_t usTicks = 0;
 
 /**
   * @brief  ISR-safe version of getCurrentMicros64
@@ -37,10 +51,16 @@ uint64_t getCurrentMicros64ISR(void)
   uint32_t ms, pending, cycle_cnt;
   ATOMIC_BLOCK(NVIC_PRIO_MAX) {
     cycle_cnt = SysTick->VAL;
+    /*
+     * COUNTFLAG (bit 16 of SysTick->CTRL) is set by hardware when SysTick counts
+     * from 1 to 0, and cleared by reading SysTick->CTRL. If set, SysTick rolled
+     * over but SysTick_Handler hasn't run yet (we're blocking it via BASEPRI).
+     * Set sysTickPending so we add 1ms to compensate, and re-read VAL to get
+     * the post-reload value.
+     */
     if (SysTick->CTRL & SysTick_CTRL_COUNTFLAG_Msk) {
-      /* SysTick rolled over but handler hasn't run yet */
       sysTickPending = 1;
-      cycle_cnt = SysTick->VAL;  /* Re-read after rollover */
+      cycle_cnt = SysTick->VAL;
     }
     ms = HAL_GetTick();
     pending = sysTickPending;
@@ -61,6 +81,13 @@ uint64_t getCurrentMicros64(void)
     return getCurrentMicros64ISR();
   }
 
+  /*
+   * Lock-free read for main thread. Loop until we get a consistent pair:
+   *   1. ms != HAL_GetTick(): SysTick_Handler ran between our two reads
+   *   2. cycle_cnt > sysTickValStamp: We read VAL after it reloaded but before
+   *      SysTick_Handler updated ms. Since sysTickValStamp is captured right
+   *      after reload (~LOAD value), a larger cycle_cnt means we caught a stale ms.
+   */
   uint32_t ms, cycle_cnt;
   do {
     ms = HAL_GetTick();
@@ -105,6 +132,12 @@ void osSystickHandler() __attribute__((weak, alias("noOsSystickHandler")));
   */
 void SysTick_Handler(void)
 {
+  /*
+   * ATOMIC_BLOCK here protects against a higher-priority ISR (priority 0) calling
+   * getCurrentMicros64ISR() and seeing inconsistent values (e.g., sysTickPending=0
+   * but old sysTickValStamp). Also provides memory barrier to prevent reordering.
+   * Cost is minimal (~4 cycles) and ensures correctness for nested interrupt scenarios.
+   */
   ATOMIC_BLOCK(NVIC_PRIO_MAX) {
     sysTickPending = 0;
     sysTickValStamp = SysTick->VAL;
