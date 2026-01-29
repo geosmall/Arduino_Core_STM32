@@ -247,12 +247,14 @@ void schedulerResetTaskStatistics(cfTaskId_e taskId)
 
 // ARDUINO: INav uses schedulerInit(void) with global cfTasks[] and compile-time TASK_COUNT
 // Arduino passes task array and count at runtime (library compiles before sketch defines TASK_COUNT)
-void schedulerInit(cfTask_t* tasks, uint8_t taskCount)
+// Returns false if taskCount > SCHEDULER_MAX_TASKS (queue cannot hold all tasks)
+bool schedulerInit(cfTask_t* tasks, uint8_t taskCount)
 {
     cfTasksPtr = tasks;
     schedulerTaskCount = taskCount;
     queueClear();
     queueAdd(&cfTasksPtr[TASK_SYSTEM]);
+    return (taskCount <= SCHEDULER_MAX_TASKS);
 }
 
 void FAST_CODE NOINLINE scheduler(void)

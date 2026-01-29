@@ -159,7 +159,8 @@ timeDelta_t getTaskDeltaTime(cfTaskId_e taskId);
 void schedulerResetTaskStatistics(cfTaskId_e taskId);
 
 // ARDUINO: INav uses schedulerInit(void) with global cfTasks[]; we accept array and count
-void schedulerInit(cfTask_t* tasks, uint8_t taskCount);
+// Returns false if taskCount > SCHEDULER_MAX_TASKS (queue cannot hold all tasks)
+bool schedulerInit(cfTask_t* tasks, uint8_t taskCount);
 void scheduler(void);
 void taskSystem(timeUs_t currentTimeUs);
 void taskRunRealtimeCallbacks(timeUs_t currentTimeUs);

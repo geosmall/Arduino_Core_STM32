@@ -162,7 +162,7 @@ void loop() {
 
 | Function | Description |
 |----------|-------------|
-| `schedulerInit(cfTasks, TASK_COUNT)` | Initialize scheduler with task array and count, enable TASK_SYSTEM |
+| `schedulerInit(cfTasks, TASK_COUNT)` | Initialize scheduler, returns `false` if TASK_COUNT > SCHEDULER_MAX_TASKS |
 | `scheduler()` | Run one scheduler cycle (call from loop) |
 | `setTaskEnabled(taskId, bool)` | Enable/disable a task |
 | `rescheduleTask(taskId, periodUs)` | Change task period at runtime |
@@ -170,6 +170,18 @@ void loop() {
 | `getTaskDeltaTime(taskId)` | Get time since last execution |
 | `schedulerResetTaskStatistics(taskId)` | Reset task statistics |
 | `getCheckFuncInfo(&info)` | Get checkFunc statistics (for event-driven tasks) |
+
+### Task Limit
+
+The scheduler queue supports **SCHEDULER_MAX_TASKS** (default: 16) tasks. If you need more:
+
+```c
+#define SCHEDULER_MAX_TASKS 32  // Before including scheduler.h
+#include "task_list.h"
+#include <scheduler.h>
+```
+
+`schedulerInit()` returns `false` if TASK_COUNT exceeds the limit. Tasks beyond the limit will silently fail to enable.
 
 ### Priority Levels
 
