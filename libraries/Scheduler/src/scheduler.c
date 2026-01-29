@@ -20,12 +20,20 @@
  *   Original source: INav Flight Controller (https://github.com/iNavFlight/inav)
  *   File: src/main/scheduler/scheduler.c
  *   Version: 9.0.0 (January 2025)
+ *   INav forked scheduler from Cleanflight/Betaflight
  *
- * ARDUINO: Changes from INav original (4 locations):
- *   1. Line ~35: Replace platform.h with Arduino.h
- *   2. Line ~38: Comment out INav-specific includes
- *   3. Line ~50: Add weak taskRunRealtimeCallbacks() default
- *   4. Line ~120: Use getMicros() macro for 64-bit time
+ * ARDUINO: Changes from INav original (11 locations):
+ *   1. Line ~38: Replace platform.h with Arduino.h
+ *   2. Line ~44: Comment out INav-specific includes (build_config, debug, maths, time, utils, drivers/time)
+ *   3. Line ~52: Define INav memory section macros (STATIC_FASTRAM, FASTRAM, FAST_CODE, NOINLINE)
+ *   4. Line ~58: Define unit test macros (STATIC_UNIT_TESTED, STATIC_INLINE_UNIT_TESTED)
+ *   5. Line ~62: Add weak taskRunRealtimeCallbacks() default implementation
+ *   6. Line ~70: Add cfTasksPtr to store task array passed to schedulerInit (INav uses global cfTasks[])
+ *   7. Line ~74: Add schedulerTaskCount for runtime bounds checking (INav uses compile-time TASK_COUNT)
+ *   8. Line ~87: Use SCHEDULER_MAX_TASKS for array sizing (TASK_COUNT unavailable at library compile)
+ *   9. Line ~187-243: Access tasks via cfTasksPtr[] (INav uses global cfTasks[])
+ *  10. Line ~248: schedulerInit() accepts tasks pointer and count (INav uses void parameter)
+ *  11. Line ~258: Use micros64() for 64-bit timestamps (INav uses micros() with USE_64BIT_TIME)
  */
 
 #include <stdbool.h>
@@ -33,10 +41,12 @@
 #include <string.h>
 
 // ARDUINO: Use Arduino platform
+// #include "platform.h"
 #include "Arduino.h"
-// #include "platform.h"  // ARDUINO: Replaced by Arduino.h
 
-// ARDUINO: INav-specific includes not needed - provided by scheduler_config.h
+#include "scheduler.h"
+
+// ARDUINO: INav-specific includes not needed - definitions provided in scheduler.h
 // #include "build/build_config.h"
 // #include "build/debug.h"
 // #include "common/maths.h"
@@ -44,15 +54,29 @@
 // #include "common/utils.h"
 // #include "drivers/time.h"
 
-#include "scheduler.h"
+// ARDUINO: Define INav memory section macros as empty for Arduino
+#define STATIC_FASTRAM static
+#define FASTRAM
+#define FAST_CODE
+#define NOINLINE
 
-// ARDUINO: Provide weak default for optional user override
+// ARDUINO: Define unit test macros as standard static
+#define STATIC_UNIT_TESTED static
+#define STATIC_INLINE_UNIT_TESTED static inline
+
+// ARDUINO: Provide weak default implementation for optional user override
 __attribute__((weak)) void taskRunRealtimeCallbacks(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
 }
 
 STATIC_FASTRAM cfTask_t *currentTask = NULL;
+
+// ARDUINO: Task array pointer - INav uses global cfTasks[], we store pointer from schedulerInit()
+STATIC_FASTRAM cfTask_t *cfTasksPtr = NULL;
+
+// ARDUINO: Runtime task count - INav uses compile-time TASK_COUNT, we store from schedulerInit()
+STATIC_FASTRAM uint8_t schedulerTaskCount = 0;
 
 STATIC_FASTRAM uint32_t totalWaitingTasks;
 STATIC_FASTRAM uint32_t totalWaitingTasksSamples;
@@ -63,8 +87,7 @@ FASTRAM uint16_t averageSystemLoadPercent = 0;
 STATIC_FASTRAM int taskQueuePos = 0;
 STATIC_FASTRAM int taskQueueSize = 0;
 // No need for a linked list for the queue, since items are only inserted at startup
-// ARDUINO: Use SCHEDULER_MAX_TASKS instead of TASK_COUNT for array sizing
-// (library is compiled before sketch, so TASK_COUNT may not be correct)
+// ARDUINO: Use SCHEDULER_MAX_TASKS for array sizing (TASK_COUNT not available at library compile time)
 #ifdef UNIT_TEST
 STATIC_FASTRAM_UNIT_TESTED cfTask_t* taskQueueArray[SCHEDULER_MAX_TASKS + 2]; // 1 extra space so test code can check for buffer overruns
 #else
@@ -96,7 +119,7 @@ STATIC_UNIT_TESTED bool queueContains(cfTask_t *task)
 
 STATIC_UNIT_TESTED bool queueAdd(cfTask_t *task)
 {
-    // ARDUINO: Use SCHEDULER_MAX_TASKS for bounds check (TASK_COUNT not reliable at library compile time)
+    // ARDUINO: Use SCHEDULER_MAX_TASKS for bounds check (TASK_COUNT not available at library compile time)
     if ((taskQueueSize >= SCHEDULER_MAX_TASKS) || queueContains(task)) {
         return false;
     }
@@ -166,33 +189,31 @@ void getCheckFuncInfo(cfCheckFuncInfo_t *checkFuncInfo)
 
 void getTaskInfo(cfTaskId_e taskId, cfTaskInfo_t * taskInfo)
 {
-    taskInfo->taskName = cfTasks[taskId].taskName;
-    taskInfo->isEnabled = queueContains(&cfTasks[taskId]);
-    taskInfo->desiredPeriod = cfTasks[taskId].desiredPeriod;
-    taskInfo->staticPriority = cfTasks[taskId].staticPriority;
-    taskInfo->maxExecutionTime = cfTasks[taskId].maxExecutionTime;
-    taskInfo->totalExecutionTime = cfTasks[taskId].totalExecutionTime;
-    taskInfo->averageExecutionTime = cfTasks[taskId].movingSumExecutionTime / TASK_MOVING_SUM_COUNT;
-    taskInfo->latestDeltaTime = cfTasks[taskId].taskLatestDeltaTime;
+    taskInfo->taskName = cfTasksPtr[taskId].taskName;
+    taskInfo->isEnabled = queueContains(&cfTasksPtr[taskId]);
+    taskInfo->desiredPeriod = cfTasksPtr[taskId].desiredPeriod;
+    taskInfo->staticPriority = cfTasksPtr[taskId].staticPriority;
+    taskInfo->maxExecutionTime = cfTasksPtr[taskId].maxExecutionTime;
+    taskInfo->totalExecutionTime = cfTasksPtr[taskId].totalExecutionTime;
+    taskInfo->averageExecutionTime = cfTasksPtr[taskId].movingSumExecutionTime / TASK_MOVING_SUM_COUNT;
+    taskInfo->latestDeltaTime = cfTasksPtr[taskId].taskLatestDeltaTime;
 }
 
 void rescheduleTask(cfTaskId_e taskId, timeDelta_t newPeriodUs)
 {
-    // ARDUINO: Use SCHEDULER_MAX_TASKS for bounds check (TASK_COUNT not reliable at library compile time)
     if (taskId == TASK_SELF) {
         cfTask_t *task = currentTask;
-        task->desiredPeriod = MAX(SCHEDULER_DELAY_LIMIT, newPeriodUs);  // Limit delay to 100us (10 kHz) to prevent scheduler clogging
-    } else if (taskId < SCHEDULER_MAX_TASKS) {
-        cfTask_t *task = &cfTasks[taskId];
-        task->desiredPeriod = MAX(SCHEDULER_DELAY_LIMIT, newPeriodUs);  // Limit delay to 100us (10 kHz) to prevent scheduler clogging
+        task->desiredPeriod = MAX(SCHEDULER_DELAY_LIMIT, newPeriodUs);  // Limit delay to 10us (100 kHz) to prevent scheduler clogging
+    } else if (taskId < schedulerTaskCount) {
+        cfTask_t *task = &cfTasksPtr[taskId];
+        task->desiredPeriod = MAX(SCHEDULER_DELAY_LIMIT, newPeriodUs);  // Limit delay to 10us (100 kHz) to prevent scheduler clogging
     }
 }
 
 void setTaskEnabled(cfTaskId_e taskId, bool enabled)
 {
-    // ARDUINO: Use SCHEDULER_MAX_TASKS for bounds check (TASK_COUNT not reliable at library compile time)
-    if (taskId == TASK_SELF || taskId < SCHEDULER_MAX_TASKS) {
-        cfTask_t *task = taskId == TASK_SELF ? currentTask : &cfTasks[taskId];
+    if (taskId == TASK_SELF || taskId < schedulerTaskCount) {
+        cfTask_t *task = taskId == TASK_SELF ? currentTask : &cfTasksPtr[taskId];
         if (enabled && task->taskFunc) {
             queueAdd(task);
         } else {
@@ -203,11 +224,10 @@ void setTaskEnabled(cfTaskId_e taskId, bool enabled)
 
 timeDelta_t getTaskDeltaTime(cfTaskId_e taskId)
 {
-    // ARDUINO: Use SCHEDULER_MAX_TASKS for bounds check (TASK_COUNT not reliable at library compile time)
     if (taskId == TASK_SELF) {
         return currentTask->taskLatestDeltaTime;
-    } else if (taskId < SCHEDULER_MAX_TASKS) {
-        return cfTasks[taskId].taskLatestDeltaTime;
+    } else if (taskId < schedulerTaskCount) {
+        return cfTasksPtr[taskId].taskLatestDeltaTime;
     } else {
         return 0;
     }
@@ -215,27 +235,30 @@ timeDelta_t getTaskDeltaTime(cfTaskId_e taskId)
 
 void schedulerResetTaskStatistics(cfTaskId_e taskId)
 {
-    // ARDUINO: Use SCHEDULER_MAX_TASKS for bounds check (TASK_COUNT not reliable at library compile time)
     if (taskId == TASK_SELF) {
         currentTask->movingSumExecutionTime = 0;
         currentTask->totalExecutionTime = 0;
         currentTask->maxExecutionTime = 0;
-    } else if (taskId < SCHEDULER_MAX_TASKS) {
-        cfTasks[taskId].movingSumExecutionTime = 0;
-        cfTasks[taskId].totalExecutionTime = 0;
+    } else if (taskId < schedulerTaskCount) {
+        cfTasksPtr[taskId].movingSumExecutionTime = 0;
+        cfTasksPtr[taskId].totalExecutionTime = 0;
     }
 }
 
-void schedulerInit(void)
+// ARDUINO: INav uses schedulerInit(void) with global cfTasks[] and compile-time TASK_COUNT
+// Arduino passes task array and count at runtime (library compiles before sketch defines TASK_COUNT)
+void schedulerInit(cfTask_t* tasks, uint8_t taskCount)
 {
+    cfTasksPtr = tasks;
+    schedulerTaskCount = taskCount;
     queueClear();
-    queueAdd(&cfTasks[TASK_SYSTEM]);
+    queueAdd(&cfTasksPtr[TASK_SYSTEM]);
 }
 
 void FAST_CODE NOINLINE scheduler(void)
 {
-    // ARDUINO: Use getMicros() macro for 64-bit time
-    const timeUs_t currentTimeUs = getMicros();
+    // Cache currentTime (64-bit for overflow-safe timestamps)
+    const timeUs_t currentTimeUs = micros64();
 
     // The task to be invoked
     cfTask_t *selectedTask = NULL;
@@ -315,7 +338,7 @@ void FAST_CODE NOINLINE scheduler(void)
         // Execute system real-time callbacks and account for them to SYSTEM account
         const timeUs_t currentTimeBeforeTaskCall = micros();
         taskRunRealtimeCallbacks(currentTimeBeforeTaskCall);
-        selectedTask = &cfTasks[TASK_SYSTEM];
+        selectedTask = &cfTasksPtr[TASK_SYSTEM];
         const timeUs_t taskExecutionTime = micros() - currentTimeBeforeTaskCall;
         selectedTask->movingSumExecutionTime += taskExecutionTime - selectedTask->movingSumExecutionTime / TASK_MOVING_SUM_COUNT;
         selectedTask->totalExecutionTime += taskExecutionTime;   // time consumed by scheduler + task

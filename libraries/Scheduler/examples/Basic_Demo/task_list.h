@@ -3,7 +3,7 @@
  * @brief Task definitions for Basic_Demo sketch
  *
  * This file defines the cfTaskId_e enum with your application's tasks.
- * Include this file BEFORE <Scheduler.h> in your sketch.
+ * Include this file BEFORE <scheduler.h> in your sketch.
  *
  * Requirements:
  * - Must define SCHEDULER_TASK_LIST_DEFINED before the enum

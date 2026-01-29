@@ -14,9 +14,9 @@
  * Based on INav flight controller scheduler.
  */
 
-// Step 1: Include task_list.h BEFORE Scheduler.h
+// Step 1: Include task_list.h BEFORE scheduler.h
 #include "task_list.h"
-#include <Scheduler.h>
+#include <scheduler.h>
 
 //=============================================================================
 // Task Implementations
@@ -120,8 +120,8 @@ void setup() {
     Serial.println("  STATUS:    1 Hz (MEDIUM)");
     Serial.println();
 
-    // Initialize scheduler (enables TASK_SYSTEM automatically)
-    schedulerInit();
+    // Initialize scheduler (pass task array and count, enables TASK_SYSTEM automatically)
+    schedulerInit(cfTasks, TASK_COUNT);
 
     // Enable user tasks
     setTaskEnabled(TASK_GYRO, true);

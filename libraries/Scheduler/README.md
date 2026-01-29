@@ -17,7 +17,7 @@ timing for critical tasks.
 | Priority levels | None | Basic | 6 levels |
 | Starvation prevention | No | No | **Dynamic aging** |
 | Target use case | General | General | **Real-time control** |
-| Max loop rate | ~100 Hz | ~1 kHz | **10 kHz** |
+| Max loop rate | ~100 Hz | ~1 kHz | **100 kHz** |
 | System load monitoring | No | No | **Yes** |
 
 ### Key Feature: Forced REALTIME Execution
@@ -32,6 +32,36 @@ task priorities. This is critical for:
 - Motor control
 - Hard real-time sensor fusion
 - Any application where timing jitter is unacceptable
+
+## Major Changes from INav Scheduler
+
+This library adapts the INav scheduler for Arduino with minimal divergence to enable future upstream syncing. Key changes:
+
+### Architecture Changes
+
+| Change | Reason |
+|--------|--------|
+| `schedulerInit(cfTasks, TASK_COUNT)` | Task array passed at runtime (Arduino libraries compile before sketches) |
+| `SCHEDULER_MAX_TASKS=16` | Fixed array sizing since TASK_COUNT unknown at library compile time |
+| `TASK_NONE`/`TASK_SELF` as macros | Fixed values (254/255) ensure library/sketch compatibility |
+| No `extern cfTasks[]` | Task array pointer stored internally via schedulerInit() |
+| `micros64()` for timestamps | Arduino STM32 core provides 64-bit microsecond timing |
+
+### Platform Adaptations
+
+| INav Original | Arduino Replacement |
+|---------------|---------------------|
+| `#include "platform.h"` | `#include "Arduino.h"` |
+| `#include "common/time.h"` | Inline type definitions (timeUs_t, timeDelta_t) |
+| `#include "common/utils.h"` | Inline macros (UNUSED, MAX, MIN) |
+| `STATIC_FASTRAM`, `FAST_CODE` | Empty macros (no CCM RAM on most Arduino boards) |
+| `micros()` (32-bit) | `micros64()` (64-bit, overflow-safe) |
+
+### User Task Definition
+
+INav defines all tasks in `scheduler.h` with `#ifdef USE_xxx` guards. Arduino users define tasks in a separate `task_list.h` file included before `<scheduler.h>`. This allows custom task sets without modifying library code.
+
+See source file headers for complete change documentation (10 locations in scheduler.h, 11 in scheduler.c).
 
 ## Quick Start
 
@@ -63,7 +93,7 @@ typedef enum {
 
 ```cpp
 #include "task_list.h"    // Your tasks FIRST
-#include <Scheduler.h>    // Library SECOND
+#include <scheduler.h>    // Library SECOND
 ```
 
 ### Step 3: Implement Task Functions
@@ -115,7 +145,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
 
 ```cpp
 void setup() {
-    schedulerInit();
+    schedulerInit(cfTasks, TASK_COUNT);  // Pass task array and count
     setTaskEnabled(TASK_FLIGHT, true);
     setTaskEnabled(TASK_TELEMETRY, true);
     setTaskEnabled(TASK_LED, true);
@@ -132,13 +162,14 @@ void loop() {
 
 | Function | Description |
 |----------|-------------|
-| `schedulerInit()` | Initialize scheduler, enable TASK_SYSTEM |
+| `schedulerInit(cfTasks, TASK_COUNT)` | Initialize scheduler with task array and count, enable TASK_SYSTEM |
 | `scheduler()` | Run one scheduler cycle (call from loop) |
 | `setTaskEnabled(taskId, bool)` | Enable/disable a task |
 | `rescheduleTask(taskId, periodUs)` | Change task period at runtime |
 | `getTaskInfo(taskId, &info)` | Get task statistics |
 | `getTaskDeltaTime(taskId)` | Get time since last execution |
 | `schedulerResetTaskStatistics(taskId)` | Reset task statistics |
+| `getCheckFuncInfo(&info)` | Get checkFunc statistics (for event-driven tasks) |
 
 ### Priority Levels
 

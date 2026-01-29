@@ -21,19 +21,63 @@
  *   File: src/main/scheduler/scheduler.h
  *   Version: 9.0.0 (January 2025)
  *
- * ARDUINO: Changes from INav original (5 locations):
- *   1. Line ~33: Include scheduler_config.h instead of common/time.h
- *   2. Line ~68: Add #ifndef SCHEDULER_TASK_LIST_DEFINED guard for user task enum
- *   3. Line ~75: Define TASK_NONE/TASK_SELF as macros (not enum values)
- *   4. Line ~97: Use unsized cfTasks[] declaration for variable TASK_COUNT
- *   5. Line ~102: Add extern "C" guards for C++ compatibility
+ * ARDUINO: Changes from INav original (10 locations):
+ *   1. Line ~35: Replace common/time.h with inline type definitions (timeDelta_t, timeUs_t, timeMs_t)
+ *   2. Line ~51: Add SCHEDULER_DELAY_LIMIT constant (from INav config)
+ *   3. Line ~55: Add SCHEDULER_MAX_TASKS for library array sizing (TASK_COUNT unavailable at compile)
+ *   4. Line ~62: Add utility macros UNUSED, MAX, MIN (from INav common headers)
+ *   5. Line ~108: Add #ifndef SCHEDULER_TASK_LIST_DEFINED guard for user task enum
+ *   6. Line ~115: Define TASK_NONE/TASK_SELF as macros (fixed values 254/255 for library compatibility)
+ *   7. Line ~140: Replace extern cfTasks[TASK_COUNT] with pointer passed to schedulerInit()
+ *   8. Line ~144: Add extern "C" guards for C++ compatibility
+ *   9. Line ~158: schedulerInit() accepts tasks array pointer and taskCount (INav uses void parameter)
+ *  10. Line ~173: Add SCHEDULER_TASK_SYSTEM_INIT convenience macro
  */
 
 #pragma once
 
-// ARDUINO: Platform adaptations in scheduler_config.h
-#include "scheduler_config.h"
-// #include "common/time.h"  // ARDUINO: Replaced by scheduler_config.h
+// ARDUINO: Replace INav common/time.h with inline definitions
+// #include "common/time.h"
+#include <stdbool.h>
+#include <stdint.h>
+
+//=============================================================================
+// ARDUINO: Time types (from INav common/time.h)
+//=============================================================================
+typedef int32_t timeDelta_t;      // time difference, signed (overflows ~35 min)
+typedef uint64_t timeUs_t;        // microsecond time, 64-bit
+typedef uint32_t timeMs_t;        // millisecond time
+#define TIMEUS_MAX UINT64_MAX
+
+//=============================================================================
+// ARDUINO: Configuration constants
+//=============================================================================
+#define SCHEDULER_DELAY_LIMIT 10   // 10us minimum period (100 kHz max)
+
+// Maximum tasks supported (for queue array sizing in library)
+// Library is compiled before sketch, so TASK_COUNT is not available
+#ifndef SCHEDULER_MAX_TASKS
+#define SCHEDULER_MAX_TASKS 16
+#endif
+
+//=============================================================================
+// ARDUINO: Utility macros (from INav common headers)
+//=============================================================================
+#ifndef UNUSED
+#define UNUSED(x) ((void)(x))
+#endif
+
+#ifndef MAX
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#endif
+
+#ifndef MIN
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#endif
+
+//=============================================================================
+// INav Scheduler Types and API
+//=============================================================================
 
 typedef enum {
     TASK_PRIORITY_IDLE = 0,     // Disables dynamic scheduling, task is executed only if no other task is active this cycle
@@ -72,10 +116,9 @@ typedef enum {
 } cfTaskId_e;
 #endif
 
-// ARDUINO: Service task IDs as macros (not enum values)
-// This avoids library/sketch enum value mismatch issues
-#define TASK_NONE  SCHEDULER_TASK_NONE
-#define TASK_SELF  SCHEDULER_TASK_SELF
+// ARDUINO: Service task IDs as macros (fixed values for library/sketch compatibility)
+#define TASK_NONE  254
+#define TASK_SELF  255
 
 typedef struct {
     /* Configuration */
@@ -98,8 +141,9 @@ typedef struct {
     timeUs_t totalExecutionTime;    // total time consumed by task since boot
 } cfTask_t;
 
-// ARDUINO: Use unsized array declaration so library works with any user-defined TASK_COUNT
-extern cfTask_t cfTasks[];
+// ARDUINO: Task array passed to schedulerInit() and stored internally
+// INav uses: extern cfTask_t cfTasks[TASK_COUNT] resolved at link time
+// Arduino:   User defines cfTasks[] in sketch, passes to schedulerInit(cfTasks, TASK_COUNT)
 extern uint16_t averageSystemLoadPercent;
 
 // ARDUINO: C++ compatibility
@@ -114,7 +158,8 @@ void setTaskEnabled(cfTaskId_e taskId, bool newEnabledState);
 timeDelta_t getTaskDeltaTime(cfTaskId_e taskId);
 void schedulerResetTaskStatistics(cfTaskId_e taskId);
 
-void schedulerInit(void);
+// ARDUINO: INav uses schedulerInit(void) with global cfTasks[]; we accept array and count
+void schedulerInit(cfTask_t* tasks, uint8_t taskCount);
 void scheduler(void);
 void taskSystem(timeUs_t currentTimeUs);
 void taskRunRealtimeCallbacks(timeUs_t currentTimeUs);
@@ -128,3 +173,11 @@ void taskRunRealtimeCallbacks(timeUs_t currentTimeUs);
 #define TASK_PERIOD_US(us) (us)
 
 #define isSystemOverloaded() (averageSystemLoadPercent >= 100)
+
+// ARDUINO: Convenience macro for TASK_SYSTEM initialization
+#define SCHEDULER_TASK_SYSTEM_INIT { \
+    .taskName = "SYSTEM", \
+    .taskFunc = taskSystem, \
+    .desiredPeriod = TASK_PERIOD_HZ(10), \
+    .staticPriority = TASK_PRIORITY_MEDIUM_HIGH \
+}
