@@ -139,7 +139,11 @@ void setup() {
     LOG("\n");
 
     // Initialize scheduler (pass task array and count, enables TASK_SYSTEM automatically)
-    schedulerInit(cfTasks, TASK_COUNT);
+    // Returns false if TASK_COUNT > SCHEDULER_MAX_TASKS (default 16, defined in scheduler.h)
+    if (!schedulerInit(cfTasks, TASK_COUNT)) {
+        LOG("ERROR: TASK_COUNT exceeds SCHEDULER_MAX_TASKS\n");
+        while (1);  // Halt on overflow
+    }
 
     // Enable user tasks
     setTaskEnabled(TASK_GYRO, true);
