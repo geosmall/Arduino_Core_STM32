@@ -1,5 +1,5 @@
 /**
- * @file Basic_Demo.ino
+ * @file Sched_Usage.ino
  * @brief INav cooperative scheduler demo for Arduino
  *
  * Demonstrates the INav scheduler library with:
@@ -9,10 +9,7 @@
  * - Multiple priority levels
  *
  * Hardware: Any STM32 board (tested on NUCLEO_F411RE)
- *
- * Usage:
- * - Arduino IDE: Open Serial Monitor at 115200 baud
- * - CI/RTT: ./ci/aflash.sh Arduino_Core_STM32/libraries/Scheduler/examples/Basic_Demo --use-rtt --build-id
+ * Output: Serial Monitor at 115200 baud
  *
  * Based on INav flight controller scheduler.
  */
@@ -21,20 +18,8 @@
 #include "task_list.h"
 #include <scheduler.h>
 
-// CI logging support (works with both Serial and RTT)
-#ifdef USE_RTT
-  #include <SEGGER_RTT.h>
-  #define LOG_INIT()        SEGGER_RTT_Init()
-  #define LOG(s)            SEGGER_RTT_WriteString(0, s)
-  #define LOGF(fmt, ...)    SEGGER_RTT_printf(0, fmt, ##__VA_ARGS__)
-#else
-  #define LOG_INIT()        do { Serial.begin(115200); while (!Serial && millis() < 3000); } while(0)
-  #define LOG(s)            Serial.print(s)
-  #define LOGF(fmt, ...)    Serial.printf(fmt, ##__VA_ARGS__)
-#endif
-
 //=============================================================================
-// Step 2: Implement task functions
+// Task Implementations
 //=============================================================================
 
 static volatile uint32_t gyroCount = 0;
@@ -71,12 +56,23 @@ extern "C" void taskStatus(timeUs_t currentTimeUs) {
     int blinkRate = blinkInfo.latestDeltaTime > 0 ? 1000000 / blinkInfo.latestDeltaTime : 0;
     int statusRate = statusInfo.latestDeltaTime > 0 ? 1000000 / statusInfo.latestDeltaTime : 0;
 
-    LOGF("CPU:%u%% | GYRO:%uHz (cnt:%lu) | BLINK:%uHz (cnt:%lu) | STATUS:%uHz\n",
-         averageSystemLoadPercent, gyroRate, gyroCount, blinkRate, blinkCount, statusRate);
+    Serial.print("CPU:");
+    Serial.print(averageSystemLoadPercent);
+    Serial.print("% | GYRO:");
+    Serial.print(gyroRate);
+    Serial.print("Hz (cnt:");
+    Serial.print(gyroCount);
+    Serial.print(") | BLINK:");
+    Serial.print(blinkRate);
+    Serial.print("Hz (cnt:");
+    Serial.print(blinkCount);
+    Serial.print(") | STATUS:");
+    Serial.print(statusRate);
+    Serial.println("Hz");
 }
 
 //=============================================================================
-// Step 3: Define task configuration table
+// Task Configuration Table
 //=============================================================================
 
 cfTask_t cfTasks[TASK_COUNT] = {
@@ -102,46 +98,50 @@ cfTask_t cfTasks[TASK_COUNT] = {
 };
 
 //=============================================================================
-// Optional: Override realtime callbacks
+// Optional: Realtime Callbacks
 //=============================================================================
 
-// Called during scheduler idle time or after REALTIME task execution
-// Use for time-critical polling that doesn't fit the task model
+// This function is called by the scheduler during idle time or immediately
+// after a forced REALTIME task executes. Use it for time-critical operations
+// that need frequent servicing but don't fit the task model:
+//   - Polling serial RX for RC receiver data
+//   - Completing DMA transfers or motor signal updates
+//   - Servicing hardware FIFOs before they overflow
+//
+// Keep this function lightweight - no heavy calculations or blocking calls.
+// Execution time is charged to TASK_SYSTEM for load monitoring.
+// If not needed, you can omit this function (library provides empty default).
 void taskRunRealtimeCallbacks(timeUs_t currentTimeUs) {
     UNUSED(currentTimeUs);
-    // Example uses:
-    // - Poll serial RX for RC receiver data
-    // - Check DMA completion flags
-    // - Service hardware FIFOs
 }
 
 //=============================================================================
-// Step 4: Setup and loop
+// Setup and Loop
 //=============================================================================
 
 void setup() {
-    // Initialize logging (Serial or RTT)
-    LOG_INIT();
+    Serial.begin(115200);
+    while (!Serial && millis() < 3000);  // Wait for Serial (with timeout)
 
-    // Initialize LED
     pinMode(LED_BUILTIN, OUTPUT);
 
-    LOG("\n=== INav Scheduler Demo ===\n");
-    LOG("Features:\n");
-    LOG("  - REALTIME priority tasks (forced execution)\n");
-    LOG("  - Dynamic priority aging\n");
-    LOG("  - System load monitoring\n\n");
-
-    LOG("Tasks:\n");
-    LOGF("  GYRO:   %4d Hz (REALTIME)\n", 1000000 / TASK_PERIOD_HZ(1000));
-    LOGF("  BLINK:  %4d Hz (LOW)\n", 1000000 / TASK_PERIOD_HZ(2));
-    LOGF("  STATUS: %4d Hz (MEDIUM)\n", 1000000 / TASK_PERIOD_HZ(1));
-    LOG("\n");
+    Serial.println();
+    Serial.println("=== INav Scheduler Demo ===");
+    Serial.println("Features:");
+    Serial.println("  - REALTIME priority tasks (forced execution)");
+    Serial.println("  - Dynamic priority aging");
+    Serial.println("  - System load monitoring");
+    Serial.println();
+    Serial.println("Tasks:");
+    Serial.println("  GYRO:   1000 Hz (REALTIME)");
+    Serial.println("  BLINK:     2 Hz (LOW)");
+    Serial.println("  STATUS:    1 Hz (MEDIUM)");
+    Serial.println();
 
     // Initialize scheduler (pass task array and count, enables TASK_SYSTEM automatically)
     // Returns false if TASK_COUNT > SCHEDULER_MAX_TASKS (default 16, defined in scheduler.h)
     if (!schedulerInit(cfTasks, TASK_COUNT)) {
-        LOG("ERROR: TASK_COUNT exceeds SCHEDULER_MAX_TASKS\n");
+        Serial.println("ERROR: TASK_COUNT exceeds SCHEDULER_MAX_TASKS");
         while (1);  // Halt on overflow
     }
 
@@ -150,24 +150,11 @@ void setup() {
     setTaskEnabled(TASK_BLINK, true);
     setTaskEnabled(TASK_STATUS, true);
 
-    LOG("Scheduler running...\n\n");
+    Serial.println("Scheduler running...");
+    Serial.println();
 }
 
 void loop() {
     // Run the cooperative scheduler
     scheduler();
-
-#ifdef USE_RTT
-    // For CI testing: exit after 5 seconds
-    static bool stopped = false;
-    if (!stopped && millis() > 5000) {
-        LOG("\n=== Demo Complete ===\n");
-        LOGF("GYRO executions: %lu (expected ~5000)\n", gyroCount);
-        LOGF("BLINK executions: %lu (expected ~10)\n", blinkCount);
-        LOGF("STATUS executions: %lu (expected ~5)\n", statusCount);
-        LOG("*STOP*\n");
-        stopped = true;
-        while (1);
-    }
-#endif
 }

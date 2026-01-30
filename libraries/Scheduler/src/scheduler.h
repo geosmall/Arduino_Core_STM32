@@ -25,7 +25,7 @@
  *   1. Line ~35: Replace common/time.h with inline type definitions (timeDelta_t, timeUs_t, timeMs_t)
  *   2. Line ~51: Add SCHEDULER_DELAY_LIMIT constant (from INav config)
  *   3. Line ~55: Add SCHEDULER_MAX_TASKS for library array sizing (TASK_COUNT unavailable at compile)
- *   4. Line ~62: Add utility macros UNUSED, MAX, MIN (from INav common headers)
+ *   4. Line ~62: Utility macros MAX, MIN (UNUSED now in core, commented out here)
  *   5. Line ~108: Add #ifndef SCHEDULER_TASK_LIST_DEFINED guard for user task enum
  *   6. Line ~115: Define TASK_NONE/TASK_SELF as macros (fixed values 254/255 for library compatibility)
  *   7. Line ~140: Replace extern cfTasks[TASK_COUNT] with pointer passed to schedulerInit()
@@ -62,10 +62,11 @@ typedef uint32_t timeMs_t;        // millisecond time
 
 //=============================================================================
 // ARDUINO: Utility macros (from INav common headers)
+// Note: UNUSED now provided by core (wiring_constants.h)
 //=============================================================================
-#ifndef UNUSED
-#define UNUSED(x) ((void)(x))
-#endif
+// #ifndef UNUSED
+// #define UNUSED(x) ((void)(x))
+// #endif
 
 #ifndef MAX
 #define MAX(a, b) ((a) > (b) ? (a) : (b))

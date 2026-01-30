@@ -53,7 +53,7 @@ This library adapts the INav scheduler for Arduino with minimal divergence to en
 |---------------|---------------------|
 | `#include "platform.h"` | `#include "Arduino.h"` |
 | `#include "common/time.h"` | Inline type definitions (timeUs_t, timeDelta_t) |
-| `#include "common/utils.h"` | Inline macros (UNUSED, MAX, MIN) |
+| `#include "common/utils.h"` | Inline macros (MAX, MIN); UNUSED from core |
 | `STATIC_FASTRAM`, `FAST_CODE` | Empty macros (no CCM RAM on most Arduino boards) |
 | `micros()` (32-bit) | `micros64()` (64-bit, overflow-safe) |
 
@@ -211,16 +211,25 @@ The scheduler queue supports **SCHEDULER_MAX_TASKS** (default: 16) tasks. If you
 
 ### Optional: Realtime Callbacks
 
-Override this weak function for operations during idle time:
+The scheduler calls `taskRunRealtimeCallbacks()` in two situations:
+1. **Idle time** - when no task is ready to run
+2. **After forced REALTIME execution** - immediately after a REALTIME task runs
+
+Use this for time-critical operations that need frequent servicing but don't fit the task model:
 
 ```cpp
 void taskRunRealtimeCallbacks(timeUs_t currentTimeUs) {
     UNUSED(currentTimeUs);
-    // Poll serial RX, manage DMA buffers, etc.
+    // Examples:
+    // - Poll serial RX for RC receiver data
+    // - Complete DMA transfers or motor signal updates
+    // - Service hardware FIFOs before overflow
 }
 ```
 
-Called when no task is selected or after forced REALTIME execution.
+**Important:** Keep this function lightweight - no heavy calculations or blocking calls. Execution time is charged to TASK_SYSTEM for load monitoring.
+
+If you don't need realtime callbacks, simply omit the function - the library provides an empty default.
 
 ## Creating task_list.h
 

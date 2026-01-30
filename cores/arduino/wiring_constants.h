@@ -105,6 +105,14 @@ enum BitOrder {
   #define sbi(reg, bitmask) *reg |= bitmask
 #endif
 
+/*
+ * UNUSED macro for suppressing unused parameter warnings
+ * Works in both C and C++
+ */
+#ifndef UNUSED
+  #define UNUSED(x) ((void)(x))
+#endif
+
 typedef unsigned int word;
 
 typedef bool boolean __attribute__((deprecated));
