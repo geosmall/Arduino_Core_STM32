@@ -194,6 +194,44 @@ The scheduler queue supports **SCHEDULER_MAX_TASKS** (default: 16) tasks. If you
 | `TASK_PRIORITY_HIGH` | 5 | Time-sensitive |
 | `TASK_PRIORITY_REALTIME` | 18 | **Forced execution when overdue** |
 
+### Choosing Priority Levels
+
+Guidelines based on INav flight controller patterns:
+
+| Priority | Use For | Examples | Typical Rate |
+|----------|---------|----------|--------------|
+| REALTIME | Hard real-time control loops | PID, gyro sampling | 1-8 kHz |
+| HIGH | Time-sensitive I/O, system housekeeping | RC input, servo output | 10-200 Hz |
+| MEDIUM | Sensor polling, navigation | GPS, baro, compass, rangefinder | 10-100 Hz |
+| LOW | Non-critical periodic tasks | Serial, OSD, temperature | 10-250 Hz |
+| IDLE | Background/cosmetic tasks | Telemetry, LED effects, logging | 1-500 Hz |
+
+**Design principles:**
+- Use REALTIME sparingly (1-2 tasks max) - only for control loops where jitter is unacceptable
+- HIGH priority for anything that feeds the control loop (RC input, sensor fusion)
+- MEDIUM for sensors that update navigation state
+- LOW/IDLE for telemetry and display - these can be delayed without affecting flight
+
+### INav Reference: Flight Controller Task Rates
+
+For reference, INav uses these rates for common flight controller tasks:
+
+| Task | Priority | Rate | Purpose |
+|------|----------|------|---------|
+| PID | REALTIME | 1 kHz | Flight control loop |
+| GYRO | REALTIME | 1-8 kHz | IMU sampling |
+| SYSTEM | HIGH | 10 Hz | Housekeeping, watchdog |
+| RX | HIGH | 10 Hz* | RC receiver (*event-driven) |
+| AUX | HIGH | 100 Hz | Mode switches, arming |
+| GPS | MEDIUM | 50 Hz | Position updates |
+| BARO | MEDIUM | 20 Hz | Altitude |
+| COMPASS | MEDIUM | 10 Hz | Heading |
+| BATTERY | MEDIUM | 50 Hz | Voltage/current |
+| SERIAL | LOW | 100 Hz | CLI, MSP protocol |
+| OSD | LOW | 250 Hz | On-screen display |
+| TELEMETRY | IDLE | 500 Hz | FrSky, CRSF, etc. |
+| LEDSTRIP | IDLE | 100 Hz | Status LEDs |
+
 ### Period Macros
 
 | Macro | Description |
@@ -215,21 +253,26 @@ The scheduler calls `taskRunRealtimeCallbacks()` in two situations:
 1. **Idle time** - when no task is ready to run
 2. **After forced REALTIME execution** - immediately after a REALTIME task runs
 
-Use this for time-critical operations that need frequent servicing but don't fit the task model:
+Use this for low-latency operations that need servicing in scheduler gaps:
 
 ```cpp
 void taskRunRealtimeCallbacks(timeUs_t currentTimeUs) {
     UNUSED(currentTimeUs);
-    // Examples:
-    // - Poll serial RX for RC receiver data
-    // - Complete DMA transfers or motor signal updates
-    // - Service hardware FIFOs before overflow
+    // INav uses this for:
+    // - DShot motor signal completion (pwmCompleteMotorUpdate)
+    // - SD card filesystem polling (afatfs_poll)
+    // - ESC telemetry updates
+    //
+    // NOT for RC receiver input - use a HIGH priority task instead
+    // (see RX_EXAMPLE.md for details)
 }
 ```
 
 **Important:** Keep this function lightweight - no heavy calculations or blocking calls. Execution time is charged to TASK_SYSTEM for load monitoring.
 
 If you don't need realtime callbacks, simply omit the function - the library provides an empty default.
+
+**Note:** For RC receiver integration, use a HIGH priority task with `checkFunc` for event-driven scheduling. See [examples/Sched_Ex/EXAMPLE.md](examples/Sched_Ex/EXAMPLE.md) for the complete pattern.
 
 ## Creating task_list.h
 
