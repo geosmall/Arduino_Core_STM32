@@ -177,17 +177,17 @@
 #endif
 
 // UART Definitions
-// Default Serial instance uses USART1 (RC receiver port)
+// Default Serial instance uses USART3 (Flexi port)
 #ifndef SERIAL_UART_INSTANCE
-  #define SERIAL_UART_INSTANCE  1
+  #define SERIAL_UART_INSTANCE  3
 #endif
 
-// Default pin used for 'Serial' instance
+// Default pin used for 'Serial' instance (Flexi port)
 #ifndef PIN_SERIAL_RX
-  #define PIN_SERIAL_RX         PA10
+  #define PIN_SERIAL_RX         PB11
 #endif
 #ifndef PIN_SERIAL_TX
-  #define PIN_SERIAL_TX         PA9
+  #define PIN_SERIAL_TX         PB10
 #endif
 
 /* HAL configuration */
