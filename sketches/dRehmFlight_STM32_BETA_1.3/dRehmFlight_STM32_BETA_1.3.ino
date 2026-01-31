@@ -77,8 +77,10 @@ Everyone that sends me pictures and videos of your flying creations! -Nick
   #include "../../targets/BKMN-NERO.h"  //NERO F7 flight controller (ICM-20602 6-DOF)
 #elif defined(ARDUINO_MATEK_H743VI)
   #include "../../targets/MTKS-MATEKH743.h"  //MATEK H743 flight controller (ICM42688P 6-DOF)
+#elif defined(ARDUINO_OPEN_REVO)
+  #include "../../targets/OPEN-REVO.h"  //OpenPilot Revolution F405 (MPU-6000 6-DOF)
 #else
-  #error "Unsupported board! Use BLACKPILL_F411CE, NUCLEO_F411RE, BKMN_NERO, or MATEK_H743VI"
+  #error "Unsupported board! Use BLACKPILL_F411CE, NUCLEO_F411RE, BKMN_NERO, MATEK_H743VI, or OPEN_REVO"
 #endif
 #include <IMU.h>           //IMU library for ICM42688P
 #include <SerialRx.h>      //Serial RX library for IBus/SBUS
