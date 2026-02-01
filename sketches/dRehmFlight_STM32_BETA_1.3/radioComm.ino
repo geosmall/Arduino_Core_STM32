@@ -53,17 +53,17 @@ void radioSetup() {
 #endif
 
   if (!rx.begin(config)) {
-    CI_LOG("ERROR: Radio RX init failed!\n");
+    Serial.println("ERROR: Radio RX init failed!");
 #ifdef USE_RC_DMA
-    CI_LOG("  Check UART supports DMA and buffer uses SERIAL_DMA_BUFFER on H7\n");
+    Serial.println("  Check UART supports DMA and buffer uses SERIAL_DMA_BUFFER on H7");
 #endif
     while (1) { delay(1000); }  // Halt
   }
 
 #ifdef USE_RC_DMA
-  CI_LOG("Radio RX initialized (DMA mode)\n");
+  Serial.println("Radio RX initialized (DMA mode)");
 #else
-  CI_LOG("Radio RX initialized (interrupt mode)\n");
+  Serial.println("Radio RX initialized (interrupt mode)");
 #endif
 }
 

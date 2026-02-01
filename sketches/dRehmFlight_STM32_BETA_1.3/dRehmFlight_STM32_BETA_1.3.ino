@@ -85,7 +85,6 @@ Everyone that sends me pictures and videos of your flying creations! -Nick
 #include <IMU.h>           //IMU library for ICM42688P
 #include <SerialRx.h>      //Serial RX library for IBus/SBUS
 #include <PWMOutputBank.h> //TimerPWM for OneShot125 motor output
-#include <ci_log.h>        //HIL testing and logging
 
 
 
@@ -267,14 +266,10 @@ ServoManager servos;
 //========================================================================================================================//
 
 void setup() {
-  //STM32: ci_log.h integration for HIL testing
-  #ifndef USE_RTT
-    Serial.begin(115200); //USB serial
-    while (!Serial && millis() < 3000);
-  #endif
+  Serial.begin(115200); //USB serial
+  while (!Serial && millis() < 3000);
 
-  CI_LOG("dRehmFlight STM32 BETA 1.3\n");
-  CI_BUILD_INFO();
+  Serial.println("dRehmFlight STM32 BETA 1.3");
 
   //Initialize all pins
   pinMode(ledPin, OUTPUT); //LED blinker
@@ -466,14 +461,14 @@ void IMUinit() {
 
   // Init + chip detection (Init() auto-detects chip type)
   if (imu.Init(spi_imu, BoardConfig::imu.spi.cs_pin, BoardConfig::imu.spi.freq_hz) != IMU::Result::OK) {
-    CI_LOG("IMU initialization failed\n");
+    Serial.println("IMU initialization failed");
     while(1) {}
   }
 
   // Apply BALANCED preset (4kHz gyro, 1kHz accel, validated filters)
   // This matches dRehmFlight's 2kHz loop with optimal filtering
   if (imu.ApplyPreset(IMU::Preset::BALANCED) != IMU::Result::OK) {
-    CI_LOG("IMU preset configuration failed\n");
+    Serial.println("IMU preset configuration failed");
     while(1) {}
   }
 
@@ -498,17 +493,17 @@ void IMUinit() {
     imu.SetAccelFSR_Ex(AccelFSR::G_16);
   #endif
 
-  CI_LOG("IMU initialized successfully\n");
+  Serial.println("IMU initialized successfully");
 
   // Initialize magnetometer if available (MPU-9250/9255)
   if (imu.HasMagnetometer()) {
     if (imu.InitMagnetometer() == IMU::Result::OK) {
-      CI_LOG("Magnetometer initialized (9-DOF mode)\n");
+      Serial.println("Magnetometer initialized (9-DOF mode)");
     } else {
-      CI_LOG("Magnetometer init failed, using 6-DOF only\n");
+      Serial.println("Magnetometer init failed, using 6-DOF only");
     }
   } else {
-    CI_LOG("No magnetometer detected (6-DOF mode)\n");
+    Serial.println("No magnetometer detected (6-DOF mode)");
   }
 }
 
@@ -1425,7 +1420,7 @@ void setupBlink(int numBlinks,int upTime, int downTime) {
 void printRadioData() {
   if (current_time - print_counter > 10000) {
     print_counter = micros();
-    CI_LOGF(" CH1:%d CH2:%d CH3:%d CH4:%d CH5:%d CH6:%d\n",
+    Serial.printf(" CH1:%d CH2:%d CH3:%d CH4:%d CH5:%d CH6:%d\n",
             channel_1_pwm, channel_2_pwm, channel_3_pwm,
             channel_4_pwm, channel_5_pwm, channel_6_pwm);
   }
@@ -1434,77 +1429,62 @@ void printRadioData() {
 void printDesiredState() {
   if (current_time - print_counter > 10000) {
     print_counter = micros();
-    CI_LOG("thro_des:");
-    CI_LOG_FLOAT("", thro_des, 2);
-    CI_LOG(" roll_des:");
-    CI_LOG_FLOAT("", roll_des, 2);
-    CI_LOG(" pitch_des:");
-    CI_LOG_FLOAT("", pitch_des, 2);
-    CI_LOG(" yaw_des:");
-    CI_LOG_FLOAT("", yaw_des, 2);
-    CI_LOG("\n");
+    Serial.print("thro_des:"); Serial.print(thro_des, 2);
+    Serial.print(" roll_des:"); Serial.print(roll_des, 2);
+    Serial.print(" pitch_des:"); Serial.print(pitch_des, 2);
+    Serial.print(" yaw_des:"); Serial.println(yaw_des, 2);
   }
 }
 
 void printGyroData() {
   if (current_time - print_counter > 10000) {
     print_counter = micros();
-    CI_LOG("Gyro");
-    CI_LOG_FLOAT(" X:", GyroX, 2);
-    CI_LOG_FLOAT(" Y:", GyroY, 2);
-    CI_LOG_FLOAT(" Z:", GyroZ, 2);
-    CI_LOG("\n");
+    Serial.print("Gyro X:"); Serial.print(GyroX, 2);
+    Serial.print(" Y:"); Serial.print(GyroY, 2);
+    Serial.print(" Z:"); Serial.println(GyroZ, 2);
   }
 }
 
 void printAccelData() {
   if (current_time - print_counter > 10000) {
     print_counter = micros();
-    CI_LOG("Accel");
-    CI_LOG_FLOAT(" X:", AccX, 2);
-    CI_LOG_FLOAT(" Y:", AccY, 2);
-    CI_LOG_FLOAT(" Z:", AccZ, 2);
-    CI_LOG("\n");
+    Serial.print("Accel X:"); Serial.print(AccX, 2);
+    Serial.print(" Y:"); Serial.print(AccY, 2);
+    Serial.print(" Z:"); Serial.println(AccZ, 2);
   }
 }
 
 void printMagData() {
   if (current_time - print_counter > 10000) {
     print_counter = micros();
-    CI_LOG("Mag");
-    CI_LOG_FLOAT(" X:", MagX, 2);
-    CI_LOG_FLOAT(" Y:", MagY, 2);
-    CI_LOG_FLOAT(" Z:", MagZ, 2);
-    CI_LOG("\n");
+    Serial.print("Mag X:"); Serial.print(MagX, 2);
+    Serial.print(" Y:"); Serial.print(MagY, 2);
+    Serial.print(" Z:"); Serial.println(MagZ, 2);
   }
 }
 
 void printRollPitchYaw() {
   if (current_time - print_counter > 10000) {
     print_counter = micros();
-    CI_LOG("Attitude");
-    CI_LOG_FLOAT(" roll:", roll_IMU, 2);
-    CI_LOG_FLOAT(" pitch:", pitch_IMU, 2);
-    CI_LOG_FLOAT(" yaw:", yaw_IMU, 2);
-    CI_LOG("\n");
+    Serial.print("Attitude roll:"); Serial.print(roll_IMU, 2);
+    Serial.print(" pitch:"); Serial.print(pitch_IMU, 2);
+    Serial.print(" yaw:"); Serial.println(yaw_IMU, 2);
   }
 }
 
 void printPIDoutput() {
   if (current_time - print_counter > 10000) {
     print_counter = micros();
-    CI_LOG("PID");
-    CI_LOG_FLOAT(" roll:", roll_PID, 2);
-    CI_LOG_FLOAT(" pitch:", pitch_PID, 2);
-    CI_LOG_FLOAT(" yaw:", yaw_PID, 2);
-    CI_LOG("\n");
+    Serial.print("PID roll:"); Serial.print(roll_PID, 2);
+    Serial.print(" pitch:"); Serial.print(pitch_PID, 2);
+    Serial.print(" yaw:"); Serial.println(yaw_PID, 2);
   }
 }
 
 void printMotorCommands() {
   if (current_time - print_counter > 10000) {
     print_counter = micros();
-    CI_LOGF("Motors m1:%d m2:%d m3:%d m4:%d m5:%d m6:%d\n",
+    Serial.printf("Motors m1:%d m2:%d m3:%d m4:%d m5:%d m6:%d\n",
             m1_command_PWM, m2_command_PWM, m3_command_PWM,
             m4_command_PWM, m5_command_PWM, m6_command_PWM);
   }
@@ -1513,7 +1493,7 @@ void printMotorCommands() {
 void printServoCommands() {
   if (current_time - print_counter > 10000) {
     print_counter = micros();
-    CI_LOGF("Servos s1:%d s2:%d s3:%d s4:%d s5:%d s6:%d s7:%d\n",
+    Serial.printf("Servos s1:%d s2:%d s3:%d s4:%d s5:%d s6:%d s7:%d\n",
             s1_command_PWM, s2_command_PWM, s3_command_PWM, s4_command_PWM,
             s5_command_PWM, s6_command_PWM, s7_command_PWM);
   }
@@ -1522,9 +1502,7 @@ void printServoCommands() {
 void printLoopRate() {
   if (current_time - print_counter > 10000) {
     print_counter = micros();
-    CI_LOG("dt:");
-    CI_LOG_FLOAT("", dt*1000000.0, 2);
-    CI_LOG("\n");
+    Serial.print("dt:"); Serial.println(dt*1000000.0, 2);
   }
 }
 

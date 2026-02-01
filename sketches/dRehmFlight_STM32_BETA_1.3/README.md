@@ -6,17 +6,17 @@ Minimal-change port of [dRehmFlight](https://github.com/nickrehm/dRehmFlight) BE
 
 This port preserves 100% of Nicholas Rehm's flight control logic while adapting only the hardware interface layer for STM32F4 microcontrollers.
 
-**Target Hardware** (4 boards supported):
-- **NUCLEO_F411RE**: Development board with breadboard ICM42688P + SBUS receiver
+**Target Hardware** (5 boards supported):
+- **NUCLEO_F411RE**: Development board with breadboard ICM42688P + IBus receiver
 - **BLACKPILL_F411CE**: Compact development board with MPU-9250
+- **OPEN_REVO**: OpenPilot Revolution F405 flight controller (STM32F405, MPU-6000)
 - **BKMN_NERO**: NERO F7 flight controller (STM32F722, ICM-20602)
 - **MATEK_H743VI**: MATEK H743-WLITE flight controller (STM32H743, ICM42688P)
 
 ## Upstream Links
 
 - **Original dRehmFlight**: https://github.com/nickrehm/dRehmFlight
-- **STM32 Fork**: https://github.com/geosmall/dRehmFlight
-- **Comparison View** (see exact changes): https://github.com/geosmall/dRehmFlight/compare/main...stm32_port_beta_1.3
+- **Teensy reference**: `Arduino_Core_STM32/sketches/dRehmFlight_Teensy_BETA_1.3/`
 
 ## What Changed
 
@@ -72,56 +72,43 @@ This port preserves 100% of Nicholas Rehm's flight control logic while adapting 
 - **SerialRx** - IBus/SBUS protocol parser
 - **TimerPWM** - Hardware timer PWM (PWMOutputBank)
 - **BoardConfig** - Multi-board pin abstraction
-- **ci_log** - HIL testing framework
 
 All libraries available in [Arduino_Core_STM32](https://github.com/geosmall/Arduino_Core_STM32).
 
 ## Build
 
 ```bash
-# From Arduino_Core_STM32 repository root
-./system/ci/build.sh sketches/dRehmFlight_STM32_BETA_1.3
+# Build with arduino-cli
+arduino-cli compile --fqbn STM32_Robotics:stm32:Nucleo_64:pnum=NUCLEO_F411RE \
+  Arduino_Core_STM32/sketches/dRehmFlight_STM32_BETA_1.3
 
-# Flash to hardware (RTT mode - for HIL testing)
-./system/ci/aflash.sh sketches/dRehmFlight_STM32_BETA_1.3 --use-rtt --build-id
-
-# Or build for Arduino IDE (Serial debug mode)
-arduino-cli compile --fqbn STMicroelectronics:stm32:Nucleo_64:pnum=NUCLEO_F411RE sketches/dRehmFlight_STM32_BETA_1.3
+# Build and flash with CI (Serial output via saflash.sh)
+./ci/saflash.sh Arduino_Core_STM32/sketches/dRehmFlight_STM32_BETA_1.3 --timeout 5
 ```
 
 **Requirements**:
 - arduino-cli 1.3.0+
-- STMicroelectronics:stm32 core 2.7.1+
-- SEGGER J-Link (for RTT mode)
+- STM32_Robotics core
 
 ## Debugging
 
-**Dual-Mode Logging** - Same code works in both modes:
+Uses standard `Serial.print()` like the original Teensy version:
 
-**Arduino IDE (Serial)**:
 ```cpp
-#ifndef USE_RTT
-  Serial.begin(115200);  // Initialized in setup()
-#endif
-CI_LOG("Status message\n");  // Uses Serial.print() when USE_RTT not defined
+Serial.begin(115200);  // Initialized in setup()
+Serial.println("Status message");
+Serial.print("Value:"); Serial.println(value, 2);
 ```
 
-**HIL Testing (RTT)**:
-```bash
-./system/ci/aflash.sh sketches/dRehmFlight_STM32_BETA_1.3 --use-rtt --build-id
-# CI_LOG() uses SEGGER_RTT when USE_RTT defined
-# Float values use CI_LOG_FLOAT() macro (SEGGER_RTT_printf doesn't support %.2f)
-```
+**CI Testing** via saflash.sh captures Serial output automatically.
 
-**Example Output** (both modes):
+**Example Output**:
 ```
 dRehmFlight STM32 BETA 1.3
-Build: 6b80a9499 (2025-10-28T16:42:14Z)
-Radio RX initialized
-IMU initialized: ICM42688P
+Radio RX initialized (interrupt mode)
+IMU initialized successfully
+No magnetometer detected (6-DOF mode)
 Gyro X:0.00 Y:0.00 Z:0.00
-Gyro X:0.38 Y:-0.81 Z:0.30
-Gyro X:0.39 Y:-0.80 Z:0.29
 ```
 
 ## Current Status
@@ -133,7 +120,7 @@ Gyro X:0.39 Y:-0.80 Z:0.29
 - ✅ Radio RX initializes (SBUS on USART1)
 - ✅ Motor timers initialize (OneShot125 ready)
 - ✅ Main loop running at 2kHz
-- ✅ RTT and Serial logging working
+- ✅ Serial logging working
 - ✅ Independent gyro axis values confirmed
 
 **Issues Resolved**:
@@ -141,8 +128,7 @@ Gyro X:0.39 Y:-0.80 Z:0.29
    - Serial debug now uses USART2 (PA2/PA3) exclusively
 2. **Uninitialized Callbacks** - Fixed by NULL initialization in HardwareSerial::init()
    - Added NULL checks in UART interrupt handlers
-3. **RTT Logging** - Fixed by cache clear + CI_LOG_FLOAT() for float formatting
-4. **IMU Sensor Enable** - Fixed by adding EnableAccelLNMode() and EnableGyroLNMode()
+3. **IMU Sensor Enable** - Fixed by adding EnableAccelLNMode() and EnableGyroLNMode()
    - ConfigureInvDevice() sets registers but doesn't start continuous sampling
    - Sensors were stuck in power-off state returning saturated values (-32768)
    - Fix enables continuous 2kHz data acquisition for polling-based flight loop
