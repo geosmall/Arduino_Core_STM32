@@ -1420,89 +1420,138 @@ void setupBlink(int numBlinks,int upTime, int downTime) {
 void printRadioData() {
   if (current_time - print_counter > 10000) {
     print_counter = micros();
-    Serial.printf(" CH1:%d CH2:%d CH3:%d CH4:%d CH5:%d CH6:%d\n",
-            channel_1_pwm, channel_2_pwm, channel_3_pwm,
-            channel_4_pwm, channel_5_pwm, channel_6_pwm);
+    Serial.print(" CH1:");
+    Serial.print(channel_1_pwm);
+    Serial.print(" CH2:");
+    Serial.print(channel_2_pwm);
+    Serial.print(" CH3:");
+    Serial.print(channel_3_pwm);
+    Serial.print(" CH4:");
+    Serial.print(channel_4_pwm);
+    Serial.print(" CH5:");
+    Serial.print(channel_5_pwm);
+    Serial.print(" CH6:");
+    Serial.println(channel_6_pwm);
   }
 }
 
 void printDesiredState() {
   if (current_time - print_counter > 10000) {
     print_counter = micros();
-    Serial.print("thro_des:"); Serial.print(thro_des, 2);
-    Serial.print(" roll_des:"); Serial.print(roll_des, 2);
-    Serial.print(" pitch_des:"); Serial.print(pitch_des, 2);
-    Serial.print(" yaw_des:"); Serial.println(yaw_des, 2);
+    Serial.print("thro_des:");
+    Serial.print(thro_des);
+    Serial.print(" roll_des:");
+    Serial.print(roll_des);
+    Serial.print(" pitch_des:");
+    Serial.print(pitch_des);
+    Serial.print(" yaw_des:");
+    Serial.println(yaw_des);
   }
 }
 
 void printGyroData() {
   if (current_time - print_counter > 10000) {
     print_counter = micros();
-    Serial.print("Gyro X:"); Serial.print(GyroX, 2);
-    Serial.print(" Y:"); Serial.print(GyroY, 2);
-    Serial.print(" Z:"); Serial.println(GyroZ, 2);
+    Serial.print("GyroX:");
+    Serial.print(GyroX);
+    Serial.print(" GyroY:");
+    Serial.print(GyroY);
+    Serial.print(" GyroZ:");
+    Serial.println(GyroZ);
   }
 }
 
 void printAccelData() {
   if (current_time - print_counter > 10000) {
     print_counter = micros();
-    Serial.print("Accel X:"); Serial.print(AccX, 2);
-    Serial.print(" Y:"); Serial.print(AccY, 2);
-    Serial.print(" Z:"); Serial.println(AccZ, 2);
+    Serial.print("AccX:");
+    Serial.print(AccX);
+    Serial.print(" AccY:");
+    Serial.print(AccY);
+    Serial.print(" AccZ:");
+    Serial.println(AccZ);
   }
 }
 
 void printMagData() {
   if (current_time - print_counter > 10000) {
     print_counter = micros();
-    Serial.print("Mag X:"); Serial.print(MagX, 2);
-    Serial.print(" Y:"); Serial.print(MagY, 2);
-    Serial.print(" Z:"); Serial.println(MagZ, 2);
+    Serial.print("MagX:");
+    Serial.print(MagX);
+    Serial.print(" MagY:");
+    Serial.print(MagY);
+    Serial.print(" MagZ:");
+    Serial.println(MagZ);
   }
 }
 
 void printRollPitchYaw() {
   if (current_time - print_counter > 10000) {
     print_counter = micros();
-    Serial.print("Attitude roll:"); Serial.print(roll_IMU, 2);
-    Serial.print(" pitch:"); Serial.print(pitch_IMU, 2);
-    Serial.print(" yaw:"); Serial.println(yaw_IMU, 2);
+    Serial.print("roll:");
+    Serial.print(roll_IMU);
+    Serial.print(" pitch:");
+    Serial.print(pitch_IMU);
+    Serial.print(" yaw:");
+    Serial.println(yaw_IMU);
   }
 }
 
 void printPIDoutput() {
   if (current_time - print_counter > 10000) {
     print_counter = micros();
-    Serial.print("PID roll:"); Serial.print(roll_PID, 2);
-    Serial.print(" pitch:"); Serial.print(pitch_PID, 2);
-    Serial.print(" yaw:"); Serial.println(yaw_PID, 2);
+    Serial.print("roll_PID:");
+    Serial.print(roll_PID);
+    Serial.print(" pitch_PID:");
+    Serial.print(pitch_PID);
+    Serial.print(" yaw_PID:");
+    Serial.println(yaw_PID);
   }
 }
 
 void printMotorCommands() {
   if (current_time - print_counter > 10000) {
     print_counter = micros();
-    Serial.printf("Motors m1:%d m2:%d m3:%d m4:%d m5:%d m6:%d\n",
-            m1_command_PWM, m2_command_PWM, m3_command_PWM,
-            m4_command_PWM, m5_command_PWM, m6_command_PWM);
+    Serial.print("m1_command:");
+    Serial.print(m1_command_PWM);
+    Serial.print(" m2_command:");
+    Serial.print(m2_command_PWM);
+    Serial.print(" m3_command:");
+    Serial.print(m3_command_PWM);
+    Serial.print(" m4_command:");
+    Serial.print(m4_command_PWM);
+    Serial.print(" m5_command:");
+    Serial.print(m5_command_PWM);
+    Serial.print(" m6_command:");
+    Serial.println(m6_command_PWM);
   }
 }
 
 void printServoCommands() {
   if (current_time - print_counter > 10000) {
     print_counter = micros();
-    Serial.printf("Servos s1:%d s2:%d s3:%d s4:%d s5:%d s6:%d s7:%d\n",
-            s1_command_PWM, s2_command_PWM, s3_command_PWM, s4_command_PWM,
-            s5_command_PWM, s6_command_PWM, s7_command_PWM);
+    Serial.print("s1_command:");
+    Serial.print(s1_command_PWM);
+    Serial.print(" s2_command:");
+    Serial.print(s2_command_PWM);
+    Serial.print(" s3_command:");
+    Serial.print(s3_command_PWM);
+    Serial.print(" s4_command:");
+    Serial.print(s4_command_PWM);
+    Serial.print(" s5_command:");
+    Serial.print(s5_command_PWM);
+    Serial.print(" s6_command:");
+    Serial.print(s6_command_PWM);
+    Serial.print(" s7_command:");
+    Serial.println(s7_command_PWM);
   }
 }
 
 void printLoopRate() {
   if (current_time - print_counter > 10000) {
     print_counter = micros();
-    Serial.print("dt:"); Serial.println(dt*1000000.0, 2);
+    Serial.print("dt:");
+    Serial.println(dt*1000000.0);
   }
 }
 
