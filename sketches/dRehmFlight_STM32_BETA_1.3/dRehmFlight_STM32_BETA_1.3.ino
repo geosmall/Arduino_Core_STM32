@@ -5,7 +5,7 @@
 //Version: Beta 1.3
 //
 //STM32 Port: BETA 1.3 - Minimal changes from Teensy BETA 1.3
-//Target: STM32F4/H7 (NUCLEO_F411RE, NOXE V3, MATEK H743)
+//Target: STM32F4/F7/H7 (5 boards supported - see README.md)
  
 //========================================================================================================================//
 
