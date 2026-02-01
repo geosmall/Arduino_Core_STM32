@@ -42,7 +42,6 @@ Everyone that sends me pictures and videos of your flying creations! -Nick
 
 //Uncomment only one IMU
 #define USE_ICM42688P
-//#define USE_MPU6050_I2C
 //#define USE_MPU9250_SPI
 
 //Uncomment only one full scale gyro range (deg/sec)
@@ -515,9 +514,7 @@ void getIMUdata() {
    */
   int16_t AcX,AcY,AcZ,GyX,GyY,GyZ,MgX,MgY,MgZ;
 
-  #if defined USE_MPU6050_I2C
-    imu.getMotion6(&AcX, &AcY, &AcZ, &GyX, &GyY, &GyZ);
-  #elif defined USE_MPU9250_SPI
+  #if defined USE_MPU9250_SPI
     imu.getMotion9(&AcX, &AcY, &AcZ, &GyX, &GyY, &GyZ, &MgX, &MgY, &MgZ);
   #else
     imu.getMotion6(&AcX, &AcY, &AcZ, &GyX, &GyY, &GyZ);
