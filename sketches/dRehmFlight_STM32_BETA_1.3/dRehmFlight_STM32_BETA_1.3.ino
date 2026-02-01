@@ -332,8 +332,8 @@ void setup() {
   //Indicate entering main loop with 3 quick blinks
   setupBlink(3,160,70); //numBlinks, upTime (ms), downTime (ms)
 
-  //If using MPU9250 IMU, uncomment for one-time magnetometer calibration (may need to repeat for new locations)
-  //calibrateMagnetometer(); //Generates magentometer error and scale factors to be pasted in user-specified variables section
+  //If using 9-DOF IMU (MPU-9250/9255), uncomment for one-time magnetometer calibration (may need to repeat for new locations)
+  //calibrateMagnetometer(); //Generates magnetometer error and scale factors to be pasted in user-specified variables section
 
   current_time = micros();
 }
@@ -1367,7 +1367,77 @@ void throttleCut() {
   }
 }
 
-//STM32: calibrateMagnetometer() deleted - ICM42688P has no magnetometer
+void calibrateMagnetometer() {
+  //DESCRIPTION: Magnetometer calibration using IMU library (MPU-9250/9255 only)
+  /*
+   * Performs interactive magnetometer calibration to calculate hard iron bias
+   * and soft iron scale corrections. User must rotate IMU through all orientations
+   * (figure-8 motion) for 15 seconds. Only runs on boards with magnetometer support.
+   *
+   * After calibration, copy the printed values into MagErrorX/Y/Z and MagScaleX/Y/Z
+   * variables at the top of this file, then comment out calibrateMagnetometer() call.
+   */
+
+  //Check if IMU has magnetometer
+  if (!imu.HasMagnetometer()) {
+    Serial.println("Error: No magnetometer detected. Cannot calibrate.");
+    Serial.println("Magnetometer calibration only available on MPU-9250/9255.");
+    while(1); //Halt code
+  }
+
+  //Initialize magnetometer if not already done
+  if (imu.InitMagnetometer() != IMU::Result::OK) {
+    Serial.println("Error: Magnetometer initialization failed.");
+    while(1); //Halt code
+  }
+
+  Serial.println("Beginning magnetometer calibration in");
+  Serial.println("3...");
+  delay(1000);
+  Serial.println("2...");
+  delay(1000);
+  Serial.println("1...");
+  delay(1000);
+  Serial.println("Rotate the IMU about all axes until complete.");
+  Serial.println(" ");
+
+  //Run calibration (15 seconds of figure-8 motion)
+  if (imu.CalibrateMagnetometer() == IMU::Result::OK) {
+    Serial.println("Calibration Successful!");
+    Serial.println("Please comment out the calibrateMagnetometer() function and copy these values into the code:");
+
+    //Get calibration values
+    float bias_x, bias_y, bias_z;
+    float scale_x, scale_y, scale_z;
+    imu.GetMagCalibration(bias_x, bias_y, bias_z, scale_x, scale_y, scale_z);
+
+    Serial.print("float MagErrorX = ");
+    Serial.print(bias_x);
+    Serial.println(";");
+    Serial.print("float MagErrorY = ");
+    Serial.print(bias_y);
+    Serial.println(";");
+    Serial.print("float MagErrorZ = ");
+    Serial.print(bias_z);
+    Serial.println(";");
+    Serial.print("float MagScaleX = ");
+    Serial.print(scale_x);
+    Serial.println(";");
+    Serial.print("float MagScaleY = ");
+    Serial.print(scale_y);
+    Serial.println(";");
+    Serial.print("float MagScaleZ = ");
+    Serial.print(scale_z);
+    Serial.println(";");
+    Serial.println(" ");
+    Serial.println("If you are having trouble with your attitude estimate at a new flying location, repeat this process as needed.");
+  }
+  else {
+    Serial.println("Calibration Unsuccessful. Please reset the board and try again.");
+  }
+
+  while(1); //Halt code so it won't enter main loop until this function commented out
+}
 
 void loopRate(int freq) {
   //DESCRIPTION: Regulate main loop rate to specified frequency in Hz
