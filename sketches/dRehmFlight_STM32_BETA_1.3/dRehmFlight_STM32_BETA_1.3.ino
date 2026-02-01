@@ -41,8 +41,9 @@ Everyone that sends me pictures and videos of your flying creations! -Nick
 // #define USE_RC_DMA   // Optional: Use UART DMA for RC receiver (reduces IRQ overhead)
 
 //Uncomment only one IMU
-//STM32: Use ICM42688P via IMU library
 #define USE_ICM42688P
+//#define USE_MPU6050_I2C
+//#define USE_MPU9250_SPI
 
 //Uncomment only one full scale gyro range (deg/sec)
 #define GYRO_250DPS //Default
@@ -495,22 +496,17 @@ void IMUinit() {
 
   Serial.println("IMU initialized successfully");
 
-  // Initialize magnetometer if available (MPU-9250/9255)
-  if (imu.HasMagnetometer()) {
+  #if defined USE_MPU9250_SPI
     if (imu.InitMagnetometer() == IMU::Result::OK) {
       Serial.println("Magnetometer initialized (9-DOF mode)");
-    } else {
-      Serial.println("Magnetometer init failed, using 6-DOF only");
     }
-  } else {
-    Serial.println("No magnetometer detected (6-DOF mode)");
-  }
+  #endif
 }
 
 void getIMUdata() {
   //DESCRIPTION: Request full dataset from IMU and LP filter gyro, accelerometer, and magnetometer data
   /*
-   * Reads accelerometer, gyro, and magnetometer data from IMU as AccX, AccY, AccZ, GyroX, GyroY, GyroZ, MagX, MagY, MagZ. 
+   * Reads accelerometer, gyro, and magnetometer data from IMU as AccX, AccY, AccZ, GyroX, GyroY, GyroZ, MagX, MagY, MagZ.
    * These values are scaled according to the IMU datasheet to put them into correct units of g's, deg/sec, and uT. A simple first-order
    * low-pass filter is used to get rid of high frequency noise in these raw signals. Generally you want to cut
    * off everything past 80Hz, but if your loop rate is not fast enough, the low pass filter will cause a lag in
@@ -519,13 +515,13 @@ void getIMUdata() {
    */
   int16_t AcX,AcY,AcZ,GyX,GyY,GyZ,MgX,MgY,MgZ;
 
-  // Use getMotion9 if magnetometer available, else getMotion6
-  if (imu.HasMagnetometer()) {
-    imu.getMotion9(&AcX, &AcY, &AcZ, &GyX, &GyY, &GyZ, &MgX, &MgY, &MgZ);
-  } else {
+  #if defined USE_MPU6050_I2C
     imu.getMotion6(&AcX, &AcY, &AcZ, &GyX, &GyY, &GyZ);
-    MgX = MgY = MgZ = 0;  // No magnetometer data
-  }
+  #elif defined USE_MPU9250_SPI
+    imu.getMotion9(&AcX, &AcY, &AcZ, &GyX, &GyY, &GyZ, &MgX, &MgY, &MgZ);
+  #else
+    imu.getMotion6(&AcX, &AcY, &AcZ, &GyX, &GyY, &GyZ);
+  #endif
 
  //Accelerometer
   AccX = AcX / ACCEL_SCALE_FACTOR; //G's
@@ -1368,74 +1364,51 @@ void throttleCut() {
 }
 
 void calibrateMagnetometer() {
-  //DESCRIPTION: Magnetometer calibration using IMU library (MPU-9250/9255 only)
-  /*
-   * Performs interactive magnetometer calibration to calculate hard iron bias
-   * and soft iron scale corrections. User must rotate IMU through all orientations
-   * (figure-8 motion) for 15 seconds. Only runs on boards with magnetometer support.
-   *
-   * After calibration, copy the printed values into MagErrorX/Y/Z and MagScaleX/Y/Z
-   * variables at the top of this file, then comment out calibrateMagnetometer() call.
-   */
-
-  //Check if IMU has magnetometer
-  if (!imu.HasMagnetometer()) {
-    Serial.println("Error: No magnetometer detected. Cannot calibrate.");
-    Serial.println("Magnetometer calibration only available on MPU-9250/9255.");
-    while(1); //Halt code
-  }
-
-  //Initialize magnetometer if not already done
-  if (imu.InitMagnetometer() != IMU::Result::OK) {
-    Serial.println("Error: Magnetometer initialization failed.");
-    while(1); //Halt code
-  }
-
-  Serial.println("Beginning magnetometer calibration in");
-  Serial.println("3...");
-  delay(1000);
-  Serial.println("2...");
-  delay(1000);
-  Serial.println("1...");
-  delay(1000);
-  Serial.println("Rotate the IMU about all axes until complete.");
-  Serial.println(" ");
-
-  //Run calibration (15 seconds of figure-8 motion)
-  if (imu.CalibrateMagnetometer() == IMU::Result::OK) {
-    Serial.println("Calibration Successful!");
-    Serial.println("Please comment out the calibrateMagnetometer() function and copy these values into the code:");
-
-    //Get calibration values
-    float bias_x, bias_y, bias_z;
-    float scale_x, scale_y, scale_z;
-    imu.GetMagCalibration(bias_x, bias_y, bias_z, scale_x, scale_y, scale_z);
-
-    Serial.print("float MagErrorX = ");
-    Serial.print(bias_x);
-    Serial.println(";");
-    Serial.print("float MagErrorY = ");
-    Serial.print(bias_y);
-    Serial.println(";");
-    Serial.print("float MagErrorZ = ");
-    Serial.print(bias_z);
-    Serial.println(";");
-    Serial.print("float MagScaleX = ");
-    Serial.print(scale_x);
-    Serial.println(";");
-    Serial.print("float MagScaleY = ");
-    Serial.print(scale_y);
-    Serial.println(";");
-    Serial.print("float MagScaleZ = ");
-    Serial.print(scale_z);
-    Serial.println(";");
+  #if defined USE_MPU9250_SPI
+    float success;
+    Serial.println("Beginning magnetometer calibration in");
+    Serial.println("3...");
+    delay(1000);
+    Serial.println("2...");
+    delay(1000);
+    Serial.println("1...");
+    delay(1000);
+    Serial.println("Rotate the IMU about all axes until complete.");
     Serial.println(" ");
-    Serial.println("If you are having trouble with your attitude estimate at a new flying location, repeat this process as needed.");
-  }
-  else {
-    Serial.println("Calibration Unsuccessful. Please reset the board and try again.");
-  }
+    success = imu.CalibrateMagnetometer() == IMU::Result::OK;
+    if(success) {
+      Serial.println("Calibration Successful!");
+      Serial.println("Please comment out the calibrateMagnetometer() function and copy these values into the code:");
+      float bias_x, bias_y, bias_z, scale_x, scale_y, scale_z;
+      imu.GetMagCalibration(bias_x, bias_y, bias_z, scale_x, scale_y, scale_z);
+      Serial.print("float MagErrorX = ");
+      Serial.print(bias_x);
+      Serial.println(";");
+      Serial.print("float MagErrorY = ");
+      Serial.print(bias_y);
+      Serial.println(";");
+      Serial.print("float MagErrorZ = ");
+      Serial.print(bias_z);
+      Serial.println(";");
+      Serial.print("float MagScaleX = ");
+      Serial.print(scale_x);
+      Serial.println(";");
+      Serial.print("float MagScaleY = ");
+      Serial.print(scale_y);
+      Serial.println(";");
+      Serial.print("float MagScaleZ = ");
+      Serial.print(scale_z);
+      Serial.println(";");
+      Serial.println(" ");
+      Serial.println("If you are having trouble with your attitude estimate at a new flying location, repeat this process as needed.");
+    }
+    else {
+      Serial.println("Calibration Unsuccessful. Please reset the board and try again.");
+    }
 
+    while(1); //Halt code so it won't enter main loop until this function commented out
+  #endif
+  Serial.println("Error: MPU9250 not selected. Cannot calibrate non-existent magnetometer.");
   while(1); //Halt code so it won't enter main loop until this function commented out
 }
 
