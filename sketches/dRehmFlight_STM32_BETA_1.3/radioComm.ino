@@ -28,6 +28,14 @@ SERIAL_DMA_BUFFER uint8_t rcDmaBuffer[256];
 unsigned long channel_1_raw, channel_2_raw, channel_3_raw, channel_4_raw, channel_5_raw, channel_6_raw;
 
 void radioSetup() {
+  // CRITICAL: Enable external inverter BEFORE initializing UART
+  // F4 lacks hardware RXINV, so the inverter must be set first to avoid
+  // receiving garbage during UART initialization
+#if defined(USE_SBUS_RX) && !defined(USART_CR2_RXINV) && defined(ARDUINO_OPEN_REVO)
+  pinMode(BoardConfig::rc_inverter_pin, OUTPUT);
+  digitalWrite(BoardConfig::rc_inverter_pin, HIGH);  // HIGH = SBUS (inverted)
+#endif
+
   // Initialize SerialRx library
   SerialRx::Config config;
   config.serial = &SerialRC;
@@ -38,6 +46,7 @@ void radioSetup() {
   #elif defined USE_SBUS_RX
     config.rx_protocol = SerialRx::SBUS;
     config.baudrate = 100000;
+    config.invert_rx = true;   // SBUS uses inverted signal
   #else
     #error No serial RX protocol defined (USE_IBUS_RX or USE_SBUS_RX)
   #endif
@@ -75,12 +84,15 @@ void updateRadioChannels() {
     RCMessage msg;
     if (rx.getMessage(&msg)) {
       // Map SerialRx channels to dRehmFlight PWM variables
-      channel_1_raw = msg.channels[0];  // Throttle
-      channel_2_raw = msg.channels[1];  // Aileron
-      channel_3_raw = msg.channels[2];  // Elevator
-      channel_4_raw = msg.channels[3];  // Rudder
-      channel_5_raw = msg.channels[4];  // Gear (throttle cut)
-      channel_6_raw = msg.channels[5];  // Aux1
+      // channelToPWM() normalizes to ~1000-2000 µs regardless of protocol:
+      //   - SBUS (0-2047) → PWM via iNav formula
+      //   - IBus (1000-2000) → passed through unchanged
+      channel_1_raw = rx.channelToPWM(msg.channels[0]);  // Throttle
+      channel_2_raw = rx.channelToPWM(msg.channels[1]);  // Aileron
+      channel_3_raw = rx.channelToPWM(msg.channels[2]);  // Elevator
+      channel_4_raw = rx.channelToPWM(msg.channels[3]);  // Rudder
+      channel_5_raw = rx.channelToPWM(msg.channels[4]);  // Gear (throttle cut)
+      channel_6_raw = rx.channelToPWM(msg.channels[5]);  // Aux1
     }
   }
 }

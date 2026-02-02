@@ -203,6 +203,28 @@ void SerialRx::resetStatistics() {
     }
 }
 
+uint16_t SerialRx::toPWM(uint16_t raw, Protocol protocol) {
+    if (protocol == SBUS) {
+        // iNav formula derived from OpenTX/FrSky X4R measurements:
+        // http://www.wolframalpha.com/input/?i=linear+fit+%7B173%2C+988%7D%2C+%7B1812%2C+2012%7D%2C+%7B993%2C+1500%7D
+        // pwm = (sbus * 5 / 8) + 880
+        // Input range: 0-2047 (11-bit), typical 173-1812
+        // Output range: 880-2159, typical 988-2012
+        uint16_t clamped = (raw > 2047) ? 2047 : raw;
+        return (5 * clamped / 8) + 880;
+    } else {
+        // IBus is already in PWM microseconds (1000-2000)
+        // Just constrain to valid range
+        if (raw < 1000) return 1000;
+        if (raw > 2000) return 2000;
+        return raw;
+    }
+}
+
+uint16_t SerialRx::channelToPWM(uint16_t raw) const {
+    return toPWM(raw, protocol_);
+}
+
 bool SerialRx::sendTelemetry(uint8_t* data, size_t len) {
     // Future implementation for bi-directional telemetry
     if (serial_ == nullptr || data == nullptr || len == 0) {

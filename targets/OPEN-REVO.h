@@ -1,7 +1,11 @@
 /*
- * Auto-generated BoardConfig from Betaflight unified target
- * Generated: 2025-11-30 11:26:51
- * Generator: betaflight_target_converter.py
+ * BoardConfig for OpenPilot Revolution F405
+ * Based on Betaflight unified target, hardware-validated 2026-02-01
+ *
+ * RC Input (3-pin SBUS header):
+ *   - Signal: PA10 (USART1 RX)
+ *   - Inverter: PC0 (GPIO output, HIGH=SBUS inverted, LOW=iBus non-inverted)
+ *   - Validated: ~27k transitions/sec with SBUS @ 100kbaud
  */
 
 #pragma once
@@ -42,8 +46,10 @@ namespace BoardConfig {
   // Status LEDs
   static constexpr LEDConfig status_leds{PB5, PB4};
 
-  // RC Receiver: IBus/SBUS (adjust protocol based on actual wiring)
-  static constexpr RCReceiverConfig rc_receiver{PA10, PA9, 115200, 1000, 300};
+  // RC Receiver: Hardware-validated configuration
+  // 3-pin SBUS header connected to USART1 with hardware inverter on PC0
+  static constexpr RCReceiverConfig rc_receiver{PA10, PA9, 100000, 1000, 300};  // SBUS: 100k baud
+  static constexpr uint32_t rc_inverter_pin = PC0;  // HIGH=SBUS (inverted), LOW=iBus (non-inverted)
 
   // Servo outputs - none configured
   namespace Servo {

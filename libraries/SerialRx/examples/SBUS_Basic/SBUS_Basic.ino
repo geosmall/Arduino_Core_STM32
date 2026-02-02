@@ -14,7 +14,7 @@
  *   - STM32F4: Requires external inverter (transistor, 74HC04, etc.)
  *
  * Protocol: SBUS @ 100000 baud
- * Expected: 16 RC channels (0-2047 range, typical 172-1811)
+ * Expected: 16 RC channels (0-2047 raw, converted to ~1000-2000 PWM µs)
  *
  * Supported Boards:
  *   - DEVEBOX_H743 (HIL-006): H7 with hardware RXINV support
@@ -56,6 +56,14 @@ void setup() {
 
   // Configure RC receiver using BoardConfig
   // Note: SBUS uses 100000 baud (not 115200)
+  // CRITICAL: Enable external inverter BEFORE initializing UART
+  // F4 lacks hardware RXINV, so the inverter must be set first to avoid
+  // receiving garbage during UART initialization
+#if !defined(USART_CR2_RXINV) && defined(ARDUINO_OPEN_REVO)
+  pinMode(BoardConfig::rc_inverter_pin, OUTPUT);
+  digitalWrite(BoardConfig::rc_inverter_pin, HIGH);  // HIGH = SBUS (inverted)
+#endif
+
   SerialRx::Config config;
   config.serial = &SerialRC;
   config.rx_protocol = SerialRx::SBUS;
@@ -81,8 +89,14 @@ void setup() {
 #if defined(USART_CR2_RXINV)
     Serial.println("RX signal inversion: ENABLED (hardware RXINV)");
 #else
+    #if defined(ARDUINO_OPEN_REVO)
+    Serial.print("RX signal inversion: ENABLED (external inverter on pin 0x");
+    Serial.print(BoardConfig::rc_inverter_pin, HEX);
+    Serial.println(")");
+    #else
     Serial.println("WARNING: Hardware RX inversion not supported on this MCU!");
     Serial.println("  External inverter circuit required for SBUS.");
+    #endif
 #endif
 
     Serial.println("Waiting for SBUS frames...\n");
@@ -132,15 +146,16 @@ void loop() {
       if (millis() - last_print >= 100) {
         last_print = millis();
 
-        // Print first 4 channels
-        Serial.print("Ch1:");
-        Serial.print(msg.channels[0]);
-        Serial.print(" Ch2:");
-        Serial.print(msg.channels[1]);
-        Serial.print(" Ch3:");
-        Serial.print(msg.channels[2]);
-        Serial.print(" Ch4:");
-        Serial.print(msg.channels[3]);
+        // Print first 4 channels as PWM microseconds (normalized)
+        // channelToPWM() converts SBUS 0-2047 to PWM ~988-2012 µs
+        Serial.print("Ail:");
+        Serial.print(rc.channelToPWM(msg.channels[0]));
+        Serial.print(" Ele:");
+        Serial.print(rc.channelToPWM(msg.channels[1]));
+        Serial.print(" Thr:");
+        Serial.print(rc.channelToPWM(msg.channels[2]));
+        Serial.print(" Rud:");
+        Serial.print(rc.channelToPWM(msg.channels[3]));
 
         // Print flags if present
         if (msg.error_flags) {
@@ -148,10 +163,10 @@ void loop() {
           Serial.print(msg.error_flags, HEX);
         }
 
-        // Print all 16 channels
+        // Print all 16 channels as PWM
         Serial.print(" | ");
         for (int i = 0; i < 16; i++) {
-          Serial.print(msg.channels[i]);
+          Serial.print(rc.channelToPWM(msg.channels[i]));
           Serial.print(" ");
         }
         Serial.print("| Rx:");

@@ -155,10 +155,10 @@ code { font-family: inherit; }
 <td class="ln">38</td><td class="code" style="background-color:#efcb05;"><code><span style="color:#0000ff;font-weight:bold;">#define</span> USE_SERIAL_RX</code></td>
 </tr><tr>
 <td class="ln"><a id="d2" href="#d2">36</a></td><td class="code" style="background-color:#efcb05;"><code><span style="color:#008000;">//#define USE_SBUS_RX</span></code></td>
-<td class="ln">39</td><td class="code" style="background-color:#efcb05;"><code><span style="color:#0000ff;font-weight:bold;">#define</span> USE_IBUS_RX  <span style="color:#008000;">//Uncomment for IBus protocol</span></code></td>
+<td class="ln">39</td><td class="code" style="background-color:#efcb05;"><code><span style="color:#008000;">// #define USE_IBUS_RX  //Uncomment for IBus protocol</span></code></td>
 </tr><tr>
 <td class="ln"><a id="d2" href="#d2">37</a></td><td class="code" style="background-color:#efcb05;"><code><span style="color:#008000;">//#define USE_DSM_RX</span></code></td>
-<td class="ln">40</td><td class="code" style="background-color:#efcb05;"><code><span style="color:#008000;">// #define USE_SBUS_RX  //Uncomment for SBUS protocol</span></code></td>
+<td class="ln">40</td><td class="code" style="background-color:#efcb05;"><code><span style="color:#0000ff;font-weight:bold;">#define</span> USE_SBUS_RX  <span style="color:#008000;">//Uncomment for SBUS protocol</span></code></td>
 </tr><tr>
 <td class="ln"><a id="d2" href="#d2">38</a></td><td class="code" style="background-color:#efcb05;"><code>static const uint8_t num_DSM_channels = 6; <span style="color:#008000;">//If using DSM RX, change this to match the number of transmitter channels you have</span></code></td>
 <td class="ln">41</td><td class="code" style="background-color:#efcb05;"><code><span style="color:#008000;">// #define USE_RC_DMA   // Optional: Use UART DMA for RC receiver (reduces IRQ overhead)</span></code></td>
@@ -1360,14 +1360,14 @@ code { font-family: inherit; }
 <td class="ln">397</td><td class="code" style="background-color:#ffffff;"><code>  <span style="color:#008000;">//Print data at 100hz (uncomment one at a time for troubleshooting) - SELECT ONE:</span></code></td>
 <td class="ln">355</td><td class="code" style="background-color:#ffffff;"><code>  <span style="color:#008000;">//Print data at 100hz (uncomment one at a time for troubleshooting) - SELECT ONE:</span></code></td>
 </tr><tr>
-<td class="ln">398</td><td class="code" style="background-color:#ffffff;"><code>  <span style="color:#008000;">//printRadioData();     //Prints radio pwm values (expected: 1000 to 2000)</span></code></td>
-<td class="ln">356</td><td class="code" style="background-color:#ffffff;"><code>  <span style="color:#008000;">//printRadioData();     //Prints radio pwm values (expected: 1000 to 2000)</span></code></td>
+<td class="ln"><a id="d27" href="#d27">398</a></td><td class="code" style="background-color:#efcb05;"><code>  <span style="color:#008000;">//printRadioData();     //Prints radio pwm values (expected: 1000 to 2000)</span></code></td>
+<td class="ln">356</td><td class="code" style="background-color:#efcb05;"><code>  printRadioData();     <span style="color:#008000;">//Prints radio pwm values (expected: 1000 to 2000)</span></code></td>
 </tr><tr>
 <td class="ln">399</td><td class="code" style="background-color:#ffffff;"><code>  <span style="color:#008000;">//printDesiredState();  //Prints desired vehicle state commanded in either degrees or deg/sec (expected: +/- maxAXIS for roll, pitch, yaw; 0 to 1 for throttle)</span></code></td>
 <td class="ln">357</td><td class="code" style="background-color:#ffffff;"><code>  <span style="color:#008000;">//printDesiredState();  //Prints desired vehicle state commanded in either degrees or deg/sec (expected: +/- maxAXIS for roll, pitch, yaw; 0 to 1 for throttle)</span></code></td>
 </tr><tr>
-<td class="ln"><a id="d27" href="#d27">400</a></td><td class="code" style="background-color:#efcb05;"><code>  <span style="color:#008000;">//printGyroData();      //Prints filtered gyro data direct from IMU (expected: ~ -250 to 250, 0 at rest)</span></code></td>
-<td class="ln">358</td><td class="code" style="background-color:#efcb05;"><code>  printGyroData();      <span style="color:#008000;">//Prints filtered gyro data direct from IMU (expected: ~ -250 to 250, 0 at rest)</span></code></td>
+<td class="ln">400</td><td class="code" style="background-color:#ffffff;"><code>  <span style="color:#008000;">//printGyroData();      //Prints filtered gyro data direct from IMU (expected: ~ -250 to 250, 0 at rest)</span></code></td>
+<td class="ln">358</td><td class="code" style="background-color:#ffffff;"><code>  <span style="color:#008000;">//printGyroData();      //Prints filtered gyro data direct from IMU (expected: ~ -250 to 250, 0 at rest)</span></code></td>
 </tr><tr>
 <td class="ln">401</td><td class="code" style="background-color:#ffffff;"><code>  <span style="color:#008000;">//printAccelData();     //Prints filtered accelerometer data direct from IMU (expected: ~ -2 to 2; x,y 0 when level, z 1 when level)</span></code></td>
 <td class="ln">359</td><td class="code" style="background-color:#ffffff;"><code>  <span style="color:#008000;">//printAccelData();     //Prints filtered accelerometer data direct from IMU (expected: ~ -2 to 2; x,y 0 when level, z 1 when level)</span></code></td>

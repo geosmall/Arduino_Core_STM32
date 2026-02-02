@@ -41,9 +41,11 @@
 #define PB8                     15  // I2C1 SCL
 #define PB9                     16  // I2C1 SDA
 
-// USART1 - RC Receiver / Main serial
+// USART1 - RC Receiver (SBUS/iBus input on dedicated 3-pin header)
+// Hardware inverter on PC0: HIGH=inverted (SBUS), LOW=non-inverted (iBus)
+// Validated: PA10 receives ~27k transitions/sec with SBUS @ 100kbaud
 #define PA9                     17  // USART1 TX
-#define PA10                    18  // USART1 RX
+#define PA10                    18  // USART1 RX (RC input)
 
 // USART3
 #define PB10                    19  // USART3 TX
@@ -57,10 +59,10 @@
 #define PB5                     23  // LED1 (Blue)
 #define PB4                     24  // LED2 (Amber)
 
-// ADC
-#define PC2                     PIN_A0  // VBAT
-#define PC1                     PIN_A1  // Current
-#define PC0                     PIN_A2  // RSSI (Inverter)
+// ADC / GPIO
+#define PC2                     PIN_A0  // VBAT sense
+#define PC1                     PIN_A1  // Current sense
+#define PC0                     PIN_A2  // RC inverter control (GPIO: HIGH=SBUS, LOW=iBus)
 
 // PWM inputs (RC receiver)
 #define PB14                    28  // PPM / PWM1 - TIM12_CH1

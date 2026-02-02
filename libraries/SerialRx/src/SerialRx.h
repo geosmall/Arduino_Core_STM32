@@ -138,6 +138,31 @@ public:
     void resetStatistics();
 
     /**
+     * @brief Convert raw channel value to PWM microseconds
+     * @param raw Raw channel value (protocol-specific range)
+     * @param protocol Protocol type (SBUS or IBUS)
+     * @return PWM value in microseconds (~988-2012 range)
+     * @details Static method for manual conversion with explicit protocol.
+     *          SBUS: Uses iNav formula (5 * raw / 8) + 880
+     *          IBus: Already in PWM range, just constrained
+     */
+    static uint16_t toPWM(uint16_t raw, Protocol protocol);
+
+    /**
+     * @brief Convert raw channel value to PWM using configured protocol
+     * @param raw Raw channel value from RCMessage
+     * @return PWM value in microseconds (~988-2012 range)
+     * @details Instance method that uses the protocol set in begin()
+     */
+    uint16_t channelToPWM(uint16_t raw) const;
+
+    /**
+     * @brief Get current protocol
+     * @return Configured protocol type
+     */
+    Protocol getProtocol() const { return protocol_; }
+
+    /**
      * @brief Send telemetry data (future)
      * @param data Telemetry data buffer
      * @param len Data length
