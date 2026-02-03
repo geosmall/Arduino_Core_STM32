@@ -35,17 +35,10 @@
 // location from which to read.
 // NOTE: a "power of 2" buffer size is recommended to dramatically
 //       optimize all the modulo operations for ring buffers.
-// WARNING: When buffer sizes are increased to > 256, the buffer index
-// variables are automatically increased in size, but the extra
-// atomicity guards needed for that are not implemented. This will
-// often work, but occasionally a race condition can occur that makes
-// Serial behave erratically. See https://github.com/arduino/Arduino/issues/2405
 #if !defined(SERIAL_TX_BUFFER_SIZE)
-  #define SERIAL_TX_BUFFER_SIZE 64
+  #define SERIAL_TX_BUFFER_SIZE 128
 #endif
 #if !defined(SERIAL_RX_BUFFER_SIZE)
-  // 128 bytes handles GPS NMEA sentences (max 82 bytes) and most protocols
-  // STM32 has plenty of RAM compared to 8-bit AVRs where 64 was the default
   #define SERIAL_RX_BUFFER_SIZE 128
 #endif
 #if (SERIAL_TX_BUFFER_SIZE>256)
