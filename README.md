@@ -86,7 +86,7 @@ Bootloader binaries are in `bootloaders/`.
 
 ```bash
 # Enter DFU mode: Hold BOOT while pressing RESET
-dfu-util -a 0 -s 0x08000000:leave -D bootloaders/bootloader-blackpill_f411ce_8mhz-v1.0.1.bin
+dfu-util -a 0 -s 0x08000000:leave -D bootloaders/bootuf2-blackpill_f411ce_8mhz-v1.0.0.bin
 ```
 
 ### Uploading via UF2
@@ -117,19 +117,24 @@ After bootloader is installed:
 ### Control
 - **SerialRx** - RC receiver protocols (IBus, SBUS)
 - **TimerPWM** - Hardware PWM for servos/ESCs (1µs resolution)
+- **Scheduler** - INav-based cooperative multitasking
 
 ### Core
 - **SPI**, **Wire**, **SoftwareSerial** - Communication
 - **SEGGER_RTT** - Real-time debugging
 - **libPrintf** - Embedded printf (20KB+ smaller than newlib)
 - **STM32RTC** - Real-time clock
+- **CMSIS_DSP** - ARM DSP functions
+- **EmbeddedCLI** - Command-line interface
+- **AUnit** - Unit testing framework
+- **PrecompLib** - CRC-16 utilities
 
 ## Project Structure
 
 ```
 ├── cores/arduino/         # Arduino core implementation
 ├── variants/              # Board-specific pin definitions
-├── libraries/             # Robotics libraries (24 libraries)
+├── libraries/             # Robotics libraries (26 libraries)
 ├── bootloaders/           # UF2 bootloader binaries
 ├── targets/               # Board configuration headers
 ├── extras/
