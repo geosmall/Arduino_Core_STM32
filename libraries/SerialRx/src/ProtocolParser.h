@@ -93,9 +93,18 @@ public:
         frames_failed_ = 0;
     }
 
+    /**
+     * @brief Access latest completed frame without consuming from FIFO
+     * @return Reference to shadow copy of last successfully parsed frame
+     */
+    const RCMessage& GetLatestFrame() const { return latestFrame_; }
+
 protected:
     // Working message buffer for parser
     RCMessage msg_;
+
+    // Shadow copy of last completed frame (survives ResetParser)
+    RCMessage latestFrame_;
 
     // Message queue (16-message depth)
     RingBuffer<RCMessage, 16> msg_q_;
@@ -106,9 +115,11 @@ protected:
 
     /**
      * @brief Notify that a message was successfully parsed
-     * @details Call this from derived parser when complete message received
+     * @details Call this from derived parser when complete message received.
+     *          Saves a shadow copy before FIFO push for failsafe processing.
      */
     inline void ParserNotify() {
+        latestFrame_ = msg_;  // Shadow copy before FIFO push
         msg_q_.PutWithOverwrite(msg_);
         if (frames_received_ < UINT32_MAX) frames_received_++;
     }

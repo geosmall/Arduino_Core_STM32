@@ -15,7 +15,15 @@ SerialRx::SerialRx(Protocol protocol)
     , idle_threshold_us_(0)
     , last_byte_time_us_(0)
     , expect_frame_start_(false)
-    , dma_enabled_(false) {
+    , dma_enabled_(false)
+    , channelState_{}
+    , rxSignalReceived_(false)
+    , rxFlightChannelsValid_(false)
+    , lastSignalStatus_(SignalStatus::TIMEOUT)
+    , frameTimeoutMs_(100)
+    , channelExpiryMs_(300)
+    , validPulseMin_(885)
+    , validPulseMax_(2115) {
 }
 
 SerialRx::~SerialRx() {
@@ -37,6 +45,16 @@ bool SerialRx::begin(const Config& config) {
     last_message_time_ = millis();
     last_byte_time_us_ = micros();
     expect_frame_start_ = false;
+
+    // Failsafe configuration
+    frameTimeoutMs_ = config.frame_timeout_ms;
+    channelExpiryMs_ = config.channel_expiry_ms;
+    validPulseMin_ = config.valid_pulse_min;
+    validPulseMax_ = config.valid_pulse_max;
+    rxSignalReceived_ = false;
+    rxFlightChannelsValid_ = false;
+    lastSignalStatus_ = SignalStatus::TIMEOUT;
+    memset(channelState_, 0, sizeof(channelState_));
 
     // Create parser based on protocol
     switch (protocol_) {
@@ -156,7 +174,16 @@ void SerialRx::update() {
         if (parser_->ParseByte(byte)) {
             // Complete valid message parsed (checksum validated)
             last_message_time_ = millis();
+
+            // Process failsafe state from latest frame
+            updateFailsafeState(parser_->GetLatestFrame());
         }
+    }
+
+    // Layer 2: Frame timeout check (runs every update, not just on new frames)
+    if ((millis() - last_message_time_) > frameTimeoutMs_) {
+        rxSignalReceived_ = false;
+        lastSignalStatus_ = SignalStatus::TIMEOUT;
     }
 }
 
@@ -213,10 +240,9 @@ uint16_t SerialRx::toPWM(uint16_t raw, Protocol protocol) {
         uint16_t clamped = (raw > 2047) ? 2047 : raw;
         return (5 * clamped / 8) + 880;
     } else {
-        // IBus is already in PWM microseconds (1000-2000)
-        // Just constrain to valid range
-        if (raw < 1000) return 1000;
-        if (raw > 2000) return 2000;
+        // IBus raw values are already in PWM µs — pass through unmodified
+        // No clamping: endpoint trick sends ~880 µs which must reach failsafe
+        // range checking (Layer 3) unmodified
         return raw;
     }
 }
@@ -234,4 +260,81 @@ bool SerialRx::sendTelemetry(uint8_t* data, size_t len) {
     // TODO: Implement protocol-specific telemetry framing
     serial_->write(data, len);
     return true;
+}
+
+// --- Failsafe Implementation ---
+
+bool SerialRx::isSignalLost() {
+    // INAV pattern: signal valid only when BOTH conditions true
+    return !(rxSignalReceived_ && rxFlightChannelsValid_);
+}
+
+SerialRx::SignalStatus SerialRx::getSignalStatus() const {
+    return lastSignalStatus_;
+}
+
+const char* SerialRx::getSignalStatusString() const {
+    switch (lastSignalStatus_) {
+    case SignalStatus::OK:             return "OK";
+    case SignalStatus::TIMEOUT:        return "TIMEOUT";
+    case SignalStatus::FAILSAFE_FLAG:  return "FAILSAFE_FLAG";
+    case SignalStatus::OUT_OF_RANGE:   return "OUT_OF_RANGE";
+    case SignalStatus::EXPIRED:        return "EXPIRED";
+    default:                           return "UNKNOWN";
+    }
+}
+
+uint16_t SerialRx::getLastValidPWM(uint8_t channel) const {
+    if (channel >= 4) return 0;
+    return channelState_[channel].lastValidPWM;
+}
+
+bool SerialRx::isChannelExpired(uint8_t channel) const {
+    if (channel >= 4) return true;
+    return millis() > channelState_[channel].expiresAt;
+}
+
+void SerialRx::updateFailsafeState(const RCMessage& frame) {
+    // Layer 1: Protocol failsafe flag (SBUS only; IBus error_flags always 0)
+    if (frame.error_flags & 0x02) {
+        rxSignalReceived_ = false;
+        lastSignalStatus_ = SignalStatus::FAILSAFE_FLAG;
+        return;
+    }
+
+    rxSignalReceived_ = true;
+
+    // Layer 3 & 4: Process AETR channels (0-3)
+    rxFlightChannelsValid_ = true;
+    for (uint8_t ch = 0; ch < 4; ch++) {
+        processChannel(ch, channelToPWM(frame.channels[ch]));
+    }
+
+    // If all checks passed, signal is OK
+    if (rxSignalReceived_ && rxFlightChannelsValid_) {
+        lastSignalStatus_ = SignalStatus::OK;
+    }
+}
+
+void SerialRx::processChannel(uint8_t ch, uint16_t pwm) {
+    if (isValidPulse(pwm)) {
+        // Valid pulse — update state and reset expiry
+        channelState_[ch].lastValidPWM = pwm;
+        channelState_[ch].expiresAt = millis() + channelExpiryMs_;
+    } else {
+        // Invalid pulse (e.g., ~880 µs from endpoint trick)
+        // Mark out of range immediately
+        rxFlightChannelsValid_ = false;
+        lastSignalStatus_ = SignalStatus::OUT_OF_RANGE;
+
+        // Also check if channel has expired (Layer 4)
+        if (millis() > channelState_[ch].expiresAt) {
+            lastSignalStatus_ = SignalStatus::EXPIRED;
+        }
+        // Channel holds lastValidPWM until caller checks (INAV behavior)
+    }
+}
+
+bool SerialRx::isValidPulse(uint16_t pwm) const {
+    return (pwm >= validPulseMin_ && pwm <= validPulseMax_);
 }

@@ -56,7 +56,7 @@ void setup() {
     Serial.print(", TX=0x");
     Serial.print(BoardConfig::rc_receiver.tx_pin, HEX);
     Serial.print(", ");
-    Serial.print(BoardConfig::rc_receiver.baud_rate);
+    Serial.print(config.baudrate);
     Serial.println(" baud)");
     Serial.print("Software idle detection: ");
     Serial.print(BoardConfig::rc_receiver.idle_threshold_us > 0 ? "ENABLED" : "DISABLED");
