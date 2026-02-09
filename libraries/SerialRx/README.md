@@ -8,9 +8,9 @@ Arduino library for parsing serial RC receiver protocols (IBus, SBUS, CRSF) comm
 
 | Protocol | Status | Baudrate | Frame Size | Channels | Validated |
 |----------|--------|----------|------------|----------|-----------|
-| **IBus** (FlySky) | ✅ Implemented | 115200 | 32 bytes | 14 | ✅ Yes |
-| **SBUS** (FrSky/Futaba) | ✅ Implemented | 100000 | 25 bytes | 16 | ⚠️ No |
-| **CRSF** (TBS Crossfire) | 📋 Framework Ready | 420000 | Variable | 16 | ⚠️ No |
+| **IBus** (FlySky) | ✅ Implemented | 115200 | 32 bytes | 14 (of 14) | ✅ Yes |
+| **SBUS** (FrSky/Futaba) | ✅ Implemented | 100000 | 25 bytes | 14 (of 16) | ✅ Yes |
+| **CRSF** (TBS Crossfire) | 📋 Planned | 420000 | Variable | 16 | ⚠️ No |
 
 ## Quick Start
 
@@ -34,20 +34,163 @@ void setup() {
 void loop() {
   rc.update();
 
+  if (rc.isSignalLost()) {
+    // Signal lost — set safe outputs
+    return;
+  }
+
   if (rc.available()) {
     RCMessage msg;
     if (rc.getMessage(&msg)) {
-      uint16_t throttle = msg.channels[2];  // Ch3 (0-indexed)
-      uint16_t aileron = msg.channels[0];   // Ch1
+      uint16_t throttle = rc.channelToPWM(msg.channels[2]);  // Ch3 (0-indexed)
+      uint16_t aileron = rc.channelToPWM(msg.channels[0]);    // Ch1
       // Process RC commands (1000-2000 µs range)
     }
   }
-
-  if (rc.timeout(1000)) {
-    // Signal lost - activate failsafe
-  }
 }
 ```
+
+## Failsafe Detection
+
+SerialRx implements INAV-style 4-layer failsafe detection. The primary API is a single call:
+
+```cpp
+if (rc.isSignalLost()) {
+    // Signal lost — set safe outputs
+    throttle = 1000;
+    aileron = elevator = rudder = 1500;
+}
+```
+
+### Detection Layers
+
+| Layer | Method | Latency | Protocol |
+|-------|--------|---------|----------|
+| 1 | Protocol failsafe flag | Immediate | SBUS only |
+| 2 | Frame timeout (no frames received) | 100ms | All |
+| 3 | Range checking (pulse < 885 or > 2115 µs) | Immediate | All |
+| 4 | Per-channel expiry (stale AETR values) | 300ms | All |
+
+Any single layer triggering causes `isSignalLost()` to return `true`.
+
+### Failsafe API
+
+```cpp
+// Primary — one-liner for most users
+bool isSignalLost();
+
+// Diagnostics — which layer triggered
+SignalStatus getSignalStatus();          // Returns enum: OK, TIMEOUT, FAILSAFE_FLAG, OUT_OF_RANGE, EXPIRED
+const char* getSignalStatusString();     // Returns "OK", "TIMEOUT", etc.
+
+// Per-channel held values during failsafe
+uint16_t getLastValidPWM(uint8_t ch);    // Last known good value (PWM µs)
+
+// Link quality
+uint32_t getFramesReceived();
+uint32_t getFramesFailed();
+float getFrameLossPercent();
+```
+
+### Configuration
+
+Defaults match INAV settings. Override via the Config struct before `begin()`:
+
+```cpp
+SerialRx::Config config;
+config.frame_timeout_ms = 100;     // Layer 2: no frames for this long = timeout
+config.channel_expiry_ms = 300;    // Layer 4: stale values for this long = expired
+config.valid_pulse_min = 885;      // Layer 3: below this = out of range
+config.valid_pulse_max = 2115;     // Layer 3: above this = out of range
+rc.begin(config);
+```
+
+| Parameter | Default | INAV Equivalent | Notes |
+|-----------|---------|-----------------|-------|
+| `frame_timeout_ms` | 100 | frame timeout | Increase for long-range links |
+| `channel_expiry_ms` | 300 | `MAX_INVALID_RX_PULSE_TIME` | Increase for noisy environments |
+| `valid_pulse_min` | 885 | `rx_min_usec` | Raise to 925 for FlySky endpoint trick |
+| `valid_pulse_max` | 2115 | `rx_max_usec` | |
+
+### Protocol-Specific Behavior
+
+**SBUS**: Layer 1 provides immediate detection via the protocol failsafe flag. The receiver continues sending frames with the flag set — detection is instantaneous regardless of channel values.
+
+**IBus**: No protocol-level failsafe flag exists. Detection relies on Layers 2-4. The FS-iA6B receiver continues sending valid-looking frames on signal loss, so **Tx endpoint config** is required for reliable Layer 3 detection (see TX/RX Configuration below).
+
+### Hardware Validation
+
+| Board | Protocol | Detection | Result |
+|-------|----------|-----------|--------|
+| Nucleo F411RE (HIL-005) | IBus | Layer 3 (OUT_OF_RANGE) + Layer 4 (EXPIRED) | 3895 frames, 0 failed |
+| DevEBox H743 (HIL-006) | SBUS | Layer 1 (FAILSAFE_FLAG) | 3896 frames, 0 failed |
+| DevEBox H743 (HIL-006) | IBus | Layer 4 (EXPIRED) | 3896 frames, 0 failed |
+| Open Revo (F405) | SBUS | Layer 2 (TIMEOUT) | 2351 frames, 0 failed |
+
+---
+
+## TX/RX Configuration
+
+For failsafe detection to work reliably, the transmitter and receiver must be configured correctly.
+
+### SBUS — Recommended
+
+SBUS has native failsafe support via the protocol flag (Layer 1). Any receiver failsafe mode works — the flag is always set on signal loss.
+
+```cpp
+config.rx_protocol = SerialRx::SBUS;
+config.baudrate = 100000;
+config.invert_rx = true;   // Required: SBUS uses inverted signal
+```
+
+### IBus — Endpoint Trick Required
+
+IBus has **no protocol-level failsafe flag**. Without TX configuration, signal loss is NOT detected — the FS-iA6B continues sending valid-looking held values.
+
+**The problem:**
+```
+  ~900 µs  ← FS-i6X at -100% with endpoint trick (BELOW threshold → DETECTED)
+   925 µs  ← Recommended valid_pulse_min for FlySky
+   988 µs  ← FS-i6X at -100% normal endpoints (ABOVE threshold → NOT detected)
+  1000 µs  ← Standard RC minimum
+```
+
+**Endpoint trick procedure (FS-i6X):**
+1. Set throttle low endpoint to **120%** (Endpoints menu)
+2. Navigate to **System Setup > RX Setup > Failsafe**
+3. Set CH3 failsafe to **ON**, stick fully down (stores ~900 µs at 120% range)
+4. **Restore throttle endpoint to 100%** — failsafe value remains at ~900 µs
+5. Bench-verify: power off TX, confirm throttle reads ~900 µs
+
+```cpp
+config.rx_protocol = SerialRx::IBUS;
+config.baudrate = 115200;
+config.valid_pulse_min = 925;  // Raise from default 885 for FlySky endpoint trick
+```
+
+**Note:** Community documentation suggests ~880 µs from the endpoint trick. In practice, the FS-i6X produces ~900 µs. Set `valid_pulse_min` to 925 for reliable detection with margin.
+
+### FlySky Receiver Differences
+
+| Feature | FS-IA6B | FS-A8S |
+|---------|---------|--------|
+| IBus/SBUS switching | TX menu (automatic, ~5 sec) | Bind button only (hold 2-3 sec) |
+| TX settings packet | Responds | Does NOT respond |
+| Rebind needed | No | No (but bind button required) |
+| Failsafe output (IBus) | Holds last values or TX-configured | Varies by firmware |
+
+### Verification Procedure
+
+1. Power on with TX on — observe `[OK]` status and channel values
+2. Turn off TX — observe `isSignalLost()` returns `true`
+   - **SBUS**: `FAILSAFE_FLAG` (immediate)
+   - **IBus with endpoint trick**: `OUT_OF_RANGE` (immediate, ~900 µs < 925 threshold)
+   - **IBus without endpoint trick**: `EXPIRED` after 300ms (or **NOT detected** if values stay in range)
+3. Turn on TX — observe recovery to `[OK]`
+
+See `examples/Failsafe_Detection/` for a ready-to-run test sketch.
+
+---
 
 ## IBus Protocol Details
 
@@ -151,22 +294,32 @@ Real receiver testing with dual mode:
 - **Serial mode**: Continuous display for Arduino IDE
 - Hardware validated with FlySky FS-iA6B
 
-**Usage**:
-```bash
-# CI/HIL testing
-./system/ci/aflash.sh libraries/SerialRx/examples/IBus_Basic --use-rtt --build-id
-
-# Arduino IDE
-# Upload via IDE, open Serial Monitor at 115200 baud
-```
+Upload via Arduino IDE, open Serial Monitor at 115200 baud.
 
 ### IBus_Loopback_Test
-Dual-USART validation:
+Dual-USART validation (no receiver needed):
 - TX: USART6 (PA11) generates 100 Hz IBus frames
 - RX: USART1 (PA10) parses via SerialRx
 - Result: 501/501 frames (0% loss) in 5-second test
 
 **Jumper**: PA11 (CN10-14) → PA10 (CN10-33)
+
+### IBus_Loopback_DMA_Test
+DMA mode validation using loopback (no receiver needed):
+- Same loopback setup as IBus_Loopback_Test
+- RX uses DMA mode: ~100 IRQs/sec vs ~11,500 IRQs/sec in interrupt mode
+- Validates DMA buffer handling and IDLE line detection
+
+**Jumper**: PA11 (CN10-14) → PA10 (CN10-33)
+
+### Failsafe_Detection
+Demonstrates the 4-layer failsafe detection system:
+- Reports signal status transitions (`SIGNAL LOST` / `SIGNAL RECOVERED`)
+- Shows held channel values during failsafe
+- Multi-board: Nucleo F411RE (IBus), DevEBox H743 (SBUS), Open Revo (SBUS)
+- 30-second timed test with frame statistics
+
+Upload via Arduino IDE, open Serial Monitor at 115200 baud. Turn TX off/on to observe failsafe transitions.
 
 ### SBUS_Basic
 SBUS receiver testing with multi-board support:
@@ -180,14 +333,7 @@ SBUS receiver testing with multi-board support:
 | DevEBox H743 | STM32H7 | ✅ Yes | Not needed |
 | OpenPilot Revolution | STM32F4 | ❌ No | Required |
 
-**Usage**:
-```bash
-# DevEBox H743 (hardware inversion)
-./ci/saflash.sh Arduino_Core_STM32/libraries/SerialRx/examples/SBUS_Basic STM32_Robotics:stm32:FlightCtr:pnum=DEVEBOX_H743
-
-# OpenPilot Revolution (external inverter required)
-./ci/saflash.sh Arduino_Core_STM32/libraries/SerialRx/examples/SBUS_Basic STM32_Robotics:stm32:FlightCtr:pnum=OPEN_REVO
-```
+Upload via Arduino IDE, select the appropriate board, open Serial Monitor at 115200 baud.
 
 ## Channel Mapping
 
@@ -207,11 +353,11 @@ Standard AETR (Aileron, Elevator, Throttle, Rudder):
 ### Class Hierarchy
 
 ```
-SerialRx (Transport Layer)
+SerialRx (Transport Layer + Failsafe Detection)
     ├── RingBuffer (Serial buffering)
     └── ProtocolParser (Interface)
             ├── IBusParser (Implemented)
-            ├── SBusParser (Future)
+            ├── SBusParser (Implemented)
             └── CRSFParser (Future)
 ```
 
@@ -270,12 +416,16 @@ rc.begin(config);
 
 ## Testing
 
+Upload examples via Arduino IDE or arduino-cli:
+
 ```bash
-# Loopback test (validates protocol implementation)
-./system/ci/aflash.sh libraries/SerialRx/examples/IBus_Loopback_Test --use-rtt
+# Loopback test (validates protocol implementation, no receiver needed)
+arduino-cli compile --fqbn STM32_Robotics:stm32:Nucleo_64:pnum=NUCLEO_F411RE libraries/SerialRx/examples/IBus_Loopback_Test
+arduino-cli upload --fqbn STM32_Robotics:stm32:Nucleo_64:pnum=NUCLEO_F411RE libraries/SerialRx/examples/IBus_Loopback_Test
 
 # Real receiver test (validates hardware integration)
-./system/ci/aflash.sh libraries/SerialRx/examples/IBus_Basic --use-rtt
+arduino-cli compile --fqbn STM32_Robotics:stm32:Nucleo_64:pnum=NUCLEO_F411RE libraries/SerialRx/examples/IBus_Basic
+arduino-cli upload --fqbn STM32_Robotics:stm32:Nucleo_64:pnum=NUCLEO_F411RE libraries/SerialRx/examples/IBus_Basic
 ```
 
 ## References

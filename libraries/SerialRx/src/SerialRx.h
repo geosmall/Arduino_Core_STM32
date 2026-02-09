@@ -24,7 +24,7 @@ public:
     enum Protocol {
         NONE = 0,
         IBUS,
-        SBUS,  // Future
+        SBUS,
     };
 
     /**
@@ -172,7 +172,7 @@ public:
      * @return PWM value in microseconds (~988-2012 range)
      * @details Static method for manual conversion with explicit protocol.
      *          SBUS: Uses iNav formula (5 * raw / 8) + 880
-     *          IBus: Already in PWM range, just constrained
+     *          IBus: Already in PWM µs, passed through unmodified
      */
     static uint16_t toPWM(uint16_t raw, Protocol protocol);
 
