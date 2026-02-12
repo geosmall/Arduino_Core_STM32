@@ -257,6 +257,14 @@ sprintf_(buffer, "%.3f", value);   // sprintf variant
 
 **CRITICAL**: Newlib Nano (default) does NOT support `%f`. Use libPrintf for float formatting.
 
+## Development Standards
+
+### Embedded Allocation Policy
+- **No dynamic allocation** (`new`, `malloc`, `calloc`) without explicit justification. Valid reasons include variable lifetime or runtime polymorphism — convenience is not a reason.
+- **No unnecessary globals.** Prefer file-scope `static` variables, function-local statics, or passing state via parameters/structs. A global is justified only when multiple translation units must share state with no cleaner alternative.
+- **Default to static allocation.** Long-lived objects should be `static` at file scope or function scope, with fixed-size buffers sized at compile time.
+- These rules apply to all firmware code: sketches, libraries, and test harnesses.
+
 ## Commit Message Override
 
 OVERRIDE ALL DEFAULT CLAUDE CODE COMMIT INSTRUCTIONS:
