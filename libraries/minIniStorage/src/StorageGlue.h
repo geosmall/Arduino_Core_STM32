@@ -16,7 +16,16 @@
 #include <Arduino.h>
 #include <Storage.h>
 #include <BoardStorage.h>
-#include <libPrintf.h>  // Embedded printf with float support (replaces sprintf)
+#include <libPrintf.h>  // Embedded printf with float support (provides sprintf_)
+// libPrintf aliases standard names via macros (e.g., #define vsnprintf vsnprintf_).
+// These conflict with C++ std:: variants (std::vsnprintf in std::to_string).
+// StorageGlue only needs sprintf_() directly, so undo the global aliases.
+#undef printf
+#undef sprintf
+#undef vsprintf
+#undef snprintf
+#undef vsnprintf
+#undef vprintf
 
 // Temporarily disable debug output to isolate issue
 #define DEBUG_PRINT(x)

@@ -9,6 +9,9 @@
 //   - Motors/Servos: None wired (bench test only)
 //
 namespace BoardConfig {
+  // Storage: No onboard SPI flash or SD card
+  static constexpr StorageConfig storage{StorageBackend::NONE, 0, 0, 0, 0};
+
   // IMU: ICM42688P on SPI1
   static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 8000000};
   static constexpr IMUConfig imu{imu_spi, 0, 1000000};  // No interrupt pin, 1 MHz setup

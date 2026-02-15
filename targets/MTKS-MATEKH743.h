@@ -14,6 +14,9 @@
 // MCU: STM32H743
 // Gyro: MPU6500, MPU6000, ICM42688P, ICM42605
 namespace BoardConfig {
+  // Storage: No onboard SPI flash or SD card
+  static constexpr StorageConfig storage{StorageBackend::NONE, 0, 0, 0, 0};
+
   // IMU: MPU6500, MPU6000, ICM42688P, ICM42605 on SPI1
   static constexpr SPIConfig imu_spi{PD7, PA6, PA5, PC15, 8000000};
   static constexpr IMUConfig imu{imu_spi, PB2, 1000000};
