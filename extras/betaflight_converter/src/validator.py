@@ -23,7 +23,7 @@ class ValidationError:
 class ValidatedMotor:
     """Validated motor configuration."""
     index: int
-    pin_bf: str      # Betaflight format: "B04"
+    pin_bf: str      # Betaflight pin: "PB4"
     pin_arduino: str # Arduino format with ALT if needed: "PB0_ALT1"
     timer: str       # e.g., "TIM3"
     channel: int     # Timer channel (1-4)

@@ -1,10 +1,11 @@
 # Betaflight Config vs Generated Output Comparison
+
 ## JHEF-JHEF411 (NOXE V3 Flight Controller)
 
-**Date**: 2025-10-09
+**Date**: 2026-02-18
 **Generator Version**: betaflight_target_converter.py
-**MCU**: STM32F411CE
-**Source**: `data/JHEF-JHEF411.config`
+**MCU**: STM32F411
+**Source**: `bf_configs/JHEF411/config.h` (native Betaflight target)
 **Output**: `output/JHEF-JHEF411.h`
 
 ---
@@ -12,9 +13,10 @@
 ## Board Identification
 
 ### Betaflight Config
-```
-board_name JHEF411
-manufacturer_id JHEF
+```c
+#define FC_TARGET_MCU     STM32F411
+#define BOARD_NAME        JHEF411
+#define MANUFACTURER_ID   JHEF
 ```
 
 ### Generated Output
@@ -26,21 +28,21 @@ manufacturer_id JHEF
 namespace BoardConfig {
 ```
 
-**Status**: ✅ Correctly extracted board metadata and gyro types from defines
+**Status**: ✅ Correctly extracted board metadata and gyro types from `USE_GYRO_SPI_*` defines
 
 ---
 
 ## Storage Configuration
 
 ### Betaflight Config
-```
+```c
 #define USE_FLASH_W25Q128FV
-resource FLASH_CS 1 B02
-resource SPI_SCK 2 B13
-resource SPI_MISO 2 B14
-resource SPI_MOSI 2 B15
-set flash_spi_bus = 2
-set blackbox_device = SPIFLASH
+#define FLASH_CS_PIN         PB2
+#define SPI2_SCK_PIN         PB13
+#define SPI2_SDI_PIN         PB14
+#define SPI2_SDO_PIN         PB15
+#define FLASH_SPI_INSTANCE SPI2
+#define DEFAULT_BLACKBOX_DEVICE     BLACKBOX_DEVICE_FLASH
 ```
 
 ### Generated Output
@@ -50,53 +52,51 @@ static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PB15, PB14, PB1
 ```
 
 **Mapping**:
-- Flash chip: W25Q128FV ✅
-- SPI bus: SPI2 ✅
-- CS pin: PB2 (B02) ✅
-- MOSI: PB15 (B15) ✅
-- MISO: PB14 (B14) ✅
-- SCLK: PB13 (B13) ✅
-- Frequency: 8MHz (default) ✅
-- Backend: LittleFS (inferred from flash) ✅
+- Flash chip: W25Q128FV (from `USE_FLASH_W25Q128FV`) ✅
+- SPI bus: SPI2 (from `FLASH_SPI_INSTANCE`) ✅
+- CS pin: PB2 (from `FLASH_CS_PIN`) ✅
+- MOSI: PB15 (from `SPI2_SDO_PIN`, SDO=MOSI) ✅
+- MISO: PB14 (from `SPI2_SDI_PIN`, SDI=MISO) ✅
+- SCLK: PB13 (from `SPI2_SCK_PIN`) ✅
+- Frequency: 8 MHz (default) ✅
+- Backend: LITTLEFS (inferred from `BLACKBOX_DEVICE_FLASH`) ✅
 
-**Status**: ✅ Complete mapping with correct pin format
+**Status**: ✅ Complete mapping with native pin format
 
 ---
 
 ## IMU Configuration
 
 ### Betaflight Config
-```
+```c
 #define USE_GYRO_SPI_MPU6000
 #define USE_ACC_SPI_MPU6000
 #define USE_GYRO_SPI_ICM42688P
 #define USE_ACC_SPI_ICM42688P
-resource GYRO_CS 1 A04
-resource GYRO_EXTI 1 B03
-resource SPI_SCK 1 A05
-resource SPI_MISO 1 A06
-resource SPI_MOSI 1 A07
-set gyro_1_bustype = SPI
-set gyro_1_spibus = 1
+#define GYRO_1_CS_PIN        PA4
+#define GYRO_1_EXTI_PIN      PB3
+#define SPI1_SCK_PIN         PA5
+#define SPI1_SDI_PIN         PA6
+#define SPI1_SDO_PIN         PA7
+#define GYRO_1_SPI_INSTANCE SPI1
 ```
 
 ### Generated Output
 ```cpp
 // IMU: MPU6000, ICM42688P on SPI1
-static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 8000000, CS_Mode::HARDWARE};
+static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 8000000};
 static constexpr IMUConfig imu{imu_spi, PB3, 1000000};
 ```
 
 **Mapping**:
-- Gyro types: MPU6000, ICM42688P ✅
-- SPI bus: SPI1 ✅
-- CS pin: PA4 (A04) ✅
-- MOSI: PA7 (A07) ✅
-- MISO: PA6 (A06) ✅
-- SCLK: PA5 (A05) ✅
-- Interrupt: PB3 (B03) ✅
-- CS mode: HARDWARE (inferred) ✅
-- Frequency: 8MHz runtime, 1MHz setup ✅
+- Gyro types: MPU6000, ICM42688P (from `USE_GYRO_SPI_*` defines) ✅
+- SPI bus: SPI1 (from `GYRO_1_SPI_INSTANCE`) ✅
+- CS pin: PA4 (from `GYRO_1_CS_PIN`) ✅
+- MOSI: PA7 (from `SPI1_SDO_PIN`) ✅
+- MISO: PA6 (from `SPI1_SDI_PIN`) ✅
+- SCLK: PA5 (from `SPI1_SCK_PIN`) ✅
+- Interrupt: PB3 (from `GYRO_1_EXTI_PIN`) ✅
+- Frequency: 8 MHz runtime, 1 MHz setup ✅
 
 **Status**: ✅ Complete IMU configuration with dual gyro support
 
@@ -105,29 +105,26 @@ static constexpr IMUConfig imu{imu_spi, PB3, 1000000};
 ## I2C Sensors
 
 ### Betaflight Config
-```
+```c
 #define USE_BARO_BMP280
 #define USE_BARO_DPS310
-resource I2C_SCL 1 B08
-resource I2C_SDA 1 B09
-set mag_bustype = I2C
-set mag_i2c_device = 1
-set baro_bustype = I2C
-set baro_i2c_device = 1
+#define I2C1_SCL_PIN         PB8
+#define I2C1_SDA_PIN         PB9
+#define MAG_I2C_INSTANCE I2CDEV_1
+#define BARO_I2C_INSTANCE I2CDEV_1
 ```
 
 ### Generated Output
 ```cpp
 // I2C1: Environmental sensors
-static constexpr I2CConfig sensors{PB8, PB9, 400000};
+static constexpr I2CConfig sensors{PB9, PB8, 400000};
 ```
 
 **Mapping**:
-- I2C bus: I2C1 ✅
-- SDA: PB9 (B09) ✅
-- SCL: PB8 (B08) ✅
-- Frequency: 400kHz (standard) ✅
-- Devices: Barometer, magnetometer (documented) ✅
+- I2C bus: I2C1 (from `MAG_I2C_INSTANCE`, `BARO_I2C_INSTANCE`) ✅
+- SDA: PB9 (from `I2C1_SDA_PIN`) ✅
+- SCL: PB8 (from `I2C1_SCL_PIN`) ✅
+- Frequency: 400 kHz (default) ✅
 
 **Status**: ✅ Correct I2C configuration
 
@@ -136,11 +133,11 @@ static constexpr I2CConfig sensors{PB8, PB9, 400000};
 ## UART Configuration
 
 ### Betaflight Config
-```
-resource SERIAL_TX 1 B06
-resource SERIAL_RX 1 B07
-resource SERIAL_TX 2 A02
-resource SERIAL_RX 2 A03
+```c
+#define UART1_TX_PIN         PB6
+#define UART1_RX_PIN         PB7
+#define UART2_TX_PIN         PA2
+#define UART2_RX_PIN         PA3
 ```
 
 ### Generated Output
@@ -155,13 +152,13 @@ static constexpr UARTConfig uart2{PA2, PA3, 115200};
 **Mapping**:
 
 **UART1**:
-- TX: PB6 (B06) ✅
-- RX: PB7 (B07) ✅
+- TX: PB6 ✅
+- RX: PB7 ✅
 - Baud: 115200 (default) ✅
 
 **UART2**:
-- TX: PA2 (A02) ✅
-- RX: PA3 (A03) ✅
+- TX: PA2 ✅
+- RX: PA3 ✅
 - Baud: 115200 (default) ✅
 
 **Status**: ✅ Both UARTs correctly mapped
@@ -171,12 +168,10 @@ static constexpr UARTConfig uart2{PA2, PA3, 115200};
 ## ADC Configuration
 
 ### Betaflight Config
-```
-resource ADC_BATT 1 A00
-resource ADC_CURR 1 A01
-set current_meter = ADC
-set battery_meter = ADC
-set ibata_scale = 170
+```c
+#define ADC_VBAT_PIN         PA0
+#define ADC_CURR_PIN         PA1
+#define DEFAULT_CURRENT_METER_SCALE 170
 ```
 
 ### Generated Output
@@ -186,10 +181,10 @@ static constexpr ADCConfig battery{PA0, PA1, 110, 170};
 ```
 
 **Mapping**:
-- VBAT pin: PA0 (A00) ✅
-- CURR pin: PA1 (A01) ✅
+- VBAT pin: PA0 ✅
+- CURR pin: PA1 ✅
 - VBAT scale: 110 (default) ✅
-- CURR scale: 170 (from ibata_scale) ✅
+- CURR scale: 170 (from `DEFAULT_CURRENT_METER_SCALE`) ✅
 
 **Status**: ✅ ADC configuration with extracted current scale
 
@@ -198,8 +193,8 @@ static constexpr ADCConfig battery{PA0, PA1, 110, 170};
 ## Status LEDs
 
 ### Betaflight Config
-```
-resource LED 1 C13
+```c
+#define LED0_PIN             PC13
 ```
 
 ### Generated Output
@@ -209,7 +204,7 @@ static constexpr LEDConfig status_leds{PC13};
 ```
 
 **Mapping**:
-- LED pin: PC13 (C13) ✅
+- LED pin: PC13 (from `LED0_PIN`, 0-based index converted to 1-based) ✅
 
 **Status**: ✅ LED configuration mapped
 
@@ -218,100 +213,200 @@ static constexpr LEDConfig status_leds{PC13};
 ## Motor Configuration
 
 ### Betaflight Config
-```
-resource MOTOR 1 A08
-resource MOTOR 2 A09
-resource MOTOR 3 A10
-resource MOTOR 4 B00
-resource MOTOR 5 B04
+```c
+#define MOTOR1_PIN           PA8
+#define MOTOR2_PIN           PA9
+#define MOTOR3_PIN           PA10
+#define MOTOR4_PIN           PB0
+#define MOTOR5_PIN           PB4
 
-timer A08 AF1  # TIM1 CH1
-timer A09 AF1  # TIM1 CH2
-timer A10 AF1  # TIM1 CH3
-timer B00 AF2  # TIM3 CH3
-timer B04 AF2  # TIM3 CH1
-
-set motor_pwm_protocol = DSHOT300
+#define TIMER_PIN_MAPPING \
+    TIMER_PIN_MAP( 0, PA2 , 3, -1) \
+    TIMER_PIN_MAP( 1, PA8 , 1,  1) \
+    TIMER_PIN_MAP( 2, PA9 , 1,  1) \
+    TIMER_PIN_MAP( 3, PA10, 1,  1) \
+    TIMER_PIN_MAP( 4, PB0 , 2,  0) \
+    TIMER_PIN_MAP( 5, PB4 , 1,  0) \
+    ...
 ```
 
 ### Generated Output
 ```cpp
-// Motors: DSHOT300 protocol
+// Motors: ONESHOT125 protocol (125-250 µs)
 namespace Motor {
-  static constexpr uint32_t frequency_hz = 1000;
+  static constexpr uint32_t frequency_hz = 2000;
 
-  // TIM1 Bank: Motors 1, 2, 3
-  namespace TIM1_Bank {
-    static inline TIM_TypeDef* const timer = TIM1;
-
-    static constexpr Channel motor1 = {PA8, 1, 0, 0};  // TIM1_CH1
-    static constexpr Channel motor2 = {PA9, 2, 0, 0};  // TIM1_CH2
-    static constexpr Channel motor3 = {PA10, 3, 0, 0};  // TIM1_CH3
+  struct MotorConfig {
+    TIM_TypeDef* timer;
+    uint32_t pin;
+    uint32_t channel;
+    uint32_t min_us;
+    uint32_t max_us;
   };
 
-  // TIM3 Bank: Motors 4, 5
-  namespace TIM3_Bank {
-    static inline TIM_TypeDef* const timer = TIM3;
-
-    static constexpr Channel motor4 = {PB0_ALT1, 3, 0, 0};  // TIM3_CH3
-    static constexpr Channel motor5 = {PB4, 1, 0, 0};  // TIM3_CH1
+  // Motor array - hardware timer assignments from Betaflight config
+  static constexpr MotorConfig motors[] = {
+    {TIM1, PA8, 1, 125, 250},  // Motor 1: TIM1_CH1
+    {TIM1, PA9, 2, 125, 250},  // Motor 2: TIM1_CH2
+    {TIM1, PA10, 3, 125, 250},  // Motor 3: TIM1_CH3
+    {TIM3, PB0_ALT1, 3, 125, 250},  // Motor 4: TIM3_CH3
+    {TIM3, PB4, 1, 125, 250},  // Motor 5: TIM3_CH1
   };
+
+  static constexpr int num_motors = sizeof(motors) / sizeof(motors[0]);
 };
 ```
 
 **Mapping**:
 
 **Motor 1** (TIM1_CH1):
-- Pin: PA8 (A08) ✅
-- Timer: TIM1 ✅
+- Pin: PA8 (from `MOTOR1_PIN`) ✅
+- Timer: TIM1 (occurrence=1 in `TIMER_PIN_MAP`) ✅
 - Channel: 1 ✅
-- AF: 1 ✅
 
 **Motor 2** (TIM1_CH2):
-- Pin: PA9 (A09) ✅
-- Timer: TIM1 ✅
+- Pin: PA9 (from `MOTOR2_PIN`) ✅
+- Timer: TIM1 (occurrence=1) ✅
 - Channel: 2 ✅
-- AF: 1 ✅
 
 **Motor 3** (TIM1_CH3):
-- Pin: PA10 (A10) ✅
-- Timer: TIM1 ✅
+- Pin: PA10 (from `MOTOR3_PIN`) ✅
+- Timer: TIM1 (occurrence=1) ✅
 - Channel: 3 ✅
-- AF: 1 ✅
 
 **Motor 4** (TIM3_CH3):
-- Pin: **PB0_ALT1** (B00 with AF2) ✅
+- Pin: **PB0_ALT1** (from `MOTOR4_PIN PB0`, occurrence=2 selects ALT1) ✅
 - Timer: TIM3 ✅
 - Channel: 3 ✅
-- AF: 2 ✅
-- **Note**: ALT variant required (PB0 default is TIM1, ALT1 is TIM3)
+- **Note**: ALT1 variant required — PB0 default maps to TIM1_CH2N, ALT1 maps to TIM3_CH3
 
 **Motor 5** (TIM3_CH1):
-- Pin: PB4 (B04) ✅
-- Timer: TIM3 ✅
+- Pin: PB4 (from `MOTOR5_PIN`) ✅
+- Timer: TIM3 (occurrence=1) ✅
 - Channel: 1 ✅
-- AF: 2 ✅
 
-**Timer Grouping**:
-- TIM1 Bank: 3 motors ✅
-- TIM3 Bank: 2 motors ✅
+**Protocol**: OneShot125 (125-250 µs pulse, 2000 Hz)
 
-**Protocol**:
-- Protocol: DSHOT300 ✅
-- Frequency: 1kHz (placeholder for DSHOT) ✅
+**Status**: ✅ All 5 motors correctly mapped with ALT variant for motor 4
 
-**Status**: ✅ Complete motor configuration with **correct ALT variant for motor 4**
+---
+
+## ALT Variant Handling — Key Feature
+
+### The PB0 Motor 4 Case Study
+
+**Betaflight config.h**:
+```c
+#define MOTOR4_PIN           PB0
+// TIMER_PIN_MAP( 4, PB0 , 2,  0)   ← occurrence=2
+```
+
+**PeripheralPins.c** for STM32F411 shows PB_0 has two timer entries:
+```c
+{PB_0,      TIM1, GPIO_AF1_TIM1, 2, 1},  // Entry 1 (default): TIM1_CH2N
+{PB_0_ALT1, TIM3, GPIO_AF2_TIM3, 3, 0},  // Entry 2 (ALT1): TIM3_CH3
+```
+
+**Timer Occurrence Resolution**:
+1. `TIMER_PIN_MAP(4, PB0, 2, 0)` specifies occurrence=2 for PB0
+2. Converter looks up PB0 in PeripheralPins.c PinMap_TIM entries
+3. Filters to non-complementary channels only
+4. Selects 2nd entry → TIM3_CH3 with PB_0_ALT1
+5. Generates `PB0_ALT1` in Arduino macro format
+
+**Generated Output**:
+```cpp
+{TIM3, PB0_ALT1, 3, 125, 250},  // Motor 4: TIM3_CH3
+```
+
+**Why ALT1 is Required**:
+- Without ALT suffix: `PB0` → defaults to TIM1_CH2N (wrong timer)
+- With ALT suffix: `PB0_ALT1` → correctly maps to TIM3_CH3
+
+---
+
+## Second Board: MTKS-MATEKH743 (Servo + Multi-Motor)
+
+**Source**: `bf_configs/MATEKH743/config.h`
+**Output**: `output/MTKS-MATEKH743.h`
+
+This board demonstrates servo outputs, 8 motors, and multiple ALT variants.
+
+### Servo Configuration
+
+**Betaflight Config**:
+```c
+#define SERVO1_PIN           PE5
+#define SERVO2_PIN           PE6
+// TIMER_PIN_MAP( 8, PE5 , 1, -1)   ← occurrence=1
+// TIMER_PIN_MAP( 9, PE6 , 1, -1)   ← occurrence=1
+```
+
+**Generated Output**:
+```cpp
+namespace Servo {
+  static constexpr uint32_t frequency_hz = 50;
+
+  static constexpr ServoConfig servos[] = {
+    {TIM15, PE5, 1, 1000, 2000},  // Servo 1: TIM15_CH1
+    {TIM15, PE6, 2, 1000, 2000},  // Servo 2: TIM15_CH2
+  };
+
+  static constexpr int num_servos = sizeof(servos) / sizeof(servos[0]);
+};
+```
+
+**Status**: ✅ Servos correctly separated from motors with 50 Hz frequency and 1000-2000 µs range
+
+### Motor Configuration (8 motors, 3 timer banks)
+
+**Betaflight Config**:
+```c
+#define MOTOR1_PIN           PB0
+#define MOTOR2_PIN           PB1
+#define MOTOR3_PIN           PA0
+#define MOTOR4_PIN           PA1
+#define MOTOR5_PIN           PA2
+#define MOTOR6_PIN           PA3
+#define MOTOR7_PIN           PD12
+#define MOTOR8_PIN           PD13
+// All motor pins have occurrence=2 in TIMER_PIN_MAP (except PD12/PD13 which are occurrence=1)
+```
+
+**Generated Output**:
+```cpp
+namespace Motor {
+  static constexpr uint32_t frequency_hz = 2000;
+
+  static constexpr MotorConfig motors[] = {
+    {TIM3, PB0_ALT1, 3, 125, 250},  // Motor 1: TIM3_CH3
+    {TIM3, PB1_ALT1, 4, 125, 250},  // Motor 2: TIM3_CH4
+    {TIM5, PA0_ALT1, 1, 125, 250},  // Motor 3: TIM5_CH1
+    {TIM5, PA1_ALT1, 2, 125, 250},  // Motor 4: TIM5_CH2
+    {TIM5, PA2_ALT1, 3, 125, 250},  // Motor 5: TIM5_CH3
+    {TIM5, PA3_ALT1, 4, 125, 250},  // Motor 6: TIM5_CH4
+    {TIM4, PD12, 1, 125, 250},      // Motor 7: TIM4_CH1
+    {TIM4, PD13, 2, 125, 250},      // Motor 8: TIM4_CH2
+  };
+
+  static constexpr int num_motors = sizeof(motors) / sizeof(motors[0]);
+};
+```
+
+**ALT Variants**: Motors 1-6 all use ALT1 variants (occurrence=2 selects the second timer option for each pin). Motors 7-8 use default pins (occurrence=1).
+
+**Status**: ✅ All 8 motors correctly mapped across TIM3, TIM5, TIM4
 
 ---
 
 ## Validation Results
 
-### PeripheralPins.c Validation
+### PeripheralPins.c Validation (JHEF411)
 ```
-Loading PeripheralPins.c: Arduino_Core_STM32/variants/STM32F4xx/F411C(C-E)(U-Y)/PeripheralPins.c
+Loading PeripheralPins.c: variants/STM32F4xx/F411C(C-E)(U-Y)/PeripheralPins.c
 
 Validating configuration...
-✅ Validation passed
+Validation passed
 Validation Summary:
   Errors: 0
   Warnings: 0
@@ -323,69 +418,14 @@ Validation Summary:
 - ✅ I2C1: Both pins exist and map to I2C1
 - ✅ UART1/UART2: All TX/RX pins exist and map to correct UARTs
 - ✅ ADC: Both pins exist and support ADC
-- ✅ Motors: All 5 timer assignments validated with correct AF
-- ✅ Motor 4 ALT variant: PB0_ALT1 correctly maps to TIM3_CH3 with AF2
-
----
-
-## Pin Format Conversion
-
-### Betaflight Format → Arduino Format
-
-**Conversion Rules**:
-- Remove leading zeros: `A08` → `A8`
-- Add 'P' prefix: `A8` → `PA8`
-- Preserve ALT variants when needed
-
-**Examples**:
-- `B02` → `PB2` (storage CS)
-- `B15` → `PB15` (SPI MOSI)
-- `A08` → `PA8` (motor 1)
-- `B00` → `PB0_ALT1` (motor 4, ALT needed for TIM3)
-- `B03` → `PB3` (IMU interrupt)
-
-**Status**: ✅ All pins correctly converted to Arduino macro format
-
----
-
-## ALT Variant Handling ⭐ KEY FEATURE
-
-### The PB0 Motor 4 Case Study
-
-**Betaflight Specification**:
-```
-resource MOTOR 4 B00
-timer B00 AF2    # TIM3 CH3 (AF2)
-```
-
-**PeripheralPins.c Reality**:
-```c
-{PB_0,      TIM1, GPIO_AF1_TIM1, 2, 1},  // TIM1_CH2N (default)
-{PB_0_ALT1, TIM3, GPIO_AF2_TIM3, 3, 0},  // TIM3_CH3 (ALT1 required)
-```
-
-**Generated Output**:
-```cpp
-static constexpr Channel motor4 = {PB0_ALT1, 3, 0, 0};  // TIM3_CH3
-```
-
-**Why ALT1 is Required**:
-1. Betaflight specifies: PB0 with AF2 for TIM3
-2. Without ALT suffix: `PB0` → defaults to TIM1_CH2N (AF1) ❌
-3. With ALT suffix: `PB0_ALT1` → correctly maps to TIM3_CH3 (AF2) ✅
-
-**Converter Logic**:
-1. Parser: Extracts `PB_0_ALT1` from PeripheralPins.c
-2. Validator: Confirms AF2 requires ALT1 variant
-3. Generator: Outputs `PB0_ALT1` (Arduino macro format)
-
-**Status**: ✅ **ALT variant correctly preserved** (fixed in latest version)
+- ✅ Motors: All 5 timer assignments validated against PinMap_TIM
+- ✅ Motor 4 ALT variant: PB0_ALT1 correctly maps to TIM3_CH3
 
 ---
 
 ## Summary
 
-### Conversion Accuracy
+### JHEF411 Conversion Accuracy
 
 | Component | Pins | Timer/Bus | ALT Variants | Status |
 |-----------|------|-----------|--------------|--------|
@@ -398,16 +438,18 @@ static constexpr Channel motor4 = {PB0_ALT1, 3, 0, 0};  // TIM3_CH3
 | LEDs | 1 | N/A | N/A | ✅ 100% |
 | Motors | 5 | TIM1/TIM3 | 1 ALT | ✅ 100% |
 
-**Overall Accuracy**: ✅ **100%** (28/28 pins correctly mapped)
+**Overall Accuracy**: ✅ **100%** (23 pins correctly mapped)
 
 ### Key Features Demonstrated
 
-1. ✅ **Multi-SPI bus support**: SPI1 (IMU), SPI2 (Flash)
-2. ✅ **Multi-UART support**: UART1, UART2
-3. ✅ **Timer bank grouping**: 5 motors across 2 timers
-4. ✅ **ALT variant preservation**: PB0_ALT1 for motor 4
-5. ✅ **Scale extraction**: Current sensor scale from settings
-6. ✅ **PeripheralPins.c validation**: All pins verified
+1. ✅ **Native config.h parsing**: Direct `#define` extraction (no format conversion needed)
+2. ✅ **Timer occurrence resolution**: `TIMER_PIN_MAP` occurrence maps to PeripheralPins.c entry index
+3. ✅ **ALT variant selection**: Occurrence > 1 selects ALT pin variants automatically
+4. ✅ **Flat motor/servo arrays**: `motors[]` and `servos[]` with `num_motors`/`num_servos` counts
+5. ✅ **Multi-SPI bus support**: SPI1 (IMU), SPI2 (Flash)
+6. ✅ **Servo separation**: Servos at 50 Hz / 1000-2000 µs, motors at 2000 Hz / 125-250 µs
+7. ✅ **Scale extraction**: Current sensor scale from `DEFAULT_CURRENT_METER_SCALE`
+8. ✅ **PeripheralPins.c validation**: All pins cross-validated against Arduino Core
 
 ### Validation Status
 
@@ -416,11 +458,3 @@ static constexpr Channel motor4 = {PB0_ALT1, 3, 0, 0};  // TIM3_CH3
 - **Pin accuracy**: 100%
 - **Timer validation**: 100%
 - **ALT variants**: Correctly handled
-
----
-
-## Conclusion
-
-✅ The Betaflight config converter successfully generates a complete, accurate BoardConfig header from the JHEF-JHEF411 unified target configuration. All 28 pins are correctly mapped, timer assignments are validated, and ALT variants are properly preserved where required.
-
-The generated output is ready for use with the madflight Arduino STM32 framework.

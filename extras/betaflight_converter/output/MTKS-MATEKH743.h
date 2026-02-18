@@ -1,20 +1,20 @@
 /*
- * Auto-generated BoardConfig from Betaflight unified target
- * Generated: 2025-11-30 11:26:48
+ * Auto-generated BoardConfig from Betaflight target config
+ * Generated: 2026-02-18 06:15:50
  * Generator: betaflight_target_converter.py
  */
 
 #pragma once
 
 // Include ConfigTypes.h from targets/config directory
-#include "../../../../targets/config/ConfigTypes.h"
+#include "../../../targets/config/ConfigTypes.h"
 
 // Board: MATEKH743
 // Manufacturer: MTKS
 // MCU: STM32H743
-// Gyro: MPU6500, MPU6000, ICM42688P, ICM42605
+// Gyro: MPU6000, MPU6500, ICM42605, ICM42688P
 namespace BoardConfig {
-  // IMU: MPU6500, MPU6000, ICM42688P, ICM42605 on SPI1
+  // IMU: MPU6000, MPU6500, ICM42605, ICM42688P on SPI1
   static constexpr SPIConfig imu_spi{PD7, PA6, PA5, PC15, 8000000};
   static constexpr IMUConfig imu{imu_spi, PB2, 1000000};
 

@@ -69,10 +69,10 @@ Shows how to:
 
 ## Usage Pattern
 
-1. **Generate BoardConfig** from Betaflight unified target:
+1. **Generate BoardConfig** from Betaflight target config:
    ```bash
    cd extras/betaflight_converter
-   python3 convert.py data/YOUR-BOARD.config
+   python3 convert.py bf_configs/YOUR-BOARD/
    ```
 
 2. **Include generated config** directly from output directory:

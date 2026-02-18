@@ -1,20 +1,21 @@
-# Betaflight Unified Target Converter - Implementation Summary
+# Betaflight Target Config Converter - Implementation Summary
 
 ## Project Status: ✅ COMPLETE
 
-Successfully implemented a Python-based converter that transforms Betaflight unified target configurations into Arduino STM32 BoardConfig headers with complete validation.
+Python-based converter that transforms native Betaflight target `config.h` files into Arduino STM32 BoardConfig headers with PeripheralPins.c cross-validation.
 
 ## Implementation Metrics
 
-- **Total Lines of Code:** ~1500 lines (Python)
-- **Total Tests:** 53 tests (100% passing)
-- **Test Coverage:** All components (parser, validator, generator)
-- **Development Approach:** Test-driven development
+- **Source Code:** ~1950 lines (Python)
+- **Test Code:** ~920 lines (Python)
+- **Total Tests:** 62 tests (100% passing)
+- **Test Coverage:** All components (parser, peripheral pins, validator, generator)
+- **Supported Targets:** 6 boards across 5 MCU families
 - **Validation Method:** Arduino Core STM32 PeripheralPins.c cross-validation
 
 ## Architecture
 
-### 1. PeripheralPins Parser (`src/peripheral_pins.py`)
+### 1. PeripheralPins Parser (`src/peripheral_pins.py`, 412 lines)
 **Purpose:** Parse Arduino Core STM32 PeripheralPins.c files for validation
 
 **Key Features:**
@@ -28,24 +29,35 @@ Successfully implemented a Python-based converter that transforms Betaflight uni
 - JHEF411 hardware validation
 - Bus validation methods
 
-### 2. Betaflight Config Parser (`src/betaflight_config.py`)
-**Purpose:** Parse Betaflight unified target .config files
+### 2. Betaflight Config Parser (`src/betaflight_config.py`, 485 lines)
+**Purpose:** Parse native Betaflight `config.h` files (`#define` format)
 
 **Key Features:**
-- Extracts board metadata (manufacturer, MCU, board name)
-- Parses resource assignments (MOTOR, SPI, I2C, UART, ADC, etc.)
-- Extracts timer assignments with AF/channel info
-- Parses settings (protocols, scales, bus assignments)
-- Converts pin format: Betaflight (B04) → Arduino (PB_4)
+- Parses `#define` statements for pins, settings, and board metadata
+- Extracts `TIMER_PIN_MAP(index, pin, occurrence, dma)` entries
+- Resolves timer occurrences against PeripheralPins.c entries
+- Maps SDI/SDO naming to MISO/MOSI internally
+- Pins stored in native Arduino format (PA8, PB0) — no conversion needed
 
-**Tests:** 18 tests covering:
-- Header/board info parsing
-- Resource extraction (motors, SPI, I2C, UART, ADC)
-- Timer/AF parsing from comments
-- Pin format conversion
+**Parsing Examples:**
+```c
+#define FC_TARGET_MCU     STM32F411     → mcu_type = 'STM32F411'
+#define BOARD_NAME        JHEF411       → board_name = 'JHEF411'
+#define MOTOR1_PIN        PA8           → ResourcePin('MOTOR', 1, 'PA8')
+#define SPI1_SDI_PIN      PA6           → ResourcePin('SPI_MISO', 1, 'PA6')
+#define GYRO_1_SPI_INSTANCE SPI1        → settings['gyro_1_spibus'] = '1'
+TIMER_PIN_MAP(4, PB0, 2, 0)            → timer_pin_map['PB0'] = 2
+```
 
-### 3. Configuration Validator (`src/validator.py`)
-**Purpose:** Validate Betaflight config against PeripheralPins.c
+**Tests:** 26 tests covering:
+- `#define` parsing for all resource types
+- Timer occurrence resolution (3 dedicated tests)
+- Multi-target validation (MATEKH743, NERO, REVO)
+- Pin format identity (no conversion)
+- Settings mapping (SPI instances, scales, protocols)
+
+### 3. Configuration Validator (`src/validator.py`, 397 lines)
+**Purpose:** Cross-validate Betaflight config against PeripheralPins.c
 
 **Key Features:**
 - Validates motor timer/AF assignments
@@ -53,263 +65,184 @@ Successfully implemented a Python-based converter that transforms Betaflight uni
 - Groups motors by timer banks
 - Generates validation summary with errors/warnings
 
-**Validated Components:**
-- Motors (timer, AF, channel)
-- SPI buses (MOSI, MISO, SCLK matching)
-- I2C buses (SCL, SDA matching)
-- UARTs (TX, RX matching)
-
 **Tests:** 8 tests covering:
 - Complete validation workflow
 - Motor validation and grouping
 - Bus validation (SPI, I2C, UART)
 - Error-free JHEF411 validation
 
-### 4. Code Generator (`src/code_generator.py`)
+### 4. Code Generator (`src/code_generator.py`, 448 lines)
 **Purpose:** Generate C++ BoardConfig header files
 
 **Key Features:**
-- Generates header with board metadata
-- Generates StorageConfig (SPI flash or SD card)
-- Generates IMUConfig with SPI and interrupt
-- Generates I2CConfig for sensors
-- Generates UARTConfig for serial ports
-- Generates ADCConfig for battery monitoring
-- Generates Motor namespace with timer banks
+- Generates header with board metadata and gyro types
+- StorageConfig (SPI flash with LITTLEFS or SD card with SDFS)
+- IMUConfig with SPI and interrupt pin
+- I2CConfig for environmental sensors
+- UARTConfig for serial ports
+- ADCConfig for battery monitoring
+- LEDConfig for status LEDs
+- RCReceiverConfig for RC input
+- Motor namespace with flat `motors[]` array and `num_motors`
+- Servo namespace with flat `servos[]` array and `num_servos`
 
 **Output Format:**
 ```cpp
 namespace BoardConfig {
-  static constexpr StorageConfig storage{...};
-  static constexpr IMUConfig imu{...};
-  static constexpr I2CConfig sensors{...};
-  static constexpr UARTConfig uart1{...};
-  static constexpr ADCConfig battery{...};
+  static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PB15, PB14, PB13, PB2, 8000000};
+  static constexpr IMUConfig imu{imu_spi, PB3, 1000000};
+  static constexpr UARTConfig uart1{PB6, PB7, 115200};
 
   namespace Motor {
-    namespace TIM1_Bank {
-      static constexpr Channel motor1 = {...};
+    static constexpr uint32_t frequency_hz = 2000;
+    static constexpr MotorConfig motors[] = {
+      {TIM1, PA8, 1, 125, 250},       // Motor 1: TIM1_CH1
+      {TIM3, PB0_ALT1, 3, 125, 250},  // Motor 4: TIM3_CH3
     };
+    static constexpr int num_motors = sizeof(motors) / sizeof(motors[0]);
   };
 }
 ```
 
-**Tests:** 12 tests covering:
+**Tests:** 13 tests covering:
 - Complete header generation
-- Individual peripheral generation
-- Motor timer bank grouping
+- Individual peripheral generation (storage, IMU, I2C, UART, ADC, motors, servos)
 - C++ syntax validation
 - File saving
 
-### 5. Main Converter (`convert.py`)
+### 5. Main Converter (`convert.py`, 208 lines)
 **Purpose:** Command-line converter tool
 
 **Usage:**
 ```bash
-python3 convert.py <input.config> <output.h>
-python3 convert.py data/JHEF-JHEF411.config output/NOXE_V3_generated.h
+python3 convert.py bf_configs/JHEF411/              # Convert single target directory
+python3 convert.py bf_configs/JHEF411/config.h      # Convert single config.h file
+python3 convert.py bf_configs/JHEF411/ output/X.h   # Custom output path
+python3 convert.py --all                             # Convert all targets in bf_configs/
+python3 convert.py --all --force                     # Skip validation errors
 ```
 
 **Workflow:**
-1. Load Betaflight config
-2. Auto-detect MCU variant and PeripheralPins.c path
-3. Validate complete configuration
-4. Generate BoardConfig header
-5. Report validation summary
+1. Load Betaflight config.h (accepts directory or file path)
+2. Auto-detect MCU variant and locate PeripheralPins.c
+3. Resolve timer occurrences against PeripheralPins.c
+4. Validate complete configuration
+5. Generate BoardConfig header (named `MANUFACTURER-BOARD.h`)
+6. Report validation summary
+
+## Supported MCU Families
+
+| MCU | Variant Path | Example Board |
+|-----|-------------|---------------|
+| STM32F411 | STM32F4xx/F411C(C-E)(U-Y) | JHEF411 |
+| STM32F405 | STM32F4xx/F405RGT_F415RGT | REVO |
+| STM32F7X2 | STM32F7xx/F722Z(C-E)T_F732ZET | NERO |
+| STM32H743 | STM32H7xx/H742V...H753VI(H-T) | MATEKH743 |
+| STM32G47X | STM32G4xx/G473C(B-C-E)U...G484CEU | BETAFPVG473 |
 
 ## Validation Results
 
-### JHEF-JHEF411 (NOXE V3) Validation ✅
+### All 6 Targets ✅
 
-**Configuration:**
-- Board: JHEF411
-- Manufacturer: JHEF
-- MCU: STM32F411CE
-- Gyro: MPU6000, ICM42688P
-
-**Validated Components:**
-- ✅ Storage: SPI2 flash (PB15/PB14/PB13, CS=PB02)
-- ✅ IMU: SPI1 (PA7/PA6/PA5, CS=PA4, INT=PB03)
-- ✅ I2C: I2C1 sensors (PB8/PB9)
-- ✅ UART1: PB6/PB7
-- ✅ UART2: PA2/PA3
-- ✅ ADC: Battery monitoring (PA0/PA1)
-- ✅ Motors: 5 motors on 2 timer banks
-  - TIM1: Motors 1-3 (PA8, PA9, PA10)
-  - TIM3: Motors 4-5 (PB0, PB4)
-
-**Validation Summary:**
-```
-Errors: 0
-Warnings: 0
-```
-
-### Generated vs Manual Comparison
-
-**Pin Accuracy:** 100% match between generated and corrected targets/NOXE_V3.h
-
-**Key Findings:**
-1. All pin assignments match exactly
-2. All SPI/I2C/UART bus assignments validated
-3. All motor timer/AF assignments correct
-4. Generator successfully extracted ADC and Motor configs (not in manual version)
-5. Proper timer bank grouping (TIM1, TIM3)
-
-**See:** `COMPARISON.md` for detailed analysis
-
-## Test Suite Summary
-
-**Total Tests:** 53 (100% passing)
-
-**Breakdown:**
-- PeripheralPins parser: 15 tests
-- Betaflight config parser: 18 tests
-- Validator: 8 tests
-- Code generator: 12 tests
-
-**Test Execution:**
 ```bash
-~/.local/bin/pytest -v
-# ============================== 53 passed in 0.06s ===============================
+python3 convert.py --all
+# ✅ JHEF411 (STM32F411) - 5 motors, 0 servos
+# ✅ REVO (STM32F405) - 6 motors, 0 servos
+# ✅ NERO (STM32F7X2) - 8 motors, 0 servos
+# ✅ MATEKH743 (STM32H743) - 8 motors, 2 servos
+# ✅ BLACKPILL_F411CE (STM32F411) - 4 motors, 0 servos
+# ✅ BETAFPVG473 (STM32G47X) - 4 motors, 0 servos
 ```
+
+All targets: 0 errors, 0 warnings.
 
 ## Key Technical Solutions
 
-### 1. ALT Pin Variant Handling
-**Problem:** Motor 4 (PB0) uses TIM3_CH3 via AF2, but PeripheralPins.c lists it as PB_0_ALT1
+### 1. Timer Occurrence Resolution
+**Problem:** Betaflight `TIMER_PIN_MAP(index, pin, occurrence, dma)` uses an occurrence-based index to select which timer option a pin uses.
 
-**Solution:** Comprehensive ALT variant support:
-1. Added `alt_variant` field to `TimerPin` dataclass (e.g., "_ALT1", "_ALT2")
-2. Modified parsing to preserve ALT suffix instead of discarding it
-3. Created `get_pin_for_timer()` method to return correct pin format with ALT suffix
-4. Updated `validate_motors()` and `validate_servos()` to use new method
-
-Result: Generated configs correctly show `PB0_ALT1` instead of bare `PB0` when alternate timer mapping is required.
-
-### 2. ConfigTypes.h Include Path
-**Problem:** Arduino IDE couldn't find ConfigTypes.h when using generated configs
-
-**Solution:** Use relative path from output directory to canonical source:
+**Solution:** The occurrence value is a 1-based index into PeripheralPins.c's `PinMap_TIM` entries for that pin (filtered to non-complementary channels):
 ```python
-lines.append('#include "../../../../targets/config/ConfigTypes.h"')
+def resolve_timers(self, pinmap):
+    for pin, occurrence in self.timer_pin_map.items():
+        entries = pinmap.get_timer_entries(pin)  # All PinMap_TIM entries for pin
+        non_complementary = [e for e in entries if not e.complementary]
+        selected = non_complementary[occurrence - 1]  # 1-based index
+        self.timers[pin] = TimerAssignment(pin, selected.af, selected.timer, selected.channel)
 ```
-This ensures single source of truth without creating stale copies.
 
-### 3. Timer Info from Comments
-**Problem:** Timer assignments not always in resource lines
+### 2. ALT Pin Variant Selection
+**Problem:** When occurrence > 1, the selected PeripheralPins.c entry uses an ALT variant (e.g., `PB_0_ALT1` for TIM3 instead of default `PB_0` for TIM1).
 
-**Solution:** Parse comment lines for timer info:
-```python
-# pin A08: TIM1 CH1 (AF1)
-# Removed blanket comment skipping, parse all lines
+**Solution:** The converter preserves the ALT suffix from PeripheralPins.c and converts to Arduino macro format:
+- `PB_0_ALT1` (PinName) → `PB0_ALT1` (Arduino macro)
+- Result: `{TIM3, PB0_ALT1, 3, 125, 250}` instead of incorrect `{TIM3, PB0, 3, 125, 250}`
+
+### 3. ConfigTypes.h Include Path
+**Solution:** Relative path from `output/` to canonical source:
+```cpp
+#include "../../../targets/config/ConfigTypes.h"
 ```
+Three levels up from `extras/betaflight_converter/output/` reaches the Arduino Core root.
 
 ### 4. Automatic MCU Variant Detection
-**Problem:** Different MCUs use different PeripheralPins.c files
-
-**Solution:** Map MCU type to variant path:
+**Solution:** `MCU_TO_VARIANTS` dict maps Betaflight MCU types to variant path candidates (tried in order):
 ```python
-mcu_to_variant = {
-    'STM32F411': 'STM32F4xx/F411C(C-E)(U-Y)',
-    'STM32F405': 'STM32F4xx/F405RG',
-    'STM32F745': 'STM32F7xx/F74xZ(G-I)',
-    'STM32H743': 'STM32H7xx/H743Z(G-I)',
+MCU_TO_VARIANTS = {
+    'STM32F411': ['STM32F4xx/F411C(C-E)(U-Y)'],
+    'STM32F405': ['STM32F4xx/F405RGT_F415RGT', ...],
+    'STM32H743': ['STM32H7xx/H742V...', ...],
+    'STM32G47X': ['STM32G4xx/G473C(B-C-E)U...', ...],
 }
 ```
 
-### 5. Motor Timer Bank Grouping
-**Problem:** TimerPWM library requires motors grouped by timer
+### 5. SDI/SDO to MISO/MOSI Mapping
+**Problem:** Betaflight uses `SPI1_SDI_PIN` / `SPI1_SDO_PIN` naming.
 
-**Solution:** Group validated motors by timer name:
-```python
-def group_motors_by_timer(self, motors: List[ValidatedMotor]) -> Dict[str, List[ValidatedMotor]]:
-    timer_banks = {}
-    for motor in motors:
-        if motor.timer not in timer_banks:
-            timer_banks[motor.timer] = []
-        timer_banks[motor.timer].append(motor)
-    return timer_banks
-```
+**Solution:** Mapped internally: SDI → MISO, SDO → MOSI. Stored as `SPI_MISO` / `SPI_MOSI` resource types for validator/generator compatibility.
 
-## Usage Example
+## Test Suite
+
+**Total Tests:** 62 (100% passing)
+
+| Module | Tests | Coverage |
+|--------|-------|----------|
+| PeripheralPins parser | 15 | Timer, SPI, I2C, UART parsing + validation |
+| Betaflight config parser | 26 | #define parsing, timer resolution, multi-target |
+| Validator | 8 | Motor/SPI/I2C/UART validation, grouping |
+| Code generator | 13 | All peripherals, servos, C++ syntax, file I/O |
 
 ```bash
-# Convert JHEF411 to BoardConfig header
-python3 convert.py data/JHEF-JHEF411.config output/NOXE_V3_generated.h
-
-# Output:
-# Loading Betaflight config: data/JHEF-JHEF411.config
-#   Board: JHEF411
-#   Manufacturer: JHEF
-#   MCU: STM32F411
-# Loading PeripheralPins.c: Arduino_Core_STM32/variants/STM32F4xx/F411C(C-E)(U-Y)/PeripheralPins.c
-#
-# Validating configuration...
-# ✅ Validation passed
-# Validation Summary:
-#   Errors: 0
-#   Warnings: 0
-#
-# Generating BoardConfig: output/NOXE_V3_generated.h
-# ✅ Successfully generated: output/NOXE_V3_generated.h
+python3 -m unittest discover -s tests -v
+# Ran 62 tests in 0.013s — OK
 ```
 
-## Files Created
+## File Structure
 
-### Core Implementation
-1. `src/peripheral_pins.py` (412 lines) - PeripheralPins.c parser
-2. `src/betaflight_config.py` (293 lines) - Betaflight config parser
-3. `src/validator.py` (397 lines) - Configuration validator
-4. `src/code_generator.py` (416 lines) - C++ code generator
-5. `convert.py` (80 lines) - Main converter script
+### Source (`src/`)
+| File | Lines | Purpose |
+|------|-------|---------|
+| `peripheral_pins.py` | 412 | PeripheralPins.c parser |
+| `betaflight_config.py` | 485 | Betaflight config.h parser |
+| `validator.py` | 397 | Configuration cross-validator |
+| `code_generator.py` | 448 | C++ BoardConfig generator |
 
-### Tests
-6. `tests/test_peripheral_pins.py` (165 lines) - 15 tests
-7. `tests/test_betaflight_config.py` (230 lines) - 18 tests
-8. `tests/test_validator.py` (165 lines) - 8 tests
-9. `tests/test_code_generator.py` (237 lines) - 12 tests
+### Tests (`tests/`)
+| File | Lines | Tests |
+|------|-------|-------|
+| `test_peripheral_pins.py` | 208 | 15 |
+| `test_betaflight_config.py` | 277 | 26 |
+| `test_validator.py` | 167 | 8 |
+| `test_code_generator.py` | 264 | 13 |
 
-### Documentation
-10. `RESEARCH.md` - Betaflight format research
-11. `CONVERTER_ANALYSIS.md` - Converter design analysis
-12. `MOTOR_CONFIG_DESIGN.md` - Motor→TimerPWM integration
-13. `KNOWLEDGE_CHECKLIST.md` - Gap analysis (solved)
-14. `README.md` - Quick start guide
-15. `COMPARISON.md` - Generated vs manual comparison
-16. `IMPLEMENTATION_SUMMARY.md` - This document
+### Input (`bf_configs/`)
+6 native Betaflight target directories, each containing `config.h`.
 
-### Test Data
-17. `data/JHEF-JHEF411.config` - JHEF411 test input
-18. `data/MTKS-MATEKH743.config` - MATEKH743 test input
-19. `output/JHEF-JHEF411.h` - JHEF411 generated output
-20. `output/MTKS-MATEKH743.h` - MATEKH743 generated output
+### Output (`output/`)
+6 generated BoardConfig headers: JHEF-JHEF411.h, OPEN-REVO.h, BKMN-NERO.h, MTKS-MATEKH743.h, WACT-BLACKPILL_F411CE.h, BEFH-BETAFPVG473.h.
 
-## Future Enhancements
-
-### Potential Additions
-1. **Additional MCU Support:** STM32F7, H7, G4 variants
-2. **OSD Configuration:** MAX7456 chip select and SPI bus
-3. **LED Configuration:** WS2812 addressable LED support
-4. **Serial Protocol Detection:** Auto-detect RX protocol from settings
-5. **Motor Protocol Mapping:** DShot300/600 → actual frequencies
-6. **Barometer Detection:** Auto-detect I2C barometer from settings
-7. **Magnetometer Support:** Compass configuration extraction
-8. **Multiple Target Batch:** Convert entire unified-targets repo
-
-### Code Quality
-1. **Type Hints:** Full type annotation coverage
-2. **Error Messages:** More detailed validation error messages
-3. **CLI Arguments:** Add verbose, quiet, and force flags
-4. **Config Validation:** Pre-flight checks for common errors
-
-## Conclusion
-
-Successfully implemented a complete Betaflight unified target → BoardConfig converter with:
-- ✅ 100% accurate pin validation
-- ✅ Comprehensive test coverage (53 tests)
-- ✅ Real hardware validation (JHEF411/NOXE V3)
-- ✅ Clean, maintainable architecture
-- ✅ Test-driven development approach
-- ✅ PeripheralPins.c validation integration
-
-**Project Status:** Ready for production use with JHEF411 and extensible to other STM32F4 targets.
+### Documentation (`dev-docs/`)
+- `RESEARCH.md` — Betaflight target format reference
+- `MOTOR_CONFIG_DESIGN.md` — Motor→TimerPWM integration design
+- `COMPARISON.md` — Generated vs input side-by-side analysis
+- `IMPLEMENTATION_SUMMARY.md` — This document

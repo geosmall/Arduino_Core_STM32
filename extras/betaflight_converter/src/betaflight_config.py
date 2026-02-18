@@ -1,5 +1,8 @@
 """
-Parser for Betaflight unified target configuration files.
+Parser for Betaflight native target configuration files (config.h).
+
+Parses C header files with #define statements from the Betaflight source tree
+(betaflight/src/config/configs/<TARGET>/config.h).
 """
 
 import re
@@ -9,15 +12,57 @@ from pathlib import Path
 
 
 class Patterns:
-    """Compiled regex patterns for Betaflight config parsing."""
-    MCU_TYPE = re.compile(r'STM32\w+')
-    RESOURCE = re.compile(r'resource\s+(\w+)\s+(\d+)\s+(\w+)')
-    TIMER = re.compile(r'timer\s+(\w+)\s+AF(\d+)')
-    TIMER_COMMENT = re.compile(r'#\s+pin\s+(\w+):\s+(\w+)\s+CH(\d+)')
-    DMA = re.compile(r'dma\s+(pin\s+)?(\w+)\s+(\d+)\s+(\d+)')
-    FEATURE = re.compile(r'feature\s+(\w+)')
-    SETTING = re.compile(r'set\s+(\w+)\s+=\s+(.+)')
-    PIN_LEADING_ZERO = re.compile(r'0(\d)')
+    """Compiled regex patterns for Betaflight config.h parsing."""
+    # Board identity
+    FC_TARGET_MCU = re.compile(r'#define\s+FC_TARGET_MCU\s+(\w+)')
+    BOARD_NAME = re.compile(r'#define\s+BOARD_NAME\s+(\w+)')
+    MANUFACTURER_ID = re.compile(r'#define\s+MANUFACTURER_ID\s+(\w+)')
+
+    # Pin definitions — numbered resources
+    MOTOR_PIN = re.compile(r'#define\s+MOTOR(\d+)_PIN\s+(P\w+)')
+    SERVO_PIN = re.compile(r'#define\s+SERVO(\d+)_PIN\s+(P\w+)')
+    UART_TX_PIN = re.compile(r'#define\s+UART(\d+)_TX_PIN\s+(P\w+)')
+    UART_RX_PIN = re.compile(r'#define\s+UART(\d+)_RX_PIN\s+(P\w+)')
+    SPI_SCK_PIN = re.compile(r'#define\s+SPI(\d+)_SCK_PIN\s+(P\w+)')
+    SPI_SDI_PIN = re.compile(r'#define\s+SPI(\d+)_SDI_PIN\s+(P\w+)')  # SDI = MISO
+    SPI_SDO_PIN = re.compile(r'#define\s+SPI(\d+)_SDO_PIN\s+(P\w+)')  # SDO = MOSI
+    I2C_SCL_PIN = re.compile(r'#define\s+I2C(\d+)_SCL_PIN\s+(P\w+)')
+    I2C_SDA_PIN = re.compile(r'#define\s+I2C(\d+)_SDA_PIN\s+(P\w+)')
+    LED_PIN = re.compile(r'#define\s+LED(\d+)_PIN\s+(P\w+)')
+
+    # Pin definitions — singleton resources
+    ADC_VBAT_PIN = re.compile(r'#define\s+ADC_VBAT_PIN\s+(P\w+)')
+    ADC_CURR_PIN = re.compile(r'#define\s+ADC_CURR_PIN\s+(P\w+)')
+    FLASH_CS_PIN = re.compile(r'#define\s+FLASH_CS_PIN\s+(P\w+)')
+    SDCARD_SPI_CS_PIN = re.compile(r'#define\s+SDCARD_SPI_CS_PIN\s+(P\w+)')
+    BEEPER_PIN = re.compile(r'#define\s+BEEPER_PIN\s+(P\w+)')
+
+    # Pin definitions — gyro (indexed)
+    GYRO_CS_PIN = re.compile(r'#define\s+GYRO_(\d+)_CS_PIN\s+(P\w+)')
+    GYRO_EXTI_PIN = re.compile(r'#define\s+GYRO_(\d+)_EXTI_PIN\s+(P\w+)')
+
+    # Timer pin mapping
+    TIMER_PIN_MAP = re.compile(
+        r'TIMER_PIN_MAP\(\s*(\d+)\s*,\s*(P\w+)\s*,\s*(\d+)\s*,\s*(-?\d+)\s*\)'
+    )
+
+    # SPI instance assignments
+    SPI_INSTANCE = re.compile(r'#define\s+(\w+)_SPI_INSTANCE\s+SPI(\d+)')
+
+    # Settings as #defines
+    DEFAULT_CURRENT_METER_SCALE = re.compile(
+        r'#define\s+DEFAULT_CURRENT_METER_SCALE\s+(\d+)'
+    )
+    DEFAULT_VOLTAGE_METER_SCALE = re.compile(
+        r'#define\s+DEFAULT_VOLTAGE_METER_SCALE\s+(\d+)'
+    )
+    DEFAULT_BLACKBOX_DEVICE = re.compile(
+        r'#define\s+DEFAULT_BLACKBOX_DEVICE\s+BLACKBOX_DEVICE_(\w+)'
+    )
+    GYRO_ALIGN = re.compile(r'#define\s+GYRO_(\d+)_ALIGN\s+(\w+)')
+
+    # Feature/sensor defines
+    USE_DEFINE = re.compile(r'#define\s+(USE_\w+)')
     DEFINE_CHECK = re.compile(r'#define\s+USE_GYRO_SPI_(\w+)')
 
 
@@ -26,16 +71,25 @@ class ResourcePin:
     """Resource pin assignment."""
     resource_type: str  # e.g., "MOTOR", "SERIAL_TX"
     index: int          # 1-based index
-    pin: str            # Betaflight format: "B04", "A08"
+    pin: str            # Arduino format: "PA8", "PB0"
 
 
 @dataclass
 class TimerAssignment:
     """Timer assignment for a pin."""
-    pin: str            # Betaflight format: "B04"
+    pin: str            # Arduino format: "PA8"
     af: int             # Alternate function number
-    timer: Optional[str] = None    # e.g., "TIM3" (parsed from comment)
-    channel: Optional[int] = None  # e.g., 1 for CH1 (parsed from comment)
+    timer: Optional[str] = None    # e.g., "TIM3"
+    channel: Optional[int] = None  # e.g., 1 for CH1
+
+
+@dataclass
+class TimerPinMapEntry:
+    """Raw TIMER_PIN_MAP entry before resolution."""
+    index: int          # Timer map index
+    pin: str            # Pin name (Arduino format)
+    occurrence: int     # 1-based occurrence in timer hardware table
+    dma_opt: int        # DMA option (-1 = none)
 
 
 @dataclass
@@ -43,14 +97,22 @@ class DMAAssignment:
     """DMA assignment for a pin or peripheral."""
     target: str         # Pin name or peripheral name
     stream: int         # DMA stream number
-    channel: Optional[int] = None  # DMA channel number (from comment)
+    channel: Optional[int] = None  # DMA channel number
 
 
 class BetaflightConfig:
-    """Parser for Betaflight unified target .config files."""
+    """Parser for Betaflight native target config.h files."""
 
     def __init__(self, filepath: Path):
-        """Initialize parser with path to .config file."""
+        """Initialize parser with path to config.h file.
+
+        Args:
+            filepath: Path to config.h file, or a directory containing config.h
+        """
+        # Handle directory input
+        if filepath.is_dir():
+            filepath = filepath / 'config.h'
+
         self.filepath = filepath
 
         # Parsed data
@@ -61,6 +123,7 @@ class BetaflightConfig:
         self.defines: List[str] = []
         self.resources: Dict[str, List[ResourcePin]] = {}
         self.timers: Dict[str, TimerAssignment] = {}
+        self.timer_pin_map: Dict[str, TimerPinMapEntry] = {}  # Raw entries
         self.dma: Dict[str, DMAAssignment] = {}
         self.features: List[str] = []
         self.settings: Dict[str, str] = {}
@@ -69,123 +132,258 @@ class BetaflightConfig:
             self._parse()
 
     def _parse(self):
-        """Parse Betaflight .config file."""
+        """Parse Betaflight config.h file."""
         with open(self.filepath, 'r') as f:
-            lines = f.readlines()
+            content = f.read()
 
-        for line in lines:
+        # Parse line by line for most patterns
+        for line in content.splitlines():
             line = line.strip()
-
-            # Skip empty lines
             if not line:
                 continue
 
-            # Parse different line types (including comments for header/timer info)
-            self._parse_header(line)
-            self._parse_define(line)
-            self._parse_board_info(line)
-            self._parse_resource(line)
-            self._parse_timer(line)  # Parses both timer lines and comments
-            self._parse_dma(line)
-            self._parse_feature(line)
-            self._parse_setting(line)
+            self._parse_identity(line)
+            self._parse_defines(line)
+            self._parse_pin_resources(line)
+            self._parse_spi_instances(line)
+            self._parse_settings(line)
 
-    def _parse_header(self, line: str):
-        """Parse header line for MCU type."""
-        # # Betaflight / STM32F411 (S411) 4.2.0 ...
-        if line.startswith('#') and 'Betaflight' in line:
-            match = Patterns.MCU_TYPE.search(line)
-            if match:
-                self.mcu_type = match.group(0)
+        # Parse TIMER_PIN_MAPPING (may span multiple lines via backslash continuation)
+        self._parse_timer_pin_mapping(content)
 
-    def _parse_define(self, line: str):
-        """Parse #define statements."""
-        if line.startswith('#define'):
+    def _parse_identity(self, line: str):
+        """Parse board identity defines."""
+        match = Patterns.FC_TARGET_MCU.match(line)
+        if match:
+            self.mcu_type = match.group(1)
+            return
+
+        match = Patterns.BOARD_NAME.match(line)
+        if match:
+            self.board_name = match.group(1)
+            return
+
+        match = Patterns.MANUFACTURER_ID.match(line)
+        if match:
+            self.manufacturer_id = match.group(1)
+
+    def _parse_defines(self, line: str):
+        """Parse USE_* and other #define statements."""
+        match = Patterns.USE_DEFINE.match(line)
+        if match:
             self.defines.append(line)
 
-    def _parse_board_info(self, line: str):
-        """Parse board_name and manufacturer_id."""
-        if line.startswith('board_name'):
-            self.board_name = line.split()[1]
-        elif line.startswith('manufacturer_id'):
-            self.manufacturer_id = line.split()[1]
+    def _add_resource(self, resource_type: str, index: int, pin: str):
+        """Add a resource pin assignment."""
+        if resource_type not in self.resources:
+            self.resources[resource_type] = []
+        self.resources[resource_type].append(ResourcePin(
+            resource_type=resource_type,
+            index=index,
+            pin=pin
+        ))
 
-    def _parse_resource(self, line: str):
-        """Parse resource definitions."""
-        # resource MOTOR 1 B04
-        match = Patterns.RESOURCE.match(line)
+    def _parse_pin_resources(self, line: str):
+        """Parse all pin definition #defines into resources."""
+        # Motors
+        match = Patterns.MOTOR_PIN.match(line)
         if match:
-            resource_type = match.group(1)
-            index = int(match.group(2))
-            pin = match.group(3)
+            self._add_resource('MOTOR', int(match.group(1)), match.group(2))
+            return
 
-            if resource_type not in self.resources:
-                self.resources[resource_type] = []
+        # Servos
+        match = Patterns.SERVO_PIN.match(line)
+        if match:
+            self._add_resource('SERVO', int(match.group(1)), match.group(2))
+            return
 
-            self.resources[resource_type].append(ResourcePin(
-                resource_type=resource_type,
+        # UART TX/RX → SERIAL_TX/SERIAL_RX (validator compatibility)
+        match = Patterns.UART_TX_PIN.match(line)
+        if match:
+            self._add_resource('SERIAL_TX', int(match.group(1)), match.group(2))
+            return
+
+        match = Patterns.UART_RX_PIN.match(line)
+        if match:
+            self._add_resource('SERIAL_RX', int(match.group(1)), match.group(2))
+            return
+
+        # SPI pins: SDI→SPI_MISO, SDO→SPI_MOSI, SCK→SPI_SCK
+        match = Patterns.SPI_SCK_PIN.match(line)
+        if match:
+            self._add_resource('SPI_SCK', int(match.group(1)), match.group(2))
+            return
+
+        match = Patterns.SPI_SDI_PIN.match(line)
+        if match:
+            self._add_resource('SPI_MISO', int(match.group(1)), match.group(2))
+            return
+
+        match = Patterns.SPI_SDO_PIN.match(line)
+        if match:
+            self._add_resource('SPI_MOSI', int(match.group(1)), match.group(2))
+            return
+
+        # I2C
+        match = Patterns.I2C_SCL_PIN.match(line)
+        if match:
+            self._add_resource('I2C_SCL', int(match.group(1)), match.group(2))
+            return
+
+        match = Patterns.I2C_SDA_PIN.match(line)
+        if match:
+            self._add_resource('I2C_SDA', int(match.group(1)), match.group(2))
+            return
+
+        # LEDs (0-based in config.h → 1-based internally)
+        match = Patterns.LED_PIN.match(line)
+        if match:
+            self._add_resource('LED', int(match.group(1)) + 1, match.group(2))
+            return
+
+        # ADC (singleton resources)
+        match = Patterns.ADC_VBAT_PIN.match(line)
+        if match:
+            self._add_resource('ADC_BATT', 1, match.group(1))
+            return
+
+        match = Patterns.ADC_CURR_PIN.match(line)
+        if match:
+            self._add_resource('ADC_CURR', 1, match.group(1))
+            return
+
+        # Flash CS
+        match = Patterns.FLASH_CS_PIN.match(line)
+        if match:
+            self._add_resource('FLASH_CS', 1, match.group(1))
+            return
+
+        # SD card CS
+        match = Patterns.SDCARD_SPI_CS_PIN.match(line)
+        if match:
+            self._add_resource('SDCARD_CS', 1, match.group(1))
+            return
+
+        # Gyro CS and EXTI (indexed)
+        match = Patterns.GYRO_CS_PIN.match(line)
+        if match:
+            self._add_resource('GYRO_CS', int(match.group(1)), match.group(2))
+            return
+
+        match = Patterns.GYRO_EXTI_PIN.match(line)
+        if match:
+            self._add_resource('GYRO_EXTI', int(match.group(1)), match.group(2))
+            return
+
+        # Beeper
+        match = Patterns.BEEPER_PIN.match(line)
+        if match:
+            self._add_resource('BEEPER', 1, match.group(1))
+            return
+
+    def _parse_timer_pin_mapping(self, content: str):
+        """Parse TIMER_PIN_MAPPING macro (may span multiple lines)."""
+        for match in Patterns.TIMER_PIN_MAP.finditer(content):
+            index = int(match.group(1))
+            pin = match.group(2)
+            occurrence = int(match.group(3))
+            dma_opt = int(match.group(4))
+
+            self.timer_pin_map[pin] = TimerPinMapEntry(
                 index=index,
-                pin=pin
-            ))
+                pin=pin,
+                occurrence=occurrence,
+                dma_opt=dma_opt
+            )
 
-    def _parse_timer(self, line: str):
-        """Parse timer assignments."""
-        # timer B04 AF2
-        match = Patterns.TIMER.match(line)
+    def _parse_spi_instances(self, line: str):
+        """Parse SPI instance assignments into settings dict."""
+        match = Patterns.SPI_INSTANCE.match(line)
         if match:
-            pin = match.group(1)
-            af = int(match.group(2))
-            self.timers[pin] = TimerAssignment(pin=pin, af=af)
+            device = match.group(1)   # e.g., "GYRO_1", "FLASH", "SDCARD"
+            bus_num = match.group(2)  # e.g., "1", "2", "3"
 
-        # Parse comment for timer/channel info
-        # # pin B04: TIM3 CH1 (AF2)
-        # # pin A08: TIM1 CH1 (AF1)
-        comment_match = Patterns.TIMER_COMMENT.match(line)
-        if comment_match:
-            pin = comment_match.group(1)
-            timer = comment_match.group(2)
-            channel = int(comment_match.group(3))
+            # Map to settings keys for validator/generator compatibility
+            instance_map = {
+                'GYRO_1': 'gyro_1_spibus',
+                'GYRO_2': 'gyro_2_spibus',
+                'FLASH': 'flash_spi_bus',
+                'SDCARD': 'sdcard_spi_bus',
+                'MAX7456': 'max7456_spi_bus',
+            }
 
-            if pin in self.timers:
-                self.timers[pin].timer = timer
-                self.timers[pin].channel = channel
-            else:
-                # Comment came before timer line, create entry
-                self.timers[pin] = TimerAssignment(pin=pin, af=0, timer=timer, channel=channel)
+            settings_key = instance_map.get(device)
+            if settings_key:
+                self.settings[settings_key] = bus_num
 
-    def _parse_dma(self, line: str):
-        """Parse DMA assignments."""
-        # dma pin B04 0
-        # dma ADC 1 1
-        match = Patterns.DMA.match(line)
+    def _parse_settings(self, line: str):
+        """Parse settings from #define statements."""
+        # Current meter scale
+        match = Patterns.DEFAULT_CURRENT_METER_SCALE.match(line)
         if match:
-            is_pin = match.group(1) is not None
-            target = match.group(2)
-            if is_pin:
-                # dma pin B04 0
-                stream = int(match.group(3))
-            else:
-                # dma ADC 1 1
-                target = f"{target}_{match.group(3)}"  # ADC_1
-                stream = int(match.group(4))
+            self.settings['ibata_scale'] = match.group(1)
+            return
 
-            self.dma[target] = DMAAssignment(target=target, stream=stream)
-
-    def _parse_feature(self, line: str):
-        """Parse feature flags."""
-        # feature RX_SERIAL
-        match = Patterns.FEATURE.match(line)
+        # Voltage meter scale
+        match = Patterns.DEFAULT_VOLTAGE_METER_SCALE.match(line)
         if match:
-            self.features.append(match.group(1))
+            self.settings['vbat_scale'] = match.group(1)
+            return
 
-    def _parse_setting(self, line: str):
-        """Parse set commands."""
-        # set gyro_1_spibus = 1
-        match = Patterns.SETTING.match(line)
+        # Blackbox device
+        match = Patterns.DEFAULT_BLACKBOX_DEVICE.match(line)
         if match:
-            key = match.group(1)
-            value = match.group(2).strip()
-            self.settings[key] = value
+            device = match.group(1)
+            # Map Betaflight names to old settings format
+            device_map = {
+                'FLASH': 'SPIFLASH',
+                'SDCARD': 'SDCARD',
+                'NONE': 'NONE',
+            }
+            self.settings['blackbox_device'] = device_map.get(device, device)
+            return
+
+        # Gyro alignment
+        match = Patterns.GYRO_ALIGN.match(line)
+        if match:
+            gyro_num = match.group(1)
+            align = match.group(2)
+            # Strip _DEG suffix for compatibility
+            align = align.replace('_DEG', '').replace('_FLIP', '')
+            self.settings[f'gyro_{gyro_num}_sensor_align'] = align
+
+    def resolve_timers(self, pinmap):
+        """
+        Resolve TIMER_PIN_MAP occurrences to actual timer/channel/AF assignments
+        using PeripheralPins.c data.
+
+        The occurrence parameter is a 1-based index into the timer options for
+        each pin, matching the ordering in PeripheralPins.c's PinMap_TIM array.
+
+        Args:
+            pinmap: PeripheralPinMap instance with parsed PinMap_TIM data
+        """
+        for pin, entry in self.timer_pin_map.items():
+            # Get all timer entries for this pin from PeripheralPins.c
+            pin_timers = [tp for tp in pinmap.timer_pins if tp.pin == pin]
+
+            if not pin_timers:
+                continue
+
+            # Occurrence is 1-based index into the list
+            occ_idx = entry.occurrence - 1
+            if occ_idx < 0 or occ_idx >= len(pin_timers):
+                continue
+
+            tp = pin_timers[occ_idx]
+            self.timers[pin] = TimerAssignment(
+                pin=pin,
+                af=tp.af,
+                timer=tp.timer,
+                channel=tp.channel
+            )
+
+    # --- Public API (compatible with validator.py and code_generator.py) ---
 
     def get_resources(self, resource_type: str) -> List[ResourcePin]:
         """Get all resources of a specific type."""
@@ -208,11 +406,11 @@ class BetaflightConfig:
         """
         pins = {}
 
-        for resource_type in ['SPI_MOSI', 'SPI_MISO', 'SPI_SCK']:
+        for resource_type, signal in [('SPI_MOSI', 'MOSI'), ('SPI_MISO', 'MISO'),
+                                       ('SPI_SCK', 'SCLK')]:
             resources = self.get_resources(resource_type)
             for res in resources:
                 if res.index == bus_num:
-                    signal = resource_type.replace('SPI_', '').replace('SCK', 'SCLK')
                     pins[signal] = res.pin
 
         if len(pins) == 3:
@@ -259,21 +457,15 @@ class BetaflightConfig:
             return pins
         return None
 
-    def convert_pin_format(self, bf_pin: str) -> str:
+    def convert_pin_format(self, pin: str) -> str:
         """
-        Convert Betaflight pin format to Arduino macro format.
+        Convert pin format to Arduino macro format.
 
-        Args:
-            bf_pin: Betaflight format (e.g., "B04", "A08")
-
-        Returns:
-            Arduino macro format (e.g., "PB4", "PA8") - no underscore
-            This format matches Arduino pin macros defined in variant headers.
+        For native config.h files, pins are already in Arduino format (PA8, PB0).
+        This method is an identity function for API compatibility with the
+        validator and code generator.
         """
-        # Remove leading zero: B04 -> B4
-        pin = Patterns.PIN_LEADING_ZERO.sub(r'\1', bf_pin)
-        # Add P prefix (no underscore): B4 -> PB4
-        return f"P{pin[0]}{pin[1:]}"
+        return pin
 
     def has_define(self, define_name: str) -> bool:
         """Check if a specific #define exists."""

@@ -1,25 +1,25 @@
 /*
- * Auto-generated BoardConfig from Betaflight unified target
- * Generated: 2025-11-30 11:26:39
+ * Auto-generated BoardConfig from Betaflight target config
+ * Generated: 2026-02-18 06:15:50
  * Generator: betaflight_target_converter.py
  */
 
 #pragma once
 
 // Include ConfigTypes.h from targets/config directory
-#include "../../../../targets/config/ConfigTypes.h"
+#include "../../../targets/config/ConfigTypes.h"
 
 // Board: NERO
 // Manufacturer: BKMN
 // MCU: STM32F7X2
-// Gyro: ICM20602
+// Gyro: MPU6500
 namespace BoardConfig {
   // Storage: SD card on SPI3
   static constexpr StorageConfig storage{StorageBackend::SDFS, PC12, PC11, PC10, PA15, 8000000};
 
-  // IMU: ICM20602 on SPI1
+  // IMU: MPU6500 on SPI1
   static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PC4, 8000000};
-  static constexpr IMUConfig imu{imu_spi, PB2, 1000000};
+  static constexpr IMUConfig imu{imu_spi, PB15, 1000000};
 
   // I2C1: Environmental sensors
   static constexpr I2CConfig sensors{PB9, PB8, 400000};
@@ -42,7 +42,7 @@ namespace BoardConfig {
   // RC Receiver: IBus/SBUS (adjust protocol based on actual wiring)
   static constexpr RCReceiverConfig rc_receiver{PA10, PA9, 115200, 1000, 300};
 
-  // Servo outputs - 50 Hz PWM for standard servos
+  // Servo outputs - none configured
   namespace Servo {
     static constexpr uint32_t frequency_hz = 50;
 
@@ -54,12 +54,8 @@ namespace BoardConfig {
       uint32_t max_us;
     };
 
-    static constexpr ServoConfig servos[] = {
-      {TIM8, PC8_ALT1, 3, 1000, 2000},  // Servo 1: TIM8_CH3
-      {TIM8, PC9_ALT1, 4, 1000, 2000},  // Servo 2: TIM8_CH4
-    };
-
-    static constexpr int num_servos = sizeof(servos) / sizeof(servos[0]);
+    static constexpr ServoConfig servos[] = {};
+    static constexpr int num_servos = 0;
   };
   // Motors: ONESHOT125 protocol (125-250 µs)
   namespace Motor {
@@ -81,6 +77,8 @@ namespace BoardConfig {
       {TIM5, PA3_ALT1, 4, 125, 250},  // Motor 4: TIM5_CH4
       {TIM3, PB0_ALT1, 3, 125, 250},  // Motor 5: TIM3_CH3
       {TIM3, PB1_ALT1, 4, 125, 250},  // Motor 6: TIM3_CH4
+      {TIM8, PC8_ALT1, 3, 125, 250},  // Motor 7: TIM8_CH3
+      {TIM8, PC9_ALT1, 4, 125, 250},  // Motor 8: TIM8_CH4
     };
 
     static constexpr int num_motors = sizeof(motors) / sizeof(motors[0]);

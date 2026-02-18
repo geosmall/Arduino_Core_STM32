@@ -21,8 +21,8 @@ class TestConfigValidator(unittest.TestCase):
     def setUpClass(cls):
         """Load JHEF411 config and F411CE pinmap."""
         # Load Betaflight config
-        config_path = Path(__file__).parent.parent / "data/JHEF-JHEF411.config"
-        if not config_path.exists():
+        config_path = Path(__file__).parent.parent / "bf_configs/JHEF411"
+        if not (config_path / 'config.h').exists():
             raise FileNotFoundError(f"JHEF411 config not found at {config_path}")
         cls.bf_config = BetaflightConfig(config_path)
 
@@ -32,6 +32,9 @@ class TestConfigValidator(unittest.TestCase):
         if not pinmap_path.exists():
             raise FileNotFoundError(f"PeripheralPins.c not found at {pinmap_path}")
         cls.pinmap = PeripheralPinMap(pinmap_path)
+
+        # Resolve timers before validation
+        cls.bf_config.resolve_timers(cls.pinmap)
 
         # Create validator
         cls.validator = ConfigValidator(cls.bf_config, cls.pinmap)
@@ -53,7 +56,7 @@ class TestConfigValidator(unittest.TestCase):
         # Verify motor 1: PA8 = TIM1_CH1 on AF1
         motor1 = next((m for m in motors if m.index == 1), None)
         self.assertIsNotNone(motor1)
-        self.assertEqual(motor1.pin_bf, 'A08')
+        self.assertEqual(motor1.pin_bf, 'PA8')
         self.assertEqual(motor1.pin_arduino, 'PA8')
         self.assertEqual(motor1.timer, 'TIM1')
         self.assertEqual(motor1.channel, 1)
@@ -62,7 +65,7 @@ class TestConfigValidator(unittest.TestCase):
         # Verify motor 5: PB4 = TIM3_CH1 on AF2
         motor5 = next((m for m in motors if m.index == 5), None)
         self.assertIsNotNone(motor5)
-        self.assertEqual(motor5.pin_bf, 'B04')
+        self.assertEqual(motor5.pin_bf, 'PB4')
         self.assertEqual(motor5.pin_arduino, 'PB4')
         self.assertEqual(motor5.timer, 'TIM3')
         self.assertEqual(motor5.channel, 1)

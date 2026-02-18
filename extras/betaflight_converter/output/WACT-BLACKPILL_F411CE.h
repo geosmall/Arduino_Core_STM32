@@ -1,13 +1,13 @@
 /*
- * Auto-generated BoardConfig from Betaflight unified target
- * Generated: 2025-11-30 11:26:44
+ * Auto-generated BoardConfig from Betaflight target config
+ * Generated: 2026-02-18 06:15:50
  * Generator: betaflight_target_converter.py
  */
 
 #pragma once
 
 // Include ConfigTypes.h from targets/config directory
-#include "../../../../targets/config/ConfigTypes.h"
+#include "../../../targets/config/ConfigTypes.h"
 
 // Board: BLACKPILL_F411CE
 // Manufacturer: WACT

@@ -79,11 +79,7 @@ void setup() {
   Serial.println(" Hz");
   Serial.print("  Number of motors: ");
 
-  // Count motors across timer banks
-  int motor_count = 0;
-  motor_count += 3; // TIM1 Bank has 3 motors
-  motor_count += 2; // TIM3 Bank has 2 motors
-  Serial.println(motor_count);
+  Serial.println(BoardConfig::Motor::num_motors);
 
   Serial.println("\n=== Configuration Complete ===");
 }

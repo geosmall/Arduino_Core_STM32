@@ -30,7 +30,7 @@ class BoardConfigGenerator:
         lines.append("#pragma once")
         lines.append("")
         lines.append("// Include ConfigTypes.h from targets/config directory")
-        lines.append('#include "../../../../targets/config/ConfigTypes.h"')
+        lines.append('#include "../../../targets/config/ConfigTypes.h"')
         lines.append("")
 
         # Comment with source info
@@ -91,7 +91,7 @@ class BoardConfigGenerator:
     def _generate_header(self) -> str:
         """Generate file header comment."""
         return f"""/*
- * Auto-generated BoardConfig from Betaflight unified target
+ * Auto-generated BoardConfig from Betaflight target config
  * Generated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
  * Generator: betaflight_target_converter.py
  */

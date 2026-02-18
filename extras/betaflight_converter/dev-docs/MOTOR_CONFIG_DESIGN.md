@@ -1,421 +1,235 @@
 # Motor Configuration Design: Betaflight → BoardConfig → TimerPWM
 
-## Question: How do Motors tie to TimerPWM library?
+## How Motors Tie to TimerPWM Library
 
-**Answer**: Motors use the same `PWMOutputBank` class as servos, but with different timing parameters optimized for ESC protocols (DShot, OneShot125, etc.).
+Motors use the same `PWMOutputBank` class as servos, but with different timing parameters optimized for ESC protocols. The converter generates a flat `motors[]` array where each entry includes its timer assignment, allowing sketch code to group by timer at initialization time.
 
-## Current TimerPWM Integration Pattern
+## Implemented Design: Flat Array with Timer Field
 
-### Existing Pattern: NUCLEO_F411RE_HIL001.h
+### Generated Output Structure
+
+The converter generates a `Motor` namespace with a flat array of `MotorConfig` entries:
 
 ```cpp
 namespace BoardConfig {
-  // Servo: TIM3 @ 50 Hz (standard servo control)
-  namespace Servo {
-    static inline TIM_TypeDef* const timer = TIM3;
-    static constexpr uint32_t frequency_hz = 50;
+  namespace Motor {
+    static constexpr uint32_t frequency_hz = 2000;  // OneShot125
 
-    struct Channel {
+    struct MotorConfig {
+      TIM_TypeDef* timer;
       uint32_t pin;
-      uint32_t ch;
+      uint32_t channel;
       uint32_t min_us;
       uint32_t max_us;
     };
 
-    static constexpr Channel pwm_output = {PB4, 1, 1000, 2000};
-  };
-
-  // ESC: TIM4 @ 1000 Hz (OneShot125 protocol)
-  namespace ESC {
-    static inline TIM_TypeDef* const timer = TIM4;
-    static constexpr uint32_t frequency_hz = 1000;
-
-    struct Channel {
-      uint32_t pin;
-      uint32_t ch;
-      uint32_t min_us;
-      uint32_t max_us;
+    static constexpr MotorConfig motors[] = {
+      {TIM1, PA8, 1, 125, 250},       // Motor 1: TIM1_CH1
+      {TIM1, PA9, 2, 125, 250},       // Motor 2: TIM1_CH2
+      {TIM1, PA10, 3, 125, 250},      // Motor 3: TIM1_CH3
+      {TIM3, PB0_ALT1, 3, 125, 250},  // Motor 4: TIM3_CH3
+      {TIM3, PB4, 1, 125, 250},       // Motor 5: TIM3_CH1
     };
 
-    static constexpr Channel esc1 = {PB6, 1, 125, 250};
-    static constexpr Channel esc2 = {PB7, 2, 125, 250};
+    static constexpr int num_motors = sizeof(motors) / sizeof(motors[0]);
   };
 }
 ```
 
-### Usage in Sketch
+The same pattern is used for servos:
+
+```cpp
+namespace BoardConfig {
+  namespace Servo {
+    static constexpr uint32_t frequency_hz = 50;
+
+    struct ServoConfig {
+      TIM_TypeDef* timer;
+      uint32_t pin;
+      uint32_t channel;
+      uint32_t min_us;
+      uint32_t max_us;
+    };
+
+    static constexpr ServoConfig servos[] = {
+      {TIM15, PE5, 1, 1000, 2000},  // Servo 1: TIM15_CH1
+      {TIM15, PE6, 2, 1000, 2000},  // Servo 2: TIM15_CH2
+    };
+
+    static constexpr int num_servos = sizeof(servos) / sizeof(servos[0]);
+  };
+}
+```
+
+### Why Flat Array
+
+The flat array design was chosen over per-timer-bank namespaces (`TIM1_Bank`, `TIM3_Bank`) because:
+
+1. **Simpler code generation** — no grouping logic needed in the generator
+2. **Uniform access** — `motors[0]` through `motors[num_motors-1]` works for any board
+3. **Timer field included** — each entry carries its timer, so sketch code can group at init time
+4. **Matches manual targets** — `NUCLEO_F411RE_HIL001.h` already uses this pattern
+
+### Usage with TimerPWM Library
 
 ```cpp
 #include <PWMOutputBank.h>
-#include "targets/NUCLEO_F411RE_HIL001.h"
+#include "output/JHEF-JHEF411.h"
 
-PWMOutputBank esc_pwm;
-
-void setup() {
-  // Initialize ESC bank
-  esc_pwm.Init(BoardConfig::ESC::timer, BoardConfig::ESC::frequency_hz);
-
-  // Attach individual ESC channels
-  auto& esc1 = BoardConfig::ESC::esc1;
-  esc_pwm.AttachChannel(esc1.ch, esc1.pin, esc1.min_us, esc1.max_us);
-
-  auto& esc2 = BoardConfig::ESC::esc2;
-  esc_pwm.AttachChannel(esc2.ch, esc2.pin, esc2.min_us, esc2.max_us);
-
-  esc_pwm.Start();
-}
-
-void loop() {
-  // Set throttle (125-250 µs for OneShot125)
-  esc_pwm.SetPulseWidth(1, 187);  // ESC1 midpoint
-  esc_pwm.SetPulseWidth(2, 187);  // ESC2 midpoint
-}
-```
-
-## Betaflight Motor Configuration
-
-### JHEF411 Example (5 Motors)
-
-**From Betaflight config**:
-```
-# Motors on two different timers
-resource MOTOR 1 A08
-resource MOTOR 2 A09
-resource MOTOR 3 A10
-resource MOTOR 4 B00
-resource MOTOR 5 B04
-
-# Timer assignments with channels
-timer A08 AF1  # TIM1 CH1
-timer A09 AF1  # TIM1 CH2
-timer A10 AF1  # TIM1 CH3
-timer B00 AF2  # TIM3 CH3
-timer B04 AF2  # TIM3 CH1
-
-# DMA assignments (critical for DShot)
-dma pin A08 1  # DMA2 Stream 1 Channel 6
-dma pin A09 1  # DMA2 Stream 2 Channel 6
-dma pin A10 1  # DMA2 Stream 6 Channel 6
-dma pin B00 0  # DMA1 Stream 7 Channel 5
-dma pin B04 0  # DMA1 Stream 4 Channel 5
-
-# Protocol and frequency
-set motor_pwm_protocol = DSHOT300
-set dshot_burst = ON
-```
-
-### Key Observations
-
-**Two timer banks required**:
-- TIM1: Motors 1-3 (PA08, PA09, PA10)
-- TIM3: Motors 4-5 (PB00, PB04)
-
-**ALT variants required** (CRITICAL):
-- Motor 4 (PB00) uses `timer B00 AF2` for TIM3_CH3
-- PeripheralPins.c shows PB_0 default is TIM1_CH2N (AF1), not TIM3
-- Must use `PB0_ALT1` to access TIM3_CH3 (AF2)
-- Converter validates timer/AF against PeripheralPins.c and adds ALT suffix when needed
-
-**Protocol determines frequency**:
-- Standard PWM: 50-400 Hz (1000-2000 µs pulses)
-- OneShot125: 1-4 kHz (125-250 µs pulses)
-- OneShot42: 1-8 kHz (42-84 µs pulses)
-- Multishot: 8-32 kHz (5-25 µs pulses)
-- DShot300: 300 kbps digital protocol (special DMA handling)
-- DShot600: 600 kbps digital protocol (special DMA handling)
-
-**DShot requires DMA**: Cannot use simple PWM, needs dedicated implementation.
-
-## Proposed Motor Namespace Design
-
-### Option 1: Single Motor Namespace (All motors same protocol)
-
-```cpp
-namespace BoardConfig {
-  namespace Motor {
-    // Protocol and frequency
-    enum class Protocol {
-      PWM_50HZ,      // Standard PWM @ 50 Hz
-      PWM_400HZ,     // Fast PWM @ 400 Hz
-      ONESHOT125,    // OneShot125 @ 1-4 kHz
-      ONESHOT42,     // OneShot42 @ 1-8 kHz
-      MULTISHOT,     // Multishot @ 8-32 kHz
-      DSHOT150,      // DShot @ 150 kbps (future)
-      DSHOT300,      // DShot @ 300 kbps (future)
-      DSHOT600       // DShot @ 600 kbps (future)
-    };
-
-    static constexpr Protocol protocol = Protocol::ONESHOT125;
-    static constexpr uint32_t frequency_hz = 1000;  // For OneShot125
-
-    // Timer bank 1 (TIM1) - Motors 1-3
-    namespace Bank1 {
-      static inline TIM_TypeDef* const timer = TIM1;
-
-      struct Channel {
-        uint32_t pin;
-        uint32_t ch;
-        uint32_t min_us;
-        uint32_t max_us;
-      };
-
-      static constexpr Channel motor1 = {PA8, 1, 125, 250};  // TIM1_CH1
-      static constexpr Channel motor2 = {PA9, 2, 125, 250};  // TIM1_CH2
-      static constexpr Channel motor3 = {PA10, 3, 125, 250}; // TIM1_CH3
-    };
-
-    // Timer bank 2 (TIM3) - Motors 4-5
-    namespace Bank2 {
-      static inline TIM_TypeDef* const timer = TIM3;
-
-      static constexpr Bank1::Channel motor4 = {PB0_ALT1, 3, 125, 250};  // TIM3_CH3 (ALT1 required)
-      static constexpr Bank1::Channel motor5 = {PB4, 1, 125, 250};  // TIM3_CH1
-    };
-  };
-}
-```
-
-**Usage**:
-```cpp
-PWMOutputBank motor_bank1;
-PWMOutputBank motor_bank2;
-
-void setup() {
-  // Initialize both motor banks at same frequency
-  motor_bank1.Init(BoardConfig::Motor::Bank1::timer, BoardConfig::Motor::frequency_hz);
-  motor_bank2.Init(BoardConfig::Motor::Bank2::timer, BoardConfig::Motor::frequency_hz);
-
-  // Attach motors from bank 1
-  auto& m1 = BoardConfig::Motor::Bank1::motor1;
-  motor_bank1.AttachChannel(m1.ch, m1.pin, m1.min_us, m1.max_us);
-
-  auto& m2 = BoardConfig::Motor::Bank1::motor2;
-  motor_bank1.AttachChannel(m2.ch, m2.pin, m2.min_us, m2.max_us);
-
-  // ... similar for bank2
-
-  motor_bank1.Start();
-  motor_bank2.Start();
-}
-
-void loop() {
-  // Set all motors to same throttle
-  for (int ch = 1; ch <= 3; ch++) {
-    motor_bank1.SetPulseWidth(ch, 187);  // Midpoint
-  }
-  for (int ch = 1; ch <= 2; ch++) {
-    motor_bank2.SetPulseWidth(ch, 187);  // Midpoint
-  }
-}
-```
-
-### Option 2: Simplified Array-Based Design
-
-```cpp
-namespace BoardConfig {
-  namespace Motor {
-    static constexpr uint32_t frequency_hz = 1000;  // OneShot125
-
-    struct MotorChannel {
-      TIM_TypeDef* timer;
-      uint32_t pin;
-      uint32_t ch;
-      uint32_t min_us;
-      uint32_t max_us;
-    };
-
-    static constexpr MotorChannel motors[] = {
-      {TIM1, PA8, 1, 125, 250},   // Motor 1
-      {TIM1, PA9, 2, 125, 250},   // Motor 2
-      {TIM1, PA10, 3, 125, 250},  // Motor 3
-      {TIM3, PB0_ALT1, 3, 125, 250},   // Motor 4 (ALT1 required for TIM3)
-      {TIM3, PB4, 1, 125, 250}    // Motor 5
-    };
-
-    static constexpr size_t count = sizeof(motors) / sizeof(motors[0]);
-  };
-}
-```
-
-**Usage** (requires array iteration to group by timer):
-```cpp
-// Helper to group motors by timer
 PWMOutputBank motor_tim1;
 PWMOutputBank motor_tim3;
 
 void setup() {
-  motor_tim1.Init(TIM1, BoardConfig::Motor::frequency_hz);
-  motor_tim3.Init(TIM3, BoardConfig::Motor::frequency_hz);
+  uint32_t freq = BoardConfig::Motor::frequency_hz;
 
-  for (auto& motor : BoardConfig::Motor::motors) {
-    if (motor.timer == TIM1) {
-      motor_tim1.AttachChannel(motor.ch, motor.pin, motor.min_us, motor.max_us);
-    } else if (motor.timer == TIM3) {
-      motor_tim3.AttachChannel(motor.ch, motor.pin, motor.min_us, motor.max_us);
+  // Initialize one PWMOutputBank per timer
+  motor_tim1.Init(TIM1, freq);
+  motor_tim3.Init(TIM3, freq);
+
+  // Attach motors by iterating the array
+  for (int i = 0; i < BoardConfig::Motor::num_motors; i++) {
+    auto& m = BoardConfig::Motor::motors[i];
+    if (m.timer == TIM1) {
+      motor_tim1.AttachChannel(m.channel, m.pin, m.min_us, m.max_us);
+    } else if (m.timer == TIM3) {
+      motor_tim3.AttachChannel(m.channel, m.pin, m.min_us, m.max_us);
     }
   }
 
   motor_tim1.Start();
   motor_tim3.Start();
 }
-```
 
-### Option 3: Explicit Bank Declaration (Recommended)
-
-Most explicit, matches existing Servo/ESC pattern:
-
-```cpp
-namespace BoardConfig {
-  namespace Motor {
-    enum class Protocol { PWM_50HZ, ONESHOT125, DSHOT300 };
-    static constexpr Protocol protocol = Protocol::ONESHOT125;
-    static constexpr uint32_t frequency_hz = 1000;
-
-    // Timer Bank 1: TIM1 @ 1 kHz
-    namespace TIM1_Bank {
-      static inline TIM_TypeDef* const timer = TIM1;
-
-      struct Channel {
-        uint32_t pin;
-        uint32_t ch;
-        uint32_t min_us;
-        uint32_t max_us;
-      };
-
-      static constexpr Channel motor1 = {PA8, 1, 125, 250};
-      static constexpr Channel motor2 = {PA9, 2, 125, 250};
-      static constexpr Channel motor3 = {PA10, 3, 125, 250};
-    };
-
-    // Timer Bank 2: TIM3 @ 1 kHz
-    namespace TIM3_Bank {
-      static inline TIM_TypeDef* const timer = TIM3;
-
-      static constexpr TIM1_Bank::Channel motor4 = {PB0_ALT1, 3, 125, 250};  // ALT1 required
-      static constexpr TIM1_Bank::Channel motor5 = {PB4, 1, 125, 250};
-    };
-  };
+void loop() {
+  uint32_t throttle = 187;  // Midpoint for OneShot125
+  motor_tim1.SetPulseWidth(1, throttle);
+  motor_tim3.SetPulseWidth(3, throttle);
 }
 ```
 
-## Betaflight Converter Output
+## Betaflight Config → Motor Generation Pipeline
 
-### Parsing Strategy
+### Input: Native config.h
 
-```python
-def extract_motor_config(bf_config):
-    motors = {}  # motor_num → (pin, timer, channel, dma)
+```c
+#define MOTOR1_PIN           PA8
+#define MOTOR2_PIN           PA9
+#define MOTOR3_PIN           PA10
+#define MOTOR4_PIN           PB0
+#define MOTOR5_PIN           PB4
 
-    # 1. Parse resource MOTOR lines
-    for line in resources:
-        if line.startswith("resource MOTOR"):
-            motor_num, pin = parse_motor_resource(line)
-            motors[motor_num] = {"pin": pin}
-
-    # 2. Parse timer assignments
-    for line in timers:
-        pin, af, timer_info = parse_timer(line)
-        # timer_info = "TIM1 CH1", "TIM3 CH3", etc.
-        if pin in motors.values():
-            motor_num = find_motor_by_pin(pin)
-            motors[motor_num]["timer"] = extract_timer(timer_info)
-            motors[motor_num]["channel"] = extract_channel(timer_info)
-
-    # 3. Parse protocol
-    protocol = bf_config.get_setting("motor_pwm_protocol")  # DSHOT300, etc.
-
-    # 4. Group motors by timer
-    timer_banks = group_by_timer(motors)
-
-    return timer_banks, protocol
+#define TIMER_PIN_MAPPING \
+    TIMER_PIN_MAP( 1, PA8 , 1,  1) \
+    TIMER_PIN_MAP( 2, PA9 , 1,  1) \
+    TIMER_PIN_MAP( 3, PA10, 1,  1) \
+    TIMER_PIN_MAP( 4, PB0 , 2,  0) \
+    TIMER_PIN_MAP( 5, PB4 , 1,  0)
 ```
 
-### Generated Output Example
+### Resolution Steps
 
-From JHEF411:
+1. **Parse motor pins**: `#define MOTOR(\d+)_PIN\s+(P\w+)` extracts pin per motor index
+2. **Parse TIMER_PIN_MAP**: `TIMER_PIN_MAP(index, pin, occurrence, dma)` extracts occurrence per pin
+3. **Resolve against PeripheralPins.c**: For each motor pin, look up all PinMap_TIM entries, filter to non-complementary channels, select the Nth entry (occurrence is 1-based)
+4. **Determine ALT variant**: If occurrence > 1, the selected entry uses an ALT PinName (e.g., `PB_0_ALT1`), which converts to Arduino macro `PB0_ALT1`
+5. **Generate MotorConfig**: `{timer, pin, channel, min_us, max_us}`
+
+### ALT Variant Example: Motor 4 (PB0)
+
+**TIMER_PIN_MAP**: `TIMER_PIN_MAP(4, PB0, 2, 0)` — occurrence=2
+
+**PeripheralPins.c** for STM32F411:
+```c
+{PB_0,      TIM1, GPIO_AF1_TIM1, 2, 1},  // Entry 1: TIM1_CH2N (complementary, skipped)
+{PB_0,      TIM3, GPIO_AF2_TIM3, 3, 0},  // Entry 1 (non-complementary): TIM3_CH3
+// Wait — actually for F411, after filtering complementary:
+// Non-complementary entry 1: TIM1_CH2N is complementary → skip
+// Non-complementary entry 1: TIM3_CH3 (PB_0_ALT1)
+```
+
+The occurrence=2 selects the 2nd non-complementary entry for PB_0, which uses `PB_0_ALT1` → TIM3_CH3.
+
+**Generated**: `{TIM3, PB0_ALT1, 3, 125, 250}`
+
+Without `_ALT1`, PB0 would default to TIM1_CH2N — wrong timer, wrong channel type.
+
+## Protocol and Timing
+
+### OneShot125 (Default for Generated Configs)
+
+All generated BoardConfig headers use OneShot125 protocol:
+- **Frequency**: 2000 Hz (500 µs period)
+- **Pulse range**: 125-250 µs (throttle 0-100%)
+- **Midpoint**: 187 µs (~50% throttle)
+
+### Protocol Reference Table
+
+| Protocol | Frequency | Min µs | Max µs | Notes |
+|----------|-----------|--------|--------|-------|
+| Standard PWM | 50-490 Hz | 1000 | 2000 | Standard servo/ESC PWM |
+| OneShot125 | 1-4 kHz | 125 | 250 | 1/8 of standard PWM |
+| OneShot42 | 1-8 kHz | 42 | 84 | 1/24 of standard PWM |
+| Multishot | 8-32 kHz | 5 | 25 | Ultra-fast analog |
+| DShot150/300/600 | N/A | N/A | N/A | Digital protocol (not supported) |
+
+The converter defaults to OneShot125 regardless of the Betaflight protocol setting. DShot requires DMA-based implementation beyond simple PWM and is not currently supported.
+
+## Multi-Board Examples
+
+### JHEF411 (5 motors, 2 timers)
 
 ```cpp
-// Generated from JHEF-JHEF411.config
-namespace BoardConfig {
-  namespace Motor {
-    // Protocol: DSHOT300 (from set motor_pwm_protocol = DSHOT300)
-    // Note: DShot requires DMA and special implementation (future)
-    // For now, use OneShot125 as fallback
-    static constexpr uint32_t frequency_hz = 1000;
-
-    // TIM1 Bank: Motors 1-3
-    namespace TIM1_Bank {
-      static inline TIM_TypeDef* const timer = TIM1;
-
-      struct Channel {
-        uint32_t pin;
-        uint32_t ch;
-        uint32_t min_us;
-        uint32_t max_us;
-      };
-
-      static constexpr Channel motor1 = {PA8, 1, 125, 250};   // TIM1_CH1
-      static constexpr Channel motor2 = {PA9, 2, 125, 250};   // TIM1_CH2
-      static constexpr Channel motor3 = {PA10, 3, 125, 250};  // TIM1_CH3
-    };
-
-    // TIM3 Bank: Motors 4-5
-    namespace TIM3_Bank {
-      static inline TIM_TypeDef* const timer = TIM3;
-
-      static constexpr TIM1_Bank::Channel motor4 = {PB0_ALT1, 3, 125, 250};  // TIM3_CH3 (ALT1 required)
-      static constexpr TIM1_Bank::Channel motor5 = {PB4, 1, 125, 250};  // TIM3_CH1
-    };
-  };
-}
+static constexpr MotorConfig motors[] = {
+  {TIM1, PA8, 1, 125, 250},       // Motor 1: TIM1_CH1
+  {TIM1, PA9, 2, 125, 250},       // Motor 2: TIM1_CH2
+  {TIM1, PA10, 3, 125, 250},      // Motor 3: TIM1_CH3
+  {TIM3, PB0_ALT1, 3, 125, 250},  // Motor 4: TIM3_CH3
+  {TIM3, PB4, 1, 125, 250},       // Motor 5: TIM3_CH1
+};
 ```
 
-## Protocol Mapping Table
+### MATEKH743 (8 motors + 2 servos, 3 timer banks)
 
-| Betaflight Protocol | Frequency | Min µs | Max µs | Notes |
-|---------------------|-----------|--------|--------|-------|
-| `PWM` | 50-490 Hz | 1000 | 2000 | Standard servo PWM |
-| `ONESHOT125` | 1-4 kHz | 125 | 250 | 1/8 of standard PWM |
-| `ONESHOT42` | 1-8 kHz | 42 | 84 | 1/24 of standard PWM |
-| `MULTISHOT` | 8-32 kHz | 5 | 25 | Ultra-fast analog |
-| `DSHOT150` | 150 kbps | N/A | N/A | Digital protocol (future) |
-| `DSHOT300` | 300 kbps | N/A | N/A | Digital protocol (future) |
-| `DSHOT600` | 600 kbps | N/A | N/A | Digital protocol (future) |
+```cpp
+// Motors
+static constexpr MotorConfig motors[] = {
+  {TIM3, PB0_ALT1, 3, 125, 250},  // Motor 1: TIM3_CH3
+  {TIM3, PB1_ALT1, 4, 125, 250},  // Motor 2: TIM3_CH4
+  {TIM5, PA0_ALT1, 1, 125, 250},  // Motor 3: TIM5_CH1
+  {TIM5, PA1_ALT1, 2, 125, 250},  // Motor 4: TIM5_CH2
+  {TIM5, PA2_ALT1, 3, 125, 250},  // Motor 5: TIM5_CH3
+  {TIM5, PA3_ALT1, 4, 125, 250},  // Motor 6: TIM5_CH4
+  {TIM4, PD12, 1, 125, 250},      // Motor 7: TIM4_CH1
+  {TIM4, PD13, 2, 125, 250},      // Motor 8: TIM4_CH2
+};
 
-**Converter default behavior**:
-- For analog protocols (PWM, OneShot, Multishot): Generate PWMOutputBank config
-- For DShot: Generate comment warning + fallback to OneShot125
+// Servos (separate namespace, 50 Hz)
+static constexpr ServoConfig servos[] = {
+  {TIM15, PE5, 1, 1000, 2000},  // Servo 1: TIM15_CH1
+  {TIM15, PE6, 2, 1000, 2000},  // Servo 2: TIM15_CH2
+};
+```
 
-## Implementation Phases
+Motors 1-6 use ALT1 variants (occurrence=2 in TIMER_PIN_MAP). Motors 7-8 use default pins (occurrence=1). Servos are separated into their own namespace with 50 Hz frequency and 1000-2000 µs range.
 
-### Phase 1: OneShot125 Support (Current)
-- Parse MOTOR resources + timers
-- Group by timer bank
-- Generate namespace Motor::TIM*_Bank
-- Default to OneShot125 (125-250 µs @ 1 kHz)
+### REVO (6 motors, 3 timer banks)
 
-### Phase 2: Protocol Detection
-- Parse `motor_pwm_protocol` setting
-- Map to frequency + pulse range
-- Generate protocol-specific configs
-
-### Phase 3: DShot Support (Future)
-- Requires new DMA-based PWMOutputBank implementation
-- Parse DMA assignments
-- Validate DMA conflicts
-- Generate DShot-specific initialization
+```cpp
+static constexpr MotorConfig motors[] = {
+  {TIM3, PB0_ALT1, 3, 125, 250},  // Motor 1: TIM3_CH3
+  {TIM3, PB1_ALT1, 4, 125, 250},  // Motor 2: TIM3_CH4
+  {TIM2, PA3, 4, 125, 250},       // Motor 3: TIM2_CH4
+  {TIM2, PA2, 3, 125, 250},       // Motor 4: TIM2_CH3
+  {TIM5, PA1_ALT1, 2, 125, 250},  // Motor 5: TIM5_CH2
+  {TIM5, PA0_ALT1, 1, 125, 250},  // Motor 6: TIM5_CH1
+};
+```
 
 ## Summary
 
-**How Motors tie to TimerPWM**:
-1. Motors use same `PWMOutputBank` class as servos
-2. Different namespace (`Motor` vs `Servo`) with protocol-specific timing
-3. Multiple banks needed if motors span multiple timers
-4. Converter groups motors by timer automatically
-5. Protocol determines frequency and pulse width ranges
-
-**Recommended Design**: Option 3 (Explicit Bank Declaration)
-- Matches existing Servo/ESC pattern
-- Clear, explicit timer bank separation
-- Easy to use in sketches
-- Straightforward for converter to generate
+1. **Generated configs use flat `motors[]` array** with `MotorConfig` struct containing timer, pin, channel, min/max pulse
+2. **Servos use identical pattern** in separate `Servo` namespace with `ServoConfig` struct
+3. **Timer resolution** uses `TIMER_PIN_MAP` occurrence as 1-based index into PeripheralPins.c entries
+4. **ALT variants** are automatically applied when occurrence > 1 selects a non-default timer mapping
+5. **OneShot125** is the default protocol (125-250 µs at 2000 Hz)
+6. **Sketch code groups by timer** at initialization time using the timer field in each entry

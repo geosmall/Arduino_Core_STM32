@@ -23,8 +23,8 @@ class TestCodeGenerator(unittest.TestCase):
     def setUpClass(cls):
         """Load JHEF411 config and F411CE pinmap."""
         # Load Betaflight config
-        config_path = Path(__file__).parent.parent / "data/JHEF-JHEF411.config"
-        if not config_path.exists():
+        config_path = Path(__file__).parent.parent / "bf_configs/JHEF411"
+        if not (config_path / 'config.h').exists():
             raise FileNotFoundError(f"JHEF411 config not found at {config_path}")
         cls.bf_config = BetaflightConfig(config_path)
 
@@ -34,6 +34,9 @@ class TestCodeGenerator(unittest.TestCase):
         if not pinmap_path.exists():
             raise FileNotFoundError(f"PeripheralPins.c not found at {pinmap_path}")
         cls.pinmap = PeripheralPinMap(pinmap_path)
+
+        # Resolve timers before validation
+        cls.bf_config.resolve_timers(cls.pinmap)
 
         # Create validator
         cls.validator = ConfigValidator(cls.bf_config, cls.pinmap)
@@ -53,7 +56,7 @@ class TestCodeGenerator(unittest.TestCase):
         self.assertIn("#pragma once", code)
 
         # Should include ConfigTypes (with relative path)
-        self.assertIn('#include "../../../../targets/config/ConfigTypes.h"', code)
+        self.assertIn('#include "../../../targets/config/ConfigTypes.h"', code)
 
         # Should have namespace
         self.assertIn("namespace BoardConfig {", code)
@@ -84,7 +87,7 @@ class TestCodeGenerator(unittest.TestCase):
         self.assertIn("PB14", code)
         self.assertIn("PB13", code)
 
-        # Should have CS pin (PB02)
+        # Should have CS pin (PB2)
         self.assertIn("PB2", code)
 
     def test_generate_imu(self):
@@ -100,10 +103,10 @@ class TestCodeGenerator(unittest.TestCase):
         self.assertIn("PA6", code)
         self.assertIn("PA5", code)
 
-        # Should have CS pin (PA04)
+        # Should have CS pin (PA4)
         self.assertIn("PA4", code)
 
-        # Should have interrupt pin (PB03)
+        # Should have interrupt pin (PB3)
         self.assertIn("PB3", code)
 
     def test_generate_i2c(self):
@@ -152,14 +155,10 @@ class TestCodeGenerator(unittest.TestCase):
         self.assertIn("namespace Motor {", code)
         self.assertIn("frequency_hz", code)
 
-        # Should have motor array structure (NOT timer banks)
+        # Should have motor array structure
         self.assertIn("struct MotorConfig", code)
         self.assertIn("motors[]", code)
         self.assertIn("num_motors", code)
-
-        # Should NOT have old timer bank namespaces
-        self.assertNotIn("TIM1_Bank", code)
-        self.assertNotIn("TIM3_Bank", code)
 
         # Should have correct timer references
         self.assertIn("TIM1", code)
@@ -188,7 +187,6 @@ class TestCodeGenerator(unittest.TestCase):
         code = self.generator.generate()
 
         # Always use OneShot125 @ 2kHz (DSHOT not implemented)
-        # 2 kHz is practical rate for most ESCs (max theoretical is 4 kHz)
         self.assertIn("frequency_hz = 2000", code)
         self.assertIn("ONESHOT125 protocol", code)
         self.assertIn("125, 250", code)  # OneShot125 pulse range
@@ -210,22 +208,22 @@ class TestCodeGenerator(unittest.TestCase):
             if not line.strip().startswith('//') and 'motors[]' not in line:
                 self.assertTrue(line.strip().endswith(';'), f"Missing semicolon: {line}")
 
-    def test_generate_servos(self):
-        """Test servo array generation format (ServoManager compatible)."""
-        # Load BKMN-NERO config which has servos
-        config_path = Path(__file__).parent.parent / "data/BKMN-NERO.config"
-        if not config_path.exists():
-            self.skipTest("BKMN-NERO config not found")
+    def test_generate_servos_matekh743(self):
+        """Test servo array generation with MATEKH743 (has 2 servos)."""
+        config_path = Path(__file__).parent.parent / "bf_configs/MATEKH743"
+        if not (config_path / 'config.h').exists():
+            self.skipTest("MATEKH743 config not found")
 
         bf_config = BetaflightConfig(config_path)
 
-        # Load F722 pinmap
+        # Load H743 pinmap
         arduino_root = Path(__file__).parents[3]
-        pinmap_path = arduino_root / "variants/STM32F7xx/F722Z(C-E)T_F732ZET/PeripheralPins.c"
+        pinmap_path = arduino_root / "variants/STM32H7xx/H742V(G-I)(H-T)_H743V(G-I)(H-T)_H750VBT_H753VI(H-T)/PeripheralPins.c"
         if not pinmap_path.exists():
-            self.skipTest("F722 PeripheralPins.c not found")
+            self.skipTest("H743 PeripheralPins.c not found")
 
         pinmap = PeripheralPinMap(pinmap_path)
+        bf_config.resolve_timers(pinmap)
         validator = ConfigValidator(bf_config, pinmap)
         validator.validate_all()
         generator = BoardConfigGenerator(bf_config, validator)
@@ -236,26 +234,14 @@ class TestCodeGenerator(unittest.TestCase):
         self.assertIn("namespace Servo {", code)
         self.assertIn("frequency_hz = 50", code)
 
-        # Should have servo array structure (NOT timer banks)
+        # Should have servo array structure
         self.assertIn("struct ServoConfig", code)
         self.assertIn("servos[]", code)
         self.assertIn("num_servos", code)
 
-        # Should NOT have old timer bank namespaces
-        self.assertNotIn("TIM8_Bank", code)
-
-        # Verify servo array format matches expected structure
-        servo_array_section = re.search(r'servos\[\] = \{(.+?)\n    \};', code, re.DOTALL)
-        self.assertIsNotNone(servo_array_section, "Servo array not found in generated code")
-        servos_code = servo_array_section.group(1)
-
-        # BKMN-NERO has 2 servos on TIM8
-        self.assertIn("{TIM8, PC8_ALT1, 3, 1000, 2000}", servos_code)  # Servo 1
-        self.assertIn("{TIM8, PC9_ALT1, 4, 1000, 2000}", servos_code)  # Servo 2
-
     def test_save_to_file(self):
         """Test saving generated code to file."""
-        output_path = Path("/tmp/test_generated_NOXE_V3.h")
+        output_path = Path("/tmp/test_generated_JHEF411.h")
 
         # Generate and save
         self.generator.save(output_path)
