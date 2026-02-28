@@ -69,6 +69,10 @@ void enableDMAClk(DMA_TypeDef *dma)
     __HAL_RCC_DMA2_CLK_ENABLE();
   }
 #endif
+#if defined(__HAL_RCC_DMAMUX1_CLK_ENABLE)
+  // G4/H7: DMAMUX has a separate clock gate
+  __HAL_RCC_DMAMUX1_CLK_ENABLE();
+#endif
 }
 
 // ---------------------------------------------------------------------------
@@ -78,8 +82,25 @@ void initGPIO(uint32_t pin, TIM_TypeDef *timer, uint32_t ll_channel)
 {
   PinName pin_name = digitalPinToPinName(pin);
 
-  // Look up the function code (includes AF number) from the timer pin map
-  uint32_t function = pinmap_function(pin_name, PinMap_TIM);
+  // Find the PinMap_TIM entry matching both this physical pin AND the
+  // specified timer.  pinmap_function() returns the first pin match, which
+  // is wrong when a pin has multiple timer functions listed under ALT names
+  // (e.g., PB0: TIM1_CH2N at AF1, TIM3_CH3 at AF2 via PB_0_ALT1).
+  uint32_t function = 0;
+  const PinMap *map = PinMap_TIM;
+  while (map->pin != NC) {
+    if (map->peripheral == timer &&
+        STM_PORT(map->pin) == STM_PORT(pin_name) &&
+        STM_PIN(map->pin) == STM_PIN(pin_name)) {
+      function = map->function;
+      break;
+    }
+    map++;
+  }
+  if (function == 0) {
+    // Fallback: first pin match (original behavior)
+    function = pinmap_function(pin_name, PinMap_TIM);
+  }
 
   // Configure the pin: sets GPIO mode to AF, assigns the correct AF number
   pin_function(pin_name, function);
@@ -317,8 +338,8 @@ bool resolveDMA(MotorHW *motor)
   if (next_dma_resource >= 8) return false;
 
   motor->dma = DMA1;
-  // G4 LL_DMA_CHANNEL_x constants are 0-based internally
-  motor->dma_stream = next_dma_resource + 1;  // LL_DMA_CHANNEL_1 = 1, etc.
+  // G4 LL_DMA_CHANNEL_x are 0-based: LL_DMA_CHANNEL_1=0, LL_DMA_CHANNEL_2=1, etc.
+  motor->dma_stream = next_dma_resource;
   next_dma_resource++;
 #endif
 
@@ -489,6 +510,15 @@ void cleanupPreviousTransfer(MotorHW *motor)
 {
   // Disable timer DMA request (may still be enabled from previous cycle)
   disableTimDMAReq(motor->timer, motor->channel_index);
+
+  // Explicitly disable DMA before clearing flags and re-arming.
+  // Normal mode auto-disables on completion, but explicit disable ensures
+  // clean state for re-arm on all families (required on G4).
+#if defined(STM32G4xx)
+  LL_DMA_DisableChannel(motor->dma, motor->dma_stream);
+#else
+  LL_DMA_DisableStream(motor->dma, motor->dma_stream);
+#endif
 
   // Clear DMA event flags (required before re-enabling stream/channel)
   clearDMAFlags(motor->dma, motor->dma_stream);

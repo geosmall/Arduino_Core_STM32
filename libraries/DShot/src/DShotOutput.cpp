@@ -1,7 +1,7 @@
 #include "DShotOutput.h"
 
 DShotOutput::DShotOutput()
-  : _num_groups(0), _num_motors(0), _speed(DShot::DSHOT600)
+  : _num_groups(0), _num_motors(0), _speed(DShot::DSHOT600), _timers_started(false)
 {
   for (int i = 0; i < MAX_TIMER_GROUPS; i++) {
     _groups[i].timer = nullptr;
@@ -127,6 +127,13 @@ void DShotOutput::SetAllThrottle(uint16_t throttle, bool telemetry)
 
 void DShotOutput::Send()
 {
+  // Start timers on first Send() — enables counter and MOE for advanced timers.
+  // This handles the AddMotor() path where Init()/startTimers() isn't called.
+  if (!_timers_started) {
+    startTimers();
+    _timers_started = true;
+  }
+
   // Cleanup from previous transfer: disable timer DMA requests, clear flags.
   // Normal-mode DMA auto-disables the stream on completion, but the timer
   // DMA request may still be enabled and flags must be cleared before re-arm.

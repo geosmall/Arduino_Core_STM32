@@ -65,6 +65,7 @@ private:
   DShot::MotorHW _motors[DShot::MAX_MOTORS];
   int _num_motors;
   DShot::Speed _speed;
+  bool _timers_started;
 
   // Find or create a timer group, returns group index or -1
   int findOrCreateGroup(TIM_TypeDef *timer);
