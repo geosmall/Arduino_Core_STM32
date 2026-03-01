@@ -162,7 +162,6 @@ static int runTestPass(const TestPass &pass)
     uint16_t throttle = test_throttles[t];
 
     armCapture();
-    uint32_t cr_after_arm = DMA2_Stream0->CR;
 
     dshot.SetThrottle(0, throttle, false);
     dshot.Send();
@@ -170,20 +169,9 @@ static int runTestPass(const TestPass &pass)
     uint32_t deadline = millis() + 100;
     while (!dshot.IsTransferComplete() && millis() < deadline) { }
 
-    bool dma_ok = dshot.IsTransferComplete();
     delayMicroseconds(100);
 
     int num_captured = stopAndCountCaptures();
-
-    // Debug: show DMA completion and register state
-    if (num_captured < MIN_EDGES) {
-      Serial.print("  [dbg] EN_after_arm=");
-      Serial.print(cr_after_arm & 1);
-      Serial.print(" NDTR=");
-      Serial.print(DMA2_Stream0->NDTR);
-      Serial.print(" LISR=0x");
-      Serial.println(DMA2->LISR, HEX);
-    }
 
     if (num_captured < MIN_EDGES) {
       Serial.print("FAIL: Only captured ");

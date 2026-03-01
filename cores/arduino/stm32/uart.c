@@ -13,6 +13,7 @@
 #include "core_debug.h"
 #include "lock_resource.h"
 #include "uart.h"
+#include "dma.h"
 #include "Arduino.h"
 #include "PinAF_STM32F1.h"
 
@@ -882,6 +883,8 @@ void uart_enable_rx(serial_t *obj)
 
 /* Forward declarations */
 static IRQn_Type uart_dma_get_rx_irqn(serial_t *obj);
+static void uart_dma_get_rx_resource(serial_t *obj, DMA_TypeDef **dma, uint32_t *stream);
+static void uart_dma_irq_callback(void *context);
 static void uart_dma_check_rx(serial_t *obj);
 
 /**
@@ -1101,6 +1104,16 @@ int uart_dma_listen_start(serial_t *obj, uint8_t *buf, size_t size,
   /* Enable IDLE line interrupt */
   __HAL_UART_ENABLE_IT(huart, UART_IT_IDLE);
 
+  /* Register DMA IRQ callback through dispatch layer */
+  {
+    DMA_TypeDef *dma_ctrl;
+    uint32_t dma_stream;
+    uart_dma_get_rx_resource(obj, &dma_ctrl, &dma_stream);
+    if (dma_set_handler(dma_ctrl, dma_stream, uart_dma_irq_callback, obj) != 0) {
+      return -9;  /* DMA stream already claimed */
+    }
+  }
+
   /* Enable DMA stream interrupts */
   HAL_NVIC_SetPriority(uart_dma_get_rx_irqn(obj), UART_IRQ_PRIO, UART_IRQ_SUBPRIO);
   HAL_NVIC_EnableIRQ(uart_dma_get_rx_irqn(obj));
@@ -1154,6 +1167,48 @@ static IRQn_Type uart_dma_get_rx_irqn(serial_t *obj)
 }
 
 /**
+ * @brief  Get DMA controller and stream/channel for UART RX DMA
+ * @param  obj       pointer to serial_t structure
+ * @param  dma       output: DMA controller (DMA1 or DMA2)
+ * @param  stream    output: stream index (0-7), matches dma_set_handler() param
+ */
+static void uart_dma_get_rx_resource(serial_t *obj, DMA_TypeDef **dma, uint32_t *stream)
+{
+#if defined(STM32F4xx)
+  switch ((uint32_t)obj->uart) {
+#if defined(USART1_BASE)
+    case USART1_BASE: *dma = DMA2; *stream = 2; return;
+#endif
+#if defined(USART2_BASE)
+    case USART2_BASE: *dma = DMA1; *stream = 5; return;
+#endif
+#if defined(USART6_BASE)
+    case USART6_BASE: *dma = DMA2; *stream = 1; return;
+#endif
+    default: *dma = NULL; *stream = 0; return;
+  }
+#elif defined(STM32H7xx)
+  (void)obj;
+  *dma = DMA1; *stream = 5;
+#else
+  (void)obj;
+  *dma = NULL; *stream = 0;
+#endif
+}
+
+/**
+ * @brief  DMA IRQ callback for UART RX (registered via dma_set_handler)
+ * @param  context  serial_t pointer passed at registration
+ */
+static void uart_dma_irq_callback(void *context)
+{
+  serial_t *obj = (serial_t *)context;
+  if (obj->dma_listen_mode) {
+    HAL_DMA_IRQHandler(&obj->hdma_rx);
+  }
+}
+
+/**
  * @brief  Stop DMA listening mode
  * @param  obj : pointer to serial_t structure
  */
@@ -1179,6 +1234,14 @@ void uart_dma_listen_stop(serial_t *obj)
 
   /* Disable DMA stream interrupt */
   HAL_NVIC_DisableIRQ(uart_dma_get_rx_irqn(obj));
+
+  /* Unregister DMA IRQ callback */
+  {
+    DMA_TypeDef *dma_ctrl;
+    uint32_t dma_stream;
+    uart_dma_get_rx_resource(obj, &dma_ctrl, &dma_stream);
+    dma_clear_handler(dma_ctrl, dma_stream);
+  }
 }
 
 /**
@@ -1628,57 +1691,6 @@ void USART10_IRQHandler(void)
   HAL_UART_IRQHandler(uart_handlers[UART10_INDEX]);
 }
 #endif
-
-#if defined(HAL_DMA_MODULE_ENABLED)
-/*
- * DMA Stream IRQ Handlers for UART DMA Listen Mode
- * These handlers are needed for circular DMA with TC/HT interrupts
- */
-
-#if defined(STM32F4xx)
-/* DMA2 Stream2 - USART1 RX */
-void DMA2_Stream2_IRQHandler(void)
-{
-  serial_t *obj = get_serial_obj(uart_handlers[UART1_INDEX]);
-  if (obj && obj->dma_listen_mode) {
-    HAL_DMA_IRQHandler(&obj->hdma_rx);
-  }
-}
-
-/* DMA1 Stream5 - USART2 RX */
-void DMA1_Stream5_IRQHandler(void)
-{
-  serial_t *obj = get_serial_obj(uart_handlers[UART2_INDEX]);
-  if (obj && obj->dma_listen_mode) {
-    HAL_DMA_IRQHandler(&obj->hdma_rx);
-  }
-}
-
-/* DMA2 Stream1 - USART6 RX */
-void DMA2_Stream1_IRQHandler(void)
-{
-  serial_t *obj = get_serial_obj(uart_handlers[UART6_INDEX]);
-  if (obj && obj->dma_listen_mode) {
-    HAL_DMA_IRQHandler(&obj->hdma_rx);
-  }
-}
-#elif defined(STM32H7xx)
-/* DMA1 Stream5 - Used for all UART RX in DMA listen mode on H7 */
-void DMA1_Stream5_IRQHandler(void)
-{
-  /* Find which UART is using DMA listen mode */
-  for (int i = 0; i < UART_NUM; i++) {
-    if (uart_handlers[i] != NULL) {
-      serial_t *obj = get_serial_obj(uart_handlers[i]);
-      if (obj && obj->dma_listen_mode) {
-        HAL_DMA_IRQHandler(&obj->hdma_rx);
-        break;
-      }
-    }
-  }
-}
-#endif /* STM32F4xx / STM32H7xx */
-#endif /* HAL_DMA_MODULE_ENABLED */
 
 /**
   * @brief  HAL UART Call Back
