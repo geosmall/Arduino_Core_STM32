@@ -5,9 +5,13 @@
  * to input capture pins on TIM2. Tests both an advanced timer (TIM1)
  * and a general-purpose timer (TIM3) sequentially.
  *
- * Wiring (Nucleo F411RE HIL-001):
+ * Wiring (Nucleo-64: F411RE, G474RE):
  *   PA8 (TIM1_CH1, D7) --> PA0 (TIM2_CH1, A0)   [Pass 1: advanced timer]
  *   PB0 (TIM3_CH3, A3) --> PB10 (TIM2_CH3, D6)  [Pass 2: general-purpose timer]
+ *
+ * Wiring (Nucleo-144: F722ZE, H753ZI):
+ *   PE11 (TIM1_CH2, D5) --> PA0 (TIM2_CH1)       [Pass 1: advanced timer]
+ *   PB0 (TIM3_CH3)      --> PB10 (TIM2_CH3)      [Pass 2: general-purpose timer]
  *
  * The test (per pass):
  * 1. Sends known DShot600 packets on the output pin via DMA
@@ -44,7 +48,7 @@ struct TestPass {
   uint32_t cap_tim_ch;     // TIM2 channel index: 1 or 3
 };
 
-// Nucleo-64 boards: D7->A0 (brown) and A3->D6 (orange) jumpers
+// Nucleo-64 boards: D7->A0 and A3->D6 jumpers
 // PA8=D7 (TIM1_CH1 output), PA0=A0 (TIM2_CH1 capture)
 // PB0=A3 (TIM3_CH3 output), PB10=D6 (TIM2_CH3 capture)
 #if defined(ARDUINO_NUCLEO_F411RE) || defined(ARDUINO_NUCLEO_G474RE)
@@ -56,6 +60,21 @@ static const TestPass test_passes[] = {
   {TIM3, PB0, 3, "TIM3/PB0 (general-purpose timer)",
    GPIOB, LL_GPIO_PIN_10, LL_GPIO_AF_1, 3},
 };
+
+// Nucleo-144 boards: PE11->PA0 and PB0->PB10 jumpers
+// PE11=D5 (TIM1_CH2 output), PA0 (TIM2_CH1 capture)
+// PB0 (TIM3_CH3 output), PB10 (TIM2_CH3 capture)
+// Note: PE9 (TIM1_CH1, D6) requires SB28 solder bridge — PE11 is direct.
+#elif defined(ARDUINO_NUCLEO_F722ZE) || defined(ARDUINO_NUCLEO_H753ZI)
+static const TestPass test_passes[] = {
+  // Pass 1: PE11->PA0 jumper — TIM1_CH2 output, TIM2_CH1 capture
+  {TIM1, PE11, 2, "TIM1/PE11 (advanced timer)",
+   GPIOA, LL_GPIO_PIN_0, LL_GPIO_AF_1, 1},
+  // Pass 2: PB0->PB10 jumper — TIM3_CH3 output, TIM2_CH3 capture
+  {TIM3, PB0, 3, "TIM3/PB0 (general-purpose timer)",
+   GPIOB, LL_GPIO_PIN_10, LL_GPIO_AF_1, 3},
+};
+
 #else
   #error "DShot_Verification: no test passes defined for this board"
 #endif
@@ -79,7 +98,9 @@ void setup()
 {
   Serial.begin(115200);
   while (!Serial) { }
-  Serial.println("DShot_Verification: DMA loopback test");
+  Serial.println("DShot_Verification: DMA loopback test (v2)");
+  Serial.print("  capture_buf @ 0x");
+  Serial.println((uint32_t)capture_buf, HEX);
 
   // TIM2 timebase — shared across all passes (only the IC channel changes)
   initCaptureTimer();
@@ -141,6 +162,7 @@ static int runTestPass(const TestPass &pass)
     uint16_t throttle = test_throttles[t];
 
     armCapture();
+    uint32_t cr_after_arm = DMA2_Stream0->CR;
 
     dshot.SetThrottle(0, throttle, false);
     dshot.Send();
@@ -148,9 +170,20 @@ static int runTestPass(const TestPass &pass)
     uint32_t deadline = millis() + 100;
     while (!dshot.IsTransferComplete() && millis() < deadline) { }
 
+    bool dma_ok = dshot.IsTransferComplete();
     delayMicroseconds(100);
 
     int num_captured = stopAndCountCaptures();
+
+    // Debug: show DMA completion and register state
+    if (num_captured < MIN_EDGES) {
+      Serial.print("  [dbg] EN_after_arm=");
+      Serial.print(cr_after_arm & 1);
+      Serial.print(" NDTR=");
+      Serial.print(DMA2_Stream0->NDTR);
+      Serial.print(" LISR=0x");
+      Serial.println(DMA2->LISR, HEX);
+    }
 
     if (num_captured < MIN_EDGES) {
       Serial.print("FAIL: Only captured ");
@@ -278,7 +311,8 @@ static void initCaptureChannel(const TestPass &pass)
 
   LL_DMA_InitTypeDef dma_init;
   LL_DMA_StructInit(&dma_init);
-  dma_init.PeriphRequest = LL_DMAMUX1_REQ_TIM2_CH1;
+  dma_init.PeriphRequest = (pass.cap_tim_ch == 1)
+      ? LL_DMAMUX1_REQ_TIM2_CH1 : LL_DMAMUX1_REQ_TIM2_CH3;
   dma_init.PeriphOrM2MSrcAddress = (uint32_t)ccr;
   dma_init.MemoryOrM2MDstAddress = (uint32_t)capture_buf;
   dma_init.Direction = LL_DMA_DIRECTION_PERIPH_TO_MEMORY;
