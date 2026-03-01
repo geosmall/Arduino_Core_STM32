@@ -65,6 +65,49 @@ void cleanupPreviousTransfer(MotorHW *motor);
 // Polls hardware: in normal mode, DMA stream/channel auto-disables on completion.
 bool allTransfersComplete(const MotorHW *motors, int count);
 
+// ---------------------------------------------------------------------------
+// DMAR burst mode — F4/F7 only
+// ---------------------------------------------------------------------------
+// Uses a single DMA stream per timer group, writing to TIMx->DMAR which
+// distributes to CCR1..CCRn sequentially. Solves the TIM1 CH1/CH2/CH3
+// stream conflict on F4/F7 where all three map to DMA2_Stream6.
+#if defined(STM32F4xx) || defined(STM32F7xx)
+
+// Per-timer-group burst state
+struct BurstGroup {
+  TIM_TypeDef *timer;
+  DMA_TypeDef *dma;
+  uint32_t dma_stream;
+  uint32_t dma_channel_sel;
+  uint32_t burst_buffer[DMA_BUF_SIZE * 4]; // interleaved, max 4 channels
+  uint8_t  burst_length;      // highest (channel_index + 1), stride for interleaving
+  uint8_t  trigger_ch_index;  // lowest active channel, its CC event triggers DMA
+};
+
+// Fill one motor's packet into the interleaved burst buffer.
+// ch_index: 0-3 (which column in the interleaved layout).
+// burst_length: stride between consecutive bits for the same channel.
+void fillDmaBurstBuffer(uint32_t *burst_buffer, uint8_t ch_index,
+                        uint8_t burst_length, uint16_t packet);
+
+// Resolve DMA resource for DMAR burst (one stream per timer group).
+// Uses the trigger channel's entry in the F4/F7 stream map.
+bool resolveDMABurst(BurstGroup *group);
+
+// Initialize DMA for DMAR burst mode (target = TIMx->DMAR, burst via DCR).
+void initDMABurst(BurstGroup *group);
+
+// Trigger DMAR burst DMA transfer for a timer group.
+void triggerDMABurst(BurstGroup *group);
+
+// Cleanup from previous burst transfer.
+void cleanupPreviousBurstTransfer(BurstGroup *group);
+
+// Check if burst DMA transfer is complete.
+bool burstTransferComplete(const BurstGroup *group);
+
+#endif // STM32F4xx || STM32F7xx
+
 } // namespace DShot
 
 #endif // DSHOT_LL_H

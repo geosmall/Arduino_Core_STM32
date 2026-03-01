@@ -57,6 +57,10 @@ private:
   struct TimerGroup {
     TIM_TypeDef *timer;
     bool initialized;
+#if defined(STM32F4xx) || defined(STM32F7xx)
+    bool use_burst;            // true if DMAR burst mode (stream conflict detected)
+    DShot::BurstGroup burst;   // burst DMA state (valid only if use_burst)
+#endif
   };
 
   TimerGroup _groups[MAX_TIMER_GROUPS];
@@ -66,12 +70,17 @@ private:
   int _num_motors;
   DShot::Speed _speed;
   bool _timers_started;
+  bool _dma_initialized;
 
   // Find or create a timer group, returns group index or -1
   int findOrCreateGroup(TIM_TypeDef *timer);
 
   // Start all timer counters and enable outputs
   void startTimers();
+
+  // Initialize DMA for all motors (called once, after all motors registered).
+  // Detects stream conflicts on F4/F7 and uses DMAR burst where needed.
+  void initAllDMA();
 
   // Convert 1-based channel number to LL_TIM_CHANNEL_CHx constant
   static uint32_t channelToLL(uint32_t channel);

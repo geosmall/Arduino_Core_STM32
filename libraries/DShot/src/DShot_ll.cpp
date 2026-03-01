@@ -565,4 +565,116 @@ bool allTransfersComplete(const MotorHW *motors, int count)
   return true;
 }
 
+// ---------------------------------------------------------------------------
+// DMAR burst mode — F4/F7 only
+// ---------------------------------------------------------------------------
+#if defined(STM32F4xx) || defined(STM32F7xx)
+
+void fillDmaBurstBuffer(uint32_t *burst_buffer, uint8_t ch_index,
+                        uint8_t burst_length, uint16_t packet)
+{
+  for (int i = 0; i < 16; i++) {
+    burst_buffer[ch_index + i * burst_length] =
+        (packet & 0x8000) ? BIT_1_DUTY : BIT_0_DUTY;
+    packet <<= 1;
+  }
+  // Reset frame (2 zero bits)
+  burst_buffer[ch_index + 16 * burst_length] = 0;
+  burst_buffer[ch_index + 17 * burst_length] = 0;
+}
+
+bool resolveDMABurst(BurstGroup *group)
+{
+  // Look up the trigger channel's DMA stream from the fixed F4/F7 map
+  for (size_t i = 0; i < sizeof(dma_map) / sizeof(dma_map[0]); i++) {
+    if (dma_map[i].timer == group->timer &&
+        dma_map[i].ch_index == group->trigger_ch_index) {
+      group->dma = dma_map[i].dma;
+      group->dma_stream = dma_map[i].stream;
+      group->dma_channel_sel = dma_map[i].channel_sel;
+      return true;
+    }
+  }
+  return false;
+}
+
+// Convert burst_length (1-4) to LL_TIM_DMABURST_LENGTH_xTRANSFERS enum
+static uint32_t burstLengthToLL(uint8_t length)
+{
+  switch (length) {
+    case 1:  return LL_TIM_DMABURST_LENGTH_1TRANSFER;
+    case 2:  return LL_TIM_DMABURST_LENGTH_2TRANSFERS;
+    case 3:  return LL_TIM_DMABURST_LENGTH_3TRANSFERS;
+    default: return LL_TIM_DMABURST_LENGTH_4TRANSFERS;
+  }
+}
+
+void initDMABurst(BurstGroup *group)
+{
+  enableDMAClk(group->dma);
+
+  LL_DMA_DisableStream(group->dma, group->dma_stream);
+  LL_DMA_DeInit(group->dma, group->dma_stream);
+
+  LL_DMA_InitTypeDef dma_init;
+  LL_DMA_StructInit(&dma_init);
+
+  dma_init.Channel = group->dma_channel_sel;
+  dma_init.MemoryOrM2MDstAddress = (uint32_t)group->burst_buffer;
+  dma_init.PeriphOrM2MSrcAddress = (uint32_t)&group->timer->DMAR;
+  dma_init.Direction = LL_DMA_DIRECTION_MEMORY_TO_PERIPH;
+  dma_init.NbData = DMA_BUF_SIZE * group->burst_length;
+  dma_init.PeriphOrM2MSrcIncMode = LL_DMA_PERIPH_NOINCREMENT;
+  dma_init.MemoryOrM2MDstIncMode = LL_DMA_MEMORY_INCREMENT;
+  dma_init.PeriphOrM2MSrcDataSize = LL_DMA_PDATAALIGN_WORD;
+  dma_init.MemoryOrM2MDstDataSize = LL_DMA_MDATAALIGN_WORD;
+  dma_init.Mode = LL_DMA_MODE_NORMAL;
+  dma_init.Priority = LL_DMA_PRIORITY_HIGH;
+  dma_init.FIFOMode = LL_DMA_FIFOMODE_ENABLE;
+  dma_init.FIFOThreshold = LL_DMA_FIFOTHRESHOLD_1_4;
+  dma_init.MemBurst = LL_DMA_MBURST_SINGLE;
+  dma_init.PeriphBurst = LL_DMA_PBURST_SINGLE;
+
+  LL_DMA_Init(group->dma, group->dma_stream, &dma_init);
+
+  // Configure timer DMA burst: base address = CCR1, burst length = N registers
+  LL_TIM_ConfigDMABurst(group->timer,
+                        LL_TIM_DMABURST_BASEADDR_CCR1,
+                        burstLengthToLL(group->burst_length));
+}
+
+void triggerDMABurst(BurstGroup *group)
+{
+#if defined(__DCACHE_PRESENT) && (__DCACHE_PRESENT == 1U)
+  SCB_CleanDCache_by_Addr(group->burst_buffer,
+                          DMA_BUF_SIZE * group->burst_length * sizeof(uint32_t));
+#endif
+
+  LL_DMA_SetDataLength(group->dma, group->dma_stream,
+                       DMA_BUF_SIZE * group->burst_length);
+  LL_DMA_EnableStream(group->dma, group->dma_stream);
+
+  // Re-set DCR in case anything modified it (matches INav's pattern)
+  LL_TIM_ConfigDMABurst(group->timer,
+                        LL_TIM_DMABURST_BASEADDR_CCR1,
+                        burstLengthToLL(group->burst_length));
+
+  // Enable DMA request for the trigger channel's CC event
+  enableTimDMAReq(group->timer, group->trigger_ch_index);
+}
+
+void cleanupPreviousBurstTransfer(BurstGroup *group)
+{
+  disableTimDMAReq(group->timer, group->trigger_ch_index);
+  LL_DMA_DisableStream(group->dma, group->dma_stream);
+  clearDMAFlags(group->dma, group->dma_stream);
+}
+
+bool burstTransferComplete(const BurstGroup *group)
+{
+  return !LL_DMA_IsEnabledStream(group->dma, group->dma_stream);
+}
+
+#endif // STM32F4xx || STM32F7xx
+
 } // namespace DShot
