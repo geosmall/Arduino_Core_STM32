@@ -3,6 +3,7 @@
 #include "PeripheralPins.h"
 #include "timer.h"
 #include "pinmap.h"
+#include "dma.h"
 
 namespace DShot {
 
@@ -162,6 +163,14 @@ static void initOC(TIM_TypeDef *timer, uint32_t ll_channel)
 
 // F4/F7: Fixed stream↔peripheral mapping from reference manuals
 // Table: {timer, channel_index, DMA, stream, channel_select}
+//
+// F411 DMA streams shared with UART RX (claimed by uart.c via dma_set_handler):
+//   DMA1_Stream5 — USART2_RX (also TIM3_CH2, but DShot skips via claim check)
+//   DMA2_Stream1 — USART6_RX (also TIM1_CH1 alt, not in table)
+//   DMA2_Stream2 — USART1_RX (also TIM1_CH2 alt, not in table)
+// These streams are NOT excluded from the table. Instead, dma_is_claimed()
+// detects conflicts at init time and auto-upgrades to DMAR burst if needed.
+// See initAllDMA() in DShotOutput.cpp for the resolve → decide → claim flow.
 struct DMAMapping {
   TIM_TypeDef *timer;
   uint8_t ch_index;      // 0=CH1, 1=CH2, 2=CH3, 3=CH4
@@ -215,8 +224,7 @@ bool resolveDMA(MotorHW *motor)
 
 #elif defined(STM32G4xx) || defined(STM32H7xx)
 
-// G4/H7: DMAMUX allows flexible routing — allocate sequentially
-static uint32_t next_dma_resource = 0;
+// G4/H7: DMAMUX allows flexible routing — scan for first unclaimed stream
 
 // Get the DMAMUX request ID for a timer channel
 static uint32_t getDMAMUXRequest(TIM_TypeDef *timer, uint8_t ch_index)
@@ -323,28 +331,24 @@ bool resolveDMA(MotorHW *motor)
   uint32_t dmamux_req = getDMAMUXRequest(motor->timer, motor->channel_index);
   if (dmamux_req == 0) return false;
 
-#if defined(STM32H7xx)
-  // H7: use DMA1 streams sequentially
-  // DMA1 has streams 0-7
-  if (next_dma_resource >= 8) return false;
-
-  motor->dma = DMA1;
-  motor->dma_stream = next_dma_resource;  // LL_DMA_STREAM_x == stream number
-  next_dma_resource++;
-
-#elif defined(STM32G4xx)
-  // G4: use DMA1 channels sequentially
-  // DMA1 has channels 1-8 (LL uses 1-based: LL_DMA_CHANNEL_1 etc.)
-  if (next_dma_resource >= 8) return false;
-
-  motor->dma = DMA1;
-  // G4 LL_DMA_CHANNEL_x are 0-based: LL_DMA_CHANNEL_1=0, LL_DMA_CHANNEL_2=1, etc.
-  motor->dma_stream = next_dma_resource;
-  next_dma_resource++;
+  // Scan for the first unclaimed stream/channel across DMA1, then DMA2.
+  // Skips streams already claimed by UART or other DMA consumers.
+  DMA_TypeDef *controllers[] = { DMA1
+#if defined(DMA2)
+    , DMA2
 #endif
-
-  // DMAMUX configuration is done in initDMA()
-  return true;
+  };
+  for (size_t c = 0; c < sizeof(controllers) / sizeof(controllers[0]); c++) {
+    for (uint32_t s = 0; s < 8; s++) {
+      if (!dma_is_claimed(controllers[c], s)) {
+        motor->dma = controllers[c];
+        motor->dma_stream = s;
+        // DMAMUX configuration is done in initDMA()
+        return true;
+      }
+    }
+  }
+  return false;  // all streams/channels exhausted
 }
 
 #endif // family selection

@@ -29,6 +29,7 @@ extern "C" {
 static struct {
   dma_irq_callback_t callback;
   void *context;
+  bool claimed;
 } dma_handler_table[DMA_HANDLER_COUNT];
 
 static inline uint32_t dma_get_index(DMA_TypeDef *dma, uint32_t stream)
@@ -49,11 +50,12 @@ int dma_set_handler(DMA_TypeDef *dma, uint32_t stream,
   if (idx >= DMA_HANDLER_COUNT) {
     return -1;
   }
-  if (dma_handler_table[idx].callback != NULL) {
+  if (dma_handler_table[idx].claimed) {
     return -1;
   }
   dma_handler_table[idx].callback = callback;
   dma_handler_table[idx].context = context;
+  dma_handler_table[idx].claimed = true;
   return 0;
 }
 
@@ -65,6 +67,29 @@ void dma_clear_handler(DMA_TypeDef *dma, uint32_t stream)
   }
   dma_handler_table[idx].callback = NULL;
   dma_handler_table[idx].context = NULL;
+  dma_handler_table[idx].claimed = false;
+}
+
+int dma_claim(DMA_TypeDef *dma, uint32_t stream)
+{
+  uint32_t idx = dma_get_index(dma, stream);
+  if (idx >= DMA_HANDLER_COUNT) {
+    return -1;
+  }
+  if (dma_handler_table[idx].claimed) {
+    return -1;
+  }
+  dma_handler_table[idx].claimed = true;
+  return 0;
+}
+
+bool dma_is_claimed(DMA_TypeDef *dma, uint32_t stream)
+{
+  uint32_t idx = dma_get_index(dma, stream);
+  if (idx >= DMA_HANDLER_COUNT) {
+    return true;  /* invalid index treated as claimed */
+  }
+  return dma_handler_table[idx].claimed;
 }
 
 /* --- IRQ handler dispatch --- */

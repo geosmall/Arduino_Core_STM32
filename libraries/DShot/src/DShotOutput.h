@@ -11,9 +11,12 @@ public:
 
   // Add a motor with explicit timer/pin/channel assignment.
   // channel: 1-4 (timer channel number, same as BoardConfig convention).
+  // dma_override: optional pre-resolved DMA assignment (for external allocator).
+  //   When non-null, bypasses internal DMA lookup. Default: nullptr (auto-resolve).
   // Returns motor index (0-based) on success, -1 on failure.
   int AddMotor(TIM_TypeDef *timer, uint32_t pin, uint32_t channel,
-               DShot::Speed speed = DShot::DSHOT600);
+               DShot::Speed speed = DShot::DSHOT600,
+               const DShot::DMAResource *dma_override = nullptr);
 
   // Initialize from a BoardConfig::Motor::motors array.
   // Calls AddMotor() for each entry, then starts all timers.
@@ -48,6 +51,9 @@ public:
   // Check if all DMA transfers from the last Send() have completed
   bool IsTransferComplete() const;
 
+  // Check if DMA initialization failed (unresolvable stream conflict)
+  bool IsInitFailed() const { return _dma_init_failed; }
+
   // Number of configured motors
   int GetNumMotors() const { return _num_motors; }
 
@@ -71,6 +77,7 @@ private:
   DShot::Speed _speed;
   bool _timers_started;
   bool _dma_initialized;
+  bool _dma_init_failed;
 
   // Find or create a timer group, returns group index or -1
   int findOrCreateGroup(TIM_TypeDef *timer);
@@ -79,8 +86,10 @@ private:
   void startTimers();
 
   // Initialize DMA for all motors (called once, after all motors registered).
-  // Detects stream conflicts on F4/F7 and uses DMAR burst where needed.
-  void initAllDMA();
+  // Claims streams via dma_claim(), detects conflicts, auto-upgrades to
+  // DMAR burst on F4/F7 when cross-group conflicts are found.
+  // Returns false on unresolvable conflict.
+  bool initAllDMA();
 
   // Convert 1-based channel number to LL_TIM_CHANNEL_CHx constant
   static uint32_t channelToLL(uint32_t channel);

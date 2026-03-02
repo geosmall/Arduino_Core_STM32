@@ -11,6 +11,7 @@
 #ifndef __DMA_H
 #define __DMA_H
 
+#include <stdbool.h>
 #include "stm32_def.h"
 
 #ifdef __cplusplus
@@ -43,6 +44,24 @@ int dma_set_handler(DMA_TypeDef *dma, uint32_t stream,
  * @param  stream  Stream/channel index (0-7)
  */
 void dma_clear_handler(DMA_TypeDef *dma, uint32_t stream);
+
+/**
+ * @brief  Claim a DMA stream/channel without registering an IRQ callback.
+ *         Used by consumers that own a stream but don't need TC interrupts
+ *         (e.g., unidirectional DShot).
+ * @param  dma     DMA controller (DMA1 or DMA2)
+ * @param  stream  Stream/channel index (0-7)
+ * @retval 0 on success, -1 if already claimed or invalid
+ */
+int dma_claim(DMA_TypeDef *dma, uint32_t stream);
+
+/**
+ * @brief  Query whether a DMA stream/channel is claimed
+ * @param  dma     DMA controller (DMA1 or DMA2)
+ * @param  stream  Stream/channel index (0-7)
+ * @retval true if claimed (by dma_set_handler or dma_claim), false if free
+ */
+bool dma_is_claimed(DMA_TypeDef *dma, uint32_t stream);
 
 #endif /* HAL_DMA_MODULE_ENABLED */
 

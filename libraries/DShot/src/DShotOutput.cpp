@@ -1,8 +1,10 @@
 #include "DShotOutput.h"
+#include "dma.h"
+#include "core_debug.h"
 
 DShotOutput::DShotOutput()
   : _num_groups(0), _num_motors(0), _speed(DShot::DSHOT600),
-    _timers_started(false), _dma_initialized(false)
+    _timers_started(false), _dma_initialized(false), _dma_init_failed(false)
 {
   for (int i = 0; i < MAX_TIMER_GROUPS; i++) {
     _groups[i].timer = nullptr;
@@ -48,7 +50,8 @@ int DShotOutput::findOrCreateGroup(TIM_TypeDef *timer)
 }
 
 int DShotOutput::AddMotor(TIM_TypeDef *timer, uint32_t pin, uint32_t channel,
-                          DShot::Speed speed)
+                          DShot::Speed speed,
+                          const DShot::DMAResource *dma_override)
 {
   if (_num_motors >= DShot::MAX_MOTORS) return -1;
   if (channel < 1 || channel > 4) return -1;
@@ -73,6 +76,18 @@ int DShotOutput::AddMotor(TIM_TypeDef *timer, uint32_t pin, uint32_t channel,
   motor->channel_index = channelToIndex(channel);
   motor->throttle = 0;
   motor->telemetry = false;
+
+  // Apply DMA override or mark for auto-resolution in initAllDMA()
+  if (dma_override) {
+    motor->dma = dma_override->dma;
+    motor->dma_stream = dma_override->stream;
+#if defined(STM32F4xx) || defined(STM32F7xx)
+    motor->dma_channel_sel = dma_override->channel_sel;
+#endif
+    motor->dma_resolved = true;
+  } else {
+    motor->dma_resolved = false;
+  }
 
   // Zero the DMA buffer
   for (int i = 0; i < DShot::DMA_BUF_SIZE; i++) {
@@ -113,37 +128,50 @@ void DShotOutput::startTimers()
   }
 }
 
-void DShotOutput::initAllDMA()
+bool DShotOutput::initAllDMA()
 {
   for (int g = 0; g < _num_groups; g++) {
+    // --- Phase A: Resolve DMA for all motors in this group ---
+    for (int m = 0; m < _num_motors; m++) {
+      if (_motors[m].timer != _groups[g].timer) continue;
+      if (_motors[m].dma_resolved) continue;  // override: already set by AddMotor
+      if (!DShot::resolveDMA(&_motors[m])) {
+        core_debug("DShot: no DMA available for TIM%d_CH%d\n",
+                   0, _motors[m].channel_index + 1);
+        return false;
+      }
+    }
+
 #if defined(STM32F4xx) || defined(STM32F7xx)
-    // Check if motors on this timer have DMA stream conflicts.
-    // On F4/F7, the fixed DMA stream map can assign multiple timer channels
-    // to the same stream (e.g., TIM1 CH1/CH2/CH3 all map to DMA2_Stream6).
-    bool has_conflict = false;
+    // --- Phase B: Decide burst vs per-channel ---
+    // Check for internal stream conflicts (multiple channels → same stream)
+    // AND cross-group conflicts (stream already claimed by another group or UART)
+    bool need_burst = false;
     int group_motor_count = 0;
-    uint32_t seen_streams[4];
+    uint32_t group_streams[4];
 
     for (int m = 0; m < _num_motors; m++) {
       if (_motors[m].timer != _groups[g].timer) continue;
 
-      // Resolve DMA into a temporary to check the stream assignment
-      DShot::MotorHW temp = _motors[m];
-      if (!DShot::resolveDMA(&temp)) continue;
-
+      // Cross-group or UART conflict: stream already claimed?
+      if (dma_is_claimed(_motors[m].dma, _motors[m].dma_stream)) {
+        need_burst = true;
+      }
+      // Internal conflict: two motors in this group resolved to same stream?
       for (int s = 0; s < group_motor_count; s++) {
-        if (seen_streams[s] == temp.dma_stream) {
-          has_conflict = true;
+        if (group_streams[s] == _motors[m].dma_stream) {
+          need_burst = true;
           break;
         }
       }
       if (group_motor_count < 4) {
-        seen_streams[group_motor_count] = temp.dma_stream;
+        group_streams[group_motor_count] = _motors[m].dma_stream;
       }
       group_motor_count++;
     }
 
-    if (has_conflict) {
+    // --- Phase C: Claim + Init ---
+    if (need_burst) {
       // DMAR burst mode for this timer group
       _groups[g].use_burst = true;
       _groups[g].burst.timer = _groups[g].timer;
@@ -163,8 +191,17 @@ void DShotOutput::initAllDMA()
         _groups[g].burst.burst_buffer[i] = 0;
       }
 
-      // Resolve and init DMAR DMA
-      DShot::resolveDMABurst(&_groups[g].burst);
+      // Resolve burst DMA (trigger channel's stream) and claim it
+      if (!DShot::resolveDMABurst(&_groups[g].burst)) {
+        core_debug("DShot: burst DMA resolve failed for timer group %d\n", g);
+        return false;
+      }
+      if (dma_claim(_groups[g].burst.dma, _groups[g].burst.dma_stream) != 0) {
+        core_debug("DShot: DMA%d_Stream%lu conflict — burst trigger stream already claimed\n",
+                   (_groups[g].burst.dma == DMA1) ? 1 : 2,
+                   (unsigned long)_groups[g].burst.dma_stream);
+        return false;
+      }
       DShot::initDMABurst(&_groups[g].burst);
     } else
 #endif
@@ -172,12 +209,19 @@ void DShotOutput::initAllDMA()
       // Per-channel DMA (no conflicts, or G4/H7 with DMAMUX)
       for (int m = 0; m < _num_motors; m++) {
         if (_motors[m].timer != _groups[g].timer) continue;
-        DShot::resolveDMA(&_motors[m]);
+        if (dma_claim(_motors[m].dma, _motors[m].dma_stream) != 0) {
+          core_debug("DShot: DMA%d_Stream%lu conflict — TIM_CH%d stream already claimed\n",
+                     (_motors[m].dma == DMA1) ? 1 : 2,
+                     (unsigned long)_motors[m].dma_stream,
+                     _motors[m].channel_index + 1);
+          return false;
+        }
         DShot::initDMA(&_motors[m]);
       }
     }
   }
   _dma_initialized = true;
+  return true;
 }
 
 void DShotOutput::SetThrottle(int motor_idx, uint16_t throttle, bool telemetry)
@@ -207,9 +251,14 @@ void DShotOutput::Send()
 
   // Initialize DMA on first Send() — deferred from AddMotor() to allow
   // stream conflict detection across all motors on each timer group.
+  // By this point, UART DMA listen (and other consumers) have already
+  // claimed their streams, so the allocator can see and avoid them.
   if (!_dma_initialized) {
-    initAllDMA();
+    if (!initAllDMA()) {
+      _dma_init_failed = true;
+    }
   }
+  if (_dma_init_failed) return;
 
   // --- Cleanup from previous transfer ---
   for (int g = 0; g < _num_groups; g++) {

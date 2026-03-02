@@ -9,6 +9,15 @@ namespace DShot {
 
 static constexpr int MAX_MOTORS = 8;
 
+// DMA resource descriptor — used for external overrides (future allocator)
+struct DMAResource {
+  DMA_TypeDef *dma;
+  uint32_t stream;             // LL_DMA_STREAM_x (F4/F7/H7) or LL_DMA_CHANNEL_x (G4)
+#if defined(STM32F4xx) || defined(STM32F7xx)
+  uint32_t channel_sel;        // LL_DMA_CHANNEL_x (F4/F7 request mux)
+#endif
+};
+
 // Per-motor hardware state
 struct MotorHW {
   // Timer
@@ -22,6 +31,7 @@ struct MotorHW {
 #if defined(STM32F4xx) || defined(STM32F7xx)
   uint32_t dma_channel_sel;    // LL_DMA_CHANNEL_x (F4/F7 request mux)
 #endif
+  bool dma_resolved;           // true if DMA set via override (skip resolveDMA)
 
   // DMA buffer
   uint32_t dma_buffer[DMA_BUF_SIZE];
