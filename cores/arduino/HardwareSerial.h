@@ -52,14 +52,6 @@
   typedef uint8_t rx_buffer_index_t;
 #endif
 
-// DMA buffer placement macro for H7 (non-cached D2 SRAM3)
-// On other families, no special placement needed
-#if defined(STM32H7xx)
-  #define SERIAL_DMA_BUFFER __attribute__((section(".dmabuf")))
-#else
-  #define SERIAL_DMA_BUFFER
-#endif
-
 // A bool should be enough for this
 // But it brings an build error due to ambiguous
 // call of overloaded HardwareSerial(int, int)
@@ -186,38 +178,12 @@ class HardwareSerial : public Stream {
     }
 #endif // HAL_UART_MODULE_ENABLED && !HAL_UART_MODULE_ONLY
 
-#if defined(HAL_DMA_MODULE_ENABLED)
-    // DMA-based circular RX for GPS and continuous serial streams
-    // Buffer must be in DMA-safe memory on H7 (use SERIAL_DMA_BUFFER macro)
-    bool beginDMA(unsigned long baud, uint8_t *rxBuffer, size_t rxBufferSize);
-    bool beginDMA(unsigned long baud, uint8_t config, uint8_t *rxBuffer, size_t rxBufferSize);
-    void endDMA(void);
-    bool isDMAListening(void);
-    // Get last DMA error code for debugging (-1 to -8)
-    int getLastDMAError(void) { return _serial.dma_last_error; }
-
-    // Error counters for diagnostics
-    uint32_t getDMAOverrunCount(void) { return _serial.dma_overrun_count; }
-    uint32_t getUARTErrorCount(void) { return _serial.uart_error_count; }
-    uint32_t getUARTOverrunCount(void) { return _serial.uart_overrun_count; }
-    void clearErrorCounts(void) {
-      _serial.dma_overrun_count = 0;
-      _serial.uart_error_count = 0;
-      _serial.uart_overrun_count = 0;
-    }
-#endif // HAL_DMA_MODULE_ENABLED
-
   private:
     bool _rx_enabled;
     uint8_t _config;
     unsigned long _baud;
     void init(PinName _rx, PinName _tx, PinName _rts = NC, PinName _cts = NC);
     void configForLowPower(void);
-
-#if defined(HAL_DMA_MODULE_ENABLED)
-    // DMA RX callback - pushes data to FIFO
-    static void _dma_rx_callback(serial_t *obj, uint8_t *data, size_t len);
-#endif
 };
 
 #if defined(USART1)

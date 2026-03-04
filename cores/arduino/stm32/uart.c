@@ -13,7 +13,6 @@
 #include "core_debug.h"
 #include "lock_resource.h"
 #include "uart.h"
-#include "dma.h"
 #include "Arduino.h"
 #include "PinAF_STM32F1.h"
 
@@ -870,394 +869,6 @@ void uart_enable_rx(serial_t *obj)
   }
 }
 
-#if defined(HAL_DMA_MODULE_ENABLED)
-/*
- * DMA Listen Mode Implementation
- * Pattern: Circular DMA + IDLE line detection (UVOS/Betaflight style)
- *
- * DMA runs continuously in circular mode, filling buffer.
- * IDLE line interrupt fires when line goes idle (gap between packets).
- * TC (Transfer Complete) and HT (Half Transfer) also trigger data processing.
- * CPU reads from tail, DMA writes at head - no conflicts.
- */
-
-/* Forward declarations */
-static IRQn_Type uart_dma_get_rx_irqn(serial_t *obj);
-static void uart_dma_get_rx_resource(serial_t *obj, DMA_TypeDef **dma, uint32_t *stream);
-static void uart_dma_irq_callback(void *context);
-static void uart_dma_check_rx(serial_t *obj);
-
-/**
- * @brief  Get current DMA head position (where DMA is writing)
- * @param  obj : pointer to serial_t structure
- * @retval Current position in DMA buffer
- */
-static inline size_t uart_dma_get_head(serial_t *obj)
-{
-  return obj->dma_rx_size - __HAL_DMA_GET_COUNTER(&obj->hdma_rx);
-}
-
-/**
- * @brief  Check for new DMA data and invoke callback
- *         Handles wraparound when buffer wraps from end to beginning
- * @param  obj : pointer to serial_t structure
- */
-static void uart_dma_check_rx(serial_t *obj)
-{
-  if (!obj->dma_listen_mode || !obj->dma_rx_callback) {
-    return;
-  }
-
-  size_t pos = uart_dma_get_head(obj);
-  size_t old_pos = obj->dma_rx_last_pos;
-
-  if (pos == old_pos) {
-    return; /* No new data */
-  }
-
-  /* Check for DMA overrun: if bytes_available >= buffer size, DMA lapped software */
-  size_t bytes_available;
-  if (pos >= old_pos) {
-    bytes_available = pos - old_pos;
-  } else {
-    bytes_available = obj->dma_rx_size - old_pos + pos;
-  }
-  if (bytes_available >= obj->dma_rx_size - 1) {
-    /* DMA wrapped around before software could read - data lost */
-    obj->dma_overrun_count++;
-  }
-
-#if defined(STM32H7xx)
-  /* H7: Invalidate D-Cache before reading DMA buffer */
-  if (pos > old_pos) {
-    SCB_InvalidateDCache_by_Addr((uint32_t *)&obj->dma_rx_buf[old_pos],
-                                  pos - old_pos);
-  } else {
-    /* Wraparound: invalidate from old_pos to end, then from 0 to pos */
-    SCB_InvalidateDCache_by_Addr((uint32_t *)&obj->dma_rx_buf[old_pos],
-                                  obj->dma_rx_size - old_pos);
-    if (pos > 0) {
-      SCB_InvalidateDCache_by_Addr((uint32_t *)&obj->dma_rx_buf[0], pos);
-    }
-  }
-#endif
-
-  if (pos > old_pos) {
-    /* Linear case: data from old_pos to pos */
-    obj->dma_rx_callback(obj, &obj->dma_rx_buf[old_pos], pos - old_pos);
-  } else {
-    /* Wraparound: data from old_pos to end, then from 0 to pos */
-    obj->dma_rx_callback(obj, &obj->dma_rx_buf[old_pos],
-                         obj->dma_rx_size - old_pos);
-    if (pos > 0) {
-      obj->dma_rx_callback(obj, &obj->dma_rx_buf[0], pos);
-    }
-  }
-
-  /* Update last processed position */
-  obj->dma_rx_last_pos = pos;
-  if (obj->dma_rx_last_pos >= obj->dma_rx_size) {
-    obj->dma_rx_last_pos = 0;
-  }
-}
-
-/**
- * @brief  Start DMA-based circular RX with IDLE line detection
- * @param  obj : pointer to serial_t structure
- * @param  buf : user-provided DMA buffer
- * @param  size : size of the DMA buffer
- * @param  callback : function called when new data arrives
- * @retval 0 on success, -1 on error
- */
-int uart_dma_listen_start(serial_t *obj, uint8_t *buf, size_t size,
-                          uart_dma_rx_callback_t callback)
-{
-  if (obj == NULL || buf == NULL || size == 0) {
-    return -1;  /* Invalid parameters */
-  }
-
-  UART_HandleTypeDef *huart = uart_handlers[obj->index];
-  if (huart == NULL) {
-    return -2;  /* UART handler not initialized */
-  }
-
-#if defined(STM32H7xx)
-  /* H7: Validate buffer is in non-cached D2 SRAM3 region (0x30040000-0x30047FFF)
-   * Buffers must use SERIAL_DMA_BUFFER attribute for DMA coherency.
-   * This matches the MPU configuration done for Wire DMA in hw_config.c */
-  uint32_t buf_addr = (uint32_t)buf;
-  if (buf_addr < 0x30040000 || buf_addr >= 0x30048000) {
-    return -8;  /* Buffer not in DMA-safe D2 SRAM3 region */
-  }
-#endif
-
-  /* Store DMA configuration */
-  obj->dma_rx_buf = buf;
-  obj->dma_rx_size = size;
-  obj->dma_rx_callback = callback;
-  obj->dma_rx_last_pos = 0;
-
-  /* Initialize error counters */
-  obj->dma_overrun_count = 0;
-  obj->uart_error_count = 0;
-  obj->uart_overrun_count = 0;
-
-  /* Configure DMA for circular RX */
-  obj->hdma_rx.Instance = NULL; /* Will be set based on UART peripheral */
-
-  /* DMA Stream/Channel mapping for STM32F4xx */
-#if defined(STM32F4xx)
-  switch ((uint32_t)obj->uart) {
-#if defined(USART1_BASE)
-    case USART1_BASE:
-      __HAL_RCC_DMA2_CLK_ENABLE();
-      obj->hdma_rx.Instance = DMA2_Stream2;
-      obj->hdma_rx.Init.Channel = DMA_CHANNEL_4;
-      break;
-#endif
-#if defined(USART2_BASE)
-    case USART2_BASE:
-      __HAL_RCC_DMA1_CLK_ENABLE();
-      obj->hdma_rx.Instance = DMA1_Stream5;
-      obj->hdma_rx.Init.Channel = DMA_CHANNEL_4;
-      break;
-#endif
-#if defined(USART6_BASE)
-    case USART6_BASE:
-      __HAL_RCC_DMA2_CLK_ENABLE();
-      obj->hdma_rx.Instance = DMA2_Stream1;
-      obj->hdma_rx.Init.Channel = DMA_CHANNEL_5;
-      break;
-#endif
-    default:
-      return -3; /* Unsupported UART for DMA */
-  }
-#elif defined(STM32H7xx)
-  /* H7 uses DMAMUX, so any DMA stream can be used */
-  __HAL_RCC_DMA1_CLK_ENABLE();
-  obj->hdma_rx.Instance = DMA1_Stream5;
-
-  /* Set DMAMUX request based on UART peripheral */
-  switch ((uint32_t)obj->uart) {
-#if defined(USART1_BASE)
-    case USART1_BASE:
-      obj->hdma_rx.Init.Request = DMA_REQUEST_USART1_RX;
-      break;
-#endif
-#if defined(USART2_BASE)
-    case USART2_BASE:
-      obj->hdma_rx.Init.Request = DMA_REQUEST_USART2_RX;
-      break;
-#endif
-#if defined(USART3_BASE)
-    case USART3_BASE:
-      obj->hdma_rx.Init.Request = DMA_REQUEST_USART3_RX;
-      break;
-#endif
-#if defined(UART4_BASE)
-    case UART4_BASE:
-      obj->hdma_rx.Init.Request = DMA_REQUEST_UART4_RX;
-      break;
-#endif
-#if defined(USART6_BASE)
-    case USART6_BASE:
-      obj->hdma_rx.Init.Request = DMA_REQUEST_USART6_RX;
-      break;
-#endif
-    default:
-      return -3;  /* Unsupported UART for DMA */
-  }
-#else
-  /* Other STM32 families - add as needed */
-  return -4;  /* Unsupported STM32 family */
-#endif
-
-  if (obj->hdma_rx.Instance == NULL) {
-    return -5;  /* DMA instance not set */
-  }
-
-  /* Common DMA configuration for circular RX */
-  obj->hdma_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
-  obj->hdma_rx.Init.PeriphInc = DMA_PINC_DISABLE;
-  obj->hdma_rx.Init.MemInc = DMA_MINC_ENABLE;
-  obj->hdma_rx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-  obj->hdma_rx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
-  obj->hdma_rx.Init.Mode = DMA_CIRCULAR;
-  obj->hdma_rx.Init.Priority = DMA_PRIORITY_HIGH;
-#if defined(STM32F4xx)
-  obj->hdma_rx.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
-#endif
-
-  if (HAL_DMA_Init(&obj->hdma_rx) != HAL_OK) {
-    return -6;  /* HAL_DMA_Init failed */
-  }
-
-  /* Link DMA to UART */
-  __HAL_LINKDMA(huart, hdmarx, obj->hdma_rx);
-
-  /* Abort any pending RX operation (IT mode) before starting DMA */
-  /* This is required because begin() starts IT-based receive */
-  if (huart->RxState != HAL_UART_STATE_READY) {
-    HAL_UART_AbortReceive(huart);
-  }
-
-  /* Enable IDLE line interrupt */
-  __HAL_UART_ENABLE_IT(huart, UART_IT_IDLE);
-
-  /* Register DMA IRQ callback through dispatch layer */
-  {
-    DMA_TypeDef *dma_ctrl;
-    uint32_t dma_stream;
-    uart_dma_get_rx_resource(obj, &dma_ctrl, &dma_stream);
-    if (dma_set_handler(dma_ctrl, dma_stream, uart_dma_irq_callback, obj) != 0) {
-      return -9;  /* DMA stream already claimed */
-    }
-  }
-
-  /* Enable DMA stream interrupts */
-  HAL_NVIC_SetPriority(uart_dma_get_rx_irqn(obj), UART_IRQ_PRIO, UART_IRQ_SUBPRIO);
-  HAL_NVIC_EnableIRQ(uart_dma_get_rx_irqn(obj));
-
-  /* Set listen mode flag before starting DMA */
-  obj->dma_listen_mode = 1;
-
-#if defined(STM32H7xx)
-  /* H7: Invalidate cache for buffer before DMA starts */
-  SCB_InvalidateDCache_by_Addr((uint32_t *)buf, size);
-#endif
-
-  /* Start DMA reception */
-  if (HAL_UART_Receive_DMA(huart, buf, size) != HAL_OK) {
-    obj->dma_listen_mode = 0;
-    return -7;  /* HAL_UART_Receive_DMA failed */
-  }
-
-  return 0;
-}
-
-/**
- * @brief  Get DMA RX stream IRQn based on UART peripheral
- * @param  obj : pointer to serial_t structure
- * @retval IRQn_Type for the DMA stream
- */
-static IRQn_Type uart_dma_get_rx_irqn(serial_t *obj)
-{
-#if defined(STM32F4xx)
-  switch ((uint32_t)obj->uart) {
-#if defined(USART1_BASE)
-    case USART1_BASE:
-      return DMA2_Stream2_IRQn;
-#endif
-#if defined(USART2_BASE)
-    case USART2_BASE:
-      return DMA1_Stream5_IRQn;
-#endif
-#if defined(USART6_BASE)
-    case USART6_BASE:
-      return DMA2_Stream1_IRQn;
-#endif
-    default:
-      return (IRQn_Type)0;
-  }
-#elif defined(STM32H7xx)
-  return DMA1_Stream5_IRQn;
-#else
-  return (IRQn_Type)0;
-#endif
-}
-
-/**
- * @brief  Get DMA controller and stream/channel for UART RX DMA
- * @param  obj       pointer to serial_t structure
- * @param  dma       output: DMA controller (DMA1 or DMA2)
- * @param  stream    output: stream index (0-7), matches dma_set_handler() param
- */
-static void uart_dma_get_rx_resource(serial_t *obj, DMA_TypeDef **dma, uint32_t *stream)
-{
-#if defined(STM32F4xx)
-  switch ((uint32_t)obj->uart) {
-#if defined(USART1_BASE)
-    case USART1_BASE: *dma = DMA2; *stream = 2; return;
-#endif
-#if defined(USART2_BASE)
-    case USART2_BASE: *dma = DMA1; *stream = 5; return;
-#endif
-#if defined(USART6_BASE)
-    case USART6_BASE: *dma = DMA2; *stream = 1; return;
-#endif
-    default: *dma = NULL; *stream = 0; return;
-  }
-#elif defined(STM32H7xx)
-  (void)obj;
-  *dma = DMA1; *stream = 5;
-#else
-  (void)obj;
-  *dma = NULL; *stream = 0;
-#endif
-}
-
-/**
- * @brief  DMA IRQ callback for UART RX (registered via dma_set_handler)
- * @param  context  serial_t pointer passed at registration
- */
-static void uart_dma_irq_callback(void *context)
-{
-  serial_t *obj = (serial_t *)context;
-  if (obj->dma_listen_mode) {
-    HAL_DMA_IRQHandler(&obj->hdma_rx);
-  }
-}
-
-/**
- * @brief  Stop DMA listening mode
- * @param  obj : pointer to serial_t structure
- */
-void uart_dma_listen_stop(serial_t *obj)
-{
-  if (obj == NULL || !obj->dma_listen_mode) {
-    return;
-  }
-
-  UART_HandleTypeDef *huart = uart_handlers[obj->index];
-  if (huart == NULL) {
-    return;
-  }
-
-  /* Clear listen mode flag */
-  obj->dma_listen_mode = 0;
-
-  /* Disable IDLE interrupt */
-  __HAL_UART_DISABLE_IT(huart, UART_IT_IDLE);
-
-  /* Stop DMA */
-  HAL_UART_DMAStop(huart);
-
-  /* Disable DMA stream interrupt */
-  HAL_NVIC_DisableIRQ(uart_dma_get_rx_irqn(obj));
-
-  /* Unregister DMA IRQ callback */
-  {
-    DMA_TypeDef *dma_ctrl;
-    uint32_t dma_stream;
-    uart_dma_get_rx_resource(obj, &dma_ctrl, &dma_stream);
-    dma_clear_handler(dma_ctrl, dma_stream);
-  }
-}
-
-/**
- * @brief  Check if DMA listen mode is active
- * @param  obj : pointer to serial_t structure
- * @retval 1 if listening, 0 otherwise
- */
-uint8_t uart_dma_is_listening(serial_t *obj)
-{
-  if (obj == NULL) {
-    return 0;
-  }
-  return obj->dma_listen_mode;
-}
-#endif /* HAL_DMA_MODULE_ENABLED */
-
 /**
   * @brief  Return index of the serial handler
   * @param  UartHandle pointer on the uart reference
@@ -1289,19 +900,7 @@ uint8_t uart_index(UART_HandleTypeDef *huart)
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
   serial_t *obj = get_serial_obj(huart);
-  if (obj == NULL) {
-    return;
-  }
-
-#if defined(HAL_DMA_MODULE_ENABLED)
-  /* In DMA listen mode, TC callback means buffer wrapped around */
-  if (obj->dma_listen_mode) {
-    uart_dma_check_rx(obj);
-    return;
-  }
-#endif
-
-  if (obj->rx_callback) {
+  if (obj && obj->rx_callback) {
     obj->rx_callback(obj);
   }
 }
@@ -1319,21 +918,6 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
   }
 }
 
-#if defined(HAL_DMA_MODULE_ENABLED)
-/**
-  * @brief  Rx Half Transfer callback (for circular DMA mode)
-  * @param  UartHandle pointer on the uart reference
-  * @retval None
-  */
-void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef *huart)
-{
-  serial_t *obj = get_serial_obj(huart);
-  if (obj && obj->dma_listen_mode) {
-    uart_dma_check_rx(obj);
-  }
-}
-#endif /* HAL_DMA_MODULE_ENABLED */
-
 /**
   * @brief  error callback from UART
   * @param  UartHandle pointer on the uart reference
@@ -1341,8 +925,6 @@ void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef *huart)
   */
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 {
-  serial_t *obj = get_serial_obj(huart);
-
 #if defined(STM32F1xx) || defined(STM32F2xx) || defined(STM32F4xx) || defined(STM32L1xx)
   if (__HAL_UART_GET_FLAG(huart, UART_FLAG_PE) != RESET) {
     __HAL_UART_CLEAR_PEFLAG(huart); /* Clear PE flag */
@@ -1364,102 +946,12 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
     __HAL_UART_CLEAR_FLAG(huart, UART_CLEAR_OREF); /* Clear ORE flag */
   }
 #endif
-
-#if defined(HAL_DMA_MODULE_ENABLED)
-  /* In DMA listen mode, restart DMA reception after error */
-  if (obj && obj->dma_listen_mode) {
-    /* Disable IDLE IRQ */
-    __HAL_UART_DISABLE_IT(huart, UART_IT_IDLE);
-    /* Stop DMA */
-    HAL_UART_DMAStop(huart);
-
-#if defined(STM32H7xx)
-    /* H7: Re-invalidate cache for buffer */
-    SCB_InvalidateDCache_by_Addr((uint32_t *)obj->dma_rx_buf, obj->dma_rx_size);
-#endif
-
-    /* Re-enable IDLE IRQ */
-    __HAL_UART_ENABLE_IT(huart, UART_IT_IDLE);
-    /* Restart DMA reception */
-    HAL_UART_Receive_DMA(huart, obj->dma_rx_buf, obj->dma_rx_size);
-    return;
-  }
-#endif
-
-  /* Restart receive interrupt after any error (normal mode) */
+  /* Restart receive interrupt after any error */
+  serial_t *obj = get_serial_obj(huart);
   if (obj && !serial_rx_active(obj)) {
     HAL_UART_Receive_IT(huart, &(obj->recv), 1);
   }
 }
-
-#if defined(HAL_DMA_MODULE_ENABLED)
-/**
-  * @brief  Check and count UART error flags in DMA listen mode
-  * @param  huart : UART handler
-  * @param  obj : serial object
-  */
-static inline void uart_dma_check_errors(UART_HandleTypeDef *huart, serial_t *obj)
-{
-  /* Check framing error */
-  if (__HAL_UART_GET_FLAG(huart, UART_FLAG_FE)) {
-    obj->uart_error_count++;
-#if defined(STM32F1xx) || defined(STM32F2xx) || defined(STM32F4xx) || defined(STM32L1xx)
-    __HAL_UART_CLEAR_FEFLAG(huart);
-#else
-    __HAL_UART_CLEAR_FLAG(huart, UART_CLEAR_FEF);
-#endif
-  }
-
-  /* Check noise error */
-  if (__HAL_UART_GET_FLAG(huart, UART_FLAG_NE)) {
-    obj->uart_error_count++;
-#if defined(STM32F1xx) || defined(STM32F2xx) || defined(STM32F4xx) || defined(STM32L1xx)
-    __HAL_UART_CLEAR_NEFLAG(huart);
-#else
-    __HAL_UART_CLEAR_FLAG(huart, UART_CLEAR_NEF);
-#endif
-  }
-
-  /* Check overrun error */
-  if (__HAL_UART_GET_FLAG(huart, UART_FLAG_ORE)) {
-    obj->uart_overrun_count++;
-#if defined(STM32F1xx) || defined(STM32F2xx) || defined(STM32F4xx) || defined(STM32L1xx)
-    __HAL_UART_CLEAR_OREFLAG(huart);
-#else
-    __HAL_UART_CLEAR_FLAG(huart, UART_CLEAR_OREF);
-#endif
-  }
-}
-
-/**
-  * @brief  Helper to check for IDLE line interrupt in DMA listen mode
-  * @param  index : UART index
-  */
-static inline void uart_dma_check_idle(uart_index_t index)
-{
-  if (uart_handlers[index] == NULL) {
-    return;
-  }
-
-  serial_t *obj = get_serial_obj(uart_handlers[index]);
-  if (obj == NULL || !obj->dma_listen_mode) {
-    return;
-  }
-
-  /* Check and count UART errors */
-  uart_dma_check_errors(uart_handlers[index], obj);
-
-  if (__HAL_UART_GET_FLAG(uart_handlers[index], UART_FLAG_IDLE)) {
-    uart_dma_check_rx(obj);
-    /* Clear IDLE flag */
-#if defined(STM32F1xx) || defined(STM32F2xx) || defined(STM32F4xx) || defined(STM32L1xx)
-    __HAL_UART_CLEAR_IDLEFLAG(uart_handlers[index]);
-#else
-    __HAL_UART_CLEAR_FLAG(uart_handlers[index], UART_CLEAR_IDLEF);
-#endif
-  }
-}
-#endif /* HAL_DMA_MODULE_ENABLED */
 
 /**
   * @brief  USART 1 IRQ handler
@@ -1470,9 +962,6 @@ static inline void uart_dma_check_idle(uart_index_t index)
 void USART1_IRQHandler(void)
 {
   HAL_NVIC_ClearPendingIRQ(USART1_IRQn);
-#if defined(HAL_DMA_MODULE_ENABLED)
-  uart_dma_check_idle(UART1_INDEX);
-#endif
   HAL_UART_IRQHandler(uart_handlers[UART1_INDEX]);
 }
 #endif
@@ -1486,9 +975,6 @@ void USART1_IRQHandler(void)
 void USART2_IRQHandler(void)
 {
   HAL_NVIC_ClearPendingIRQ(USART2_IRQn);
-#if defined(HAL_DMA_MODULE_ENABLED)
-  uart_dma_check_idle(UART2_INDEX);
-#endif
   if (uart_handlers[UART2_INDEX] != NULL) {
     HAL_UART_IRQHandler(uart_handlers[UART2_INDEX]);
   }

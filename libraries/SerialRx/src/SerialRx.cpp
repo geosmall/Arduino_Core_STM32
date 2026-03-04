@@ -15,7 +15,6 @@ SerialRx::SerialRx(Protocol protocol)
     , idle_threshold_us_(0)
     , last_byte_time_us_(0)
     , expect_frame_start_(false)
-    , dma_enabled_(false)
     , channelState_{}
     , rxSignalReceived_(false)
     , rxFlightChannelsValid_(false)
@@ -73,25 +72,10 @@ bool SerialRx::begin(const Config& config) {
         return false;
     }
 
-    // Initialize serial port (DMA or interrupt mode)
     // SBUS requires 8E2 framing (8 data bits, even parity, 2 stop bits)
     // IBus uses standard 8N1 framing
     uint32_t serial_config = (protocol_ == SBUS) ? SERIAL_8E2 : SERIAL_8N1;
-
-    dma_enabled_ = false;
-    if (config.use_dma && config.dma_rx_buf != nullptr && config.dma_rx_size > 0) {
-        // Try DMA mode - reduces interrupt overhead for continuous streams
-        if (serial_->beginDMA(config.baudrate, config.dma_rx_buf, config.dma_rx_size)) {
-            dma_enabled_ = true;
-        } else {
-            // DMA failed (wrong buffer region on H7, unsupported UART, etc.)
-            // Fall back to interrupt mode
-            serial_->begin(config.baudrate, serial_config);
-        }
-    } else {
-        // Standard interrupt mode
-        serial_->begin(config.baudrate, serial_config);
-    }
+    serial_->begin(config.baudrate, serial_config);
 
     // Configure RX signal inversion if requested (required for SBUS)
     // Hardware support: STM32F7, H7, G4, L4 (USART_CR2_RXINV bit)
@@ -118,10 +102,6 @@ bool SerialRx::begin(const Config& config) {
 
 void SerialRx::end() {
     if (serial_ != nullptr) {
-        if (dma_enabled_) {
-            serial_->endDMA();
-            dma_enabled_ = false;
-        }
         serial_->end();
     }
 
