@@ -55,28 +55,12 @@ namespace BoardConfig {
   namespace Servo {
     static constexpr uint32_t frequency_hz = 50;
 
-    struct ServoConfig {
-      TIM_TypeDef* timer;
-      uint32_t pin;
-      uint32_t channel;
-      uint32_t min_us;
-      uint32_t max_us;
-    };
-
     static constexpr ServoConfig servos[] = {};
     static constexpr int num_servos = 0;
   };
   // Motors: ONESHOT125 protocol (125-250 µs)
   namespace Motor {
     static constexpr uint32_t frequency_hz = 2000;
-
-    struct MotorConfig {
-      TIM_TypeDef* timer;
-      uint32_t pin;
-      uint32_t channel;
-      uint32_t min_us;
-      uint32_t max_us;
-    };
 
     // Motor array - hardware timer assignments from Betaflight config
     static constexpr MotorConfig motors[] = {

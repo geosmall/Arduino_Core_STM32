@@ -30,14 +30,6 @@ namespace BoardConfig {
   namespace Motor {
     static constexpr uint32_t frequency_hz = 2000;
 
-    struct MotorConfig {
-      TIM_TypeDef* timer;
-      uint32_t pin;
-      uint32_t channel;
-      uint32_t min_us;
-      uint32_t max_us;
-    };
-
     static constexpr MotorConfig motors[] = {
       {TIM3, PB0_ALT1, 3, 125, 250},  // Motor 1: TIM3_CH3
       {TIM3, PB1_ALT1, 4, 125, 250},  // Motor 2: TIM3_CH4
@@ -55,14 +47,6 @@ namespace BoardConfig {
   // Servos: Same pins as MATEK H743 (none wired — bench test only)
   namespace Servo {
     static constexpr uint32_t frequency_hz = 50;
-
-    struct ServoConfig {
-      TIM_TypeDef* timer;
-      uint32_t pin;
-      uint32_t channel;
-      uint32_t min_us;
-      uint32_t max_us;
-    };
 
     static constexpr ServoConfig servos[] = {
       {TIM15, PE5, 1, 1000, 2000},  // Servo 1: TIM15_CH1

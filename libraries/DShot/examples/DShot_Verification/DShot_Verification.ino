@@ -83,6 +83,46 @@ static constexpr int NUM_PASSES = sizeof(test_passes) / sizeof(test_passes[0]);
 static const uint16_t test_throttles[] = {0, 1, 48, 1000, 2047};
 static constexpr int NUM_THROTTLES = sizeof(test_throttles) / sizeof(test_throttles[0]);
 
+// --- DMA override test via Init() template ---
+// Struct matching MotorConfig field names so DShotOutput::Init() template works
+struct OverrideMotor {
+  TIM_TypeDef* timer;
+  uint32_t pin;
+  uint32_t channel;
+  uint32_t min_us;
+  uint32_t max_us;
+  DMA_TypeDef* dma;
+  uint32_t dma_stream;
+  uint32_t dma_channel_sel;
+};
+
+#if defined(ARDUINO_NUCLEO_F411RE)
+// TIM1_CH1 on PA8, BF dma_opt=1: DMA2 Stream1 Channel6
+static const OverrideMotor override_motors[] = {
+  {TIM1, PA8, 1, 125, 250, DMA2, 1, 6},
+};
+
+#elif defined(ARDUINO_NUCLEO_G474RE)
+// TIM1_CH1 on PA8, DMAMUX: DMA1 Channel1 (dma_opt=0)
+static const OverrideMotor override_motors[] = {
+  {TIM1, PA8, 1, 125, 250, DMA1, 0, 0},
+};
+
+#elif defined(ARDUINO_NUCLEO_F722ZE)
+// TIM1_CH2 on PE11, BF dma_opt=1: DMA2 Stream2 Channel6
+static const OverrideMotor override_motors[] = {
+  {TIM1, PE11, 2, 125, 250, DMA2, 2, 6},
+};
+
+#elif defined(ARDUINO_NUCLEO_H753ZI)
+// TIM1_CH2 on PE11, DMAMUX: DMA1 Stream0 (dma_opt=0)
+static const OverrideMotor override_motors[] = {
+  {TIM1, PE11, 2, 125, 250, DMA1, 0, 0},
+};
+#endif
+static constexpr int NUM_OVERRIDE_MOTORS =
+    sizeof(override_motors) / sizeof(override_motors[0]);
+
 // Current capture configuration (set before each pass)
 static const TestPass *cur_pass;
 
@@ -92,7 +132,9 @@ static void armCapture(void);
 static int stopAndCountCaptures(void);
 static bool verifyPacket(uint16_t expected_throttle, bool expected_telemetry, int num_captured);
 static void disableMotorOutput(TIM_TypeDef *timer, uint32_t pin);
+static int runVerifyLoop(DShotOutput &dshot, int motor_idx);
 static int runTestPass(const TestPass &pass);
+static int runOverrideTestPass(const TestPass &pass);
 
 void setup()
 {
@@ -108,10 +150,24 @@ void setup()
   int total_pass = 0;
   int total_fail = 0;
 
+  // Pass 1: Init() template with explicit DMA overrides
+  // Runs first so override claims DMA before auto-resolve passes
+  // Uses same capture wiring as test_passes[0] (same pin/timer)
+  Serial.println();
+  Serial.println("--- Pass 1: Init() with DMA override ---");
+  cur_pass = &test_passes[0];
+  initCaptureChannel(test_passes[0]);
+  {
+    int fails = runOverrideTestPass(test_passes[0]);
+    total_pass += (NUM_THROTTLES - fails);
+    total_fail += fails;
+    disableMotorOutput(test_passes[0].timer, test_passes[0].pin);
+  }
+
   for (int p = 0; p < NUM_PASSES; p++) {
     Serial.println();
     Serial.print("--- Pass ");
-    Serial.print(p + 1);
+    Serial.print(p + 2);
     Serial.print(": ");
     Serial.print(test_passes[p].label);
     Serial.println(" ---");
@@ -147,15 +203,8 @@ void loop()
 // ---------------------------------------------------------------------------
 // Run one test pass
 // ---------------------------------------------------------------------------
-static int runTestPass(const TestPass &pass)
+static int runVerifyLoop(DShotOutput &dshot, int motor_idx)
 {
-  DShotOutput dshot;
-  int result = dshot.AddMotor(pass.timer, pass.pin, pass.channel, DShot::DSHOT600);
-  if (result < 0) {
-    Serial.println("FAIL: AddMotor() failed");
-    return NUM_THROTTLES;
-  }
-
   int fail_count = 0;
 
   for (int t = 0; t < NUM_THROTTLES; t++) {
@@ -163,7 +212,7 @@ static int runTestPass(const TestPass &pass)
 
     armCapture();
 
-    dshot.SetThrottle(0, throttle, false);
+    dshot.SetThrottle(motor_idx, throttle, false);
     dshot.Send();
 
     uint32_t deadline = millis() + 100;
@@ -195,6 +244,28 @@ static int runTestPass(const TestPass &pass)
   }
 
   return fail_count;
+}
+
+static int runTestPass(const TestPass &pass)
+{
+  DShotOutput dshot;
+  int result = dshot.AddMotor(pass.timer, pass.pin, pass.channel, DShot::DSHOT600);
+  if (result < 0) {
+    Serial.println("FAIL: AddMotor() failed");
+    return NUM_THROTTLES;
+  }
+  return runVerifyLoop(dshot, 0);
+}
+
+static int runOverrideTestPass(const TestPass &pass)
+{
+  (void)pass;  // capture config already set by caller
+  DShotOutput dshot;
+  if (!dshot.Init(override_motors, NUM_OVERRIDE_MOTORS, DShot::DSHOT600)) {
+    Serial.println("FAIL: Init() with DMA override failed");
+    return NUM_THROTTLES;
+  }
+  return runVerifyLoop(dshot, 0);
 }
 
 // ---------------------------------------------------------------------------

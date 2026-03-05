@@ -9,6 +9,7 @@ import datetime
 
 from betaflight_config import BetaflightConfig
 from validator import ConfigValidator, ValidatedMotor
+from dma_mapping import resolve_dma
 
 
 class BoardConfigGenerator:
@@ -30,7 +31,7 @@ class BoardConfigGenerator:
         lines.append("#pragma once")
         lines.append("")
         lines.append("// Include ConfigTypes.h from targets/config directory")
-        lines.append('#include "../../../targets/config/ConfigTypes.h"')
+        lines.append('#include "config/ConfigTypes.h"')
         lines.append("")
 
         # Comment with source info
@@ -321,14 +322,6 @@ class BoardConfigGenerator:
                 "  namespace Servo {",
                 "    static constexpr uint32_t frequency_hz = 50;",
                 "",
-                "    struct ServoConfig {",
-                "      TIM_TypeDef* timer;",
-                "      uint32_t pin;",
-                "      uint32_t channel;",
-                "      uint32_t min_us;",
-                "      uint32_t max_us;",
-                "    };",
-                "",
                 "    static constexpr ServoConfig servos[] = {};",
                 "    static constexpr int num_servos = 0;",
                 "  };",
@@ -346,16 +339,6 @@ class BoardConfigGenerator:
             ""
         ]
 
-        # Add ServoConfig struct definition
-        lines.append("    struct ServoConfig {")
-        lines.append("      TIM_TypeDef* timer;")
-        lines.append("      uint32_t pin;")
-        lines.append("      uint32_t channel;")
-        lines.append("      uint32_t min_us;")
-        lines.append("      uint32_t max_us;")
-        lines.append("    };")
-        lines.append("")
-
         # Generate servo array
         lines.append("    static constexpr ServoConfig servos[] = {")
 
@@ -370,7 +353,7 @@ class BoardConfigGenerator:
         return "\n".join(lines)
 
     def _generate_motors(self) -> Optional[str]:
-        """Generate Motor namespace with motor array (runtime timer discovery)."""
+        """Generate Motor namespace with motor array and optional DMA overrides."""
         motors = self.validator.validate_motors()
         if not motors:
             return None
@@ -391,22 +374,35 @@ class BoardConfigGenerator:
             ""
         ]
 
-        # Add MotorConfig struct definition
-        lines.append("    struct MotorConfig {")
-        lines.append("      TIM_TypeDef* timer;")
-        lines.append("      uint32_t pin;")
-        lines.append("      uint32_t channel;")
-        lines.append("      uint32_t min_us;")
-        lines.append("      uint32_t max_us;")
-        lines.append("    };")
-        lines.append("")
-
         # Generate motor array
         lines.append("    // Motor array - hardware timer assignments from Betaflight config")
         lines.append("    static constexpr MotorConfig motors[] = {")
 
         for motor in sorted(motors, key=lambda m: m.index):
-            lines.append(f"      {{{motor.timer}, {motor.pin_arduino}, {motor.channel}, {min_us}, {max_us}}},  // Motor {motor.index}: {motor.timer}_CH{motor.channel}")
+            # Look up dma_opt from timer_pin_map
+            dma_opt = -1
+            tpm_entry = self.bf_config.timer_pin_map.get(motor.pin_bf)
+            if tpm_entry:
+                dma_opt = tpm_entry.dma_opt
+
+            # Resolve DMA assignment
+            dma = resolve_dma(self.bf_config.mcu_type, motor.timer,
+                              motor.channel, dma_opt)
+
+            if dma:
+                lines.append(
+                    f"      {{{motor.timer}, {motor.pin_arduino}, {motor.channel}, "
+                    f"{min_us}, {max_us}, DMA{dma.controller}, {dma.stream}, "
+                    f"{dma.channel_sel}}},  // Motor {motor.index}: "
+                    f"{motor.timer}_CH{motor.channel}, "
+                    f"DMA{dma.controller} S{dma.stream}"
+                )
+            else:
+                lines.append(
+                    f"      {{{motor.timer}, {motor.pin_arduino}, {motor.channel}, "
+                    f"{min_us}, {max_us}}},  // Motor {motor.index}: "
+                    f"{motor.timer}_CH{motor.channel}"
+                )
 
         lines.append("    };")
         lines.append("")

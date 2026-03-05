@@ -20,6 +20,7 @@ public:
 
   // Initialize from a BoardConfig::Motor::motors array.
   // Calls AddMotor() for each entry, then starts all timers.
+  // If MotorConfig has DMA fields (dma != nullptr), passes them as overrides.
   template<typename MotorArray>
   bool Init(const MotorArray &motors, int count,
             DShot::Speed speed = DShot::DSHOT600)
@@ -27,7 +28,20 @@ public:
     if (count > DShot::MAX_MOTORS) return false;
 
     for (int i = 0; i < count; i++) {
-      if (AddMotor(motors[i].timer, motors[i].pin, motors[i].channel, speed) < 0) {
+      const DShot::DMAResource *override = nullptr;
+      DShot::DMAResource dma_res;
+      if (motors[i].dma != nullptr) {
+        dma_res.dma = motors[i].dma;
+        dma_res.stream = motors[i].dma_stream;
+#if defined(STM32F4xx) || defined(STM32F7xx)
+        // MotorConfig stores channel select as plain index (0-7),
+        // convert to LL_DMA_CHANNEL_x register value (index << 25)
+        dma_res.channel_sel = motors[i].dma_channel_sel << 25U;
+#endif
+        override = &dma_res;
+      }
+      if (AddMotor(motors[i].timer, motors[i].pin, motors[i].channel,
+                    speed, override) < 0) {
         return false;
       }
     }

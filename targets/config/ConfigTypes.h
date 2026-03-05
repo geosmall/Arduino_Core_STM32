@@ -131,6 +131,30 @@ namespace BoardConfig {
     const uint32_t rx_pin;    // UART RX pin (from GPS TX)
     const uint32_t baud_rate; // GPS baudrate (typically 9600 or 115200)
   };
+
+  // Motor output configuration (used by MotorManager and DShotOutput)
+  // DMA fields are optional: when dma is nullptr, DShotOutput auto-resolves
+  // DMA streams at runtime. When non-null, the specified DMA resource is used
+  // directly (from Betaflight dma_opt translation or manual assignment).
+  struct MotorConfig {
+    TIM_TypeDef* timer;
+    uint32_t pin;
+    uint32_t channel;        // Timer channel (1-4)
+    uint32_t min_us;         // Min pulse width (PWM protocols)
+    uint32_t max_us;         // Max pulse width (PWM protocols)
+    DMA_TypeDef* dma;        // DMA controller (nullptr = auto-resolve)
+    uint32_t dma_stream;     // Stream/channel number (0-7)
+    uint32_t dma_channel_sel; // F4/F7 channel select index (0-7, ignored on G4/H7)
+  };
+
+  // Servo output configuration (used by ServoManager)
+  struct ServoConfig {
+    TIM_TypeDef* timer;
+    uint32_t pin;
+    uint32_t channel;        // Timer channel (1-4)
+    uint32_t min_us;         // Min pulse width (typically 1000)
+    uint32_t max_us;         // Max pulse width (typically 2000)
+  };
 }
 
 // Motor abstraction for runtime timer grouping

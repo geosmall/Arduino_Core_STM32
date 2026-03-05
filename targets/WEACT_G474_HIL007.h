@@ -38,14 +38,6 @@ namespace BoardConfig {
   namespace Servo {
     static constexpr uint32_t frequency_hz = 50;
 
-    struct ServoConfig {
-      TIM_TypeDef* timer;
-      uint32_t pin;
-      uint32_t channel;
-      uint32_t min_us;
-      uint32_t max_us;
-    };
-
     static constexpr ServoConfig servos[] = {};
     static constexpr int num_servos = 0;
   };
@@ -53,14 +45,6 @@ namespace BoardConfig {
   // Motors: match BetaFPV G473 timer assignments
   namespace Motor {
     static constexpr uint32_t frequency_hz = 2000;
-
-    struct MotorConfig {
-      TIM_TypeDef* timer;
-      uint32_t pin;
-      uint32_t channel;
-      uint32_t min_us;
-      uint32_t max_us;
-    };
 
     static constexpr MotorConfig motors[] = {
       {TIM1, PB0, 2, 125, 250},  // Motor 1: TIM1_CH2

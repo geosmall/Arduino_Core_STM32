@@ -36,14 +36,6 @@ namespace BoardConfig {
     static inline TIM_TypeDef* const timer = TIM3;
     static constexpr uint32_t frequency_hz = 50;
 
-    struct ServoConfig {
-      TIM_TypeDef* timer;
-      uint32_t pin;
-      uint32_t channel;
-      uint32_t min_us;
-      uint32_t max_us;
-    };
-
     // Individual channel access (DualTimerPWM_Verification style)
     struct Channel {
       uint32_t pin;
@@ -67,18 +59,11 @@ namespace BoardConfig {
   namespace Motor {
     static constexpr uint32_t frequency_hz = 2000;
 
-    struct MotorConfig {
-      TIM_TypeDef* timer;
-      uint32_t pin;
-      uint32_t channel;
-      uint32_t min_us;
-      uint32_t max_us;
-    };
-
+    // DMA overrides: per-channel dedicated streams (matches Betaflight dma_opt=1)
     static constexpr MotorConfig motors[] = {
-      {TIM1, PA8, 1, 125, 250},   // Motor 1: TIM1_CH1 (D7)
-      {TIM1, PA9, 2, 125, 250},   // Motor 2: TIM1_CH2 (D8)
-      {TIM1, PA10, 3, 125, 250},  // Motor 3: TIM1_CH3 (D2)
+      {TIM1, PA8, 1, 125, 250, DMA2, 1, 6},   // Motor 1: TIM1_CH1 (D7), DMA2_STREAM1
+      {TIM1, PA9, 2, 125, 250, DMA2, 2, 6},   // Motor 2: TIM1_CH2 (D8), DMA2_STREAM2
+      {TIM1, PA10, 3, 125, 250, DMA2, 6, 6},  // Motor 3: TIM1_CH3 (D2), DMA2_STREAM6
     };
     static constexpr int num_motors = sizeof(motors) / sizeof(motors[0]);
   };

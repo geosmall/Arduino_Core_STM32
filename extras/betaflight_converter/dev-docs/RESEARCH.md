@@ -403,6 +403,164 @@ These defines appear in config.h files but are not currently extracted by the co
 
 ---
 
+## DMA Option Resolution
+
+The `dma_opt` parameter in `TIMER_PIN_MAP` and the standalone `*_DMA_OPT` defines
+specify which DMA stream/channel a peripheral should use. The meaning of the value
+depends on the MCU family.
+
+**Source:** `betaflight/src/platform/STM32/dma_reqmap_mcu.c` contains all mapping
+tables and lookup functions. `betaflight/src/main/drivers/dma_reqmap.h` defines the
+data structures.
+
+### F4/F7 — Index into Per-Channel Options Array
+
+On F4/F7, DMA streams have fixed peripheral-to-stream mappings (no DMAMUX). Each
+timer channel has 1–3 valid DMA streams. `dma_opt` is an index into this per-channel
+array.
+
+**Betaflight's `dmaTimerMapping[]` table (F4/F7):**
+
+```c
+// Format: { timer, channel, { DMA(controller, stream, channel_select), ... } }
+// dma_opt=0 selects [0], dma_opt=1 selects [1], etc.
+
+{ TIM1, CH1, { DMA(2,6,0), DMA(2,1,6), DMA(2,3,6) } },  // 3 options
+{ TIM1, CH2, { DMA(2,6,0), DMA(2,2,6) } },                // 2 options
+{ TIM1, CH3, { DMA(2,6,0), DMA(2,6,6) } },                // 2 options
+{ TIM1, CH4, { DMA(2,4,6) } },                            // 1 option
+
+{ TIM2, CH1, { DMA(1,5,3) } },
+{ TIM2, CH2, { DMA(1,6,3) } },
+{ TIM2, CH3, { DMA(1,1,3) } },
+{ TIM2, CH4, { DMA(1,7,3), DMA(1,6,3) } },
+
+{ TIM3, CH1, { DMA(1,4,5) } },
+{ TIM3, CH2, { DMA(1,5,5) } },
+{ TIM3, CH3, { DMA(1,7,5) } },
+{ TIM3, CH4, { DMA(1,2,5) } },
+
+{ TIM4, CH1, { DMA(1,0,2) } },
+{ TIM4, CH2, { DMA(1,3,2) } },
+{ TIM4, CH3, { DMA(1,7,2) } },
+
+{ TIM5, CH1, { DMA(1,2,6) } },
+{ TIM5, CH2, { DMA(1,4,6) } },
+{ TIM5, CH3, { DMA(1,0,6) } },
+{ TIM5, CH4, { DMA(1,1,6), DMA(1,3,6) } },
+
+{ TIM8, CH1, { DMA(2,2,0), DMA(2,2,7) } },
+{ TIM8, CH2, { DMA(2,2,0), DMA(2,3,7) } },
+{ TIM8, CH3, { DMA(2,2,0), DMA(2,4,7) } },
+{ TIM8, CH4, { DMA(2,7,7) } },
+```
+
+**Note on TIM1 option 0:** For TIM1 CH1–CH3, `dma_opt=0` is `DMA(2,6,0)` — DMA2
+Stream 6 with Channel Select 0, which is the `TIM1_UP` DMA request. This is the
+stream used for DMAR burst mode (all channels share one stream via `TIMx->DMAR`).
+Options 1+ are per-channel dedicated streams. A board author choosing `dma_opt=1`
+is explicitly selecting per-channel DMA over burst.
+
+**Example: JHEF411 (F411)**
+
+```c
+TIMER_PIN_MAP( 1, PA8 , 1, 1)   // TIM1_CH1, dma_opt=1 → DMA(2,1,6) = DMA2 Stream 1, Ch 6
+TIMER_PIN_MAP( 2, PA9 , 1, 1)   // TIM1_CH2, dma_opt=1 → DMA(2,2,6) = DMA2 Stream 2, Ch 6
+TIMER_PIN_MAP( 3, PA10, 1, 1)   // TIM1_CH3, dma_opt=1 → DMA(2,6,6) = DMA2 Stream 6, Ch 6
+TIMER_PIN_MAP( 4, PB0 , 2, 0)   // TIM3_CH3, dma_opt=0 → DMA(1,7,5) = DMA1 Stream 7, Ch 5
+TIMER_PIN_MAP( 5, PB4 , 1, 0)   // TIM3_CH1, dma_opt=0 → DMA(1,4,5) = DMA1 Stream 4, Ch 5
+```
+
+Translation requires the `dmaTimerMapping[]` table: look up `(timer, channel)`, then
+index by `dma_opt` to get `(DMA controller, stream, channel_select)`.
+
+### G4/H7 — Flat Index into All DMA Streams
+
+On G4/H7, DMAMUX hardware allows any DMA stream to serve any peripheral. `dma_opt`
+is a direct index into a flat array of all available streams:
+
+```c
+// G4: 16 channels (DMA1 has 8, DMA2 has 8), 1-based channel numbering
+dmaChannelSpec[0]  = DMA1_Channel1    dmaChannelSpec[8]  = DMA2_Channel1
+dmaChannelSpec[1]  = DMA1_Channel2    dmaChannelSpec[9]  = DMA2_Channel2
+...                                   ...
+dmaChannelSpec[7]  = DMA1_Channel8    dmaChannelSpec[15] = DMA2_Channel8
+
+// H7: 16 streams (DMA1 has 8, DMA2 has 8), 0-based stream numbering
+dmaChannelSpec[0]  = DMA1_Stream0     dmaChannelSpec[8]  = DMA2_Stream0
+dmaChannelSpec[1]  = DMA1_Stream1     dmaChannelSpec[9]  = DMA2_Stream1
+...                                   ...
+dmaChannelSpec[7]  = DMA1_Stream7     dmaChannelSpec[15] = DMA2_Stream7
+```
+
+Translation is arithmetic:
+- **G4:** `DMA controller = (dma_opt / 8) + 1`, `channel = (dma_opt % 8) + 1`
+- **H7:** `DMA controller = (dma_opt / 8) + 1`, `stream = dma_opt % 8`
+
+Which peripheral request to route through DMAMUX is determined separately — BF looks
+up the timer channel in `dmaTimerMapping[]` to get the `DMA_REQUEST_TIMx_CHy` constant,
+then writes it into the chosen stream's DMAMUX configuration via `dmaSetupRequest()`.
+The converter doesn't need the request ID — our DShot library resolves it from the
+timer/channel at runtime.
+
+**Example: MATEKH743 (H743)**
+
+```c
+TIMER_PIN_MAP( 0, PB0 , 2, 0)   // dma_opt=0  → DMA1 Stream 0
+TIMER_PIN_MAP( 1, PB1 , 2, 1)   // dma_opt=1  → DMA1 Stream 1
+TIMER_PIN_MAP( 2, PA0 , 2, 2)   // dma_opt=2  → DMA1 Stream 2
+TIMER_PIN_MAP( 3, PA1 , 2, 3)   // dma_opt=3  → DMA1 Stream 3
+TIMER_PIN_MAP( 4, PA2 , 2, 4)   // dma_opt=4  → DMA1 Stream 4
+TIMER_PIN_MAP( 5, PA3 , 2, 5)   // dma_opt=5  → DMA1 Stream 5
+TIMER_PIN_MAP( 6, PD12, 1, 6)   // dma_opt=6  → DMA1 Stream 6
+TIMER_PIN_MAP( 7, PD13, 1, 7)   // dma_opt=7  → DMA1 Stream 7
+TIMER_PIN_MAP(10, PA8 , 1, 8)   // dma_opt=8  → DMA2 Stream 0
+```
+
+Standalone DMA option defines use the same flat index:
+```c
+#define ADC1_DMA_OPT        9    // → DMA2 Stream 1
+#define ADC3_DMA_OPT        10   // → DMA2 Stream 2
+#define TIMUP3_DMA_OPT      11   // → DMA2 Stream 3
+#define TIMUP4_DMA_OPT      12   // → DMA2 Stream 4
+#define TIMUP5_DMA_OPT      13   // → DMA2 Stream 5
+```
+
+This shows how H7 board authors allocate the full DMA budget: motors get DMA1
+streams 0–7, then ADC and timer-UP DMA spill into DMA2.
+
+### DSHOT_BURST Define
+
+```c
+#define DEFAULT_DSHOT_BURST DSHOT_DMAR_ON    // Force DMAR burst mode
+#define DEFAULT_DSHOT_BURST DSHOT_DMAR_OFF   // Force per-channel DMA
+// (absent) → auto-detect based on timer DMA conflicts
+```
+
+When `DSHOT_DMAR_ON`, BF uses the `TIM_UP` DMA stream (dma_opt=0 for TIM1/TIM8 on
+F4/F7) to drive all channels on a timer via `TIMx->DMAR`. On G4/H7, the TIMUP DMA
+options (`TIMUP3_DMA_OPT`, etc.) specify which stream carries the burst. This define
+is currently in the "Not Parsed" section — it will become relevant when the converter
+emits DMA fields in BoardConfig.
+
+### Converter Implementation Notes
+
+To translate `dma_opt` to `DMAResource` fields in generated BoardConfig:
+
+**F4/F7:** Embed the `dmaTimerMapping[]` table (~25 entries) in the converter. Given
+a motor's resolved `(timer, channel)` and its `dma_opt` value, index into the table
+to get `(DMA controller, stream, channel_select)`. If `dma_opt=-1`, omit the DMA
+field (runtime discovery).
+
+**G4/H7:** Pure arithmetic — no table needed. `dma_opt` directly encodes the
+stream index. If `dma_opt=-1`, omit the DMA field.
+
+**All families:** Motors with `dma_opt=-1` get no DMA override in BoardConfig and
+fall back to the DShot library's runtime discovery (greedy scan on G4/H7, table
+lookup on F4/F7).
+
+---
+
 ## Complete Example: JHEF411 config.h
 
 ```c

@@ -1,6 +1,6 @@
 /*
  * Auto-generated BoardConfig from Betaflight target config
- * Generated: 2026-02-18 06:15:50
+ * Generated: 2026-03-05 05:04:41
  * Generator: betaflight_target_converter.py
  */
 
@@ -46,14 +46,6 @@ namespace BoardConfig {
   namespace Servo {
     static constexpr uint32_t frequency_hz = 50;
 
-    struct ServoConfig {
-      TIM_TypeDef* timer;
-      uint32_t pin;
-      uint32_t channel;
-      uint32_t min_us;
-      uint32_t max_us;
-    };
-
     static constexpr ServoConfig servos[] = {};
     static constexpr int num_servos = 0;
   };
@@ -61,22 +53,14 @@ namespace BoardConfig {
   namespace Motor {
     static constexpr uint32_t frequency_hz = 2000;
 
-    struct MotorConfig {
-      TIM_TypeDef* timer;
-      uint32_t pin;
-      uint32_t channel;
-      uint32_t min_us;
-      uint32_t max_us;
-    };
-
     // Motor array - hardware timer assignments from Betaflight config
     static constexpr MotorConfig motors[] = {
-      {TIM5, PA0_ALT1, 1, 125, 250},  // Motor 1: TIM5_CH1
-      {TIM5, PA1_ALT1, 2, 125, 250},  // Motor 2: TIM5_CH2
+      {TIM5, PA0_ALT1, 1, 125, 250, DMA1, 2, 6},  // Motor 1: TIM5_CH1, DMA1 S2
+      {TIM5, PA1_ALT1, 2, 125, 250, DMA1, 4, 6},  // Motor 2: TIM5_CH2, DMA1 S4
       {TIM5, PA2_ALT1, 3, 125, 250},  // Motor 3: TIM5_CH3
       {TIM5, PA3_ALT1, 4, 125, 250},  // Motor 4: TIM5_CH4
-      {TIM3, PB0_ALT1, 3, 125, 250},  // Motor 5: TIM3_CH3
-      {TIM3, PB1_ALT1, 4, 125, 250},  // Motor 6: TIM3_CH4
+      {TIM3, PB0_ALT1, 3, 125, 250, DMA1, 7, 5},  // Motor 5: TIM3_CH3, DMA1 S7
+      {TIM3, PB1_ALT1, 4, 125, 250, DMA1, 2, 5},  // Motor 6: TIM3_CH4, DMA1 S2
       {TIM8, PC8_ALT1, 3, 125, 250},  // Motor 7: TIM8_CH3
       {TIM8, PC9_ALT1, 4, 125, 250},  // Motor 8: TIM8_CH4
     };
