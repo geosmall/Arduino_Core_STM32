@@ -226,103 +226,66 @@ bool resolveDMA(MotorHW *motor)
 
 // G4/H7: DMAMUX allows flexible routing — scan for first unclaimed stream
 
-// Get the DMAMUX request ID for a timer channel
-static uint32_t getDMAMUXRequest(TIM_TypeDef *timer, uint8_t ch_index)
-{
+// DMAMUX request lookup table — same pattern as dma_map[] above for F4/F7
+struct DMAMUXMapping {
+  TIM_TypeDef *timer;
+  uint8_t ch_index;      // 0=CH1, 1=CH2, 2=CH3, 3=CH4
+  uint32_t request_id;
+};
+
 #if defined(STM32H7xx)
-  // H7: DMAMUX1 request IDs
+static const DMAMUXMapping dmamux_map[] = {
 #if defined(TIM1_BASE)
-  if (timer == TIM1) {
-    static const uint32_t reqs[] = {
-      LL_DMAMUX1_REQ_TIM1_CH1, LL_DMAMUX1_REQ_TIM1_CH2,
-      LL_DMAMUX1_REQ_TIM1_CH3, LL_DMAMUX1_REQ_TIM1_CH4
-    };
-    return reqs[ch_index];
-  }
+  {TIM1, 0, LL_DMAMUX1_REQ_TIM1_CH1}, {TIM1, 1, LL_DMAMUX1_REQ_TIM1_CH2},
+  {TIM1, 2, LL_DMAMUX1_REQ_TIM1_CH3}, {TIM1, 3, LL_DMAMUX1_REQ_TIM1_CH4},
 #endif
 #if defined(TIM3_BASE)
-  if (timer == TIM3) {
-    static const uint32_t reqs[] = {
-      LL_DMAMUX1_REQ_TIM3_CH1, LL_DMAMUX1_REQ_TIM3_CH2,
-      LL_DMAMUX1_REQ_TIM3_CH3, LL_DMAMUX1_REQ_TIM3_CH4
-    };
-    return reqs[ch_index];
-  }
+  {TIM3, 0, LL_DMAMUX1_REQ_TIM3_CH1}, {TIM3, 1, LL_DMAMUX1_REQ_TIM3_CH2},
+  {TIM3, 2, LL_DMAMUX1_REQ_TIM3_CH3}, {TIM3, 3, LL_DMAMUX1_REQ_TIM3_CH4},
 #endif
 #if defined(TIM4_BASE)
-  if (timer == TIM4) {
-    static const uint32_t reqs[] = {
-      LL_DMAMUX1_REQ_TIM4_CH1, LL_DMAMUX1_REQ_TIM4_CH2,
-      LL_DMAMUX1_REQ_TIM4_CH3, 0  // TIM4_CH4 not available on some H7
-    };
-    return reqs[ch_index];
-  }
+  {TIM4, 0, LL_DMAMUX1_REQ_TIM4_CH1}, {TIM4, 1, LL_DMAMUX1_REQ_TIM4_CH2},
+  {TIM4, 2, LL_DMAMUX1_REQ_TIM4_CH3},  // TIM4_CH4 not available on some H7
 #endif
 #if defined(TIM5_BASE)
-  if (timer == TIM5) {
-    static const uint32_t reqs[] = {
-      LL_DMAMUX1_REQ_TIM5_CH1, LL_DMAMUX1_REQ_TIM5_CH2,
-      LL_DMAMUX1_REQ_TIM5_CH3, LL_DMAMUX1_REQ_TIM5_CH4
-    };
-    return reqs[ch_index];
-  }
+  {TIM5, 0, LL_DMAMUX1_REQ_TIM5_CH1}, {TIM5, 1, LL_DMAMUX1_REQ_TIM5_CH2},
+  {TIM5, 2, LL_DMAMUX1_REQ_TIM5_CH3}, {TIM5, 3, LL_DMAMUX1_REQ_TIM5_CH4},
 #endif
 #if defined(TIM8_BASE)
-  if (timer == TIM8) {
-    static const uint32_t reqs[] = {
-      LL_DMAMUX1_REQ_TIM8_CH1, LL_DMAMUX1_REQ_TIM8_CH2,
-      LL_DMAMUX1_REQ_TIM8_CH3, LL_DMAMUX1_REQ_TIM8_CH4
-    };
-    return reqs[ch_index];
-  }
+  {TIM8, 0, LL_DMAMUX1_REQ_TIM8_CH1}, {TIM8, 1, LL_DMAMUX1_REQ_TIM8_CH2},
+  {TIM8, 2, LL_DMAMUX1_REQ_TIM8_CH3}, {TIM8, 3, LL_DMAMUX1_REQ_TIM8_CH4},
 #endif
-
+};
 #elif defined(STM32G4xx)
-  // G4: DMAMUX request IDs
+static const DMAMUXMapping dmamux_map[] = {
 #if defined(TIM1_BASE)
-  if (timer == TIM1) {
-    static const uint32_t reqs[] = {
-      LL_DMAMUX_REQ_TIM1_CH1, LL_DMAMUX_REQ_TIM1_CH2,
-      LL_DMAMUX_REQ_TIM1_CH3, LL_DMAMUX_REQ_TIM1_CH4
-    };
-    return reqs[ch_index];
-  }
+  {TIM1, 0, LL_DMAMUX_REQ_TIM1_CH1}, {TIM1, 1, LL_DMAMUX_REQ_TIM1_CH2},
+  {TIM1, 2, LL_DMAMUX_REQ_TIM1_CH3}, {TIM1, 3, LL_DMAMUX_REQ_TIM1_CH4},
 #endif
 #if defined(TIM3_BASE)
-  if (timer == TIM3) {
-    static const uint32_t reqs[] = {
-      LL_DMAMUX_REQ_TIM3_CH1, LL_DMAMUX_REQ_TIM3_CH2,
-      LL_DMAMUX_REQ_TIM3_CH3, LL_DMAMUX_REQ_TIM3_CH4
-    };
-    return reqs[ch_index];
-  }
+  {TIM3, 0, LL_DMAMUX_REQ_TIM3_CH1}, {TIM3, 1, LL_DMAMUX_REQ_TIM3_CH2},
+  {TIM3, 2, LL_DMAMUX_REQ_TIM3_CH3}, {TIM3, 3, LL_DMAMUX_REQ_TIM3_CH4},
 #endif
 #if defined(TIM4_BASE)
-  if (timer == TIM4) {
-    static const uint32_t reqs[] = {
-      LL_DMAMUX_REQ_TIM4_CH1, LL_DMAMUX_REQ_TIM4_CH2,
-      LL_DMAMUX_REQ_TIM4_CH3, LL_DMAMUX_REQ_TIM4_CH4
-    };
-    return reqs[ch_index];
-  }
+  {TIM4, 0, LL_DMAMUX_REQ_TIM4_CH1}, {TIM4, 1, LL_DMAMUX_REQ_TIM4_CH2},
+  {TIM4, 2, LL_DMAMUX_REQ_TIM4_CH3}, {TIM4, 3, LL_DMAMUX_REQ_TIM4_CH4},
 #endif
 #if defined(TIM8_BASE)
-  if (timer == TIM8) {
-    static const uint32_t reqs[] = {
-      LL_DMAMUX_REQ_TIM8_CH1, LL_DMAMUX_REQ_TIM8_CH2,
-      LL_DMAMUX_REQ_TIM8_CH3, LL_DMAMUX_REQ_TIM8_CH4
-    };
-    return reqs[ch_index];
-  }
+  {TIM8, 0, LL_DMAMUX_REQ_TIM8_CH1}, {TIM8, 1, LL_DMAMUX_REQ_TIM8_CH2},
+  {TIM8, 2, LL_DMAMUX_REQ_TIM8_CH3}, {TIM8, 3, LL_DMAMUX_REQ_TIM8_CH4},
 #endif
 #if defined(TIM16_BASE)
-  if (timer == TIM16) {
-    // TIM16 only has CH1
-    if (ch_index == 0) return LL_DMAMUX_REQ_TIM16_CH1;
-  }
+  {TIM16, 0, LL_DMAMUX_REQ_TIM16_CH1},
 #endif
-#endif // STM32G4xx
+};
+#endif
 
+static uint32_t getDMAMUXRequest(TIM_TypeDef *timer, uint8_t ch_index)
+{
+  for (size_t i = 0; i < sizeof(dmamux_map) / sizeof(dmamux_map[0]); i++) {
+    if (dmamux_map[i].timer == timer && dmamux_map[i].ch_index == ch_index)
+      return dmamux_map[i].request_id;
+  }
   return 0;
 }
 
@@ -481,29 +444,15 @@ static void disableTimDMAReq(TIM_TypeDef *timer, uint8_t ch_index)
 static void clearDMAFlags(DMA_TypeDef *dma, uint32_t stream_or_channel)
 {
 #if defined(STM32G4xx)
-  // G4: GI (Global Interrupt) clears all flags for the channel
-  switch (stream_or_channel) {
-    case LL_DMA_CHANNEL_1: LL_DMA_ClearFlag_GI1(dma); break;
-    case LL_DMA_CHANNEL_2: LL_DMA_ClearFlag_GI2(dma); break;
-    case LL_DMA_CHANNEL_3: LL_DMA_ClearFlag_GI3(dma); break;
-    case LL_DMA_CHANNEL_4: LL_DMA_ClearFlag_GI4(dma); break;
-    case LL_DMA_CHANNEL_5: LL_DMA_ClearFlag_GI5(dma); break;
-    case LL_DMA_CHANNEL_6: LL_DMA_ClearFlag_GI6(dma); break;
-    case LL_DMA_CHANNEL_7: LL_DMA_ClearFlag_GI7(dma); break;
-    case LL_DMA_CHANNEL_8: LL_DMA_ClearFlag_GI8(dma); break;
-  }
+  // G4: channel-based. GI clear bit at position (4 * ch) clears all flags.
+  // Channels 1-8 are LL values 0-7; CGIF positions: 0, 4, 8, ..., 28.
+  WRITE_REG(dma->IFCR, 0xFU << (4U * stream_or_channel));
 #else
-  // F4/F7/H7: clear TC flag for the stream (required before re-enabling)
-  switch (stream_or_channel) {
-    case LL_DMA_STREAM_0: LL_DMA_ClearFlag_TC0(dma); break;
-    case LL_DMA_STREAM_1: LL_DMA_ClearFlag_TC1(dma); break;
-    case LL_DMA_STREAM_2: LL_DMA_ClearFlag_TC2(dma); break;
-    case LL_DMA_STREAM_3: LL_DMA_ClearFlag_TC3(dma); break;
-    case LL_DMA_STREAM_4: LL_DMA_ClearFlag_TC4(dma); break;
-    case LL_DMA_STREAM_5: LL_DMA_ClearFlag_TC5(dma); break;
-    case LL_DMA_STREAM_6: LL_DMA_ClearFlag_TC6(dma); break;
-    case LL_DMA_STREAM_7: LL_DMA_ClearFlag_TC7(dma); break;
-  }
+  // F4/F7/H7: stream-based. TC bit positions are non-uniform within each
+  // half-register: {5, 11, 21, 27} for streams {0,1,2,3} and {4,5,6,7}.
+  static const uint8_t tc_pos[] = {5, 11, 21, 27};
+  volatile uint32_t *reg = (stream_or_channel < 4) ? &dma->LIFCR : &dma->HIFCR;
+  WRITE_REG(*reg, 1UL << tc_pos[stream_or_channel & 3]);
 #endif
 }
 
