@@ -319,6 +319,26 @@ bool resolveDMA(MotorHW *motor)
 // ---------------------------------------------------------------------------
 // DMA initialization
 // ---------------------------------------------------------------------------
+
+// Common DMA init fields shared across all families and both per-channel
+// and burst modes.  Callers set family-specific fields after this returns.
+static void fillDMAInitCommon(LL_DMA_InitTypeDef *init,
+                              uint32_t mem_addr, uint32_t periph_addr,
+                              uint32_t nb_data)
+{
+  LL_DMA_StructInit(init);
+  init->MemoryOrM2MDstAddress      = mem_addr;
+  init->PeriphOrM2MSrcAddress      = periph_addr;
+  init->NbData                     = nb_data;
+  init->Direction                  = LL_DMA_DIRECTION_MEMORY_TO_PERIPH;
+  init->PeriphOrM2MSrcIncMode      = LL_DMA_PERIPH_NOINCREMENT;
+  init->MemoryOrM2MDstIncMode      = LL_DMA_MEMORY_INCREMENT;
+  init->PeriphOrM2MSrcDataSize     = LL_DMA_PDATAALIGN_WORD;
+  init->MemoryOrM2MDstDataSize     = LL_DMA_MDATAALIGN_WORD;
+  init->Mode                       = LL_DMA_MODE_NORMAL;
+  init->Priority                   = LL_DMA_PRIORITY_HIGH;
+}
+
 void initDMA(MotorHW *motor)
 {
   enableDMAClk(motor->dma);
@@ -333,82 +353,29 @@ void initDMA(MotorHW *motor)
     default: return;
   }
 
-#if defined(STM32F4xx) || defined(STM32F7xx)
-  // F4/F7: Stream-based DMA with fixed channel selection
+  LL_DMA_InitTypeDef dma_init;
+  fillDMAInitCommon(&dma_init, (uint32_t)motor->dma_buffer,
+                    (uint32_t)ccr_addr, DMA_BUF_SIZE);
 
+#if defined(STM32F4xx) || defined(STM32F7xx)
   LL_DMA_DisableStream(motor->dma, motor->dma_stream);
   LL_DMA_DeInit(motor->dma, motor->dma_stream);
-
-  LL_DMA_InitTypeDef dma_init;
-  LL_DMA_StructInit(&dma_init);
-
   dma_init.Channel = motor->dma_channel_sel;
-  dma_init.MemoryOrM2MDstAddress = (uint32_t)motor->dma_buffer;
-  dma_init.PeriphOrM2MSrcAddress = (uint32_t)ccr_addr;
-  dma_init.Direction = LL_DMA_DIRECTION_MEMORY_TO_PERIPH;
-  dma_init.NbData = DMA_BUF_SIZE;
-  dma_init.PeriphOrM2MSrcIncMode = LL_DMA_PERIPH_NOINCREMENT;
-  dma_init.MemoryOrM2MDstIncMode = LL_DMA_MEMORY_INCREMENT;
-  dma_init.PeriphOrM2MSrcDataSize = LL_DMA_PDATAALIGN_WORD;
-  dma_init.MemoryOrM2MDstDataSize = LL_DMA_MDATAALIGN_WORD;
-  dma_init.Mode = LL_DMA_MODE_NORMAL;
-  dma_init.Priority = LL_DMA_PRIORITY_HIGH;
   dma_init.FIFOMode = LL_DMA_FIFOMODE_ENABLE;
   dma_init.FIFOThreshold = LL_DMA_FIFOTHRESHOLD_1_4;
-  dma_init.MemBurst = LL_DMA_MBURST_SINGLE;
-  dma_init.PeriphBurst = LL_DMA_PBURST_SINGLE;
-
-  LL_DMA_Init(motor->dma, motor->dma_stream, &dma_init);
 
 #elif defined(STM32H7xx)
-  // H7: Stream-based DMA with DMAMUX
-
   LL_DMA_DisableStream(motor->dma, motor->dma_stream);
   LL_DMA_DeInit(motor->dma, motor->dma_stream);
-
-  LL_DMA_InitTypeDef dma_init;
-  LL_DMA_StructInit(&dma_init);
-
   dma_init.PeriphRequest = getDMAMUXRequest(motor->timer, motor->channel_index);
-  dma_init.MemoryOrM2MDstAddress = (uint32_t)motor->dma_buffer;
-  dma_init.PeriphOrM2MSrcAddress = (uint32_t)ccr_addr;
-  dma_init.Direction = LL_DMA_DIRECTION_MEMORY_TO_PERIPH;
-  dma_init.NbData = DMA_BUF_SIZE;
-  dma_init.PeriphOrM2MSrcIncMode = LL_DMA_PERIPH_NOINCREMENT;
-  dma_init.MemoryOrM2MDstIncMode = LL_DMA_MEMORY_INCREMENT;
-  dma_init.PeriphOrM2MSrcDataSize = LL_DMA_PDATAALIGN_WORD;
-  dma_init.MemoryOrM2MDstDataSize = LL_DMA_MDATAALIGN_WORD;
-  dma_init.Mode = LL_DMA_MODE_NORMAL;
-  dma_init.Priority = LL_DMA_PRIORITY_HIGH;
-  dma_init.FIFOMode = LL_DMA_FIFOMODE_DISABLE;
-  dma_init.PeriphBurst = LL_DMA_PBURST_SINGLE;
-  dma_init.MemBurst = LL_DMA_MBURST_SINGLE;
-
-  LL_DMA_Init(motor->dma, motor->dma_stream, &dma_init);
 
 #elif defined(STM32G4xx)
-  // G4: Channel-based DMA with DMAMUX
-
   LL_DMA_DisableChannel(motor->dma, motor->dma_stream);
   LL_DMA_DeInit(motor->dma, motor->dma_stream);
-
-  LL_DMA_InitTypeDef dma_init;
-  LL_DMA_StructInit(&dma_init);
-
   dma_init.PeriphRequest = getDMAMUXRequest(motor->timer, motor->channel_index);
-  dma_init.MemoryOrM2MDstAddress = (uint32_t)motor->dma_buffer;
-  dma_init.PeriphOrM2MSrcAddress = (uint32_t)ccr_addr;
-  dma_init.Direction = LL_DMA_DIRECTION_MEMORY_TO_PERIPH;
-  dma_init.NbData = DMA_BUF_SIZE;
-  dma_init.PeriphOrM2MSrcIncMode = LL_DMA_PERIPH_NOINCREMENT;
-  dma_init.MemoryOrM2MDstIncMode = LL_DMA_MEMORY_INCREMENT;
-  dma_init.PeriphOrM2MSrcDataSize = LL_DMA_PDATAALIGN_WORD;
-  dma_init.MemoryOrM2MDstDataSize = LL_DMA_MDATAALIGN_WORD;
-  dma_init.Mode = LL_DMA_MODE_NORMAL;
-  dma_init.Priority = LL_DMA_PRIORITY_HIGH;
+#endif
 
   LL_DMA_Init(motor->dma, motor->dma_stream, &dma_init);
-#endif
 
   // No DMA TC interrupts — completion is handled by cleanup-at-start-of-Send().
   // Normal-mode DMA auto-disables the stream/channel on transfer completion.
@@ -585,76 +552,30 @@ void initDMABurst(BurstGroup *group)
 {
   enableDMAClk(group->dma);
 
+  LL_DMA_InitTypeDef dma_init;
+  fillDMAInitCommon(&dma_init, (uint32_t)group->burst_buffer,
+                    (uint32_t)&group->timer->DMAR,
+                    DMA_BUF_SIZE * group->burst_length);
+
 #if defined(STM32F4xx) || defined(STM32F7xx)
   LL_DMA_DisableStream(group->dma, group->dma_stream);
   LL_DMA_DeInit(group->dma, group->dma_stream);
-
-  LL_DMA_InitTypeDef dma_init;
-  LL_DMA_StructInit(&dma_init);
-
   dma_init.Channel = group->dma_channel_sel;
-  dma_init.MemoryOrM2MDstAddress = (uint32_t)group->burst_buffer;
-  dma_init.PeriphOrM2MSrcAddress = (uint32_t)&group->timer->DMAR;
-  dma_init.Direction = LL_DMA_DIRECTION_MEMORY_TO_PERIPH;
-  dma_init.NbData = DMA_BUF_SIZE * group->burst_length;
-  dma_init.PeriphOrM2MSrcIncMode = LL_DMA_PERIPH_NOINCREMENT;
-  dma_init.MemoryOrM2MDstIncMode = LL_DMA_MEMORY_INCREMENT;
-  dma_init.PeriphOrM2MSrcDataSize = LL_DMA_PDATAALIGN_WORD;
-  dma_init.MemoryOrM2MDstDataSize = LL_DMA_MDATAALIGN_WORD;
-  dma_init.Mode = LL_DMA_MODE_NORMAL;
-  dma_init.Priority = LL_DMA_PRIORITY_HIGH;
   dma_init.FIFOMode = LL_DMA_FIFOMODE_ENABLE;
   dma_init.FIFOThreshold = LL_DMA_FIFOTHRESHOLD_1_4;
-  dma_init.MemBurst = LL_DMA_MBURST_SINGLE;
-  dma_init.PeriphBurst = LL_DMA_PBURST_SINGLE;
-
-  LL_DMA_Init(group->dma, group->dma_stream, &dma_init);
 
 #elif defined(STM32H7xx)
   LL_DMA_DisableStream(group->dma, group->dma_stream);
   LL_DMA_DeInit(group->dma, group->dma_stream);
-
-  LL_DMA_InitTypeDef dma_init;
-  LL_DMA_StructInit(&dma_init);
-
   dma_init.PeriphRequest = getDMAMUXRequest(group->timer, group->trigger_ch_index);
-  dma_init.MemoryOrM2MDstAddress = (uint32_t)group->burst_buffer;
-  dma_init.PeriphOrM2MSrcAddress = (uint32_t)&group->timer->DMAR;
-  dma_init.Direction = LL_DMA_DIRECTION_MEMORY_TO_PERIPH;
-  dma_init.NbData = DMA_BUF_SIZE * group->burst_length;
-  dma_init.PeriphOrM2MSrcIncMode = LL_DMA_PERIPH_NOINCREMENT;
-  dma_init.MemoryOrM2MDstIncMode = LL_DMA_MEMORY_INCREMENT;
-  dma_init.PeriphOrM2MSrcDataSize = LL_DMA_PDATAALIGN_WORD;
-  dma_init.MemoryOrM2MDstDataSize = LL_DMA_MDATAALIGN_WORD;
-  dma_init.Mode = LL_DMA_MODE_NORMAL;
-  dma_init.Priority = LL_DMA_PRIORITY_HIGH;
-  dma_init.FIFOMode = LL_DMA_FIFOMODE_DISABLE;
-  dma_init.PeriphBurst = LL_DMA_PBURST_SINGLE;
-  dma_init.MemBurst = LL_DMA_MBURST_SINGLE;
-
-  LL_DMA_Init(group->dma, group->dma_stream, &dma_init);
 
 #elif defined(STM32G4xx)
   LL_DMA_DisableChannel(group->dma, group->dma_stream);
   LL_DMA_DeInit(group->dma, group->dma_stream);
-
-  LL_DMA_InitTypeDef dma_init;
-  LL_DMA_StructInit(&dma_init);
-
   dma_init.PeriphRequest = getDMAMUXRequest(group->timer, group->trigger_ch_index);
-  dma_init.MemoryOrM2MDstAddress = (uint32_t)group->burst_buffer;
-  dma_init.PeriphOrM2MSrcAddress = (uint32_t)&group->timer->DMAR;
-  dma_init.Direction = LL_DMA_DIRECTION_MEMORY_TO_PERIPH;
-  dma_init.NbData = DMA_BUF_SIZE * group->burst_length;
-  dma_init.PeriphOrM2MSrcIncMode = LL_DMA_PERIPH_NOINCREMENT;
-  dma_init.MemoryOrM2MDstIncMode = LL_DMA_MEMORY_INCREMENT;
-  dma_init.PeriphOrM2MSrcDataSize = LL_DMA_PDATAALIGN_WORD;
-  dma_init.MemoryOrM2MDstDataSize = LL_DMA_MDATAALIGN_WORD;
-  dma_init.Mode = LL_DMA_MODE_NORMAL;
-  dma_init.Priority = LL_DMA_PRIORITY_HIGH;
+#endif
 
   LL_DMA_Init(group->dma, group->dma_stream, &dma_init);
-#endif
 
   // Configure timer DMA burst: base address = CCR1, burst length = N registers
   LL_TIM_ConfigDMABurst(group->timer,

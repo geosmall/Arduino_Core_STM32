@@ -103,6 +103,11 @@ private:
   // Returns false on unresolvable conflict.
   bool initAllDMA();
 
+  // Decide burst vs per-channel DMA for a timer group.
+  // F4/F7: true when stream conflicts detected (cross-group or UART claim).
+  // G4/H7: true when 2+ motors share a timer (stream conservation).
+  bool shouldUseBurst(int group_index) const;
+
   // Convert 1-based channel number to LL_TIM_CHANNEL_CHx constant
   static uint32_t channelToLL(uint32_t channel);
 
