@@ -2,7 +2,7 @@
  * DShot_Burst_Verification - DMAR burst mode loopback test
  *
  * Validates DMAR burst DMA by adding multiple motors to TIM1, which
- * triggers burst mode on F4/F7 (all TIM1 channels map to DMA2_Stream6).
+ * triggers burst mode (F4/F7: stream conflict, G4/H7: stream conservation).
  * Captures one channel's output via DMA input capture on TIM2 and
  * verifies the packet matches the expected encoding.
  *
@@ -10,12 +10,12 @@
  * if the stride-based buffer fill were wrong, the captured channel
  * would show another channel's data.
  *
- * Wiring (Nucleo-64: F411RE):
+ * Wiring (Nucleo-64: F411RE, G474RE):
  *   PA8  (TIM1_CH1, D7) --> PA0 (TIM2_CH1, A0)   [captured channel]
  *   PA9  (TIM1_CH2, D8)     not connected          [output only]
  *   PA10 (TIM1_CH3, D2)     not connected          [output only]
  *
- * Wiring (Nucleo-144: F722ZE):
+ * Wiring (Nucleo-144: F722ZE, H753ZI):
  *   PE11 (TIM1_CH2, D5) --> PA0 (TIM2_CH1)        [captured channel]
  *   PE13 (TIM1_CH3)         not connected          [output only]
  *
@@ -31,8 +31,10 @@ struct MotorDef {
   uint32_t channel;   // timer channel 1-4
 };
 
-#if defined(ARDUINO_NUCLEO_F411RE)
-// 3 motors on TIM1 CH1-CH3: all map to DMA2_Stream6 → burst mode
+#if defined(ARDUINO_NUCLEO_F411RE) || defined(ARDUINO_NUCLEO_G474RE)
+// 3 motors on TIM1 CH1-CH3
+// F4: all map to DMA2_Stream6 → burst via conflict
+// G4: 2+ motors on same timer → burst for stream conservation
 static const MotorDef tim1_motors[] = {
   {PA8,  1},  // TIM1_CH1 — captured via jumper to PA0
   {PA9,  2},  // TIM1_CH2
@@ -40,8 +42,10 @@ static const MotorDef tim1_motors[] = {
 };
 static constexpr int CAPTURED_MOTOR = 0;  // index into tim1_motors[]
 
-#elif defined(ARDUINO_NUCLEO_F722ZE)
-// 2 motors on TIM1 CH2-CH3: both map to DMA2_Stream6 → burst mode
+#elif defined(ARDUINO_NUCLEO_F722ZE) || defined(ARDUINO_NUCLEO_H753ZI)
+// 2 motors on TIM1 CH2-CH3
+// F7: both map to DMA2_Stream6 → burst via conflict
+// H7: 2+ motors on same timer → burst for stream conservation
 static const MotorDef tim1_motors[] = {
   {PE11, 2},  // TIM1_CH2 — captured via jumper to PA0
   {PE13, 3},  // TIM1_CH3
@@ -89,7 +93,7 @@ void setup()
   initCaptureTimer();
   initCaptureDMA();
 
-  // --- Add all TIM1 motors (triggers DMAR burst on F4/F7) ---
+  // --- Add all TIM1 motors (triggers DMAR burst on all families) ---
   DShotOutput dshot;
   for (int i = 0; i < NUM_TIM1_MOTORS; i++) {
     int result = dshot.AddMotor(TIM1, tim1_motors[i].pin,
@@ -117,7 +121,7 @@ void setup()
   Serial.print("  DMAR burst mode: ");
   Serial.println(burst_detected ? "ACTIVE" : "INACTIVE");
   if (!burst_detected) {
-    Serial.println("FAIL: Expected DMAR burst on F4/F7 with multiple TIM1 channels");
+    Serial.println("FAIL: Expected DMAR burst with multiple TIM1 channels");
     Serial.println("*STOP*");
     while (1) { }
   }
@@ -234,16 +238,10 @@ static void initCaptureDMA(void)
   LL_TIM_CC_EnableChannel(TIM2, LL_TIM_CHANNEL_CH1);
 
   // DMA: TIM2_CH1 → capture_buf
-  __HAL_RCC_DMA1_CLK_ENABLE();
-
-#if defined(STM32F4xx) || defined(STM32F7xx)
-  // TIM2_CH1 → DMA1_Stream5/CH3
-  LL_DMA_DisableStream(DMA1, LL_DMA_STREAM_5);
-  LL_DMA_DeInit(DMA1, LL_DMA_STREAM_5);
-
+  // Use DMA2 on G4/H7 to avoid conflict with DShot burst on DMA1
   LL_DMA_InitTypeDef dma_init;
   LL_DMA_StructInit(&dma_init);
-  dma_init.Channel = LL_DMA_CHANNEL_3;
+
   dma_init.PeriphOrM2MSrcAddress = (uint32_t)&TIM2->CCR1;
   dma_init.MemoryOrM2MDstAddress = (uint32_t)capture_buf;
   dma_init.Direction = LL_DMA_DIRECTION_PERIPH_TO_MEMORY;
@@ -254,11 +252,40 @@ static void initCaptureDMA(void)
   dma_init.MemoryOrM2MDstDataSize = LL_DMA_MDATAALIGN_WORD;
   dma_init.Mode = LL_DMA_MODE_NORMAL;
   dma_init.Priority = LL_DMA_PRIORITY_HIGH;
+
+#if defined(STM32F4xx) || defined(STM32F7xx)
+  // TIM2_CH1 → DMA1_Stream5/CH3
+  __HAL_RCC_DMA1_CLK_ENABLE();
+  LL_DMA_DisableStream(DMA1, LL_DMA_STREAM_5);
+  LL_DMA_DeInit(DMA1, LL_DMA_STREAM_5);
+  dma_init.Channel = LL_DMA_CHANNEL_3;
   dma_init.FIFOMode = LL_DMA_FIFOMODE_DISABLE;
   dma_init.MemBurst = LL_DMA_MBURST_SINGLE;
   dma_init.PeriphBurst = LL_DMA_PBURST_SINGLE;
-
   LL_DMA_Init(DMA1, LL_DMA_STREAM_5, &dma_init);
+
+#elif defined(STM32H7xx)
+  // TIM2_CH1 → DMA2_Stream0 via DMAMUX (avoids DShot burst on DMA1)
+  __HAL_RCC_DMA2_CLK_ENABLE();
+#if defined(__HAL_RCC_DMAMUX1_CLK_ENABLE)
+  __HAL_RCC_DMAMUX1_CLK_ENABLE();
+#endif
+  LL_DMA_DisableStream(DMA2, LL_DMA_STREAM_0);
+  LL_DMA_DeInit(DMA2, LL_DMA_STREAM_0);
+  dma_init.PeriphRequest = LL_DMAMUX1_REQ_TIM2_CH1;
+  dma_init.FIFOMode = LL_DMA_FIFOMODE_DISABLE;
+  dma_init.PeriphBurst = LL_DMA_PBURST_SINGLE;
+  dma_init.MemBurst = LL_DMA_MBURST_SINGLE;
+  LL_DMA_Init(DMA2, LL_DMA_STREAM_0, &dma_init);
+
+#elif defined(STM32G4xx)
+  // TIM2_CH1 → DMA2_Channel1 via DMAMUX (avoids DShot burst on DMA1)
+  __HAL_RCC_DMA2_CLK_ENABLE();
+  __HAL_RCC_DMAMUX1_CLK_ENABLE();
+  LL_DMA_DisableChannel(DMA2, LL_DMA_CHANNEL_1);
+  LL_DMA_DeInit(DMA2, LL_DMA_CHANNEL_1);
+  dma_init.PeriphRequest = LL_DMAMUX_REQ_TIM2_CH1;
+  LL_DMA_Init(DMA2, LL_DMA_CHANNEL_1, &dma_init);
 #endif
 }
 
@@ -271,10 +298,22 @@ static void armCapture(void)
     capture_buf[i] = 0;
   }
 
+#if defined(__DCACHE_PRESENT) && (__DCACHE_PRESENT == 1U)
+  SCB_CleanDCache_by_Addr((uint32_t *)capture_buf, sizeof(capture_buf));
+#endif
+
 #if defined(STM32F4xx) || defined(STM32F7xx)
   LL_DMA_ClearFlag_TC5(DMA1);
   LL_DMA_SetDataLength(DMA1, LL_DMA_STREAM_5, CAPTURE_BUF_SIZE);
   LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_5);
+#elif defined(STM32H7xx)
+  LL_DMA_ClearFlag_TC0(DMA2);
+  LL_DMA_SetDataLength(DMA2, LL_DMA_STREAM_0, CAPTURE_BUF_SIZE);
+  LL_DMA_EnableStream(DMA2, LL_DMA_STREAM_0);
+#elif defined(STM32G4xx)
+  LL_DMA_ClearFlag_GI1(DMA2);
+  LL_DMA_SetDataLength(DMA2, LL_DMA_CHANNEL_1, CAPTURE_BUF_SIZE);
+  LL_DMA_EnableChannel(DMA2, LL_DMA_CHANNEL_1);
 #endif
 
   LL_TIM_SetCounter(TIM2, 0);
@@ -291,6 +330,12 @@ static int stopAndCountCaptures(void)
 #if defined(STM32F4xx) || defined(STM32F7xx)
   LL_DMA_DisableStream(DMA1, LL_DMA_STREAM_5);
   remaining = LL_DMA_GetDataLength(DMA1, LL_DMA_STREAM_5);
+#elif defined(STM32H7xx)
+  LL_DMA_DisableStream(DMA2, LL_DMA_STREAM_0);
+  remaining = LL_DMA_GetDataLength(DMA2, LL_DMA_STREAM_0);
+#elif defined(STM32G4xx)
+  LL_DMA_DisableChannel(DMA2, LL_DMA_CHANNEL_1);
+  remaining = LL_DMA_GetDataLength(DMA2, LL_DMA_CHANNEL_1);
 #endif
 
   LL_TIM_DisableDMAReq_CC1(TIM2);
@@ -303,6 +348,10 @@ static int stopAndCountCaptures(void)
 static bool verifyPacket(uint16_t expected_throttle, int num_captured)
 {
   uint16_t expected = DShot::encodePacket(expected_throttle, false);
+
+#if defined(__DCACHE_PRESENT) && (__DCACHE_PRESENT == 1U)
+  SCB_InvalidateDCache_by_Addr((uint32_t *)capture_buf, sizeof(capture_buf));
+#endif
 
   uint32_t tim_clk = DShot::getTimerClockFreq(TIM2);
   uint32_t bit0_ticks = (uint32_t)((uint64_t)DShot::BIT_0_DUTY * tim_clk / DShot::DSHOT600);

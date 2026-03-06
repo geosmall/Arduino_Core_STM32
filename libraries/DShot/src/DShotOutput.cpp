@@ -9,9 +9,7 @@ DShotOutput::DShotOutput()
   for (int i = 0; i < MAX_TIMER_GROUPS; i++) {
     _groups[i].timer = nullptr;
     _groups[i].initialized = false;
-#if defined(STM32F4xx) || defined(STM32F7xx)
     _groups[i].use_burst = false;
-#endif
   }
   // Zero-init all motor structs
   for (int i = 0; i < DShot::MAX_MOTORS; i++) {
@@ -142,12 +140,12 @@ bool DShotOutput::initAllDMA()
       }
     }
 
-#if defined(STM32F4xx) || defined(STM32F7xx)
     // --- Phase B: Decide burst vs per-channel ---
-    // Check for internal stream conflicts (multiple channels → same stream)
-    // AND cross-group conflicts (stream already claimed by another group or UART)
     bool need_burst = false;
     int group_motor_count = 0;
+
+#if defined(STM32F4xx) || defined(STM32F7xx)
+    // F4/F7: conflict-triggered — check for stream collisions
     uint32_t group_streams[4];
 
     for (int m = 0; m < _num_motors; m++) {
@@ -169,6 +167,16 @@ bool DShotOutput::initAllDMA()
       }
       group_motor_count++;
     }
+#else
+    // G4/H7: burst for stream conservation when 2+ motors share a timer
+    for (int m = 0; m < _num_motors; m++) {
+      if (_motors[m].timer != _groups[g].timer) continue;
+      group_motor_count++;
+    }
+    if (group_motor_count >= 2) {
+      need_burst = true;
+    }
+#endif
 
     // --- Phase C: Claim + Init ---
     if (need_burst) {
@@ -203,10 +211,8 @@ bool DShotOutput::initAllDMA()
         return false;
       }
       DShot::initDMABurst(&_groups[g].burst);
-    } else
-#endif
-    {
-      // Per-channel DMA (no conflicts, or G4/H7 with DMAMUX)
+    } else {
+      // Per-channel DMA (no conflicts on F4/F7, or single motor on G4/H7)
       for (int m = 0; m < _num_motors; m++) {
         if (_motors[m].timer != _groups[g].timer) continue;
         if (dma_claim(_motors[m].dma, _motors[m].dma_stream) != 0) {
@@ -262,12 +268,10 @@ void DShotOutput::Send()
 
   // --- Cleanup from previous transfer ---
   for (int g = 0; g < _num_groups; g++) {
-#if defined(STM32F4xx) || defined(STM32F7xx)
     if (_groups[g].use_burst) {
       DShot::cleanupPreviousBurstTransfer(&_groups[g].burst);
       continue;
     }
-#endif
     for (int m = 0; m < _num_motors; m++) {
       if (_motors[m].timer == _groups[g].timer) {
         DShot::cleanupPreviousTransfer(&_motors[m]);
@@ -279,7 +283,6 @@ void DShotOutput::Send()
   for (int m = 0; m < _num_motors; m++) {
     uint16_t packet = DShot::encodePacket(_motors[m].throttle, _motors[m].telemetry);
 
-#if defined(STM32F4xx) || defined(STM32F7xx)
     // Check if this motor's group uses burst mode
     bool filled = false;
     for (int g = 0; g < _num_groups; g++) {
@@ -293,9 +296,7 @@ void DShotOutput::Send()
         break;
       }
     }
-    if (!filled)
-#endif
-    {
+    if (!filled) {
       DShot::fillDmaBuffer(_motors[m].dma_buffer, packet);
     }
   }
@@ -304,12 +305,10 @@ void DShotOutput::Send()
   for (int g = 0; g < _num_groups; g++) {
     LL_TIM_SetCounter(_groups[g].timer, 0);
 
-#if defined(STM32F4xx) || defined(STM32F7xx)
     if (_groups[g].use_burst) {
       DShot::triggerDMABurst(&_groups[g].burst);
       continue;
     }
-#endif
     for (int m = 0; m < _num_motors; m++) {
       if (_motors[m].timer == _groups[g].timer) {
         DShot::triggerDMA(&_motors[m]);
@@ -327,12 +326,10 @@ void DShotOutput::Disarm()
 bool DShotOutput::IsTransferComplete() const
 {
   for (int g = 0; g < _num_groups; g++) {
-#if defined(STM32F4xx) || defined(STM32F7xx)
     if (_groups[g].use_burst) {
       if (!DShot::burstTransferComplete(&_groups[g].burst)) return false;
       continue;
     }
-#endif
     // Per-channel: check each motor on this group
     for (int m = 0; m < _num_motors; m++) {
       if (_motors[m].timer == _groups[g].timer) {

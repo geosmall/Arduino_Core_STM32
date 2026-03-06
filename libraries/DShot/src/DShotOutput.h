@@ -77,10 +77,8 @@ private:
   struct TimerGroup {
     TIM_TypeDef *timer;
     bool initialized;
-#if defined(STM32F4xx) || defined(STM32F7xx)
-    bool use_burst;            // true if DMAR burst mode (stream conflict detected)
+    bool use_burst;            // true if DMAR burst mode
     DShot::BurstGroup burst;   // burst DMA state (valid only if use_burst)
-#endif
   };
 
   TimerGroup _groups[MAX_TIMER_GROUPS];
