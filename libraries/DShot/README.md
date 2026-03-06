@@ -97,9 +97,12 @@ Bit 1: CCR = 14  (74% duty)
 
 ### Multi-Motor DMA
 
-Motors sharing the same timer are grouped automatically. On G4 and H7 (which have DMAMUX), each channel gets its own DMA stream — no conflicts.
+Motors sharing the same timer are grouped automatically. The library chooses between per-channel DMA and **DMAR burst mode** depending on the family:
 
-On F4 and F7, the fixed DMA stream map can assign multiple timer channels to the same stream (e.g., TIM1 CH1/CH2/CH3 all map to DMA2_Stream6). When the library detects this conflict, it automatically switches to **DMAR burst mode**: a single DMA stream writes interleaved compare values to the timer's DMAR register, which distributes them to CCR1..CCRn via the DCR (DMA Control Register). This is transparent to the user — just call `AddMotor()` and `Send()`.
+- **F4/F7** (fixed stream map): Per-channel DMA when streams don't collide. When a conflict is detected (e.g., TIM1 CH1/CH2/CH3 all map to DMA2_Stream6, or a stream is already claimed by UART), the library auto-upgrades to DMAR burst.
+- **G4/H7** (DMAMUX): DMAR burst when 2+ motors share a timer (conserves DMA streams). Single motors use per-channel DMA.
+
+In burst mode, a single DMA stream writes interleaved compare values to the timer's DMAR register, which distributes them to CCR1..CCRn via the DCR (DMA Control Register). This is transparent to the user — just call `AddMotor()` and `Send()`.
 
 ## Timer and Pin Selection
 
@@ -122,12 +125,12 @@ The library configures GPIO alternate functions, timer prescaler/ARR, output com
 
 ## Supported MCU Families
 
-| Family | DMA Model | Multi-Channel | Validated |
-|--------|-----------|---------------|-----------|
-| STM32F4 | Fixed stream map | DMAR burst (automatic) | F411RE |
-| STM32F7 | Fixed stream map | DMAR burst (automatic) | F722ZE |
-| STM32G4 | DMAMUX | Per-channel (no conflicts) | G474RE |
-| STM32H7 | DMAMUX | Per-channel (no conflicts) | H753ZI |
+| Family | DMA Model | Multi-Channel Strategy | Validated |
+|--------|-----------|------------------------|-----------|
+| STM32F4 | Fixed stream map | DMAR burst on conflict | F411RE |
+| STM32F7 | Fixed stream map | DMAR burst on conflict | F722ZE |
+| STM32G4 | DMAMUX | DMAR burst when 2+ motors/timer | G474RE |
+| STM32H7 | DMAMUX | DMAR burst when 2+ motors/timer | H753ZI |
 
 ## Typical Usage Pattern
 
@@ -163,6 +166,15 @@ void loop() {
 - Output only — no bidirectional DShot (ESC-to-FC telemetry over the signal wire)
 - Timer channels 1-4 supported
 
+## Not Implemented (gaps vs Betaflight/INav)
+
+| Feature | Betaflight | INav | This Library | Notes |
+|---------|-----------|------|--------------|-------|
+| DShot commands | Yes (queue + state machine) | Yes (queue) | No | Needed for ESC config (motor direction, save settings, beep) |
+| Bidirectional DShot | Yes (bitbang + input capture) | No | No | Enables RPM telemetry over signal wire for RPM-based filtering |
+| Extended telemetry (EDT) | Yes | No | No | ESC temperature, current, voltage via bidirectional DShot |
+| `dma_release` API | N/A | N/A | No | Would allow runtime DMA reconfiguration; not needed for static motor setups |
+
 ## Examples
 
 | Example | Purpose |
@@ -177,7 +189,7 @@ Packet encoding and DMA timing have been verified by loopback capture (DShot out
 
 | Board | MCU | Test | Result |
 |-------|-----|------|--------|
-| Nucleo F411RE | STM32F411 | DShot_Verification (per-channel + burst) | 10/10 + 5/5 PASS |
-| Nucleo F722ZE | STM32F722 | DShot_Verification (per-channel + burst) | 10/10 + 5/5 PASS |
-| Nucleo G474RE | STM32G474 | DShot_Verification (per-channel) | 10/10 PASS |
-| Nucleo H753ZI | STM32H753 | DShot_Verification (per-channel) | 10/10 PASS |
+| Nucleo F411RE | STM32F411 | DShot_Verification (DMA override + advanced + GP timer) | 15/15 PASS |
+| Nucleo F722ZE | STM32F722 | DShot_Verification (DMA override + advanced + GP timer) | 15/15 PASS |
+| Nucleo G474RE | STM32G474 | DShot_Verification (DMA override + advanced + GP timer) | 15/15 PASS |
+| Nucleo H753ZI | STM32H753 | DShot_Verification (DMA override + advanced + GP timer) | 15/15 PASS |
