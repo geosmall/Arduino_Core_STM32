@@ -56,6 +56,17 @@ void dma_clear_handler(DMA_TypeDef *dma, uint32_t stream);
 int dma_claim(DMA_TypeDef *dma, uint32_t stream);
 
 /**
+ * @brief  Release (unclaim) a DMA stream/channel.
+ *         Inverse of dma_claim(). Clears the claimed flag, callback,
+ *         and context. Does NOT disable the DMA hardware — caller must
+ *         disable the stream/channel before releasing.
+ * @param  dma     DMA controller (DMA1 or DMA2)
+ * @param  stream  Stream/channel index (0-7)
+ * @retval 0 on success, -1 if invalid index
+ */
+int dma_release(DMA_TypeDef *dma, uint32_t stream);
+
+/**
  * @brief  Query whether a DMA stream/channel is claimed
  * @param  dma     DMA controller (DMA1 or DMA2)
  * @param  stream  Stream/channel index (0-7)

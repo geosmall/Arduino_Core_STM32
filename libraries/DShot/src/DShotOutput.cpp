@@ -325,6 +325,66 @@ void DShotOutput::Disarm()
   Send();
 }
 
+void DShotOutput::SendCommand(DShot::Command cmd)
+{
+  if (cmd > DShot::CMD_MAX) return;
+
+  bool is_beep = (cmd >= DShot::CMD_BEEP1 && cmd <= DShot::CMD_BEEP5);
+  int repeats = is_beep ? 1 : DShot::CMD_REPEAT_COUNT;
+
+  // Disarm first — ESCs require throttle 0 before accepting commands
+  Disarm();
+  delayMicroseconds(DShot::CMD_INITIAL_DELAY_US);
+
+  // Send command with telemetry bit = 1 (required for commands 1-47)
+  bool telemetry = (cmd != DShot::CMD_MOTOR_STOP);
+  for (int r = 0; r < repeats; r++) {
+    SetAllThrottle(cmd, telemetry);
+    Send();
+    if (r < repeats - 1) {
+      delayMicroseconds(DShot::CMD_REPEAT_DELAY_US);
+    }
+  }
+
+  // Post-delay for beacon commands
+  if (is_beep) {
+    delayMicroseconds(DShot::CMD_BEEP_DELAY_US);
+  }
+}
+
+void DShotOutput::Beep(uint8_t pattern)
+{
+  if (pattern < 1) pattern = 1;
+  if (pattern > 5) pattern = 5;
+  SendCommand(static_cast<DShot::Command>(DShot::CMD_BEEP1 + pattern - 1));
+}
+
+void DShotOutput::Release()
+{
+  if (!_dma_initialized) return;
+
+  // Wait for any in-flight DMA transfers to complete.
+  while (!IsTransferComplete()) { }
+
+  // Disable DMA hardware and release claimed streams
+  for (int g = 0; g < _num_groups; g++) {
+    if (_groups[g].use_burst) {
+      DShot::cleanupPreviousBurstTransfer(&_groups[g].burst);
+      dma_release(_groups[g].burst.dma, _groups[g].burst.dma_stream);
+    } else {
+      for (int m = 0; m < _num_motors; m++) {
+        if (_motors[m].timer == _groups[g].timer) {
+          DShot::cleanupPreviousTransfer(&_motors[m]);
+          dma_release(_motors[m].dma, _motors[m].dma_stream);
+        }
+      }
+    }
+  }
+
+  _dma_initialized = false;
+  _dma_init_failed = false;
+}
+
 bool DShotOutput::IsTransferComplete() const
 {
   for (int g = 0; g < _num_groups; g++) {

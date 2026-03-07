@@ -54,11 +54,15 @@ void setup() {
 |--------|-------------|
 | `int AddMotor(TIM_TypeDef *timer, uint32_t pin, uint32_t channel, DShot::Speed speed)` | Register a motor. Returns motor index (0-based), or -1 on failure. `channel` is 1-4. |
 | `bool Init(motors[], count, speed)` | Register all motors from a BoardConfig array and start timers. |
-| `void SetThrottle(int idx, uint16_t throttle, bool telemetry = false)` | Set throttle for one motor (0-2047). Not sent until `Send()`. |
-| `void SetAllThrottle(uint16_t throttle, bool telemetry = false)` | Set throttle for all motors. |
-| `void Send()` | Encode packets and trigger DMA transfers for all motors. |
+| `void SetThrottle(int idx, uint16_t throttle)` | Set throttle for one motor (0-2047). Not sent until `Send()`. |
+| `void SetAllThrottle(uint16_t throttle)` | Set throttle for all motors. |
+| `void Send()` | Encode packets and trigger DMA transfers for all motors. Non-blocking — returns immediately. |
 | `void Disarm()` | Send throttle 0 to all motors. |
+| `void SendCommand(DShot::Command cmd)` | Send a DShot command to all motors. Blocking — handles disarm, repeat count, and timing internally. |
+| `void Beep(uint8_t pattern)` | Send a beacon/beep command (pattern 1–5). Convenience wrapper for `SendCommand()`. |
+| `void Release()` | Release all DMA streams. Disables DMA hardware and unclaims streams for reuse. |
 | `bool IsTransferComplete() const` | Returns true when all DMA transfers from the last `Send()` have finished. |
+| `bool IsInitFailed() const` | Returns true if DMA initialization failed (unresolvable stream conflict). |
 | `int GetNumMotors() const` | Number of registered motors. |
 
 ### DShot Speeds
@@ -132,33 +136,6 @@ The library configures GPIO alternate functions, timer prescaler/ARR, output com
 | STM32G4 | DMAMUX | DMAR burst when 2+ motors/timer | G474RE |
 | STM32H7 | DMAMUX | DMAR burst when 2+ motors/timer | H753ZI |
 
-## Typical Usage Pattern
-
-```cpp
-DShotOutput motors;
-
-void setup() {
-  motors.AddMotor(TIM1, PA8,  1, DShot::DSHOT600);
-  motors.AddMotor(TIM1, PA9,  2, DShot::DSHOT600);
-  motors.AddMotor(TIM3, PB4,  1, DShot::DSHOT600);
-  motors.AddMotor(TIM3, PB0,  3, DShot::DSHOT600);
-}
-
-void loop() {
-  // Your control loop computes throttle values...
-  motors.SetThrottle(0, throttle_FL);
-  motors.SetThrottle(1, throttle_FR);
-  motors.SetThrottle(2, throttle_RL);
-  motors.SetThrottle(3, throttle_RR);
-  motors.Send();
-
-  // Optionally wait for completion before next iteration
-  while (!motors.IsTransferComplete()) { }
-}
-```
-
-`Send()` is non-blocking — it triggers DMA and returns immediately. Use `IsTransferComplete()` if you need to synchronize before the next send.
-
 ## Limits
 
 - Maximum 8 motors (`DShot::MAX_MOTORS`)
@@ -166,22 +143,14 @@ void loop() {
 - Output only — no bidirectional DShot (ESC-to-FC telemetry over the signal wire)
 - Timer channels 1-4 supported
 
-## Not Implemented (gaps vs Betaflight/INav)
-
-| Feature | Betaflight | INav | This Library | Notes |
-|---------|-----------|------|--------------|-------|
-| DShot commands | Yes (queue + state machine) | Yes (queue) | No | Needed for ESC config (motor direction, save settings, beep) |
-| Bidirectional DShot | Yes (bitbang + input capture) | No | No | Enables RPM telemetry over signal wire for RPM-based filtering |
-| Extended telemetry (EDT) | Yes | No | No | ESC temperature, current, voltage via bidirectional DShot |
-| `dma_release` API | N/A | N/A | No | Would allow runtime DMA reconfiguration; not needed for static motor setups |
-
 ## Examples
 
 | Example | Purpose |
 |---------|---------|
-| `DShot_Basic` | 4-motor output on TIM3/TIM4, throttle sweep |
+| `DShot_Basic` | 4-motor output on TIM3/TIM4, throttle sweep (Nucleo pin names) |
+| `DShot_Basic_FC` | BoardConfig-driven output for flight controllers (Revo, JHEF411, NERO, BetaFPV G473, MATEK H743) |
 | `DShot_Verification` | Loopback test: captures DShot output via input capture, verifies packet encoding and timing |
-| `DShot_Burst_Verification` | Validates DMAR burst mode with multiple TIM1 channels (F4/F7 only) |
+| `DShot_Burst_Verification` | Validates DMAR burst mode with multiple TIM1 channels (all families) |
 
 ## Hardware Validation
 
@@ -189,7 +158,16 @@ Packet encoding and DMA timing have been verified by loopback capture (DShot out
 
 | Board | MCU | Test | Result |
 |-------|-----|------|--------|
-| Nucleo F411RE | STM32F411 | DShot_Verification (DMA override + advanced + GP timer) | 15/15 PASS |
-| Nucleo F722ZE | STM32F722 | DShot_Verification (DMA override + advanced + GP timer) | 15/15 PASS |
-| Nucleo G474RE | STM32G474 | DShot_Verification (DMA override + advanced + GP timer) | 15/15 PASS |
-| Nucleo H753ZI | STM32H753 | DShot_Verification (DMA override + advanced + GP timer) | 15/15 PASS |
+| Nucleo F411RE | STM32F411 | DShot_Verification + DShot_Burst_Verification | 20/20 PASS |
+| Nucleo F722ZE | STM32F722 | DShot_Verification + DShot_Burst_Verification | 20/20 PASS |
+| Nucleo G474RE | STM32G474 | DShot_Verification + DShot_Burst_Verification | 20/20 PASS |
+| Nucleo H753ZI | STM32H753 | DShot_Verification + DShot_Burst_Verification | 20/20 PASS |
+
+## Not Implemented (gaps vs Betaflight/INav)
+
+| Feature | Betaflight | INav | This Library | Notes |
+|---------|-----------|------|--------------|-------|
+| DShot commands | Yes (queue + state machine) | Yes (queue) | Yes (blocking) | `SendCommand()` / `Beep()` — blocking API for `setup()`-time ESC configuration. Not designed for mid-flight command injection. |
+| `dma_release` API | N/A | N/A | Yes | `Release()` unclaims DMA streams for reuse or reconfiguration. |
+| Bidirectional DShot | Yes (bitbang + input capture) | No | No | Enables RPM telemetry over signal wire for RPM-based filtering |
+| Extended telemetry (EDT) | Yes | No | No | ESC temperature, current, voltage via bidirectional DShot |

@@ -62,6 +62,22 @@ public:
   // Send throttle 0 to all motors
   void Disarm();
 
+  // Send a DShot command to all motors (blocking).
+  // Configuration commands (direction, 3D mode, save) are sent 10 times with
+  // 1ms between repeats. Beacon commands are sent once with 100ms post-delay.
+  // Motors must be disarmed before calling. Uses delay() internally —
+  // not suitable for use during active flight control loops.
+  void SendCommand(DShot::Command cmd);
+
+  // Send a beacon/beep command (pattern 1-5). Convenience wrapper for
+  // SendCommand(CMD_BEEP1..CMD_BEEP5).
+  void Beep(uint8_t pattern = 1);
+
+  // Release all DMA streams claimed by this instance.
+  // Disables DMA hardware and unclaims streams so they can be reused.
+  // The object can be reconfigured with AddMotor()/Init() after Release().
+  void Release();
+
   // Check if all DMA transfers from the last Send() have completed
   bool IsTransferComplete() const;
 

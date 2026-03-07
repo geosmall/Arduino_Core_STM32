@@ -254,7 +254,9 @@ static int runTestPass(const TestPass &pass)
     Serial.println("FAIL: AddMotor() failed");
     return NUM_THROTTLES;
   }
-  return runVerifyLoop(dshot, 0);
+  int fails = runVerifyLoop(dshot, 0);
+  dshot.Release();
+  return fails;
 }
 
 static int runOverrideTestPass(const TestPass &pass)
@@ -265,7 +267,9 @@ static int runOverrideTestPass(const TestPass &pass)
     Serial.println("FAIL: Init() with DMA override failed");
     return NUM_THROTTLES;
   }
-  return runVerifyLoop(dshot, 0);
+  int fails = runVerifyLoop(dshot, 0);
+  dshot.Release();
+  return fails;
 }
 
 // ---------------------------------------------------------------------------

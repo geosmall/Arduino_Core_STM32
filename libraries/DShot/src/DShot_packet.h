@@ -11,6 +11,35 @@ static constexpr uint32_t BIT_1_DUTY  = 14;  // Bit 1: ~74% duty cycle
 static constexpr uint32_t BIT_PERIOD  = 19;  // Total period per bit
 static constexpr int DMA_BUF_SIZE     = 18;  // 16 data bits + 2 zero-padding (frame reset)
 
+// DShot special commands (sent in place of throttle, telemetry bit must be 1)
+// Values 0-47 are commands; 48-2047 are throttle.
+enum Command : uint8_t {
+  CMD_MOTOR_STOP               = 0,
+  CMD_BEEP1                    = 1,
+  CMD_BEEP2                    = 2,
+  CMD_BEEP3                    = 3,
+  CMD_BEEP4                    = 4,
+  CMD_BEEP5                    = 5,
+  CMD_ESC_INFO                 = 6,
+  CMD_SPIN_DIRECTION_1         = 7,
+  CMD_SPIN_DIRECTION_2         = 8,
+  CMD_3D_MODE_OFF              = 9,
+  CMD_3D_MODE_ON               = 10,
+  CMD_SAVE_SETTINGS            = 12,
+  CMD_SPIN_DIRECTION_NORMAL    = 20,
+  CMD_SPIN_DIRECTION_REVERSED  = 21,
+};
+
+static constexpr uint8_t CMD_MAX = 47;
+
+// Number of times configuration commands must be repeated
+static constexpr int CMD_REPEAT_COUNT = 10;
+
+// Timing constants (microseconds)
+static constexpr uint32_t CMD_INITIAL_DELAY_US = 10000;   // Before first command
+static constexpr uint32_t CMD_REPEAT_DELAY_US  = 1000;    // Between repeats
+static constexpr uint32_t CMD_BEEP_DELAY_US    = 100000;  // After beacon commands
+
 // DShot speed variants (timer tick frequency in Hz)
 enum Speed : uint32_t {
   DSHOT150  =  3000000,  //  3 MHz

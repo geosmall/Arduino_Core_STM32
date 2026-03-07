@@ -83,6 +83,18 @@ int dma_claim(DMA_TypeDef *dma, uint32_t stream)
   return 0;
 }
 
+int dma_release(DMA_TypeDef *dma, uint32_t stream)
+{
+  uint32_t idx = dma_get_index(dma, stream);
+  if (idx >= DMA_HANDLER_COUNT) {
+    return -1;
+  }
+  dma_handler_table[idx].callback = NULL;
+  dma_handler_table[idx].context = NULL;
+  dma_handler_table[idx].claimed = false;
+  return 0;
+}
+
 bool dma_is_claimed(DMA_TypeDef *dma, uint32_t stream)
 {
   uint32_t idx = dma_get_index(dma, stream);
