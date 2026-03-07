@@ -102,6 +102,7 @@ Board-specific configurations are defined through the variant system, allowing t
 - **STM32F411** - Primary target (Nucleo F411RE, BlackPill F411CE)
 - **STM32F405** - Secondary target (common in flight controllers)
 - **STM32F722** - Validated (NERO F7 flight controller)
+- **STM32G474** - Validated (WeAct G474 HIL-007 test rig)
 - **STM32G473** - Compile-tested (BetaFPV G473 flight controller)
 - **STM32H743** - Validated (MATEK H743-WLITE flight controller)
 
@@ -109,6 +110,7 @@ Board-specific configurations are defined through the variant system, allowing t
 - **Nucleo F411RE**: `STM32_Robotics:stm32:Nucleo_64:pnum=NUCLEO_F411RE`
 - **BlackPill F411CE**: `STM32_Robotics:stm32:GenF4:pnum=BLACKPILL_F411CE`
 - **NERO F7**: `STM32_Robotics:stm32:FlightCtr:pnum=BKMN_NERO`
+- **WeAct G474**: `STM32_Robotics:stm32:GenG4:pnum=WEACT_G474_HIL007`
 - **BetaFPV G473**: `STM32_Robotics:stm32:FlightCtr:pnum=BEFH_BETAFPVG473`
 - **MATEK H743**: `STM32_Robotics:stm32:FlightCtr:pnum=MATEK_H743VI`
 

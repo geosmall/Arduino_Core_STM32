@@ -114,7 +114,7 @@
 
 // On-board LED pin number (WeAct G474 onboard LED on PC13)
 #ifndef LED_BUILTIN
-  #define LED_BUILTIN           PC13
+  #define LED_BUILTIN           PC6
 #endif
 
 // On-board user button

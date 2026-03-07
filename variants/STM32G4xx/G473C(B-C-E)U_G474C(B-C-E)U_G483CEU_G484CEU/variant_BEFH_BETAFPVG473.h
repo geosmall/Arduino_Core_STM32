@@ -180,6 +180,12 @@
 
 #define HSE_VALUE             8000000U  // BetaFPV G473 uses 8 MHz crystal
 
+/* UF2 Bootloader double-tap reset
+ * Magic value: src/board_api.h (DBL_TAP_MAGIC)
+ * RAM address: ports/stm32g4/boards.h (BOOTUF2_DBL_TAP_REG) */
+#define BOOTUF2_DBL_TAP_MAGIC  0xf01669efUL
+#define BOOTUF2_DBL_TAP_ADDR   0x2001FFFCUL  /* Top of 128KB SRAM (CCM alias) */
+
 // Extra HAL modules
 #if !defined(HAL_DAC_MODULE_DISABLED)
   #define HAL_DAC_MODULE_ENABLED
