@@ -396,7 +396,9 @@ bool DShotOutput::IsTransferComplete() const
     for (int m = 0; m < _num_motors; m++) {
       if (_motors[m].timer == _groups[g].timer) {
 #if defined(STM32G4xx)
-        if (LL_DMA_IsEnabledChannel(_motors[m].dma, _motors[m].dma_stream))
+        // G4: EN bit doesn't auto-clear because timer DMA requests keep re-triggering.
+        // Check NDTR==0 instead — definitive indicator that all data was transferred.
+        if (LL_DMA_GetDataLength(_motors[m].dma, _motors[m].dma_stream) != 0)
           return false;
 #else
         if (LL_DMA_IsEnabledStream(_motors[m].dma, _motors[m].dma_stream))

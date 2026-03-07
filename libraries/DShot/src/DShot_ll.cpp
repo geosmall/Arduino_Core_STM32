@@ -475,7 +475,9 @@ bool allTransfersComplete(const MotorHW *motors, int count)
   // A disabled stream/channel means the transfer is done (or was never started).
   for (int i = 0; i < count; i++) {
 #if defined(STM32G4xx)
-    if (LL_DMA_IsEnabledChannel(motors[i].dma, motors[i].dma_stream))
+    // G4: EN bit doesn't auto-clear because timer DMA requests keep re-triggering.
+    // Check NDTR==0 instead — definitive indicator that all data was transferred.
+    if (LL_DMA_GetDataLength(motors[i].dma, motors[i].dma_stream) != 0)
       return false;
 #else
     if (LL_DMA_IsEnabledStream(motors[i].dma, motors[i].dma_stream))
@@ -624,7 +626,7 @@ void cleanupPreviousBurstTransfer(BurstGroup *group)
 bool burstTransferComplete(const BurstGroup *group)
 {
 #if defined(STM32G4xx)
-  return !LL_DMA_IsEnabledChannel(group->dma, group->dma_stream);
+  return LL_DMA_GetDataLength(group->dma, group->dma_stream) == 0;
 #else
   return !LL_DMA_IsEnabledStream(group->dma, group->dma_stream);
 #endif
