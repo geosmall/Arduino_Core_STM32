@@ -9,6 +9,11 @@
 // Include ConfigTypes.h from targets/config directory
 #include "../../../../targets/config/ConfigTypes.h"
 
+// UF2 bootloader config flash region (must match bootuf2 ports/stm32f7/boards.h)
+#define BOARD_FLASH_CONFIG_START  0x08008000UL
+#define BOARD_FLASH_CONFIG_SIZE   (16 * 1024)
+#define BOARD_FLASH_CONFIG_ALIGN  4
+
 // Board: NERO
 // Manufacturer: BKMN
 // MCU: STM32F7X2

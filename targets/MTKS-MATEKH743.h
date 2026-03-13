@@ -9,6 +9,11 @@
 // Include ConfigTypes.h from targets/config directory
 #include "../../../../targets/config/ConfigTypes.h"
 
+// UF2 bootloader config flash region (must match bootuf2 ports/stm32h7/boards.h)
+#define BOARD_FLASH_CONFIG_START  0x081E0000UL
+#define BOARD_FLASH_CONFIG_SIZE   (128 * 1024)
+#define BOARD_FLASH_CONFIG_ALIGN  32
+
 // Board: MATEKH743
 // Manufacturer: MTKS
 // MCU: STM32H743

@@ -1,6 +1,11 @@
 #pragma once
 #include "config/ConfigTypes.h"
 
+// UF2 bootloader config flash region (must match bootuf2 ports/stm32h7/boards.h)
+#define BOARD_FLASH_CONFIG_START  0x081E0000UL
+#define BOARD_FLASH_CONFIG_SIZE   (128 * 1024)
+#define BOARD_FLASH_CONFIG_ALIGN  32
+
 // DevEBox H743 HIL-006 Test Rig Configuration
 // Hardware: DevEBox STM32H743VIT6
 //   - IMU: ICM42688P on SPI1 (PA7/PA6/PA5, CS=PA4)
