@@ -44,8 +44,8 @@ namespace BoardConfig {
   // Status LEDs
   static constexpr LEDConfig status_leds{PB6, PB5};
 
-  // RC Receiver: IBus/SBUS (adjust protocol based on actual wiring)
-  static constexpr RCReceiverConfig rc_receiver{PA10, PA9, 115200, 1000, 300};
+  // RC Receiver: IBus/SBUS on USART3 (top-right header, see wiring diagram)
+  static constexpr RCReceiverConfig rc_receiver{PB11, PB10, 115200, 1000, 300};
 
   // Servo outputs - 50 Hz PWM for standard servos
   namespace Servo {
