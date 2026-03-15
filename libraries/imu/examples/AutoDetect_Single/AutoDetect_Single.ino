@@ -20,6 +20,8 @@
 #include "../../../../targets/BKMN-NERO.h"
 #elif defined(ARDUINO_BLACKPILL_F411CE)
 #include "../../../../targets/BLACKPILL_F411CE.h"
+#elif defined(ARDUINO_WEACT_G474_HIL007)
+#include "../../../../targets/WEACT_G474_HIL007.h"
 #else
 #include "../../../../targets/NUCLEO_F411RE_HIL001.h"
 #endif

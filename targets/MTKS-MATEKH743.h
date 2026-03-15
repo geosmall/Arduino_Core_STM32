@@ -59,8 +59,8 @@ namespace BoardConfig {
   // Status LEDs
   static constexpr LEDConfig status_leds{PE3, PE4};
 
-  // RC Receiver: IBus/SBUS (adjust protocol based on actual wiring)
-  static constexpr RCReceiverConfig rc_receiver{PA10, PA9, 115200, 1000, 300};
+  // RC Receiver: USART6 (from SERIALRX_UART)
+  static constexpr RCReceiverConfig rc_receiver{PC7, PC6, 115200, 1000, 300};
 
   // GPS: USART2 (PD5/PD6)
   static constexpr GPSConfig gps{PD5, PD6, 9600};

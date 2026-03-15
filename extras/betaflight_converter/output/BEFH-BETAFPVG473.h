@@ -1,13 +1,13 @@
 /*
  * Auto-generated BoardConfig from Betaflight target config
- * Generated: 2026-03-05 05:04:41
+ * Generated: 2026-03-15 15:29:52
  * Generator: betaflight_target_converter.py
  */
 
 #pragma once
 
 // Include ConfigTypes.h from targets/config directory
-#include "../../../targets/config/ConfigTypes.h"
+#include "config/ConfigTypes.h"
 
 // Board: BETAFPVG473
 // Manufacturer: BEFH
@@ -42,8 +42,8 @@ namespace BoardConfig {
   // Status LEDs
   static constexpr LEDConfig status_leds{PC15, PC14};
 
-  // RC Receiver: IBus/SBUS (adjust protocol based on actual wiring)
-  static constexpr RCReceiverConfig rc_receiver{PA10, PA9, 115200, 1000, 300};
+  // RC Receiver: USART3 (from SERIALRX_UART)
+  static constexpr RCReceiverConfig rc_receiver{PB11, PB10, 115200, 1000, 300};
 
   // Servo outputs - none configured
   namespace Servo {

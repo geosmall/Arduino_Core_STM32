@@ -1,6 +1,11 @@
 #pragma once
 #include "config/ConfigTypes.h"
 
+// UF2 bootloader config flash region (must match bootuf2 ports/stm32g4/boards.h)
+#define BOARD_FLASH_CONFIG_START  0x08008000UL
+#define BOARD_FLASH_CONFIG_SIZE   (16 * 1024)
+#define BOARD_FLASH_CONFIG_ALIGN  8
+
 // WeAct STM32G474CEU6 HIL-007 Test Rig Configuration
 // Hardware: WeAct G474 Core Board with breadboarded peripherals
 // Purpose: BetaFPV G473 test surrogate (same G4xx HAL, same pin assignments)
@@ -16,7 +21,7 @@ namespace BoardConfig {
   static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PB5_ALT1, PB4_ALT1, PB3_ALT1, PB9, 8000000};
 
   // IMU: ICM42688P on SPI1
-  static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 8000000};
+  static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 2000000};
   static constexpr IMUConfig imu{imu_spi, PC4, 1000000};
 
   // I2C1: Sensors
@@ -26,7 +31,7 @@ namespace BoardConfig {
   static constexpr UARTConfig uart1{PA9, PA10, 115200};
 
   // RC Receiver: IBus/SBUS on USART1 (start with loopback jumper PA9→PA10)
-  static constexpr RCReceiverConfig rc_receiver{PA10, PA9, 115200, 1000, 300};
+  static constexpr RCReceiverConfig rc_receiver{PB11, PB10, 115200, 1000, 300};
 
   // ADC: Battery voltage and current monitoring
   static constexpr ADCConfig battery{PA0, PA1, 110, 750};

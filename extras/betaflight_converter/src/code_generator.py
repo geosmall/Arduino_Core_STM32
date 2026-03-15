@@ -294,15 +294,19 @@ class BoardConfigGenerator:
 
     def _generate_rc_receiver(self) -> Optional[str]:
         """Generate RCReceiverConfig for dRehmFlight compatibility."""
-        # Use USART1 by default (adjust if needed)
         uarts = self.validator.validate_uarts()
-        uart1 = next((u for u in uarts if u.uart_num == 1), None)
-        if not uart1:
+
+        # Use SERIALRX_UART from Betaflight config if defined, else UART1
+        rx_uart_num = self.bf_config.get_serialrx_uart() or 1
+        rx_uart = next((u for u in uarts if u.uart_num == rx_uart_num), None)
+        if not rx_uart:
             return None
 
+        comment = f"  // RC Receiver: USART{rx_uart_num} (from SERIALRX_UART)" if rx_uart_num != 1 else \
+                  "  // RC Receiver: USART1 (default — no SERIALRX_UART in config)"
         lines = [
-            "  // RC Receiver: IBus/SBUS (adjust protocol based on actual wiring)",
-            f"  static constexpr RCReceiverConfig rc_receiver{{{uart1.rx}, {uart1.tx}, 115200, 1000, 300}};",
+            comment,
+            f"  static constexpr RCReceiverConfig rc_receiver{{{rx_uart.rx}, {rx_uart.tx}, 115200, 1000, 300}};",
             ""
         ]
         return "\n".join(lines)

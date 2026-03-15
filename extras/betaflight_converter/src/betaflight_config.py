@@ -49,6 +49,9 @@ class Patterns:
     # SPI instance assignments
     SPI_INSTANCE = re.compile(r'#define\s+(\w+)_SPI_INSTANCE\s+SPI(\d+)')
 
+    # Receiver UART assignment
+    SERIALRX_UART = re.compile(r'#define\s+SERIALRX_UART\s+SERIAL_PORT_USART(\d+)')
+
     # Settings as #defines
     DEFAULT_CURRENT_METER_SCALE = re.compile(
         r'#define\s+DEFAULT_CURRENT_METER_SCALE\s+(\d+)'
@@ -351,6 +354,12 @@ class BetaflightConfig:
             # Strip _DEG suffix for compatibility
             align = align.replace('_DEG', '').replace('_FLIP', '')
             self.settings[f'gyro_{gyro_num}_sensor_align'] = align
+            return
+
+        # Receiver UART
+        match = Patterns.SERIALRX_UART.match(line)
+        if match:
+            self.settings['serialrx_uart'] = match.group(1)
 
     def resolve_timers(self, pinmap):
         """
@@ -456,6 +465,11 @@ class BetaflightConfig:
         if len(pins) == 2:
             return pins
         return None
+
+    def get_serialrx_uart(self) -> Optional[int]:
+        """Get SERIALRX_UART number, or None if not defined."""
+        val = self.settings.get('serialrx_uart')
+        return int(val) if val else None
 
     def convert_pin_format(self, pin: str) -> str:
         """
