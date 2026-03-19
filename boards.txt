@@ -2897,7 +2897,7 @@ GenG4.menu.pnum.WEACT_G474_HIL007.build.variant=STM32G4xx/G473C(B-C-E)U_G474C(B-
 GenG4.menu.pnum.WEACT_G474_HIL007.build.variant_h=variant_WEACT_G474_HIL007.h
 GenG4.menu.pnum.WEACT_G474_HIL007.build.uf2_family=0x4c71240a
 GenG4.menu.pnum.WEACT_G474_HIL007.build.uf2_flash_offset=0x10000
-GenG4.menu.pnum.WEACT_G474_HIL007.build.bootloader_bin=bootuf2-weact_g474.bin
+## Dev board — no distributed bootloader (flash via J-Link)
 
 # Upload menu
 GenG4.menu.upload_method.swdMethod=STM32CubeProgrammer (SWD)
@@ -3498,7 +3498,7 @@ FlightCtr.menu.pnum.DEVEBOX_H743.build.variant_h=variant_DEVEBOX_H743.h
 FlightCtr.menu.pnum.DEVEBOX_H743.build.peripheral_pins=-DCUSTOM_PERIPHERAL_PINS
 FlightCtr.menu.pnum.DEVEBOX_H743.build.uf2_family=0x6db66082
 FlightCtr.menu.pnum.DEVEBOX_H743.build.uf2_flash_offset=0x20000
-FlightCtr.menu.pnum.DEVEBOX_H743.build.bootloader_bin=bootuf2-devebox_h743-v1.0.0.bin
+## Dev board — no distributed bootloader (flash via J-Link)
 
 # NERO F7
 FlightCtr.menu.pnum.BKMN_NERO=NERO F7 (BKMN)
@@ -3555,7 +3555,7 @@ FlightCtr.menu.pnum.BLACKPILL_F411CE_8MHZ.build.variant_h=variant_BLACKPILL_F411
 FlightCtr.menu.pnum.BLACKPILL_F411CE_8MHZ.build.peripheral_pins=-DCUSTOM_PERIPHERAL_PINS
 FlightCtr.menu.pnum.BLACKPILL_F411CE_8MHZ.build.uf2_family=0x57755a57
 FlightCtr.menu.pnum.BLACKPILL_F411CE_8MHZ.build.uf2_flash_offset=0x10000
-FlightCtr.menu.pnum.BLACKPILL_F411CE_8MHZ.build.bootloader_bin=bootuf2-blackpill_f411ce_8mhz-v1.0.0.bin
+## Dev board — no distributed bootloader (flash via J-Link)
 
 # BetaFPV G473
 FlightCtr.menu.pnum.BEFH_BETAFPVG473=BetaFPV G473 (BEFH)
@@ -3569,6 +3569,7 @@ FlightCtr.menu.pnum.BEFH_BETAFPVG473.build.variant=STM32G4xx/G473C(B-C-E)U_G474C
 FlightCtr.menu.pnum.BEFH_BETAFPVG473.build.variant_h=variant_BEFH_BETAFPVG473.h
 FlightCtr.menu.pnum.BEFH_BETAFPVG473.build.uf2_family=0x4c71240a
 FlightCtr.menu.pnum.BEFH_BETAFPVG473.build.uf2_flash_offset=0x10000
+FlightCtr.menu.pnum.BEFH_BETAFPVG473.build.bootloader_bin=bootuf2-betafpv_g473-v1.0.0.bin
 
 # Upload menu
 FlightCtr.menu.upload_method.swdMethod=STM32CubeProgrammer (SWD)
