@@ -1,42 +1,41 @@
 # UF2 Bootloaders
 
-Pre-built UF2 bootloaders for STM32 flight controller boards. These bootloaders enable drag-and-drop firmware updates via USB mass storage.
+Pre-built UF2 bootloaders for STM32 flight controller boards. These bootloaders enable drag-and-drop firmware updates and INI config storage via USB mass storage.
 
 ## Available Bootloaders
 
 | Target | MCU | HSE | File |
 |--------|-----|-----|------|
-| BlackPill F411CE | STM32F411CE | **8MHz** | `bootloader-blackpill_f411ce_8mhz-v*.bin` |
-| NOXE V3 | STM32F411CE | 8MHz | `bootloader-noxe_v3-v*.bin` |
-| Revolution F405 | STM32F405RG | 8MHz | `bootloader-revo_f405-v*.bin` |
-| NERO F7 | STM32F722RE | 8MHz | `bootloader-nero_f7-v*.bin` |
-| MATEK H743 | STM32H743VI | 8MHz | `bootloader-matek_h743-v*.bin` |
+| NOXE V3 | STM32F411CE | 8MHz | `bootuf2-noxe_v3-v*.bin` |
+| Revolution F405 | STM32F405RG | 8MHz | `bootuf2-revo_f405-v*.bin` |
+| NERO F7 | STM32F722RE | 8MHz | `bootuf2-nero_f7-v*.bin` |
+| BetaFPV G473 | STM32G473CE | 8MHz | `bootuf2-betafpv_g473-v*.bin` |
+| MATEK H743 | STM32H743VI | 8MHz | `bootuf2-matek_h743-v*.bin` |
 
-> **Important:** Bootloaders are HSE (crystal) specific. The BlackPill bootloader is for **8MHz crystal** boards (WeAct Studio). Boards with 25MHz crystals require a different bootloader build.
+> **Important:** Bootloaders are HSE (crystal) specific. Boards with different crystal frequencies require a different bootloader build.
+
+## Shared Header
+
+`ini_flash_config.h` is the shared INI config flash format used by both bootloader and application. It is copied here by `build_sync_bootloaders.sh` and included via `-I{runtime.platform.path}/bootloaders` in `platform.txt`.
 
 ## Flashing the Bootloader
-
-### Via J-Link
-
-```bash
-JLinkExe -device STM32F411CE -if SWD -speed 4000 -autoconnect 1
-> loadbin bootloader-blackpill_f411ce_8mhz-v1.0.0.bin 0x08000000
-> r
-> g
-> exit
-```
-
-### Via ST-Link (STM32CubeProgrammer)
-
-```bash
-STM32_Programmer_CLI -c port=SWD -w bootloader-blackpill_f411ce_8mhz-v1.0.0.bin 0x08000000 -v -rst
-```
 
 ### Via Arduino IDE
 
 1. Select your board in **Tools > Board**
 2. Select programmer in **Tools > Programmer** (J-Link or ST-Link)
 3. Click **Tools > Burn Bootloader**
+
+### Via J-Link
+
+```bash
+JLinkExe -device <mcu> -if SWD -speed 4000 -autoconnect 1
+> erase
+> loadbin bootuf2-<target>-v<version>.bin 0x08000000
+> r
+> g
+> exit
+```
 
 ## Bootloader Entry Methods
 
@@ -46,67 +45,29 @@ STM32_Programmer_CLI -c port=SWD -w bootloader-blackpill_f411ce_8mhz-v1.0.0.bin 
 | **CLI command** | Type `bl` in Serial Monitor | When app is running |
 | **No valid app** | Automatic | Flash is empty or corrupted |
 
-### Button Hold Entry (Primary)
-
-Works at bootloader level - no application required:
-
-1. Hold the KEY button (usually PA0 or BOOT0)
-2. Press and release RESET
-3. Release KEY button
-4. USB drive appears (e.g., `STM32F4BOOT`)
-
-### CLI Command Entry
-
-Works from running application with USB CDC serial:
-
-1. Open Serial Monitor (115200 baud)
-2. Type `bl` and press Enter
-3. Application writes magic value and resets
-4. USB drive appears
-
 ## Using the Bootloader
 
-Once in bootloader mode:
+Once in bootloader mode, a USB mass storage drive appears with:
 
-1. A USB mass storage drive appears on your computer
-2. Drag and drop a `.uf2` firmware file onto the drive
-3. The bootloader automatically flashes and reboots
+- `INFO_UF2.TXT` — bootloader version and board info
+- `CURRENT.UF2` — current application firmware (read back)
+- `CONFIG.INI` — current INI config from flash (read back)
 
-## Building UF2 Firmware
+### Firmware upload
+Drag and drop a `.uf2` firmware file onto the drive. The bootloader flashes and reboots automatically.
 
-Arduino sketches are automatically converted to UF2 format when using the **UF2 Bootloader** upload method:
-
-1. Select **Tools > Upload Method > UF2 Bootloader**
-2. Click Upload (or use the upload button)
-3. Arduino IDE creates `.uf2` file and copies it to the bootloader drive
-
-## Troubleshooting
-
-### Drive doesn't appear
-
-- Ensure bootloader is flashed correctly (verify with J-Link/ST-Link)
-- Try a different USB cable (some are charge-only)
-- Check USB connection on the board
-
-### Upload fails
-
-- Ensure the `.uf2` file is for the correct board family
-- Wait for the drive to fully mount before copying
-- Try ejecting and re-entering bootloader mode
-
-### Application doesn't start
-
-- Verify the application was compiled with correct flash offset (0x10000 for most boards)
-- Check that `BL_BOOTUF2` build flag is set in boards.txt
+### Config upload
+Config is uploaded as a UF2 file container (not raw `.ini`). Use `bootuf2/tools/ini2uf2.py` to wrap, or the Arduino IDE "Upload config.ini" method. Config write does **not** reset the board — the drive stays mounted.
 
 ## Technical Details
 
-| Property | Value |
-|----------|-------|
-| Bootloader size | ~20-28 KB |
-| App start address | 0x08010000 (64KB offset) |
-| UF2 Family IDs | F4: 0x57755a57, F7: 0x53b80f00, H7: 0x6db66082 |
-| Double-tap magic | 0xf01669ef |
+| Property | F4 | F7 | G4 | H7 |
+|----------|----|----|----|----|
+| App start address | 0x08010000 | 0x08010000 | 0x08010000 | 0x08020000 |
+| UF2 Family ID | 0x57755a57 | 0x53b80f00 | 0x4c71240a | 0x6db66082 |
+| Bootloader size | ~21 KB | ~22 KB | ~21 KB | ~35 KB |
+
+Double-tap magic: `0xf01669ef` (all families)
 
 ## License & Attribution
 
@@ -114,4 +75,4 @@ These bootloaders are built from [BootUF2](https://github.com/geosmall/bootuf2),
 [TinyUF2](https://github.com/adafruit/tinyuf2) and [TinyUSB](https://github.com/hathach/tinyusb), both under MIT License.
 
 **TinyUF2** - Copyright (c) 2020 Ha Thach
-**TinyUSB** - Copyright (c) 2018, hathach (tinyusb.org) 
+**TinyUSB** - Copyright (c) 2018, hathach (tinyusb.org)
