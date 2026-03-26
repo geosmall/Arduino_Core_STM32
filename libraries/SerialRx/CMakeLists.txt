@@ -20,6 +20,7 @@ add_library(SerialRx_bin OBJECT EXCLUDE_FROM_ALL
   src/SerialRx.cpp
   src/parsers/IBusParser.cpp
   src/parsers/SBusParser.cpp
+  src/parsers/CRSFParser.cpp
 )
 target_link_libraries(SerialRx_bin PUBLIC SerialRx_usage)
 

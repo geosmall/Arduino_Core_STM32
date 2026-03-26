@@ -63,6 +63,9 @@ bool SerialRx::begin(const Config& config) {
     case SBUS:
         parser_ = new SBusParser();
         break;
+    case CRSF:
+        parser_ = new CRSFParser();
+        break;
     case NONE:
     default:
         return false;
@@ -144,7 +147,12 @@ void SerialRx::update() {
             expect_frame_start_ = false;
 
             // After idle, first byte MUST be frame start (protocol-specific)
-            uint8_t expected_header = (protocol_ == SBUS) ? 0x0F : 0x20;
+            uint8_t expected_header;
+            switch (protocol_) {
+            case SBUS: expected_header = 0x0F; break;
+            case CRSF: expected_header = 0xC8; break;
+            default:   expected_header = 0x20; break;  // IBus
+            }
             if (byte != expected_header) {
                 // Not a valid frame start after idle → discard byte
                 continue;
@@ -211,7 +219,7 @@ void SerialRx::resetStatistics() {
 }
 
 uint16_t SerialRx::toPWM(uint16_t raw, Protocol protocol) {
-    if (protocol == SBUS) {
+    if (protocol == SBUS || protocol == CRSF) {
         // iNav formula derived from OpenTX/FrSky X4R measurements:
         // http://www.wolframalpha.com/input/?i=linear+fit+%7B173%2C+988%7D%2C+%7B1812%2C+2012%7D%2C+%7B993%2C+1500%7D
         // pwm = (sbus * 5 / 8) + 880

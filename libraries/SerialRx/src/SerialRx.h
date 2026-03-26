@@ -11,6 +11,7 @@
 #include "ProtocolParser.h"
 #include "parsers/IBusParser.h"
 #include "parsers/SBusParser.h"
+#include "parsers/CRSFParser.h"
 
 /**
  * @brief Serial RC Receiver transport layer
@@ -25,6 +26,7 @@ public:
         NONE = 0,
         IBUS,
         SBUS,
+        CRSF,
     };
 
     /**
