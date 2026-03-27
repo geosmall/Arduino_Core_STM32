@@ -22,16 +22,16 @@ This is a **fork of the STM32 Arduino Core** optimized for robotics applications
 
 | Category | Boards |
 |----------|--------|
-| Development | Nucleo F411RE, BlackPill F411CE |
-| Flight Controllers | NOXE V3 (F411), OpenPilot Revo (F405), NERO F7 (F722), MATEK H743 |
+| Development | Nucleo F411RE, BlackPill F411CE, WeAct G474 |
+| Flight Controllers | NOXE V3 (F411), OpenPilot Revo (F405), NERO F7 (F722), BetaFPV G473, MATEK H743 |
 
 ## Key Features
 
 - **Robotics Libraries**: IMU sensors, RC receivers, servo/ESC control, storage systems
 - **UF2 Bootloader Support**: Drag-and-drop firmware upload without debugger
 - **Storage Systems**: LittleFS (SPI flash), SDFS (SD card) with unified API
-- **IMU Support**: ICM42688P, MPU-6000, MPU-9250/9255 with magnetometer calibration
-- **RC Protocols**: IBus and SBUS with hardware validation
+- **IMU Support**: ICM-42688-P, MPU-6000, MPU-9250/9255 with magnetometer calibration
+- **RC Protocols**: IBus, SBUS, and CRSF with hardware validation
 - **PWM Control**: Hardware timer PWM for servos/ESCs with 1µs resolution
 
 ## Quick Start
@@ -64,12 +64,11 @@ UF2 bootloaders enable drag-and-drop firmware upload without a debugger.
 
 | Board | MCU | Bootloader |
 |-------|-----|------------|
-| BlackPill F411CE (8MHz) | STM32F411CE | `bootuf2-blackpill_f411ce_8mhz-v1.0.0.bin` |
-| NOXE V3 | STM32F411CE | `bootuf2-noxe_v3-v1.0.0.bin` |
-| OpenPilot Revo | STM32F405RG | `bootuf2-revo_f405-v1.0.0.bin` |
-| NERO F7 | STM32F722RE | `bootuf2-nero_f7-v1.0.0.bin` |
-| MATEK H743 | STM32H743VI | `bootuf2-matek_h743-v1.0.0.bin` |
-| DevEBox H743 | STM32H743VI | `bootuf2-devebox_h743-v1.0.0.bin` |
+| NOXE V3 | STM32F411CE | `bootuf2-noxe_v3-v2.0.0.bin` |
+| OpenPilot Revo | STM32F405RG | `bootuf2-revo_f405-v2.0.0.bin` |
+| NERO F7 | STM32F722RE | `bootuf2-nero_f7-v2.0.0.bin` |
+| BetaFPV G473 | STM32G473CE | `bootuf2-betafpv_g473-v2.0.0.bin` |
+| MATEK H743 | STM32H743VI | `bootuf2-matek_h743-v2.0.0.bin` |
 
 Bootloader binaries are in `bootloaders/`.
 
@@ -86,14 +85,14 @@ Bootloader binaries are in `bootloaders/`.
 
 ```bash
 # Enter DFU mode: Hold BOOT while pressing RESET
-dfu-util -a 0 -s 0x08000000:leave -D bootloaders/bootuf2-blackpill_f411ce_8mhz-v1.0.0.bin
+dfu-util -a 0 -s 0x08000000:leave -D bootloaders/bootuf2-noxe_v3-v2.0.0.bin
 ```
 
 ### Uploading via UF2
 
 After bootloader is installed:
 
-1. **Double-tap reset** - LED pulses, USB drive appears
+1. **Double-tap reset** - LED pulses, USB drive appears (only applies to dev boards with reset buttons)
 2. **Drag firmware.uf2** to the drive, or use Arduino IDE with **UF2 Bootloader** upload method
 
 ## Libraries
@@ -105,17 +104,13 @@ After bootloader is installed:
 - **minIniStorage** - INI configuration management
 
 ### Sensors
-- **IMU** - High-level wrapper for InvenSense IMUs (6-DOF and 9-DOF)
-- **ICM42688P** - TDK InvenSense 6-axis IMU with self-test
-- **ICM206xx** - ICM-20601/20602/20608/20689 support
-- **MPU6000** - MPU-6000 6-axis IMU
-- **MPU9250** - MPU-9250/9255 9-axis IMU with magnetometer
+- **IMU** - High-level wrapper for InvenSense IMUs (ICM-42688-P, MPU-6000, MPU-9250, ICM-206xx)
 - **xensiv-dps3xx** - DPS310/DPS368 barometric pressure sensor
 - **TinyGPSPlus** - NMEA GPS parser
 - **ms4525do** - MS4525DO airspeed sensor
 
 ### Control
-- **SerialRx** - RC receiver protocols (IBus, SBUS)
+- **SerialRx** - RC receiver protocols (IBus, SBUS, CRSF)
 - **TimerPWM** - Hardware PWM for servos/ESCs (1µs resolution)
 - **Scheduler** - INav-based cooperative multitasking
 
@@ -126,6 +121,7 @@ After bootloader is installed:
 - **STM32RTC** - Real-time clock
 - **CMSIS_DSP** - ARM DSP functions
 - **EmbeddedCLI** - Command-line interface
+- **DShot** - DShot digital motor protocol (150/300/600/1200)
 - **AUnit** - Unit testing framework
 - **PrecompLib** - CRC-16 utilities
 
@@ -134,20 +130,20 @@ After bootloader is installed:
 ```
 ├── cores/arduino/         # Arduino core implementation
 ├── variants/              # Board-specific pin definitions
-├── libraries/             # Robotics libraries (26 libraries)
+├── libraries/             # Robotics libraries (22 libraries)
 ├── bootloaders/           # UF2 bootloader binaries
 ├── targets/               # Board configuration headers
 ├── extras/
 │   ├── betaflight_converter/  # Betaflight → BoardConfig converter
+│   ├── dfu-util/              # DFU upload utility (multi-platform)
 │   └── uf2conv/               # UF2 format converter
 └── doc/                   # Technical documentation
 ```
 
 ## Development Status
 
-- **✅ Complete**: Storage (LittleFS, SDFS), IMU library (6-DOF/9-DOF), SerialRx (IBus, SBUS), TimerPWM
-- **✅ Complete**: UF2 bootloaders for 6 flight controller boards
-- **📋 Planned**: CRSF protocol support
+- **✅ Complete**: Storage (LittleFS, SDFS), IMU library (6-DOF/9-DOF), SerialRx (IBus, SBUS, CRSF), TimerPWM, DShot
+- **✅ Complete**: UF2 bootloaders for 5 flight controller boards
 
 ## Resources
 

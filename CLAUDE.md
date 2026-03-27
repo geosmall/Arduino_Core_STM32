@@ -19,7 +19,7 @@ This is a fork of the upstream [stm32duino/Arduino_Core_STM32](https://github.co
   - `system/extras/` - Arduino build hooks (prebuild/postbuild)
 - `libraries/` - Core STM32 + robotics libraries
   - Core: `SPI`, `Wire`, `SoftwareSerial`, `CMSIS_DSP`, `SEGGER_RTT`
-  - Robotics: `LittleFS`, `SDFS`, `Storage`, `minIniStorage`, `ICM42688P`, `imu`, `TimerPWM`, `SerialRx`, `libPrintf`, `AUnit`, `STM32RTC`
+  - Robotics: `LittleFS`, `SDFS`, `Storage`, `minIniStorage`, `imu`, `TimerPWM`, `SerialRx`, `libPrintf`, `AUnit`, `STM32RTC`
 - `targets/` - Board configuration headers (BoardConfig system)
 - `extras/` - Betaflight config converter and utilities
 - `bootloaders/` - UF2 bootloader binaries for flight controller boards
@@ -130,7 +130,6 @@ Board-specific configurations are defined through the variant system, allowing t
 - `SDFS` - SD card filesystem via SPI with FatFs backend
 - `Storage` - Generic storage abstraction for LittleFS and SDFS
 - `minIniStorage` - INI configuration management with automatic storage backend selection
-- `ICM42688P` - 6-axis IMU library with TDK InvenSense drivers and self-test
 - `imu` - High-level C++ IMU wrapper with chip detection, multi-instance support, and 9-DOF magnetometer support
 - `TimerPWM` - Hardware timer PWM for servo/ESC control with 1µs resolution
 - `libPrintf` - Embedded printf library (eyalroz/printf v6.2.0)
@@ -201,16 +200,9 @@ config.begin(BoardConfig::storage);
 config.put("section", "key", "value");
 ```
 
-### IMU Libraries
+### IMU Library
 
-**ICM42688P**: 6-axis IMU with self-test
-```cpp
-#include <ICM42688P.h>
-ICM42688P_Simple imu;
-imu.begin(spi, CS_PIN, 1000000);  // Returns 0x47 (WHO_AM_I)
-```
-
-**imu**: High-level wrapper with chip detection
+**imu**: High-level wrapper with chip detection (ICM-42688-P, MPU-6000, MPU-9250, ICM-206xx)
 ```cpp
 #include <IMU.h>
 IMU imu;
