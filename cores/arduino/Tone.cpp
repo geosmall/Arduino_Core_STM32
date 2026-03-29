@@ -59,8 +59,6 @@ static void tonePeriodElapsedCallback()
 
 /**
   * @brief  This function will reset the tone timer
-  * @param  port : pointer to port
-  * @param  pin : pin number to toggle
   * @retval None
   */
 static void timerTonePinDeinit()
@@ -103,9 +101,9 @@ static void timerTonePinInit(PinName p, uint32_t frequency, uint32_t duration)
 }
 
 // frequency (in hertz) and duration (in milliseconds).
-void tone(uint8_t _pin, unsigned int frequency, unsigned long duration)
+void tone(Pin pin, unsigned int frequency, unsigned long duration)
 {
-  PinName p = digitalPinToPinName(_pin);
+  PinName p = pin.toPinName();
 
   if (TimerTone == NULL) {
     TimerTone = new HardwareTimer(TIMER_TONE);
@@ -118,9 +116,9 @@ void tone(uint8_t _pin, unsigned int frequency, unsigned long duration)
   }
 }
 
-void noTone(uint8_t _pin, bool destruct)
+void noTone(Pin pin, bool destruct)
 {
-  PinName p = digitalPinToPinName(_pin);
+  PinName p = pin.toPinName();
   if ((p != NC) && (TimerTone_pinInfo.pin == p) && (TimerTone != NULL)) {
     if (destruct) {
       timerTonePinDeinit();
@@ -133,16 +131,16 @@ void noTone(uint8_t _pin, bool destruct)
 }
 #else
 #warning "TIMER_TONE or HAL_TIM_MODULE_ENABLED not defined"
-void tone(uint8_t _pin, unsigned int frequency, unsigned long duration)
+void tone(Pin pin, unsigned int frequency, unsigned long duration)
 {
-  UNUSED(_pin);
+  UNUSED(pin);
   UNUSED(frequency);
   UNUSED(duration);
 }
 
-void noTone(uint8_t _pin, bool destruct)
+void noTone(Pin pin, bool destruct)
 {
-  UNUSED(_pin);
+  UNUSED(pin);
   UNUSED(destruct);
 }
 #endif /* HAL_TIM_MODULE_ENABLED && TIMER_TONE && !HAL_TIM_MODULE_ONLY*/

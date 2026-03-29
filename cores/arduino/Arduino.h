@@ -42,6 +42,7 @@
 
 #ifdef __cplusplus
 #include "Pin.h"
+#include "Tone.h"
 #include "WSerial.h"
 
 // Pin-typed digital I/O
