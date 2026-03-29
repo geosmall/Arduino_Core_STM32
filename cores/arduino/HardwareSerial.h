@@ -27,6 +27,7 @@
 #include <inttypes.h>
 
 #include "Stream.h"
+#include "Pin.h"
 #include "uart.h"
 
 // Define constants and variables for buffering incoming serial data.  We're
@@ -105,10 +106,10 @@ class HardwareSerial : public Stream {
     serial_t _serial;
 
   public:
-    HardwareSerial(uint32_t _rx, uint32_t _tx, uint32_t _rts = NUM_DIGITAL_PINS, uint32_t _cts = NUM_DIGITAL_PINS);
+    HardwareSerial(Pin _rx, Pin _tx, Pin _rts = NC_PIN, Pin _cts = NC_PIN);
     HardwareSerial(PinName _rx, PinName _tx, PinName _rts = NC, PinName _cts = NC);
     HardwareSerial(void *peripheral, HalfDuplexMode_t halfDuplex = HALF_DUPLEX_DISABLED);
-    HardwareSerial(uint32_t _rxtx);
+    HardwareSerial(Pin _rxtx);
     HardwareSerial(PinName _rxtx);
     void begin(unsigned long baud)
     {
@@ -145,15 +146,15 @@ class HardwareSerial : public Stream {
       return true;
     }
 
-    void setRx(uint32_t _rx);
-    void setTx(uint32_t _tx);
+    void setRx(Pin _rx);
+    void setTx(Pin _tx);
     void setRx(PinName _rx);
     void setTx(PinName _tx);
 
     // Enable HW flow control on RTS, CTS or both
-    void setRts(uint32_t _rts);
-    void setCts(uint32_t _cts);
-    void setRtsCts(uint32_t _rts, uint32_t _cts);
+    void setRts(Pin _rts);
+    void setCts(Pin _cts);
+    void setRtsCts(Pin _rts, Pin _cts);
     void setRts(PinName _rts);
     void setCts(PinName _cts);
     void setRtsCts(PinName _rts, PinName _cts);

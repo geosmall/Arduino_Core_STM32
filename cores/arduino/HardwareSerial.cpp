@@ -115,9 +115,11 @@
 #endif // HAVE_HWSERIALx
 
 // Constructors ////////////////////////////////////////////////////////////////
-HardwareSerial::HardwareSerial(uint32_t _rx, uint32_t _tx, uint32_t _rts, uint32_t _cts)
+HardwareSerial::HardwareSerial(Pin _rx, Pin _tx, Pin _rts, Pin _cts)
 {
-  init(digitalPinToPinName(_rx), digitalPinToPinName(_tx), digitalPinToPinName(_rts), digitalPinToPinName(_cts));
+  init(_rx.toPinName(), _tx.toPinName(),
+       _rts.IsValid() ? _rts.toPinName() : NC,
+       _cts.IsValid() ? _cts.toPinName() : NC);
 }
 
 HardwareSerial::HardwareSerial(PinName _rx, PinName _tx, PinName _rts, PinName _cts)
@@ -271,7 +273,7 @@ HardwareSerial::HardwareSerial(void *peripheral, HalfDuplexMode_t halfDuplex)
                             // If PIN_SERIAL_TX is defined but Serial is mapped on other peripheral
                             // (usually SerialUSB) use the pins defined for specified peripheral
                             // instead of the first one found
-                            if ((pinmap_peripheral(digitalPinToPinName(PIN_SERIAL_TX), PinMap_UART_TX) == peripheral)) {
+                            if ((pinmap_peripheral(PIN_SERIAL_TX, PinMap_UART_TX) == peripheral)) {
 #if defined(PIN_SERIAL_RX)
                               setRx(PIN_SERIAL_RX);
 #endif
@@ -289,9 +291,9 @@ HardwareSerial::HardwareSerial(void *peripheral, HalfDuplexMode_t halfDuplex)
   init(_serial.pin_rx, _serial.pin_tx);
 }
 
-HardwareSerial::HardwareSerial(uint32_t _rxtx)
+HardwareSerial::HardwareSerial(Pin _rxtx)
 {
-  init(NC, digitalPinToPinName(_rxtx));
+  init(NC, _rxtx.toPinName());
 }
 
 HardwareSerial::HardwareSerial(PinName _rxtx)
@@ -577,14 +579,14 @@ size_t HardwareSerial::write(uint8_t c)
   return write(&buff, 1);
 }
 
-void HardwareSerial::setRx(uint32_t _rx)
+void HardwareSerial::setRx(Pin _rx)
 {
-  _serial.pin_rx = digitalPinToPinName(_rx);
+  _serial.pin_rx = _rx.toPinName();
 }
 
-void HardwareSerial::setTx(uint32_t _tx)
+void HardwareSerial::setTx(Pin _tx)
 {
-  _serial.pin_tx = digitalPinToPinName(_tx);
+  _serial.pin_tx = _tx.toPinName();
 }
 
 void HardwareSerial::setRx(PinName _rx)
@@ -597,20 +599,20 @@ void HardwareSerial::setTx(PinName _tx)
   _serial.pin_tx = _tx;
 }
 
-void HardwareSerial::setRts(uint32_t _rts)
+void HardwareSerial::setRts(Pin _rts)
 {
-  _serial.pin_rts = digitalPinToPinName(_rts);
+  _serial.pin_rts = _rts.toPinName();
 }
 
-void HardwareSerial::setCts(uint32_t _cts)
+void HardwareSerial::setCts(Pin _cts)
 {
-  _serial.pin_cts = digitalPinToPinName(_cts);
+  _serial.pin_cts = _cts.toPinName();
 }
 
-void HardwareSerial::setRtsCts(uint32_t _rts, uint32_t _cts)
+void HardwareSerial::setRtsCts(Pin _rts, Pin _cts)
 {
-  _serial.pin_rts = digitalPinToPinName(_rts);
-  _serial.pin_cts = digitalPinToPinName(_cts);
+  _serial.pin_rts = _rts.toPinName();
+  _serial.pin_cts = _cts.toPinName();
 }
 
 void HardwareSerial::setRts(PinName _rts)
