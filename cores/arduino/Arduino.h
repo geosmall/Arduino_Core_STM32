@@ -29,30 +29,39 @@
   #error "GCC version 6.3 or higher is required"
 #endif
 
-#ifdef __IN_ECLIPSE__
-  #include "SrcWrapper.h"
+#include <stdint.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <string.h>
+#include <math.h>
+
+#include "stm32_def.h"
+#include "wiring_constants.h"
+#include "wiring_time.h"
+#include "stm32/digital_io.h"
+
+#ifdef __cplusplus
+#include "Pin.h"
+#include "WSerial.h"
+
+// Pin-typed digital I/O
+void pinMode(Pin pin, uint32_t mode);
+void digitalWrite(Pin pin, uint32_t val);
+int  digitalRead(Pin pin);
+void digitalToggle(Pin pin);
 #endif
-
-#include "wiring.h"
-
-/* sketch */
 
 #ifdef __cplusplus
 extern "C" {
-#endif // __cplusplus
-// Weak empty variant initialization function.
-// May be redefined by variant files.
+#endif
 extern void initVariant() __attribute__((weak));
-
-extern void setup(void) ;
-extern void loop(void) ;
-
+extern void setup(void);
+extern void loop(void);
 void yield(void);
 #ifdef __cplusplus
-} // extern "C"
-#endif // __cplusplus
+}
+#endif
 
-// Include pins variant
 #include "pins_arduino.h"
 
 #endif // Arduino_h
