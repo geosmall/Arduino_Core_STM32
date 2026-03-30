@@ -75,6 +75,19 @@ Nucleo_64.menu.pnum.NUCLEO_F411RE.build.series=STM32F4xx
 Nucleo_64.menu.pnum.NUCLEO_F411RE.build.product_line=STM32F411xE
 Nucleo_64.menu.pnum.NUCLEO_F411RE.build.variant=STM32F4xx/F411R(C-E)T
 
+# NUCLEO_G474RE board
+Nucleo_64.menu.pnum.NUCLEO_G474RE=Nucleo G474RE
+Nucleo_64.menu.pnum.NUCLEO_G474RE.node=NODE_G474RE
+Nucleo_64.menu.pnum.NUCLEO_G474RE.upload.maximum_size=524288
+Nucleo_64.menu.pnum.NUCLEO_G474RE.upload.maximum_data_size=131072
+Nucleo_64.menu.pnum.NUCLEO_G474RE.build.mcu=cortex-m4
+Nucleo_64.menu.pnum.NUCLEO_G474RE.build.fpu=-mfpu=fpv4-sp-d16
+Nucleo_64.menu.pnum.NUCLEO_G474RE.build.float-abi=-mfloat-abi=hard
+Nucleo_64.menu.pnum.NUCLEO_G474RE.build.board=NUCLEO_G474RE
+Nucleo_64.menu.pnum.NUCLEO_G474RE.build.series=STM32G4xx
+Nucleo_64.menu.pnum.NUCLEO_G474RE.build.product_line=STM32G474xx
+Nucleo_64.menu.pnum.NUCLEO_G474RE.build.variant=STM32G4xx/G473R(B-C-E)T_G474R(B-C-E)T_G483RET_G484RET
+
 # Upload menu
 Nucleo_64.menu.upload_method.swdMethod=STM32CubeProgrammer (SWD)
 Nucleo_64.menu.upload_method.swdMethod.upload.protocol=0

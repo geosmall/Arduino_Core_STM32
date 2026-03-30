@@ -27,7 +27,9 @@ struct Pin {
     constexpr bool operator!=(const Pin& rhs) const { return !(*this == rhs); }
 
     // Explicit conversion to PinName for HAL boundary crossings
-    constexpr PinName toPinName() const { return (PinName)((port << 4) | pin); }
+    constexpr PinName toPinName() const {
+        return IsValid() ? (PinName)((port << 4) | pin) : NC;
+    }
 };
 
 // Invalid sentinel

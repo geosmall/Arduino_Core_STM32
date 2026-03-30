@@ -60,6 +60,13 @@ extern "C" {
 #endif
 #define portConfigRegister(P)       (portModeRegister(P))
 
+/* SPI pin convenience aliases — used by Arduino libraries */
+#ifdef __cplusplus
+static constexpr Pin MOSI = PIN_SPI_MOSI;
+static constexpr Pin MISO = PIN_SPI_MISO;
+static constexpr Pin SCK  = PIN_SPI_SCK;
+#endif
+
 /* Default definitions */
 #ifndef ADC_RESOLUTION
   #define ADC_RESOLUTION            10
