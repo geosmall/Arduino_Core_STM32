@@ -118,13 +118,7 @@
 HardwareSerial::HardwareSerial(Pin _rx, Pin _tx, Pin _rts, Pin _cts)
 {
   init(_rx.toPinName(), _tx.toPinName(),
-       _rts.IsValid() ? _rts.toPinName() : NC,
-       _cts.IsValid() ? _cts.toPinName() : NC);
-}
-
-HardwareSerial::HardwareSerial(PinName _rx, PinName _tx, PinName _rts, PinName _cts)
-{
-  init(_rx, _tx, _rts, _cts);
+       _rts.toPinName(), _cts.toPinName());
 }
 
 HardwareSerial::HardwareSerial(void *peripheral, HalfDuplexMode_t halfDuplex)
@@ -273,7 +267,7 @@ HardwareSerial::HardwareSerial(void *peripheral, HalfDuplexMode_t halfDuplex)
                             // If PIN_SERIAL_TX is defined but Serial is mapped on other peripheral
                             // (usually SerialUSB) use the pins defined for specified peripheral
                             // instead of the first one found
-                            if ((pinmap_peripheral(PIN_SERIAL_TX, PinMap_UART_TX) == peripheral)) {
+                            if ((pinmap_peripheral(PIN_SERIAL_TX.toPinName(), PinMap_UART_TX) == peripheral)) {
 #if defined(PIN_SERIAL_RX)
                               setRx(PIN_SERIAL_RX);
 #endif
@@ -288,17 +282,24 @@ HardwareSerial::HardwareSerial(void *peripheral, HalfDuplexMode_t halfDuplex)
   if (halfDuplex == HALF_DUPLEX_ENABLED) {
     _serial.pin_rx = NC;
   }
+
+  /* Register debug UART at runtime so uart.c doesn't need PIN_SERIAL_TX
+   * at compile time (which forced PinName values in variant headers).
+   * Guard must match the pin-setup guard above (lines 131-132). */
+#if defined(Serial) && defined(PIN_SERIAL_TX)
+#if !defined(USBCON) || defined(USBD_USE_CDC) && defined(DISABLE_GENERIC_SERIALUSB)
+  if ((void *)this == (void *)&Serial) {
+    uart_set_debug((USART_TypeDef *)peripheral, _serial.pin_tx);
+  }
+#endif
+#endif
+
   init(_serial.pin_rx, _serial.pin_tx);
 }
 
 HardwareSerial::HardwareSerial(Pin _rxtx)
 {
   init(NC, _rxtx.toPinName());
-}
-
-HardwareSerial::HardwareSerial(PinName _rxtx)
-{
-  init(NC, _rxtx);
 }
 
 void HardwareSerial::init(PinName _rx, PinName _tx, PinName _rts, PinName _cts)
@@ -589,16 +590,6 @@ void HardwareSerial::setTx(Pin _tx)
   _serial.pin_tx = _tx.toPinName();
 }
 
-void HardwareSerial::setRx(PinName _rx)
-{
-  _serial.pin_rx = _rx;
-}
-
-void HardwareSerial::setTx(PinName _tx)
-{
-  _serial.pin_tx = _tx;
-}
-
 void HardwareSerial::setRts(Pin _rts)
 {
   _serial.pin_rts = _rts.toPinName();
@@ -613,22 +604,6 @@ void HardwareSerial::setRtsCts(Pin _rts, Pin _cts)
 {
   _serial.pin_rts = _rts.toPinName();
   _serial.pin_cts = _cts.toPinName();
-}
-
-void HardwareSerial::setRts(PinName _rts)
-{
-  _serial.pin_rts = _rts;
-}
-
-void HardwareSerial::setCts(PinName _cts)
-{
-  _serial.pin_cts = _cts;
-}
-
-void HardwareSerial::setRtsCts(PinName _rts, PinName _cts)
-{
-  _serial.pin_rts = _rts;
-  _serial.pin_cts = _cts;
 }
 
 void HardwareSerial::setHalfDuplex(void)

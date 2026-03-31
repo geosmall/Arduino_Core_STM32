@@ -43,13 +43,21 @@
 #endif
 
 // Default pin used for generic 'Serial' instance
-// PinName values (PA_2 not PA2) — uart.c is a C file that uses these via
-// digitalPinToPinName(), which needs a PinName enum, not a Pin constexpr
+// Pin-style names (PA2 not PA_2) — debug UART is now registered at runtime
+// via uart_set_debug(), so uart.c no longer needs these at compile time
 #ifndef PIN_SERIAL_RX
-  #define PIN_SERIAL_RX           PA_3
+  #define PIN_SERIAL_RX           PA3
 #endif
 #ifndef PIN_SERIAL_TX
-  #define PIN_SERIAL_TX           PA_2
+  #define PIN_SERIAL_TX           PA2
+#endif
+
+// I2C Definitions — I2C1 on Arduino connector D14/D15
+#ifndef PIN_WIRE_SDA
+  #define PIN_WIRE_SDA            PB9
+#endif
+#ifndef PIN_WIRE_SCL
+  #define PIN_WIRE_SCL            PB8
 #endif
 
 // Required by core

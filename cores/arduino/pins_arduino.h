@@ -67,6 +67,12 @@ static constexpr Pin MISO = PIN_SPI_MISO;
 static constexpr Pin SCK  = PIN_SPI_SCK;
 #endif
 
+/* I2C pin convenience aliases — used by Wire library */
+#if defined(__cplusplus) && defined(PIN_WIRE_SDA) && defined(PIN_WIRE_SCL)
+static constexpr Pin SDA = PIN_WIRE_SDA;
+static constexpr Pin SCL = PIN_WIRE_SCL;
+#endif
+
 /* Default definitions */
 #ifndef ADC_RESOLUTION
   #define ADC_RESOLUTION            10

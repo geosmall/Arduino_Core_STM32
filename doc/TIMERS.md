@@ -73,7 +73,7 @@ void setOverflow(uint32_t val, TimerFormat_t format = TICK_FORMAT);
 uint32_t getOverflow(TimerFormat_t format = TICK_FORMAT);
 
 // Channel mode configuration (PWM, input capture, etc.)
-void setMode(uint32_t channel, TimerModes_t mode, PinName pin = NC);
+void setMode(uint32_t channel, TimerModes_t mode, Pin pin = NC_PIN);
 TimerModes_t getMode(uint32_t channel);
 
 // Compare value (duty cycle for PWM)
@@ -86,7 +86,7 @@ uint32_t getCaptureCompare(uint32_t channel,
 ### All-in-One PWM Configuration
 
 ```cpp
-void setPWM(uint32_t channel, PinName pin,
+void setPWM(uint32_t channel, Pin pin,
             uint32_t frequency, uint32_t dutycycle,
             callback_function_t PeriodCallback = nullptr,
             callback_function_t CompareCallback = nullptr);
@@ -581,7 +581,7 @@ float pulse_width_us = (CCR1 * 1000000.0) / f_counter;
 **Step 5: Start PWM**
 
 ```cpp
-tim3->setMode(1, TIMER_OUTPUT_COMPARE_PWM1, PA_6);  // TIM3_CH1
+tim3->setMode(1, TIMER_OUTPUT_COMPARE_PWM1, PA6);  // TIM3_CH1
 tim3->resume();
 ```
 
@@ -592,7 +592,7 @@ Input Clock: 50 MHz (from RCC)
 PSC = 49  →  Counter: 1 MHz (1 µs ticks)
 ARR = 999  →  PWM Frequency: 1 kHz (1 ms period)
 CCR1 = 499  →  Duty Cycle: 49.95% (499 µs high, 500 µs low)
-Output: PA_6 (TIM3_CH1)
+Output: PA6 (TIM3_CH1)
 ```
 
 ### Example Calculation: Servo Control (50 Hz, 1500 µs)
@@ -620,7 +620,7 @@ uint32_t pulse_us = 1500;
 servo_tim->setCaptureCompare(1, pulse_us, MICROSEC_COMPARE_FORMAT);
 
 // Step 5: Start PWM
-servo_tim->setMode(1, TIMER_OUTPUT_COMPARE_PWM1, PA_6);
+servo_tim->setMode(1, TIMER_OUTPUT_COMPARE_PWM1, PA6);
 servo_tim->resume();
 
 // Verification:
@@ -652,7 +652,7 @@ esc_tim->setOverflow(period_us, MICROSEC_FORMAT);  // ARR = 2499
 esc_tim->setCaptureCompare(1, 1250, MICROSEC_COMPARE_FORMAT);
 
 // Step 5: Start PWM
-esc_tim->setMode(1, TIMER_OUTPUT_COMPARE_PWM1, PA_0);  // TIM5_CH1
+esc_tim->setMode(1, TIMER_OUTPUT_COMPARE_PWM1, PA0);  // TIM5_CH1
 esc_tim->resume();
 
 // Verification:
@@ -726,10 +726,10 @@ quad_esc->setPrescaleFactor(PSC);
 quad_esc->setOverflow(2500, MICROSEC_FORMAT);     // 400 Hz
 
 // Configure all 4 channels
-quad_esc->setMode(1, TIMER_OUTPUT_COMPARE_PWM1, PA_6);  // Motor 1
-quad_esc->setMode(2, TIMER_OUTPUT_COMPARE_PWM1, PA_7);  // Motor 2
-quad_esc->setMode(3, TIMER_OUTPUT_COMPARE_PWM1, PB_0);  // Motor 3
-quad_esc->setMode(4, TIMER_OUTPUT_COMPARE_PWM1, PB_1);  // Motor 4
+quad_esc->setMode(1, TIMER_OUTPUT_COMPARE_PWM1, PA6);  // Motor 1
+quad_esc->setMode(2, TIMER_OUTPUT_COMPARE_PWM1, PA7);  // Motor 2
+quad_esc->setMode(3, TIMER_OUTPUT_COMPARE_PWM1, PB0);  // Motor 3
+quad_esc->setMode(4, TIMER_OUTPUT_COMPARE_PWM1, PB1);  // Motor 4
 
 // Independent throttle control
 quad_esc->setCaptureCompare(1, 1100, MICROSEC_COMPARE_FORMAT);  // Front-left
@@ -773,7 +773,7 @@ MyTim->setOverflow(period_us, MICROSEC_FORMAT);
 ### Simple PWM (All-in-One)
 
 ```cpp
-#define pin PA_6  // TIM3_CH1
+#define pin PA6  // TIM3_CH1
 
 void setup() {
   TIM_TypeDef *Instance = (TIM_TypeDef *)pinmap_peripheral(
@@ -803,10 +803,10 @@ void setup() {
   timer->setOverflow(1000, MICROSEC_FORMAT);  // 1000 µs = 1 kHz
 
   // 2. Configure channels
-  timer->setMode(1, TIMER_OUTPUT_COMPARE_PWM1, PA_6);  // CH1
-  timer->setMode(2, TIMER_OUTPUT_COMPARE_PWM1, PA_7);  // CH2
-  timer->setMode(3, TIMER_OUTPUT_COMPARE_PWM1, PB_0);  // CH3
-  timer->setMode(4, TIMER_OUTPUT_COMPARE_PWM1, PB_1);  // CH4
+  timer->setMode(1, TIMER_OUTPUT_COMPARE_PWM1, PA6);  // CH1
+  timer->setMode(2, TIMER_OUTPUT_COMPARE_PWM1, PA7);  // CH2
+  timer->setMode(3, TIMER_OUTPUT_COMPARE_PWM1, PB0);  // CH3
+  timer->setMode(4, TIMER_OUTPUT_COMPARE_PWM1, PB1);  // CH4
 
   // 3. Set initial pulse widths
   timer->setCaptureCompare(1, 1500, MICROSEC_COMPARE_FORMAT);  // 1.5 ms
@@ -852,7 +852,7 @@ void loop() {
 ```cpp
 class ServoChannel {
 public:
-  ServoChannel(HardwareTimer *timer, uint32_t channel, PinName pin)
+  ServoChannel(HardwareTimer *timer, uint32_t channel, Pin pin)
     : _timer(timer), _channel(channel) {
     _timer->setMode(channel, TIMER_OUTPUT_COMPARE_PWM1, pin);
   }
@@ -881,8 +881,8 @@ void setup() {
   timer->setPrescaleFactor((timer->getTimerClkFreq() / 1'000'000) - 1);
   timer->setOverflow(20000, MICROSEC_FORMAT);  // 20 ms = 50 Hz
 
-  servo1 = ServoChannel(timer, 1, PA_6);  // TIM3_CH1
-  servo2 = ServoChannel(timer, 2, PA_7);  // TIM3_CH2
+  servo1 = ServoChannel(timer, 1, PA6);  // TIM3_CH1
+  servo2 = ServoChannel(timer, 2, PA7);  // TIM3_CH2
 
   timer->resume();
 }
@@ -926,7 +926,7 @@ void compare_callback() {
 void setup() {
   HardwareTimer *timer = new HardwareTimer(TIM3);
   timer->setOverflow(1000, MICROSEC_FORMAT);
-  timer->setMode(1, TIMER_OUTPUT_COMPARE_PWM1, PA_6);
+  timer->setMode(1, TIMER_OUTPUT_COMPARE_PWM1, PA6);
   timer->setCaptureCompare(1, 500, MICROSEC_COMPARE_FORMAT);
 
   timer->attachInterrupt(compare_callback);           // Overflow callback
@@ -1066,15 +1066,15 @@ void setup() {
   // TIM3: 4 servos @ 50 Hz (20 ms period)
   tim3->setPrescaleFactor((tim3->getTimerClkFreq() / 1'000'000) - 1);
   tim3->setOverflow(20000, MICROSEC_FORMAT);
-  tim3->setMode(1, TIMER_OUTPUT_COMPARE_PWM1, PA_6);  // Servo 1
-  tim3->setMode(2, TIMER_OUTPUT_COMPARE_PWM1, PA_7);  // Servo 2
+  tim3->setMode(1, TIMER_OUTPUT_COMPARE_PWM1, PA6);  // Servo 1
+  tim3->setMode(2, TIMER_OUTPUT_COMPARE_PWM1, PA7);  // Servo 2
   tim3->resume();
 
   // TIM5: 4 ESCs @ 400 Hz (2.5 ms period)
   tim5->setPrescaleFactor((tim5->getTimerClkFreq() / 1'000'000) - 1);
   tim5->setOverflow(2500, MICROSEC_FORMAT);
-  tim5->setMode(1, TIMER_OUTPUT_COMPARE_PWM1, PA_0);  // ESC 1
-  tim5->setMode(2, TIMER_OUTPUT_COMPARE_PWM1, PA_1);  // ESC 2
+  tim5->setMode(1, TIMER_OUTPUT_COMPARE_PWM1, PA0);  // ESC 1
+  tim5->setMode(2, TIMER_OUTPUT_COMPARE_PWM1, PA1);  // ESC 2
   tim5->resume();
 }
 ```
@@ -1118,10 +1118,10 @@ if (instance == NP) {
 
 ```cpp
 // ❌ UNNECESSARY: HardwareTimer configures GPIO automatically
-pinMode(PA_6, OUTPUT);
+pinMode(PA6, OUTPUT);
 
 // ✅ GOOD: Just use setMode() or setPWM()
-timer->setMode(1, TIMER_OUTPUT_COMPARE_PWM1, PA_6);
+timer->setMode(1, TIMER_OUTPUT_COMPARE_PWM1, PA6);
 ```
 
 ### 4. Call refresh() After Multiple Updates

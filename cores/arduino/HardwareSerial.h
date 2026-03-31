@@ -107,10 +107,8 @@ class HardwareSerial : public Stream {
 
   public:
     HardwareSerial(Pin _rx, Pin _tx, Pin _rts = NC_PIN, Pin _cts = NC_PIN);
-    HardwareSerial(PinName _rx, PinName _tx, PinName _rts = NC, PinName _cts = NC);
     HardwareSerial(void *peripheral, HalfDuplexMode_t halfDuplex = HALF_DUPLEX_DISABLED);
     HardwareSerial(Pin _rxtx);
-    HardwareSerial(PinName _rxtx);
     void begin(unsigned long baud)
     {
       begin(baud, SERIAL_8N1);
@@ -148,16 +146,11 @@ class HardwareSerial : public Stream {
 
     void setRx(Pin _rx);
     void setTx(Pin _tx);
-    void setRx(PinName _rx);
-    void setTx(PinName _tx);
 
     // Enable HW flow control on RTS, CTS or both
     void setRts(Pin _rts);
     void setCts(Pin _cts);
     void setRtsCts(Pin _rts, Pin _cts);
-    void setRts(PinName _rts);
-    void setCts(PinName _cts);
-    void setRtsCts(PinName _rts, PinName _cts);
 
     // Enable half-duplex mode by setting the Rx pin to NC
     // This needs to be done before the call to begin()

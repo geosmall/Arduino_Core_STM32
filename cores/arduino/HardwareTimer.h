@@ -135,14 +135,12 @@ class HardwareTimer {
     void setOverflow(uint32_t val, TimerFormat_t format = TICK_FORMAT); // set AutoReload register depending on format provided
     uint32_t getOverflow(TimerFormat_t format = TICK_FORMAT); // return overflow depending on format provided
 
-    void setPWM(uint32_t channel, PinName pin, uint32_t frequency, uint32_t dutycycle, callback_function_t PeriodCallback = nullptr, callback_function_t CompareCallback = nullptr);
     void setPWM(uint32_t channel, Pin pin, uint32_t frequency, uint32_t dutycycle, callback_function_t PeriodCallback = nullptr, callback_function_t CompareCallback = nullptr);
 
     void setCount(uint32_t val, TimerFormat_t format = TICK_FORMAT); // set timer counter to value 'val' depending on format provided
     uint32_t getCount(TimerFormat_t format = TICK_FORMAT);  // return current counter value of timer depending on format provided
 
-    void setMode(uint32_t channel, TimerModes_t mode, PinName pin = NC, ChannelInputFilter_t filter = FILTER_NONE);
-    void setMode(uint32_t channel, TimerModes_t mode, Pin pin, ChannelInputFilter_t filter = FILTER_NONE);
+    void setMode(uint32_t channel, TimerModes_t mode, Pin pin = NC_PIN, ChannelInputFilter_t filter = FILTER_NONE);
 
     TimerModes_t getMode(uint32_t channel);  // Retrieve configured mode
 
