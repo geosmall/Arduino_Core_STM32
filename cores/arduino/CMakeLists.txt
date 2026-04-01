@@ -40,7 +40,7 @@ add_library(core_bin STATIC EXCLUDE_FROM_ALL
   Tone.cpp
   USBSerial.cpp
   WInterrupts.cpp
-  wiring_analog.c
+  wiring_analog.cpp
   wiring_digital.c
   wiring_pulse.cpp
   wiring_shift.c

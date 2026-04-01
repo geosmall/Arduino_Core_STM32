@@ -50,7 +50,7 @@ This eliminates circular dependencies by keeping configuration external to the c
 ├── NUCLEO_F411RE_SDFS.h         # Development board with SDFS storage
 ├── BLACKPILL_F411CE.h           # BlackPill F411CE board configuration
 ├── NOXE_V3.h                    # Production flight controller configuration
-└── PIN_USE.md                   # Pin usage documentation
+└── (see doc/PIN_USE.md)         # Pin system reference (moved to doc/)
 ```
 
 ### Configuration Framework

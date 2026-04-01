@@ -4,7 +4,7 @@
 
 ### Problem
 
-`pinmap_function(pin, PinMap_TIM)` returns the **first** match for a pin in `PeripheralPins.c`. When a pin has multiple timer functions, the second (and subsequent) functions are listed under ALT pin names (`PB_0_ALT1`, `PB_0_ALT2`, etc.) — separate PinName values that `digitalPinToPinName()` never returns.
+`pinmap_function(pin, PinMap_TIM)` returns the **first** match for a pin in `PeripheralPins.c`. When a pin has multiple timer functions, the second (and subsequent) functions are listed under ALT pin names (`PB_0_ALT1`, `PB_0_ALT2`, etc.) — separate PinName values that neither `Pin::toPinName()` nor the compatibility shim `digitalPinToPinName()` ever produce.
 
 Example from `variants/STM32F4xx/F411R(C-E)T/PeripheralPins.c`:
 
@@ -13,41 +13,42 @@ Example from `variants/STM32F4xx/F411R(C-E)T/PeripheralPins.c`:
 {PB_0_ALT1, TIM3, STM_PIN_DATA_EXT(..., GPIO_AF2_TIM3, 3, 0)}, // TIM3_CH3   ← unreachable via PB_0
 ```
 
-Any code that does `pinmap_function(digitalPinToPinName(PB0), PinMap_TIM)` gets AF1 (TIM1_CH2N), even when it intended TIM3_CH3. The GPIO is configured for the wrong timer and produces no output.
+Calling `pinmap_function(PB0.toPinName(), PinMap_TIM)` gets AF1 (TIM1_CH2N), even when TIM3_CH3 was intended. The GPIO is configured for the wrong timer and produces no output.
 
 ### Symptom
 
 Timer output appears dead on a pin that should work. No signal, no edges. The timer is running, DMA is transferring, but the pin's alternate function routes to a different timer than intended.
 
-### Fix Pattern
+### Fix: Peripheral-Aware Lookup
 
-When you know which timer you want, iterate `PinMap_TIM` matching both the physical pin AND the timer peripheral:
+Use `pinmap_function_for_peripheral()` or `pinmap_pinout_for_peripheral()` instead of the bare `pinmap_function()`. These match both the physical pin AND the target peripheral, skipping ALT boundaries automatically:
 
 ```cpp
-const PinMap *map = PinMap_TIM;
-uint32_t function = 0;
-while (map->pin != NC) {
-    if (map->peripheral == timer &&
-        STM_PORT(map->pin) == STM_PORT(pin_name) &&
-        STM_PIN(map->pin) == STM_PIN(pin_name)) {
-        function = map->function;
-        break;
-    }
-    map++;
-}
+// Get AF for a specific timer on a specific pin
+PinName pn = pin.toPinName();
+uint32_t function = pinmap_function_for_peripheral(pn, TIM3, PinMap_TIM);
+
+// Configure GPIO AF for a specific timer on a specific pin
+pinmap_pinout_for_peripheral(pn, TIM3, PinMap_TIM);
 ```
 
-`STM_PORT()` and `STM_PIN()` mask off the ALT bits, so this matches both `PB_0` and `PB_0_ALT1` entries for the same physical pin.
+Internally these iterate the PinMap table using `STM_PORT()` / `STM_PIN()` to mask off ALT bits, so they match `PB_0_ALT1` entries when the peripheral matches — without the caller ever needing ALT-encoded PinName values.
 
-### Where This Is Already Fixed
+Declared in `cores/arduino/stm32/pinmap.h`, implemented in `pinmap.c`.
 
-- `DShot_ll.cpp::initGPIO()` — iterates PinMap_TIM matching pin + timer
+### Where This Is Used
+
+- `HardwareTimer::setMode()` — uses `pinmap_pinout_for_peripheral()` for GPIO AF setup and `pinmap_function_for_peripheral()` for complementary channel detection
+- `timer.c::getTimerChannel()` — uses `pinmap_function_for_peripheral()` to resolve channel + AF for a specific timer instance
+
+**Legacy manual iteration** (pre-M3): `DShot_ll.cpp::initGPIO()` still iterates PinMap_TIM directly. Can be migrated to the API above.
 
 ### How to Diagnose
 
 1. Check `PeripheralPins.c` for the target variant — grep for the pin name (e.g., `PB_0`)
-2. Look for `_ALT` variants — if the desired timer is under an ALT name, `pinmap_function()` won't find it
+2. Look for `_ALT` variants — if the desired timer is under an ALT name, bare `pinmap_function()` won't find it
 3. The first entry listed for the base pin name is what `pinmap_function()` returns
+4. If using `pinmap_function_for_peripheral()`, the ALT issue is handled — verify the peripheral pointer is correct instead
 
 ### Files to Check
 

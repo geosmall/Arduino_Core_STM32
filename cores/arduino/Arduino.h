@@ -38,6 +38,7 @@
 #include "stm32_def.h"
 #include "wiring_constants.h"
 #include "wiring_time.h"
+#include "wiring_analog.h"
 #include "stm32/digital_io.h"
 
 #ifdef __cplusplus
@@ -50,6 +51,10 @@ void pinMode(Pin pin, uint32_t mode);
 void digitalWrite(Pin pin, uint32_t val);
 int  digitalRead(Pin pin);
 void digitalToggle(Pin pin);
+
+// Pin-typed analog I/O
+uint32_t analogRead(Pin pin);
+void     analogWrite(Pin pin, uint32_t value);
 #endif
 
 #ifdef __cplusplus

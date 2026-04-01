@@ -9,8 +9,8 @@
 #include "stm32/PinConfigured.h"
 #include "stm32/analog.h"
 
-// Owned here until wiring_analog.cpp is created in M6
-uint32_t g_anOutputPinConfigured[MAX_NB_PORT] = {0};
+// Defined in wiring_analog.cpp, shared for pinMode DAC/PWM teardown
+extern uint32_t g_anOutputPinConfigured[MAX_NB_PORT];
 
 void pinMode(Pin pin, uint32_t ulMode)
 {
