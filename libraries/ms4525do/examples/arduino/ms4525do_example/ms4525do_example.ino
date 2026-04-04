@@ -29,7 +29,7 @@ bfs::Ms4525do pres;
 
 void setup() {
   /* Serial to display data */
-  Serial.begin(9600);
+  Serial.begin(115200);
   while(!Serial){}
   Wire.begin();
   Wire.setClock(400000);

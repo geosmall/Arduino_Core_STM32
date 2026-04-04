@@ -38,7 +38,7 @@ const Pin dataReadyPin = PA6;
 const Pin chipSelectPin = PA7;
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   // start the SPI library:
   SPI.begin();
