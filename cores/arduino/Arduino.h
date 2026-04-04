@@ -29,22 +29,12 @@
   #error "GCC version 6.3 or higher is required"
 #endif
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <string.h>
-#include <math.h>
-
 #include "stm32_def.h"
-#include "wiring_constants.h"
-#include "wiring_time.h"
-#include "wiring_analog.h"
+#include "wiring.h"
 #include "stm32/digital_io.h"
 
 #ifdef __cplusplus
 #include "Pin.h"
-#include "Tone.h"
-#include "WSerial.h"
 
 // Pin-typed digital I/O
 void pinMode(Pin pin, uint32_t mode);

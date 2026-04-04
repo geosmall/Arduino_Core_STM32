@@ -69,12 +69,12 @@ namespace BoardConfig {
 
     // Motor array - hardware timer assignments from Betaflight config
     static constexpr MotorConfig motors[] = {
-      {TIM3, PB0_ALT1, 3, 125, 250},  // Motor 1: TIM3_CH3
-      {TIM3, PB1_ALT1, 4, 125, 250},  // Motor 2: TIM3_CH4
+      {TIM3, PB0, 3, 125, 250},  // Motor 1: TIM3_CH3
+      {TIM3, PB1, 4, 125, 250},  // Motor 2: TIM3_CH4
       {TIM2, PA3, 4, 125, 250},  // Motor 3: TIM2_CH4
       {TIM2, PA2, 3, 125, 250},  // Motor 4: TIM2_CH3
-      {TIM5, PA1_ALT1, 2, 125, 250},  // Motor 5: TIM5_CH2
-      {TIM5, PA0_ALT1, 1, 125, 250},  // Motor 6: TIM5_CH1
+      {TIM5, PA1, 2, 125, 250},  // Motor 5: TIM5_CH2
+      {TIM5, PA0, 1, 125, 250},  // Motor 6: TIM5_CH1
     };
 
     static constexpr int num_motors = sizeof(motors) / sizeof(motors[0]);

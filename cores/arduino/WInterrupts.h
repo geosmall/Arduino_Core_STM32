@@ -26,4 +26,13 @@ typedef std::function<void(void)> callback_function_t;
 void attachInterrupt(uint32_t pin, callback_function_t callback, uint32_t mode);
 void detachInterrupt(uint32_t pin);
 
+// Pin-typed overloads
+#include "Pin.h"
+inline void attachInterrupt(Pin pin, callback_function_t callback, uint32_t mode) {
+  attachInterrupt((uint32_t)pin.toPinName(), callback, mode);
+}
+inline void detachInterrupt(Pin pin) {
+  detachInterrupt((uint32_t)pin.toPinName());
+}
+
 #endif /* _WIRING_INTERRUPTS_ */

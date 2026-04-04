@@ -8,7 +8,7 @@
 #pragma once
 
 // Include ConfigTypes.h from targets/config directory
-#include "../../../../targets/config/ConfigTypes.h"
+#include "config/ConfigTypes.h"
 
 // Board: JHEF411 (NOXE V3) - Breadboard configuration for NUCLEO_F411RE
 // Manufacturer: JHEF
@@ -60,7 +60,7 @@ namespace BoardConfig {
       {TIM1, PA8, 1, 125, 250},  // Motor 1: TIM1_CH1
       {TIM1, PA9, 2, 125, 250},  // Motor 2: TIM1_CH2
       {TIM1, PA10, 3, 125, 250},  // Motor 3: TIM1_CH3
-      {TIM3, PB0_ALT1, 3, 125, 250},  // Motor 4: TIM3_CH3
+      {TIM3, PB0, 3, 125, 250},  // Motor 4: TIM3_CH3
       {TIM3, PB4, 1, 125, 250},  // Motor 5: TIM3_CH1
     };
 
