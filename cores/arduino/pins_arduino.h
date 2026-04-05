@@ -13,9 +13,6 @@
 #include "Pin.h"
 #endif
 
-/* Avoid PortName issue */
-_Static_assert(LastPort <= 0x0F, "PortName must be less than 16");
-
 /*
  * Temporary compatibility shims for files not yet converted to Pin API.
  * Each shim is removed when the consuming file is converted:

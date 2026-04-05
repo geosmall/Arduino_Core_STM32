@@ -49,6 +49,47 @@ Nucleo_144.menu.upload_method.clipboard.upload.protocol=0
 Nucleo_144.menu.upload_method.clipboard.upload.options=-g
 Nucleo_144.menu.upload_method.clipboard.upload.tool=clipboard_upload
 
+# Nucleo F722ZE board
+Nucleo_144.menu.pnum.NUCLEO_F722ZE=Nucleo F722ZE
+Nucleo_144.menu.pnum.NUCLEO_F722ZE.node=NODE_F722ZE
+Nucleo_144.menu.pnum.NUCLEO_F722ZE.upload.maximum_size=524288
+Nucleo_144.menu.pnum.NUCLEO_F722ZE.upload.maximum_data_size=262144
+Nucleo_144.menu.pnum.NUCLEO_F722ZE.build.mcu=cortex-m7
+Nucleo_144.menu.pnum.NUCLEO_F722ZE.build.flags.fp=-mfpu=fpv4-sp-d16 -mfloat-abi=hard
+Nucleo_144.menu.pnum.NUCLEO_F722ZE.build.board=NUCLEO_F722ZE
+Nucleo_144.menu.pnum.NUCLEO_F722ZE.build.series=STM32F7xx
+Nucleo_144.menu.pnum.NUCLEO_F722ZE.build.product_line=STM32F722xx
+Nucleo_144.menu.pnum.NUCLEO_F722ZE.build.variant=STM32F7xx/F722Z(C-E)T_F732ZET
+Nucleo_144.menu.pnum.NUCLEO_F722ZE.build.variant_h=variant_NUCLEO_F722ZE.h
+
+# Nucleo H743ZI board
+Nucleo_144.menu.pnum.NUCLEO_H743ZI=Nucleo H743ZI
+Nucleo_144.menu.pnum.NUCLEO_H743ZI.node=NODE_H743ZI
+Nucleo_144.menu.pnum.NUCLEO_H743ZI.upload.maximum_size=2097152
+Nucleo_144.menu.pnum.NUCLEO_H743ZI.upload.maximum_data_size=524288
+Nucleo_144.menu.pnum.NUCLEO_H743ZI.build.mcu=cortex-m7
+Nucleo_144.menu.pnum.NUCLEO_H743ZI.build.flags.fp=-mfpu=fpv4-sp-d16 -mfloat-abi=hard
+Nucleo_144.menu.pnum.NUCLEO_H743ZI.build.board=NUCLEO_H743ZI
+Nucleo_144.menu.pnum.NUCLEO_H743ZI.build.series=STM32H7xx
+Nucleo_144.menu.pnum.NUCLEO_H743ZI.build.product_line=STM32H743xx
+Nucleo_144.menu.pnum.NUCLEO_H743ZI.build.variant=STM32H7xx/H742Z(G-I)T_H743Z(G-I)T_H747A(G-I)I_H747I(G-I)T_H750ZBT_H753ZIT_H757AII_H757IIT
+Nucleo_144.menu.pnum.NUCLEO_H743ZI.build.variant_h=variant_NUCLEO_H743ZI.h
+Nucleo_144.menu.pnum.NUCLEO_H743ZI.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial}
+
+# Nucleo H753ZI board
+Nucleo_144.menu.pnum.NUCLEO_H753ZI=Nucleo H753ZI
+Nucleo_144.menu.pnum.NUCLEO_H753ZI.node=NODE_H753ZI
+Nucleo_144.menu.pnum.NUCLEO_H753ZI.upload.maximum_size=2097152
+Nucleo_144.menu.pnum.NUCLEO_H753ZI.upload.maximum_data_size=524288
+Nucleo_144.menu.pnum.NUCLEO_H753ZI.build.mcu=cortex-m7
+Nucleo_144.menu.pnum.NUCLEO_H753ZI.build.flags.fp=-mfpu=fpv4-sp-d16 -mfloat-abi=hard
+Nucleo_144.menu.pnum.NUCLEO_H753ZI.build.board=NUCLEO_H753ZI
+Nucleo_144.menu.pnum.NUCLEO_H753ZI.build.series=STM32H7xx
+Nucleo_144.menu.pnum.NUCLEO_H753ZI.build.product_line=STM32H753xx
+Nucleo_144.menu.pnum.NUCLEO_H753ZI.build.variant=STM32H7xx/H742Z(G-I)T_H743Z(G-I)T_H747A(G-I)I_H747I(G-I)T_H750ZBT_H753ZIT_H757AII_H757IIT
+Nucleo_144.menu.pnum.NUCLEO_H753ZI.build.variant_h=variant_NUCLEO_H753ZI.h
+Nucleo_144.menu.pnum.NUCLEO_H753ZI.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial}
+
 ################################################################################
 # Nucleo 64 boards
 
@@ -151,6 +192,18 @@ Nucleo_32.menu.upload_method.clipboard=Clipboard (Copy Path)
 Nucleo_32.menu.upload_method.clipboard.upload.protocol=0
 Nucleo_32.menu.upload_method.clipboard.upload.options=-g
 Nucleo_32.menu.upload_method.clipboard.upload.tool=clipboard_upload
+
+# Nucleo G431KB board
+Nucleo_32.menu.pnum.NUCLEO_G431KB=Nucleo G431KB
+Nucleo_32.menu.pnum.NUCLEO_G431KB.node="NODE_G431KB,NOD_G431KB"
+Nucleo_32.menu.pnum.NUCLEO_G431KB.upload.maximum_size=131072
+Nucleo_32.menu.pnum.NUCLEO_G431KB.upload.maximum_data_size=32768
+Nucleo_32.menu.pnum.NUCLEO_G431KB.build.mcu=cortex-m4
+Nucleo_32.menu.pnum.NUCLEO_G431KB.build.flags.fp=-mfpu=fpv4-sp-d16 -mfloat-abi=hard
+Nucleo_32.menu.pnum.NUCLEO_G431KB.build.board=NUCLEO_G431KB
+Nucleo_32.menu.pnum.NUCLEO_G431KB.build.series=STM32G4xx
+Nucleo_32.menu.pnum.NUCLEO_G431KB.build.product_line=STM32G431xx
+Nucleo_32.menu.pnum.NUCLEO_G431KB.build.variant=STM32G4xx/G431K(6-8-B)(T-U)_G441KB(T-U)
 
 ################################################################################
 # Generic STM32F4 series
@@ -305,6 +358,17 @@ GenG4.menu.upload_method.clipboard.upload.protocol=0
 GenG4.menu.upload_method.clipboard.upload.options=-g
 GenG4.menu.upload_method.clipboard.upload.tool=clipboard_upload
 
+# WeAct G474 HIL-007 test rig
+GenG4.menu.pnum.WEACT_G474_HIL007=WeAct G474 HIL-007
+GenG4.menu.pnum.WEACT_G474_HIL007.upload.maximum_size=458752
+GenG4.menu.pnum.WEACT_G474_HIL007.upload.maximum_data_size=131072
+GenG4.menu.pnum.WEACT_G474_HIL007.build.board=WEACT_G474_HIL007
+GenG4.menu.pnum.WEACT_G474_HIL007.build.product_line=STM32G474xx
+GenG4.menu.pnum.WEACT_G474_HIL007.build.variant=STM32G4xx/G473C(B-C-E)U_G474C(B-C-E)U_G483CEU_G484CEU
+GenG4.menu.pnum.WEACT_G474_HIL007.build.variant_h=variant_WEACT_G474_HIL007.h
+GenG4.menu.pnum.WEACT_G474_HIL007.build.uf2_family=0x4c71240a
+GenG4.menu.pnum.WEACT_G474_HIL007.build.uf2_flash_offset=0x10000
+
 ################################################################################
 # Generic STM32H7 Series
 
@@ -421,6 +485,78 @@ FlightCtr.menu.pnum.OPEN_REVO.build.variant=STM32F4xx/F405RGT_F415RGT
 FlightCtr.menu.pnum.OPEN_REVO.build.variant_h=variant_OPEN_REVO.h
 FlightCtr.menu.pnum.OPEN_REVO.build.uf2_family=0x57755a57
 FlightCtr.menu.pnum.OPEN_REVO.build.uf2_flash_offset=0x10000
+
+# NOXE V3 (JHEF) F411CE flight controller
+FlightCtr.menu.pnum.JHEF_JHEF411=NOXE V3 (JHEF)
+FlightCtr.menu.pnum.JHEF_JHEF411.upload.maximum_size=458752
+FlightCtr.menu.pnum.JHEF_JHEF411.upload.maximum_data_size=131072
+FlightCtr.menu.pnum.JHEF_JHEF411.build.mcu=cortex-m4
+FlightCtr.menu.pnum.JHEF_JHEF411.build.series=STM32F4xx
+FlightCtr.menu.pnum.JHEF_JHEF411.build.board=JHEF_JHEF411
+FlightCtr.menu.pnum.JHEF_JHEF411.build.product_line=STM32F411xE
+FlightCtr.menu.pnum.JHEF_JHEF411.build.variant=STM32F4xx/F411C(C-E)(U-Y)
+FlightCtr.menu.pnum.JHEF_JHEF411.build.variant_h=variant_JHEF_JHEF411.h
+FlightCtr.menu.pnum.JHEF_JHEF411.build.uf2_family=0x57755a57
+FlightCtr.menu.pnum.JHEF_JHEF411.build.uf2_flash_offset=0x10000
+FlightCtr.menu.pnum.JHEF_JHEF411.build.bootloader_bin=bootuf2-noxe_v3-v2.0.0.bin
+
+# NERO F7 (BKMN) F722RET flight controller
+FlightCtr.menu.pnum.BKMN_NERO=NERO F7 (BKMN)
+FlightCtr.menu.pnum.BKMN_NERO.upload.maximum_size=458752
+FlightCtr.menu.pnum.BKMN_NERO.upload.maximum_data_size=262144
+FlightCtr.menu.pnum.BKMN_NERO.build.mcu=cortex-m7
+FlightCtr.menu.pnum.BKMN_NERO.build.series=STM32F7xx
+FlightCtr.menu.pnum.BKMN_NERO.build.board=BKMN_NERO
+FlightCtr.menu.pnum.BKMN_NERO.build.product_line=STM32F722xx
+FlightCtr.menu.pnum.BKMN_NERO.build.variant=STM32F7xx/F722R(C-E)T_F730R8T_F732RET
+FlightCtr.menu.pnum.BKMN_NERO.build.variant_h=variant_BKMN_NERO.h
+FlightCtr.menu.pnum.BKMN_NERO.build.uf2_family=0x53b80f00
+FlightCtr.menu.pnum.BKMN_NERO.build.uf2_flash_offset=0x10000
+FlightCtr.menu.pnum.BKMN_NERO.build.bootloader_bin=bootuf2-nero_f7-v2.0.0.bin
+
+# BetaFPV G473 (BEFH) flight controller
+FlightCtr.menu.pnum.BEFH_BETAFPVG473=BetaFPV G473 (BEFH)
+FlightCtr.menu.pnum.BEFH_BETAFPVG473.upload.maximum_size=458752
+FlightCtr.menu.pnum.BEFH_BETAFPVG473.upload.maximum_data_size=131072
+FlightCtr.menu.pnum.BEFH_BETAFPVG473.build.mcu=cortex-m4
+FlightCtr.menu.pnum.BEFH_BETAFPVG473.build.series=STM32G4xx
+FlightCtr.menu.pnum.BEFH_BETAFPVG473.build.board=BEFH_BETAFPVG473
+FlightCtr.menu.pnum.BEFH_BETAFPVG473.build.product_line=STM32G473xx
+FlightCtr.menu.pnum.BEFH_BETAFPVG473.build.variant=STM32G4xx/G473C(B-C-E)U_G474C(B-C-E)U_G483CEU_G484CEU
+FlightCtr.menu.pnum.BEFH_BETAFPVG473.build.variant_h=variant_BEFH_BETAFPVG473.h
+FlightCtr.menu.pnum.BEFH_BETAFPVG473.build.uf2_family=0x4c71240a
+FlightCtr.menu.pnum.BEFH_BETAFPVG473.build.uf2_flash_offset=0x10000
+FlightCtr.menu.pnum.BEFH_BETAFPVG473.build.bootloader_bin=bootuf2-betafpv_g473-v2.0.0.bin
+
+# DevEBox H743VITx
+FlightCtr.menu.pnum.DEVEBOX_H743=DevEBox H743VITx
+FlightCtr.menu.pnum.DEVEBOX_H743.upload.maximum_size=1966080
+FlightCtr.menu.pnum.DEVEBOX_H743.upload.maximum_data_size=524288
+FlightCtr.menu.pnum.DEVEBOX_H743.build.mcu=cortex-m7
+FlightCtr.menu.pnum.DEVEBOX_H743.build.series=STM32H7xx
+FlightCtr.menu.pnum.DEVEBOX_H743.build.board=DEVEBOX_H743
+FlightCtr.menu.pnum.DEVEBOX_H743.build.product_line=STM32H743xx
+FlightCtr.menu.pnum.DEVEBOX_H743.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial} {build.bootloader_flags}
+FlightCtr.menu.pnum.DEVEBOX_H743.build.variant=STM32H7xx/H742V(G-I)(H-T)_H743V(G-I)(H-T)_H750VBT_H753VI(H-T)
+FlightCtr.menu.pnum.DEVEBOX_H743.build.variant_h=variant_DEVEBOX_H743.h
+FlightCtr.menu.pnum.DEVEBOX_H743.build.peripheral_pins=-DCUSTOM_PERIPHERAL_PINS
+FlightCtr.menu.pnum.DEVEBOX_H743.build.uf2_family=0x6db66082
+FlightCtr.menu.pnum.DEVEBOX_H743.build.uf2_flash_offset=0x20000
+
+# Matek H743-WLITE
+FlightCtr.menu.pnum.MATEK_H743VI=Matek H743VITx
+FlightCtr.menu.pnum.MATEK_H743VI.upload.maximum_size=1966080
+FlightCtr.menu.pnum.MATEK_H743VI.upload.maximum_data_size=524288
+FlightCtr.menu.pnum.MATEK_H743VI.build.mcu=cortex-m7
+FlightCtr.menu.pnum.MATEK_H743VI.build.series=STM32H7xx
+FlightCtr.menu.pnum.MATEK_H743VI.build.board=MATEK_H743VI
+FlightCtr.menu.pnum.MATEK_H743VI.build.product_line=STM32H743xx
+FlightCtr.menu.pnum.MATEK_H743VI.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial} {build.bootloader_flags}
+FlightCtr.menu.pnum.MATEK_H743VI.build.variant=STM32H7xx/H742V(G-I)(H-T)_H743V(G-I)(H-T)_H750VBT_H753VI(H-T)
+FlightCtr.menu.pnum.MATEK_H743VI.build.variant_h=variant_MATEK_H743VI.h
+FlightCtr.menu.pnum.MATEK_H743VI.build.uf2_family=0x6db66082
+FlightCtr.menu.pnum.MATEK_H743VI.build.uf2_flash_offset=0x20000
+FlightCtr.menu.pnum.MATEK_H743VI.build.bootloader_bin=bootuf2-matek_h743-v2.0.0.bin
 
 ################################################################################
 # Serialx activation

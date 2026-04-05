@@ -13,6 +13,9 @@
 
 #ifdef __cplusplus
 
+/* Pin struct packs port into 4 bits — verify no family exceeds this */
+static_assert(LastPort <= 0x0F, "PortName must fit in 4 bits for Pin::toPinName()");
+
 struct Pin {
     PortName port;
     uint8_t  pin;
