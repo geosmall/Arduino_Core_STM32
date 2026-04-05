@@ -204,6 +204,16 @@ GenF4.menu.upload_method.clipboard.upload.protocol=0
 GenF4.menu.upload_method.clipboard.upload.options=-g
 GenF4.menu.upload_method.clipboard.upload.tool=clipboard_upload
 
+# BlackPill F411CE
+GenF4.menu.pnum.BLACKPILL_F411CE=BlackPill F411CE
+GenF4.menu.pnum.BLACKPILL_F411CE.upload.maximum_size=524288
+GenF4.menu.pnum.BLACKPILL_F411CE.upload.maximum_data_size=131072
+GenF4.menu.pnum.BLACKPILL_F411CE.build.board=BLACKPILL_F411CE
+GenF4.menu.pnum.BLACKPILL_F411CE.build.product_line=STM32F411xE
+GenF4.menu.pnum.BLACKPILL_F411CE.build.variant=STM32F4xx/F411C(C-E)(U-Y)
+GenF4.menu.pnum.BLACKPILL_F411CE.build.variant_h=variant_{build.board}.h
+GenF4.menu.pnum.BLACKPILL_F411CE.build.peripheral_pins=-DCUSTOM_PERIPHERAL_PINS
+
 ################################################################################
 # Generic STM32F7 series
 
@@ -384,6 +394,33 @@ FlightCtr.menu.upload_method.clipboard=Clipboard (Copy Path)
 FlightCtr.menu.upload_method.clipboard.upload.protocol=0
 FlightCtr.menu.upload_method.clipboard.upload.options=-g
 FlightCtr.menu.upload_method.clipboard.upload.tool=clipboard_upload
+
+# BlackPill F411CE 8MHz
+FlightCtr.menu.pnum.BLACKPILL_F411CE_8MHZ=BlackPill F411CE 8MHz
+FlightCtr.menu.pnum.BLACKPILL_F411CE_8MHZ.upload.maximum_size=458752
+FlightCtr.menu.pnum.BLACKPILL_F411CE_8MHZ.upload.maximum_data_size=131072
+FlightCtr.menu.pnum.BLACKPILL_F411CE_8MHZ.build.mcu=cortex-m4
+FlightCtr.menu.pnum.BLACKPILL_F411CE_8MHZ.build.series=STM32F4xx
+FlightCtr.menu.pnum.BLACKPILL_F411CE_8MHZ.build.board=BLACKPILL_F411CE_8MHZ
+FlightCtr.menu.pnum.BLACKPILL_F411CE_8MHZ.build.product_line=STM32F411xE
+FlightCtr.menu.pnum.BLACKPILL_F411CE_8MHZ.build.variant=STM32F4xx/F411C(C-E)(U-Y)
+FlightCtr.menu.pnum.BLACKPILL_F411CE_8MHZ.build.variant_h=variant_BLACKPILL_F411CE_8MHZ.h
+FlightCtr.menu.pnum.BLACKPILL_F411CE_8MHZ.build.peripheral_pins=-DCUSTOM_PERIPHERAL_PINS
+FlightCtr.menu.pnum.BLACKPILL_F411CE_8MHZ.build.uf2_family=0x57755a57
+FlightCtr.menu.pnum.BLACKPILL_F411CE_8MHZ.build.uf2_flash_offset=0x10000
+
+# OpenPilot Revolution F405
+FlightCtr.menu.pnum.OPEN_REVO=OpenPilot Revo F4 (OPEN)
+FlightCtr.menu.pnum.OPEN_REVO.upload.maximum_size=983040
+FlightCtr.menu.pnum.OPEN_REVO.upload.maximum_data_size=131072
+FlightCtr.menu.pnum.OPEN_REVO.build.mcu=cortex-m4
+FlightCtr.menu.pnum.OPEN_REVO.build.series=STM32F4xx
+FlightCtr.menu.pnum.OPEN_REVO.build.board=OPEN_REVO
+FlightCtr.menu.pnum.OPEN_REVO.build.product_line=STM32F405xx
+FlightCtr.menu.pnum.OPEN_REVO.build.variant=STM32F4xx/F405RGT_F415RGT
+FlightCtr.menu.pnum.OPEN_REVO.build.variant_h=variant_OPEN_REVO.h
+FlightCtr.menu.pnum.OPEN_REVO.build.uf2_family=0x57755a57
+FlightCtr.menu.pnum.OPEN_REVO.build.uf2_flash_offset=0x10000
 
 ################################################################################
 # Serialx activation
