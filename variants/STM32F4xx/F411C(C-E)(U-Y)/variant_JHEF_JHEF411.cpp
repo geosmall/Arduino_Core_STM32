@@ -6,7 +6,7 @@
  */
 #if defined(ARDUINO_JHEF_JHEF411)
 
-#include "stm32_def.h"
+#include "pins_arduino.h"
 
 #ifdef __cplusplus
 extern "C" {

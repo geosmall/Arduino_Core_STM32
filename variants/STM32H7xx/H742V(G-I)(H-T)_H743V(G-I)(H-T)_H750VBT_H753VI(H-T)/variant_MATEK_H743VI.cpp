@@ -6,7 +6,7 @@
  */
 #if defined(ARDUINO_MATEK_H743VI)
 
-#include "stm32_def.h"
+#include "pins_arduino.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -6,7 +6,7 @@
  */
 #if defined(ARDUINO_WEACT_G474_HIL007)
 
-#include "stm32_def.h"
+#include "pins_arduino.h"
 
 #ifdef __cplusplus
 extern "C" {

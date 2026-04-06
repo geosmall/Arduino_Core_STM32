@@ -3,7 +3,7 @@
  */
 #if defined(ARDUINO_NUCLEO_H753ZI)
 
-#include "stm32_def.h"
+#include "pins_arduino.h"
 
 #ifdef __cplusplus
 extern "C" {

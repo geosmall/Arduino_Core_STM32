@@ -6,7 +6,7 @@
  */
 #if defined(ARDUINO_NUCLEO_F411RE)
 
-#include "stm32_def.h"
+#include "pins_arduino.h"
 
 #ifdef __cplusplus
 extern "C" {

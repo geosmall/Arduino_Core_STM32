@@ -6,7 +6,7 @@
  */
 #if defined(ARDUINO_BLACKPILL_F411CE_8MHZ)
 
-#include "stm32_def.h"
+#include "pins_arduino.h"
 
 #ifdef __cplusplus
 extern "C" {
