@@ -79,6 +79,10 @@
 #endif
 
 #ifdef __cplusplus
-  #define SERIAL_PORT_MONITOR     Serial
-  #define SERIAL_PORT_HARDWARE    Serial2
+  #ifndef SERIAL_PORT_MONITOR
+    #define SERIAL_PORT_MONITOR   Serial
+  #endif
+  #ifndef SERIAL_PORT_HARDWARE
+    #define SERIAL_PORT_HARDWARE  Serial2
+  #endif
 #endif

@@ -16,6 +16,11 @@
   #define LED_BUILTIN             PC13
 #endif
 
+// No user button on this FC
+#ifndef USER_BTN
+  #define USER_BTN                PNUM_NOT_DEFINED
+#endif
+
 // Timer definitions
 #ifndef TIMER_TONE
   #define TIMER_TONE              TIM10

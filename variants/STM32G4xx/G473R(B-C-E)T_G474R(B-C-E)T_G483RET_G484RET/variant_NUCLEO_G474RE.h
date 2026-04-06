@@ -26,6 +26,14 @@
   #define TIMER_SERVO             TIM7
 #endif
 
+// I2C Definitions — I2C1 on Arduino connector
+#ifndef PIN_WIRE_SDA
+  #define PIN_WIRE_SDA            PB9
+#endif
+#ifndef PIN_WIRE_SCL
+  #define PIN_WIRE_SCL            PB8
+#endif
+
 // SPI Definitions — SPI1 on Arduino connector
 #ifndef PIN_SPI_MOSI
   #define PIN_SPI_MOSI            PA7
@@ -42,14 +50,12 @@
   #define SERIAL_UART_INSTANCE    101
 #endif
 
-// Default pin used for generic 'Serial' instance
-// PinName values (PA_2 not PA2) — uart.c is a C file that uses these via
-// digitalPinToPinName(), which needs a PinName enum, not a Pin constexpr
+// Default pin used for generic 'Serial' instance — LPUART1 on ST-Link VCOM
 #ifndef PIN_SERIAL_RX
-  #define PIN_SERIAL_RX           PA_3
+  #define PIN_SERIAL_RX           PA3
 #endif
 #ifndef PIN_SERIAL_TX
-  #define PIN_SERIAL_TX           PA_2
+  #define PIN_SERIAL_TX           PA2
 #endif
 
 // Required by core
