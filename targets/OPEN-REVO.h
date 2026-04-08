@@ -54,7 +54,7 @@ namespace BoardConfig {
   // RC Receiver: Hardware-validated configuration
   // 3-pin SBUS header connected to USART1 with hardware inverter on PC0
   static constexpr RCReceiverConfig rc_receiver{PA10, PA9, 100000, 1000, 300};  // SBUS: 100k baud
-  static constexpr uint32_t rc_inverter_pin = PC0;  // HIGH=SBUS (inverted), LOW=iBus (non-inverted)
+  static constexpr Pin rc_inverter_pin = PC0;  // HIGH=SBUS (inverted), LOW=iBus (non-inverted)
 
   // Servo outputs - none configured
   namespace Servo {

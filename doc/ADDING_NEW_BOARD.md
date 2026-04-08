@@ -172,12 +172,12 @@ WEAK void SystemClock_Config(void)
 # Compile a basic sketch
 arduino-cli compile \
   --fqbn STM32_Robotics:stm32:Nucleo_64:pnum=NUCLEO_G474RE \
-  sketches/M4_SPI_Verify
+  sketches/PinWiggle
 
 # Check for warnings
 arduino-cli compile --warnings all \
   --fqbn STM32_Robotics:stm32:Nucleo_64:pnum=NUCLEO_G474RE \
-  sketches/M4_SPI_Verify
+  sketches/PinWiggle
 ```
 
 Zero warnings, zero errors before proceeding to hardware test.
