@@ -19,7 +19,7 @@ namespace BoardConfig {
 
   // IMU: ICM42688P on SPI1
   static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 2000000};
-  static constexpr IMUConfig imu{imu_spi, 0, 1000000};  // No interrupt pin, 1 MHz setup
+  static constexpr IMUConfig imu{imu_spi, NC_PIN, 1000000};  // No interrupt pin, 1 MHz setup
 
   // RC Receiver: SBUS on USART1 (RX=PA10, TX=PA9)
   // 100000 baud for SBUS protocol, H7 hardware RX inversion

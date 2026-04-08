@@ -539,7 +539,6 @@ FlightCtr.menu.pnum.DEVEBOX_H743.build.product_line=STM32H743xx
 FlightCtr.menu.pnum.DEVEBOX_H743.build.st_extra_flags=-DCORE_CM7 -D{build.product_line} {build.enable_usb} {build.xSerial} {build.bootloader_flags}
 FlightCtr.menu.pnum.DEVEBOX_H743.build.variant=STM32H7xx/H742V(G-I)(H-T)_H743V(G-I)(H-T)_H750VBT_H753VI(H-T)
 FlightCtr.menu.pnum.DEVEBOX_H743.build.variant_h=variant_DEVEBOX_H743.h
-FlightCtr.menu.pnum.DEVEBOX_H743.build.peripheral_pins=-DCUSTOM_PERIPHERAL_PINS
 FlightCtr.menu.pnum.DEVEBOX_H743.build.uf2_family=0x6db66082
 FlightCtr.menu.pnum.DEVEBOX_H743.build.uf2_flash_offset=0x20000
 
