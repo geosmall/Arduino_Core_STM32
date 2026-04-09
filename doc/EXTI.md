@@ -14,17 +14,17 @@ Both interfaces utilize the STM32 EXTI peripheral with proper GPIO clock managem
 
 ### STM32F4xx Series (Primary Target: STM32F411RE)
 
-| GPIO Pin | EXTI Line | IRQ Handler | Sharing |
-|----------|-----------|-------------|---------|
-| PIN_0    | EXTI0     | EXTI0_IRQn | Individual |
-| PIN_1    | EXTI1     | EXTI1_IRQn | Individual |
-| PIN_2    | EXTI2     | EXTI2_IRQn | Individual |
-| PIN_3    | EXTI3     | EXTI3_IRQn | Individual |
-| PIN_4    | EXTI4     | EXTI4_IRQn | Individual |
-| PIN_5-9  | EXTI5-9   | EXTI9_5_IRQn | Shared |
-| PIN_10-15| EXTI10-15 | EXTI15_10_IRQn | Shared |
+| Pin Number | EXTI Line | IRQ Handler | Sharing |
+|------------|-----------|-------------|---------|
+| Px0        | EXTI0     | EXTI0_IRQn | Individual |
+| Px1        | EXTI1     | EXTI1_IRQn | Individual |
+| Px2        | EXTI2     | EXTI2_IRQn | Individual |
+| Px3        | EXTI3     | EXTI3_IRQn | Individual |
+| Px4        | EXTI4     | EXTI4_IRQn | Individual |
+| Px5–Px9   | EXTI5-9   | EXTI9_5_IRQn | Shared |
+| Px10–Px15 | EXTI10-15 | EXTI15_10_IRQn | Shared |
 
-**Note:** Only the pin number matters for EXTI line assignment, not the GPIO port. For example, PA1, PB1, PC1 all use EXTI1.
+**Note:** Only the pin number (0–15) matters for EXTI line assignment, not the GPIO port. For example, PA1, PB1, PC1 all use EXTI1. Only one pin per EXTI line can have an active interrupt at a time.
 
 ### Interrupt Priority Configuration
 
@@ -41,9 +41,8 @@ Lower numbers = higher priority. ARM Cortex-M4 supports 4-bit priority (0-15).
 ### Implementation (`WInterrupts.h/cpp`)
 
 ```cpp
-void attachInterrupt(uint32_t pin, callback_function_t callback, uint32_t mode);
-void attachInterrupt(uint32_t pin, void (*callback)(void), uint32_t mode);
-void detachInterrupt(uint32_t pin);
+void attachInterrupt(Pin pin, callback_function_t callback, uint32_t mode);
+void detachInterrupt(Pin pin);
 ```
 
 ### Trigger Modes
@@ -69,7 +68,7 @@ void sensor_interrupt() {
 
 void setup() {
     pinMode(PB1, INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt(PB1), sensor_interrupt, FALLING);
+    attachInterrupt(PB1, sensor_interrupt, FALLING);
 }
 
 void loop() {
@@ -82,13 +81,7 @@ void loop() {
 
 ### Pin Conversion
 
-```cpp
-// Arduino pin to EXTI interrupt number
-uint32_t interrupt_num = digitalPinToInterrupt(arduino_pin);
-
-// Internal conversion chain:
-// arduino_pin → PinName → GPIO port/pin → EXTI line
-```
+The `attachInterrupt(Pin, ...)` overload converts internally via `pin.toPinName()` to reach the HAL layer. The EXTI line is determined by the pin number (0–15) extracted from the PinName.
 
 ## STM32-Specific Interface
 
@@ -170,36 +163,36 @@ Only pins with active interrupts and registered callbacks are processed.
 ### For High-Performance Applications
 
 **Recommended: Individual EXTI Lines (0-4)**
-- PIN_0, PIN_1, PIN_2, PIN_3, PIN_4
+- Any pin ending in 0–4 (e.g., PA0, PB1, PC2, PA3, PA4)
 - Dedicated IRQ handlers (lowest latency)
 - No interrupt sharing overhead
 
 **Example Pins on NUCLEO_F411RE:**
-- `PB1` (PIN_A11) - EXTI1, individual line
-- `PA4` (PIN_A2) - EXTI4, individual line
+- `PB1` — EXTI1, individual line
+- `PA4` — EXTI4, individual line
 
 ### For General Applications
 
 **Acceptable: Shared EXTI Lines (5-15)**
-- PIN_5 through PIN_15
+- Any pin ending in 5–15 (e.g., PB6, PC7, PA8)
 - Shared IRQ handlers with iteration overhead
 - Still suitable for most sensor applications
 
 **Example Pins on NUCLEO_F411RE:**
-- `PB6` (pin 10) - EXTI6, shared EXTI9_5_IRQn
-- `PC7` (pin 9) - EXTI7, shared EXTI9_5_IRQn
+- `PB6` — EXTI6, shared EXTI9_5_IRQn
+- `PC7` — EXTI7, shared EXTI9_5_IRQn
 
 ## Board-Specific Pin Assignments
 
 ### NUCLEO_F411RE Recommended INT Pins
 
-| Arduino Pin | STM32 Pin | EXTI Line | IRQ Handler | Notes |
-|-------------|-----------|-----------|-------------|-------|
-| PIN_A11 | PB1 | EXTI1 | Individual | **Recommended** |
-| PIN_A2 | PA4 | EXTI4 | Individual | CS conflicts |
-| 10 | PB6 | EXTI6 | Shared | Good alternative |
-| 9 | PC7 | EXTI7 | Shared | Good alternative |
-| 22 | PB7 | EXTI7 | Shared | Morpho connector |
+| Pin | EXTI Line | IRQ Handler | Notes |
+|-----|-----------|-------------|-------|
+| PB1 | EXTI1 | Individual | **Recommended** for IMU INT |
+| PA4 | EXTI4 | Individual | Check for SPI CS conflicts |
+| PB6 | EXTI6 | Shared | Good alternative |
+| PC7 | EXTI7 | Shared | Good alternative |
+| PB7 | EXTI7 | Shared | Morpho connector |
 
 ### BlackPill F411CE Considerations
 
@@ -244,7 +237,7 @@ void setup() {
     // ...
 
     // Enable data ready interrupt
-    attachInterrupt(digitalPinToInterrupt(IMU_INT_PIN), imu_interrupt, IMU_TRIGGER);
+    attachInterrupt(IMU_INT_PIN, imu_interrupt, IMU_TRIGGER);
 }
 ```
 
@@ -338,10 +331,10 @@ void general_sensor() {
 
 void setup() {
     // High priority on individual line
-    attachInterrupt(digitalPinToInterrupt(PB1), high_priority_sensor, FALLING);
+    attachInterrupt(PB1, high_priority_sensor, FALLING);
 
     // Lower priority on shared line
-    attachInterrupt(digitalPinToInterrupt(PB6), general_sensor, RISING);
+    attachInterrupt(PB6, general_sensor, RISING);
 }
 ```
 

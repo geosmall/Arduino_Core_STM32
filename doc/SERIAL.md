@@ -1139,11 +1139,12 @@ Pins are assigned via nested if-else chain (lines 144-285):
 HardwareSerial SerialRC(PA10, PA9);  // RX=PA10, TX=PA9
 ```
 
-**How it works** (`HardwareSerial.cpp` lines 118-121):
+**How it works** (`HardwareSerial.cpp`):
 ```cpp
-HardwareSerial::HardwareSerial(uint32_t _rx, uint32_t _tx, ...)
+HardwareSerial::HardwareSerial(Pin _rx, Pin _tx, Pin _rts, Pin _cts)
 {
-  init(digitalPinToPinName(_rx), digitalPinToPinName(_tx), ...);
+  init(_rx.toPinName(), _tx.toPinName(),
+       _rts.toPinName(), _cts.toPinName());
 }
 ```
 
@@ -1231,8 +1232,8 @@ For maximum clarity with multi-board support:
 // In targets/BOARD_NAME.h
 namespace BoardConfig {
   namespace RC {
-    static constexpr PinName rx_pin = PA10;
-    static constexpr PinName tx_pin = PA9;
+    static constexpr Pin rx_pin = PA10;
+    static constexpr Pin tx_pin = PA9;
     static constexpr uint32_t baudrate = 115200;
   }
 }

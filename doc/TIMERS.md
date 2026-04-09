@@ -146,12 +146,12 @@ The `setPWM()` method handles both automatically. When manually configuring PWM,
 
 ```cpp
 // Get timer instance for a pin
-TIM_TypeDef *Instance = (TIM_TypeDef *)pinmap_peripheral(
-    digitalPinToPinName(pin), PinMap_PWM);
+PinName pn = pin.toPinName();
+TIM_TypeDef *Instance = (TIM_TypeDef *)pinmap_peripheral(pn, PinMap_PWM);
 
-// Get timer channel for a pin
-uint32_t channel = STM_PIN_CHANNEL(pinmap_function(
-    digitalPinToPinName(pin), PinMap_PWM));
+// Get timer channel for a pin (peripheral-aware to avoid ALT trap)
+uint32_t function = pinmap_function_for_peripheral(pn, Instance, PinMap_TIM);
+uint32_t channel = STM_PIN_CHANNEL(function);
 ```
 
 ### PinMap_TIM Structure
@@ -773,13 +773,13 @@ MyTim->setOverflow(period_us, MICROSEC_FORMAT);
 ### Simple PWM (All-in-One)
 
 ```cpp
-#define pin PA6  // TIM3_CH1
+constexpr Pin pin = PA6;  // TIM3_CH1
 
 void setup() {
-  TIM_TypeDef *Instance = (TIM_TypeDef *)pinmap_peripheral(
-      digitalPinToPinName(pin), PinMap_PWM);
-  uint32_t channel = STM_PIN_CHANNEL(pinmap_function(
-      digitalPinToPinName(pin), PinMap_PWM));
+  PinName pn = pin.toPinName();
+  TIM_TypeDef *Instance = (TIM_TypeDef *)pinmap_peripheral(pn, PinMap_PWM);
+  uint32_t function = pinmap_function_for_peripheral(pn, Instance, PinMap_TIM);
+  uint32_t channel = STM_PIN_CHANNEL(function);
 
   HardwareTimer *MyTim = new HardwareTimer(Instance);
   MyTim->setPWM(channel, pin, 1000, 50);  // 1 kHz, 50% duty
@@ -1106,8 +1106,8 @@ HardwareTimer timer(TIM3);
 ### 2. Verify Pin Capability
 
 ```cpp
-PinName pin_name = digitalPinToPinName(pin);
-TIM_TypeDef *instance = (TIM_TypeDef *)pinmap_peripheral(pin_name, PinMap_PWM);
+PinName pn = pin.toPinName();
+TIM_TypeDef *instance = (TIM_TypeDef *)pinmap_peripheral(pn, PinMap_PWM);
 if (instance == NP) {
   Serial.println("Pin does not support PWM!");
   return;
