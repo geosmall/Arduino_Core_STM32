@@ -4,7 +4,7 @@
  * A 2-byte constexpr struct replacing the old uint32_t Arduino pin numbers
  * and #define PAx macros. Explicit conversion to PinName at HAL boundaries.
  *
- * See CORE_REFACTOR.md for design rationale.
+ * See doc/PIN_USE.md for design rationale.
  */
 #ifndef _PIN_H_
 #define _PIN_H_

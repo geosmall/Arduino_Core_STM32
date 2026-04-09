@@ -19,7 +19,7 @@ User code        HAL boundary         ST HAL / LL drivers
 Pin PA0  ──→  pin.toPinName()  ──→  PinName PA_0 = 0x00
 ```
 
-A `Pin` is a 2-byte constexpr struct. A `PinName` is a uint32_t-sized enum. They encode the same information differently:
+A `Pin` is a small constexpr struct (port enum + 1-byte pin index). A `PinName` is a uint32_t-sized enum. They encode the same information differently:
 
 ```cpp
 // Pin (cores/arduino/Pin.h)
@@ -31,7 +31,7 @@ constexpr Pin PA0 = {PortA, 0};
 
 // PinName (cores/arduino/stm32/PinNames.h)
 PA_0 = (PortA << 4) | 0   // = 0x00
-PB7  = (PortB << 4) | 7   // = 0x17
+PB_7 = (PortB << 4) | 7   // = 0x17
 ```
 
 Conversion is one-way and explicit:
@@ -44,9 +44,26 @@ constexpr PinName toPinName() const {
 
 ### Why both exist
 
-PinName is the currency of ST's HAL code — every `PinMap` table, every `pinmap_peripheral()` call, every `PeripheralPins.c` entry. That's thousands of lines of vendor code copied unchanged. Rewriting it all for Pin would break the clean boundary between "our code" and "ST's code."
+PinName is a `uint32_t` enum with bit-packed fields:
 
-Pin gives compile-time type safety. The old API used `uint32_t` everywhere — a wrong value compiled and failed silently at runtime. With Pin, passing an ADC channel number or timer index where a pin is expected is a compile error.
+```
+PinName bit layout (uint32_t):
+
+  ┌─────────────┬────────┬─────────┬─────────┐
+  │  31 ... 11  │ 10 9 8 │ 7 6 5 4 │ 3 2 1 0 │
+  │   unused    │  ALT   │  port   │   pin   │
+  └─────────────┴────────┴─────────┴─────────┘
+
+  PB_0      = 0x010  →  ALT=0  port=1(B)  pin=0
+  PB_0_ALT1 = 0x110  →  ALT=1  port=1(B)  pin=0   ← same physical pin,
+  PB_0_ALT2 = 0x210  →  ALT=2  port=1(B)  pin=0      different table entry
+```
+
+The ALT bits create separate PinName values for the same physical pin so PinMap tables can list multiple peripheral mappings (e.g., PB0 → TIM1 under `PB_0`, PB0 → TIM3 under `PB_0_ALT1`). PinMap tables need these ALT-encoded values, which means PinName must support integer arithmetic — and integer arithmetic is exactly what caused silent misconfiguration bugs (the "ALT trap": `pinmap_function()` returning the wrong AF with no compiler error).
+
+Pin is a struct specifically to make that arithmetic impossible: `PA0 | ALT1` does not compile. User code names physical pins; it never manipulates ALT encodings. The HAL layer handles ALT resolution internally through `pinmap_function_for_peripheral()`.
+
+The two types cannot be unified without giving up one of these properties — either the HAL loses ALT encoding support, or user code regains the ability to silently corrupt pin values. The explicit `toPinName()` conversion marks every crossing from user-land to HAL-land.
 
 ---
 
@@ -139,7 +156,7 @@ namespace BoardConfig {
 }
 ```
 
-Config types are defined in `targets/config/ConfigTypes.h`. Pin fields are currently `uint32_t` (M7 converts them to `Pin`).
+Config types are defined in `targets/config/ConfigTypes.h`. All pin fields use `Pin`.
 
 ---
 
@@ -168,17 +185,36 @@ analogWrite(Pin, value)
 {PA_0, TIM5, STM_PIN_DATA_EXT(STM_MODE_AF_PP, GPIO_PULLUP, GPIO_AF2_TIM5, 1, 0)},
 ```
 
+When a pin supports multiple peripherals of the same type (e.g., PB0 → TIM1_CH2N and TIM3_CH3), use the peripheral-aware lookup to get the correct AF:
+
+```cpp
+// Get AF for a specific timer on a specific pin
+uint32_t af = pinmap_function_for_peripheral(pn, TIM3, PinMap_TIM);
+
+// Configure GPIO AF for a specific timer on a specific pin
+pinmap_pinout_for_peripheral(pn, TIM3, PinMap_TIM);
+```
+
 Query functions in `pinmap.h`:
 
 | Function | Purpose |
 |----------|---------|
 | `pinmap_peripheral(pn, map)` | Get peripheral instance for a pin |
-| `pinmap_function(pn, map)` | Get AF config (first match) |
-| `pinmap_function_for_peripheral(pn, periph, map)` | Get AF for a specific peripheral (solves ALT pin trap) |
+| `pinmap_function_for_peripheral(pn, periph, map)` | Get AF for a specific peripheral |
 | `pinmap_pinout_for_peripheral(pn, periph, map)` | Configure GPIO AF for a specific peripheral |
 | `pin_in_pinmap(pn, map)` | Check if pin has any entry in table |
 
-See `doc/PIN_MAPPING.md` for the ALT pin trap and when to use peripheral-aware vs. bare lookup.
+The `_for_peripheral` variants are used by `HardwareTimer::setMode()` and `timer.c::getTimerChannel()`.
+
+#### PeripheralPins.c by Family
+
+| Family | Path |
+|--------|------|
+| F411RE | `variants/STM32F4xx/F411R(C-E)T/PeripheralPins.c` |
+| F405RG | `variants/STM32F4xx/F405RG/PeripheralPins.c` |
+| F722RE | `variants/STM32F7xx/F722R(C-E)T/PeripheralPins.c` |
+| G473RE | `variants/STM32G4xx/G473R(B-C-E)T/PeripheralPins.c` |
+| H743VI | `variants/STM32H7xx/H742V(G-I)(H-T)_H743V(G-I)(H-T)/PeripheralPins.c` |
 
 ### PinName Decomposition
 
@@ -203,7 +239,36 @@ digitalReadFast(PinName pn);
 digitalToggleFast(PinName pn);
 ```
 
-The standard `digitalWrite(Pin)` calls `digitalWriteFast(pin.toPinName(), val)` internally, so the overhead difference is just the `toPinName()` conversion (constexpr when possible, trivial shift+or when not).
+The standard `digitalWrite(Pin)` calls `digitalWriteFast(pin.toPinName(), val)` internally. The `toPinName()` conversion itself is zero-cost (constexpr shift+or), but each `digitalWriteFast()` call still performs two runtime lookups:
+
+- `get_GPIO_Port()` is a macro that expands to an index into `GPIOPort[]` — an `extern GPIO_TypeDef*` array (`PortNames.c`), not const, not constexpr. The compiler cannot constant-fold this.
+- `STM_LL_GPIO_PIN()` is a macro that expands to an index into `pin_map_ll[]` — an `extern const uint32_t` array (`pinmap.c`). Const but extern, so also a runtime load.
+
+Total overhead per call: ~4–6 cycles on Cortex-M4 vs a direct `port->BSRR = pin_mask` write. Small and L1-cached, but not zero. For most code this is negligible. For timing-critical paths (bit-banging, high-frequency ISRs), see the caching pattern below.
+
+### Caching Pattern for Performance-Sensitive Drivers
+
+When a driver toggles a GPIO pin in a hot loop or ISR, it can cache the port pointer and LL pin mask at construction time to eliminate the per-call lookups. SoftwareSerial uses this approach for bit-banged UART (caching `_transmitPinPort` and `_transmitPinNumber` in its constructor initializer list). The general pattern:
+
+```cpp
+// Header — cache as member variables
+class MyDriver {
+    GPIO_TypeDef *port_;
+    uint32_t ll_pin_;
+public:
+    void init(Pin pin) {
+        PinName pn = pin.toPinName();
+        port_   = get_GPIO_Port(STM_PORT(pn));   // resolved once
+        ll_pin_ = STM_LL_GPIO_PIN(pn);           // resolved once
+    }
+    void writeFast(bool state) {
+        if (state) LL_GPIO_SetOutputPin(port_, ll_pin_);    // direct BSRR write
+        else       LL_GPIO_ResetOutputPin(port_, ll_pin_);
+    }
+};
+```
+
+Each `writeFast()` call compiles to a single store (~2–3 cycles). Use this pattern for bit-banging, chip-select toggling in tight SPI loops, or ISR-driven GPIO. It is unnecessary for init-time configuration or infrequent operations — use `digitalWrite()` for those.
 
 ---
 
@@ -230,3 +295,52 @@ What remains as compatibility shims (in `pins_arduino.h`, consumed by unconverte
 ```
 
 These shims are removed as their consumers are converted to Pin API across milestones.
+
+---
+
+## Future: GPIO Class
+
+The caching pattern above works but is ad hoc — each driver that needs fast GPIO must declare its own port pointer and pin mask members and resolve them at init time. A future `GPIO` class would formalize this into a reusable type:
+
+```cpp
+class GPIO {
+public:
+    enum class Mode { INPUT, OUTPUT, INPUT_PULLUP, INPUT_PULLDOWN, ANALOG, OPEN_DRAIN };
+    enum class Pull { NONE, UP, DOWN };
+    enum class Speed { LOW, MEDIUM, HIGH, VERY_HIGH };
+
+    void Init(Pin p, Mode m, Pull pull = Pull::NONE, Speed spd = Speed::HIGH);
+    bool Read() const;          // LL_GPIO_IsInputPinSet(port_, ll_pin_)
+    void Write(bool state);     // LL_GPIO_Set/ResetOutputPin(port_, ll_pin_)
+    void Toggle();              // LL_GPIO_TogglePin(port_, ll_pin_)
+
+private:
+    GPIO_TypeDef* port_;        // Cached at Init()
+    uint32_t ll_pin_;           // Cached at Init()
+};
+```
+
+This replaces the manual caching pattern with a single object per pin:
+
+```cpp
+// Before: manual caching (2 members, LL boilerplate)
+GPIO_TypeDef *_txPort;
+uint32_t _txPin;
+
+_txPort = get_GPIO_Port(STM_PORT(pin.toPinName()));
+_txPin  = STM_LL_GPIO_PIN(pin.toPinName());
+
+LL_GPIO_SetOutputPin(_txPort, _txPin);
+
+// After: GPIO class (1 member, no LL includes needed)
+GPIO _tx;
+
+Pin gpio_pin = PA9;
+_tx.Init(gpio_pin, GPIO::Mode::OUTPUT);
+
+_tx.Write(true);   // same register write underneath
+```
+
+Complementary to `pinMode()`/`digitalWrite()`, not a replacement. The existing Arduino API continues to work unchanged.
+
+**Status:** Deferred. Current `digitalWrite()` overhead (~4–6 cycles) is negligible for all validated use cases. Consider adding this class when two or more drivers independently implement the manual caching pattern (SoftwareSerial is the first).
