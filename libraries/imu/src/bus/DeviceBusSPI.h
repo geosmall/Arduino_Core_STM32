@@ -20,7 +20,7 @@ public:
      * @param spi Pointer to SPIClass instance (e.g., &SPI)
      * @param cs Chip select pin number
      */
-    DeviceBusSPI(SPIClass *spi, uint8_t cs) {
+    DeviceBusSPI(SPIClass *spi, Pin cs) {
         _spi = spi;
         _cs_pin = cs;
         pinMode(_cs_pin, OUTPUT);
@@ -68,5 +68,5 @@ public:
 private:
     SPIClass *_spi;
     uint32_t _freq;
-    uint8_t _cs_pin;
+    Pin _cs_pin;
 };

@@ -21,11 +21,11 @@
 // Pin Configuration - Local definitions for Nucleo F411RE
 // ============================================================================
 #define PWM_TIMER TIM3
-const uint32_t PWM_PIN = PB0_ALT1;          // A3 on Nucleo (TIM3_CH3)
+const Pin PWM_PIN = PB0;                    // A3 on Nucleo (TIM3_CH3, no ALT needed)
 const uint32_t PWM_CHANNEL = 3;             // TIM3_CH3
 const uint32_t PWM_FREQUENCY_HZ = 50;       // 50 Hz for servo
 
-const uint32_t CAPTURE_PIN = PB10;          // D6 on Nucleo
+const Pin CAPTURE_PIN = PB10;               // D6 on Nucleo
 const uint32_t CAPTURE_CHANNEL = 3;         // TIM2_CH3
 
 // Servo pulse width limits

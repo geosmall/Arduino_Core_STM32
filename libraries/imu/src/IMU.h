@@ -115,7 +115,7 @@ public:
      * @param spi_freq_hz SPI frequency in Hz
      * @return IMU::Result::OK on success, IMU::Result::ERR on failure.
      */
-    Result Init(SPIClass& spi, uint32_t cs_pin, uint32_t spi_freq_hz);
+    Result Init(SPIClass& spi, Pin cs_pin, uint32_t spi_freq_hz);
 
     /**
      * @brief Apply intent-based preset configuration (recommended API)
@@ -377,7 +377,7 @@ private:
     /**
      * @brief IMU chip select pin (using software driven CS).
      */
-    uint32_t cs_pin_;
+    Pin cs_pin_;
     PinName cs_pin_name_;  // For fast digitalWriteFast()
 
     float accel_sensitivity_{-1.0f};

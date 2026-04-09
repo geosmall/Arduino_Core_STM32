@@ -21,11 +21,11 @@
 
 // Board target selection
 #if defined(ARDUINO_NUCLEO_H743ZI) || defined(ARDUINO_GENERIC_H743ZITX)
-  #include "../../../../../targets/MTKS-MATEKH743.h"
+  #include "targets/MTKS-MATEKH743.h"
 #elif defined(ARDUINO_NUCLEO_F411RE)
-  #include "../../../../../targets/NUCLEO_F411RE_HIL005.h"
+  #include "targets/NUCLEO_F411RE_HIL005.h"
 #else
-  #include "../../../../../targets/BLACKPILL_F411CE.h"
+  #include "targets/BLACKPILL_F411CE.h"
 #endif
 
 // Create HardwareSerial instance using BoardConfig
@@ -52,9 +52,9 @@ void setup() {
 
   if (rc.begin(config)) {
     Serial.print("RC Receiver initialized (RX=0x");
-    Serial.print(BoardConfig::rc_receiver.rx_pin, HEX);
+    Serial.print(BoardConfig::rc_receiver.rx_pin.toPinName(), HEX);
     Serial.print(", TX=0x");
-    Serial.print(BoardConfig::rc_receiver.tx_pin, HEX);
+    Serial.print(BoardConfig::rc_receiver.tx_pin.toPinName(), HEX);
     Serial.print(", ");
     Serial.print(config.baudrate);
     Serial.println(" baud)");

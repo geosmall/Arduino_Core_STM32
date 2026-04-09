@@ -79,26 +79,15 @@ void enableDMAClk(DMA_TypeDef *dma)
 // ---------------------------------------------------------------------------
 // GPIO init — configure pin AF for timer output
 // ---------------------------------------------------------------------------
-void initGPIO(uint32_t pin, TIM_TypeDef *timer, uint32_t ll_channel)
+void initGPIO(Pin pin, TIM_TypeDef *timer, uint32_t ll_channel)
 {
-  PinName pin_name = digitalPinToPinName(pin);
+  PinName pin_name = pin.toPinName();
 
-  // Find the PinMap_TIM entry matching both this physical pin AND the
-  // specified timer.  pinmap_function() returns the first pin match, which
-  // is wrong when a pin has multiple timer functions listed under ALT names
-  // (e.g., PB0: TIM1_CH2N at AF1, TIM3_CH3 at AF2 via PB_0_ALT1).
-  uint32_t function = 0;
-  const PinMap *map = PinMap_TIM;
-  while (map->pin != NC) {
-    if (map->peripheral == timer &&
-        STM_PORT(map->pin) == STM_PORT(pin_name) &&
-        STM_PIN(map->pin) == STM_PIN(pin_name)) {
-      function = map->function;
-      break;
-    }
-    map++;
-  }
-  if (function == 0) {
+  // Peripheral-aware AF lookup: matches both pin AND timer instance,
+  // correctly resolving ALT entries (e.g., PB0: TIM1_CH2N at AF1 vs
+  // TIM3_CH3 at AF2 via PB_0_ALT1).
+  uint32_t function = pinmap_function_for_peripheral(pin_name, timer, PinMap_TIM);
+  if (function == (uint32_t)NC) {
     // Fallback: first pin match (original behavior)
     function = pinmap_function(pin_name, PinMap_TIM);
   }
@@ -161,7 +150,7 @@ static void initOC(TIM_TypeDef *timer, uint32_t ll_channel)
 
 #if defined(STM32F4xx) || defined(STM32F7xx)
 
-// F4/F7: Fixed stream↔peripheral mapping from reference manuals
+// F4/F7: Fixed stream-peripheral mapping from reference manuals
 // Table: {timer, channel_index, DMA, stream, channel_select}
 //
 // F411 DMA streams shared with UART RX (claimed by uart.c via dma_set_handler):
@@ -170,7 +159,7 @@ static void initOC(TIM_TypeDef *timer, uint32_t ll_channel)
 //   DMA2_Stream2 — USART1_RX (also TIM1_CH2 alt, not in table)
 // These streams are NOT excluded from the table. Instead, dma_is_claimed()
 // detects conflicts at init time and auto-upgrades to DMAR burst if needed.
-// See initAllDMA() in DShotOutput.cpp for the resolve → decide → claim flow.
+// See initAllDMA() in DShotOutput.cpp for the resolve -> decide -> claim flow.
 struct DMAMapping {
   TIM_TypeDef *timer;
   uint8_t ch_index;      // 0=CH1, 1=CH2, 2=CH3, 3=CH4

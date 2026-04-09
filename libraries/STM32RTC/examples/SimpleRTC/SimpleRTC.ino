@@ -33,7 +33,7 @@ const byte year = 15;
 
 void setup()
 {
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   // Select RTC clock source: LSI_CLOCK, LSE_CLOCK or HSE_CLOCK.
   // By default the LSI is selected as source.

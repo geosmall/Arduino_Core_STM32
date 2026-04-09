@@ -306,13 +306,13 @@ inline void SoftwareSerial::handleInterrupt()
 //
 // Constructor
 //
-SoftwareSerial::SoftwareSerial(uint16_t receivePin, uint16_t transmitPin, bool inverse_logic /* = false */) :
+SoftwareSerial::SoftwareSerial(Pin receivePin, Pin transmitPin, bool inverse_logic /* = false */) :
   _receivePin(receivePin),
   _transmitPin(transmitPin),
-  _receivePinPort(digitalPinToPort(receivePin)),
-  _receivePinNumber(STM_LL_GPIO_PIN(digitalPinToPinName(receivePin))),
-  _transmitPinPort(digitalPinToPort(transmitPin)),
-  _transmitPinNumber(STM_LL_GPIO_PIN(digitalPinToPinName(transmitPin))),
+  _receivePinPort(get_GPIO_Port(STM_PORT(receivePin.toPinName()))),
+  _receivePinNumber(STM_LL_GPIO_PIN(receivePin.toPinName())),
+  _transmitPinPort(get_GPIO_Port(STM_PORT(transmitPin.toPinName()))),
+  _transmitPinNumber(STM_LL_GPIO_PIN(transmitPin.toPinName())),
   _speed(0),
   _buffer_overflow(false),
   _inverse_logic(inverse_logic),
@@ -322,10 +322,10 @@ SoftwareSerial::SoftwareSerial(uint16_t receivePin, uint16_t transmitPin, bool i
   _receive_buffer_head(0)
 {
   /* Enable GPIO clock for tx and rx pin*/
-  if (set_GPIO_Port_Clock(STM_PORT(digitalPinToPinName(transmitPin))) == 0) {
+  if (set_GPIO_Port_Clock(STM_PORT(transmitPin.toPinName())) == 0) {
     _Error_Handler("ERROR: invalid transmit pin number\n", -1);
   }
-  if ((!_half_duplex) && (set_GPIO_Port_Clock(STM_PORT(digitalPinToPinName(receivePin))) == 0)) {
+  if ((!_half_duplex) && (set_GPIO_Port_Clock(STM_PORT(receivePin.toPinName())) == 0)) {
     _Error_Handler("ERROR: invalid receive pin number\n", -1);
   }
 }

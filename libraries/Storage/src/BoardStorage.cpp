@@ -1,5 +1,5 @@
 #include "BoardStorage.h"
-#include "../../../targets/config/ConfigTypes.h"
+#include "targets/config/ConfigTypes.h"
 
 // No board configuration auto-detection - configuration is passed from sketch
 

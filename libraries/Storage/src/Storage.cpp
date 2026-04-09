@@ -4,13 +4,13 @@
 
 // Include board configuration for StorageBackend enum
 #if defined(ARDUINO_BLACKPILL_F411CE)
-#include "../../../targets/BLACKPILL_F411CE.h"
+#include "targets/BLACKPILL_F411CE.h"
 #elif defined(TARGET_NUCLEO_F411RE_HIL001)
 // Nucleo F411RE with LittleFS SPI flash rig
-#include "../../../targets/NUCLEO_F411RE_HIL001.h"
+#include "targets/NUCLEO_F411RE_HIL001.h"
 #else
 // Default to NUCLEO_F411RE with SDFS
-#include "../../../targets/NUCLEO_F411RE.h"
+#include "targets/NUCLEO_F411RE.h"
 #endif
 
 // Global storage instance
@@ -29,7 +29,7 @@ Storage::~Storage() {
     cleanup();
 }
 
-bool Storage::begin(StorageBackend backend, uint8_t csPin, uint32_t spiSpeed, SPIClass &spiPort) {
+bool Storage::begin(StorageBackend backend, Pin csPin, uint32_t spiSpeed, SPIClass &spiPort) {
     if (initialized) {
         cleanup();
     }

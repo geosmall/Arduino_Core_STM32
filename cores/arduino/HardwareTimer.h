@@ -30,6 +30,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "timer.h"
 #include "stm32yyxx_ll_tim.h"
+#include "Pin.h"
 
 #if defined(HAL_TIM_MODULE_ENABLED) && !defined(HAL_TIM_MODULE_ONLY)
 
@@ -134,14 +135,12 @@ class HardwareTimer {
     void setOverflow(uint32_t val, TimerFormat_t format = TICK_FORMAT); // set AutoReload register depending on format provided
     uint32_t getOverflow(TimerFormat_t format = TICK_FORMAT); // return overflow depending on format provided
 
-    void setPWM(uint32_t channel, PinName pin, uint32_t frequency, uint32_t dutycycle, callback_function_t PeriodCallback = nullptr, callback_function_t CompareCallback = nullptr); // Set all in one command freq in HZ, Duty in percentage. Including both interrupt.
-    void setPWM(uint32_t channel, uint32_t pin, uint32_t frequency, uint32_t dutycycle, callback_function_t PeriodCallback = nullptr, callback_function_t CompareCallback = nullptr);
+    void setPWM(uint32_t channel, Pin pin, uint32_t frequency, uint32_t dutycycle, callback_function_t PeriodCallback = nullptr, callback_function_t CompareCallback = nullptr);
 
     void setCount(uint32_t val, TimerFormat_t format = TICK_FORMAT); // set timer counter to value 'val' depending on format provided
     uint32_t getCount(TimerFormat_t format = TICK_FORMAT);  // return current counter value of timer depending on format provided
 
-    void setMode(uint32_t channel, TimerModes_t mode, PinName pin = NC, ChannelInputFilter_t filter = FILTER_NONE); // Configure timer channel with specified mode on specified pin if available
-    void setMode(uint32_t channel, TimerModes_t mode, uint32_t pin, ChannelInputFilter_t filter = FILTER_NONE);
+    void setMode(uint32_t channel, TimerModes_t mode, Pin pin = NC_PIN, ChannelInputFilter_t filter = FILTER_NONE);
 
     TimerModes_t getMode(uint32_t channel);  // Retrieve configured mode
 

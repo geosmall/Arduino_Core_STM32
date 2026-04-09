@@ -18,7 +18,7 @@ public:
     virtual ~Storage();
 
     // Initialize storage with backend selection and board configuration
-    bool begin(StorageBackend backend, uint8_t csPin, uint32_t spiSpeed = 2000000, SPIClass &spiPort = SPI);
+    bool begin(StorageBackend backend, Pin csPin, uint32_t spiSpeed = 2000000, SPIClass &spiPort = SPI);
 
     // FS interface implementation (delegates to active backend)
     virtual File open(const char *filepath, uint8_t mode = FILE_READ) override;

@@ -42,7 +42,7 @@ struct MotorHW {
 };
 
 // Initialize GPIO alternate function for timer output
-void initGPIO(uint32_t pin, TIM_TypeDef *timer, uint32_t ll_channel);
+void initGPIO(Pin pin, TIM_TypeDef *timer, uint32_t ll_channel);
 
 // Initialize timer for DShot: prescaler for target speed, ARR=BIT_PERIOD, PWM1 mode
 void initTimer(TIM_TypeDef *timer, uint32_t ll_channel, Speed speed);

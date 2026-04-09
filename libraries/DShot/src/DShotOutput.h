@@ -14,7 +14,7 @@ public:
   // dma_override: optional pre-resolved DMA assignment (for external allocator).
   //   When non-null, bypasses internal DMA lookup. Default: nullptr (auto-resolve).
   // Returns motor index (0-based) on success, -1 on failure.
-  int AddMotor(TIM_TypeDef *timer, uint32_t pin, uint32_t channel,
+  int AddMotor(TIM_TypeDef *timer, Pin pin, uint32_t channel,
                DShot::Speed speed = DShot::DSHOT600,
                const DShot::DMAResource *dma_override = nullptr);
 

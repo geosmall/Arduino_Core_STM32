@@ -5,7 +5,7 @@
 
 
 // SPI SD card interface globals
-static uint8_t spi_cs_pin = 0;
+static Pin spi_cs_pin;
 static SPIClass *spi_port = nullptr;
 
 static bool spi_initialized = false;
@@ -340,7 +340,7 @@ static bool sd_read_csd(void)
 }
 
 // SD card initialization
-bool sd_spi_initialize(uint8_t cs_pin, SPIClass *spi)
+bool sd_spi_initialize(Pin cs_pin, SPIClass *spi)
 {
     uint8_t n, cmd, ty, ocr[4];
     uint32_t start_time;
@@ -419,7 +419,7 @@ bool sd_spi_initialize(uint8_t cs_pin, SPIClass *spi)
     return false;  // Initialization failed
 }
 
-uint8_t sd_spi_get_cs_pin(void)
+Pin sd_spi_get_cs_pin(void)
 {
     return spi_cs_pin;
 }

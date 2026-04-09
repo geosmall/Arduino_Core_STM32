@@ -19,6 +19,8 @@
 
 #define ARDUINO_MAIN
 #include "Arduino.h"
+#include <board.h>
+#include "WSerial.h"
 
 // Force init to be called *first*, i.e. before static object allocation.
 // Otherwise, statically allocated objects that need HAL may fail.

@@ -12,7 +12,7 @@ Dps3xx Dps3xxPressureSensor = Dps3xx();
 
 void setup()
 {
-  Serial.begin(9600);
+  Serial.begin(115200);
   while (!Serial)
     ;
 

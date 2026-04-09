@@ -7,7 +7,7 @@
 #pragma once
 
 // Include ConfigTypes.h from targets/config directory
-#include "../../../../targets/config/ConfigTypes.h"
+#include "config/ConfigTypes.h"
 
 // Board: BLACKPILL_F411CE
 // Manufacturer: WACT
@@ -59,8 +59,8 @@ namespace BoardConfig {
     static constexpr MotorConfig motors[] = {
       {TIM3, PB4, 1, 125, 250},  // Motor 1: TIM3_CH1
       {TIM3, PB5, 2, 125, 250},  // Motor 2: TIM3_CH2
-      {TIM3, PB0_ALT1, 3, 125, 250},  // Motor 3: TIM3_CH3
-      {TIM3, PB1_ALT1, 4, 125, 250},  // Motor 4: TIM3_CH4
+      {TIM3, PB0, 3, 125, 250},  // Motor 3: TIM3_CH3
+      {TIM3, PB1, 4, 125, 250},  // Motor 4: TIM3_CH4
       {TIM4, PB6, 1, 125, 250},  // Motor 5: TIM4_CH1
       {TIM4, PB7, 2, 125, 250},  // Motor 6: TIM4_CH2
     };

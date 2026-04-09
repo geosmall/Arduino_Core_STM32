@@ -512,7 +512,7 @@ const char* SDFS::fresultToString(FRESULT fr)
 // SDFS_SPI Implementation  
 // ============================================================================
 
-bool SDFS_SPI::begin(uint8_t cspin, SPIClass &spiport)
+bool SDFS_SPI::begin(Pin cspin, SPIClass &spiport)
 {
     // Guard rail: Prevent multiple begin() calls
     if (mounted) {

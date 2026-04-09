@@ -446,7 +446,7 @@ class LittleFS_SPIFlash : public LittleFS
 {
 public:
     constexpr LittleFS_SPIFlash() { }
-    bool begin(uint8_t cspin, SPIClass &spiport = SPI);
+    bool begin(Pin cspin, SPIClass &spiport = SPI);
     const char *getMediaName();
     const char *name() { return getMediaName(); }
     bool getChipInfo(LFS_W25QXX_info_t &info);
@@ -478,6 +478,6 @@ private:
         return 0;
     }
     SPIClass *port = nullptr;
-    uint8_t pin = 0;
+    Pin pin;
     const void *hwinfo = nullptr;
 };

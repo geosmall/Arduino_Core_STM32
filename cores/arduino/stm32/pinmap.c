@@ -362,6 +362,53 @@ uint32_t pinmap_function(PinName pin, const PinMap *map)
   return function;
 }
 
+/* Peripheral-aware AF lookup: match physical pin (masking ALT bits) AND
+ * peripheral instance. Returns the function word for the first PinMap entry
+ * where the port, pin number, and peripheral all match.
+ *
+ * This is the centralised fix for the ALT trap: when a pin has multiple
+ * peripheral mappings (e.g. PB0 → TIM1_CH2N via PA_0, PB0 → TIM3_CH3 via
+ * PB_0_ALT1), the caller specifies which peripheral it wants and gets the
+ * correct AF without needing ALT-encoded PinName values. */
+uint32_t pinmap_function_for_peripheral(PinName pin, void *peripheral, const PinMap *map)
+{
+  if (pin == (PinName)NC) {
+    return (uint32_t)NC;
+  }
+
+  while (map->pin != NC) {
+    if ((STM_PORT(map->pin) == STM_PORT(pin))
+        && (STM_PIN(map->pin) == STM_PIN(pin))
+        && (map->peripheral == peripheral)) {
+      return map->function;
+    }
+    map++;
+  }
+  return (uint32_t)NC;
+}
+
+/* Peripheral-aware pin configuration: same matching as above, then calls
+ * pin_function() with the caller's (non-ALT) PinName and the matched
+ * function word. The AF number comes from the function word; GPIO port/pin
+ * come from the caller's PinName — ALT bits are never passed to hardware. */
+void pinmap_pinout_for_peripheral(PinName pin, void *peripheral, const PinMap *map)
+{
+  if (pin == NC) {
+    return;
+  }
+
+  while (map->pin != NC) {
+    if ((STM_PORT(map->pin) == STM_PORT(pin))
+        && (STM_PIN(map->pin) == STM_PIN(pin))
+        && (map->peripheral == peripheral)) {
+      pin_function(pin, map->function);
+      return;
+    }
+    map++;
+  }
+  Error_Handler();
+}
+
 // Merge peripherals
 void *pinmap_merge_peripheral(void *a, void *b)
 {

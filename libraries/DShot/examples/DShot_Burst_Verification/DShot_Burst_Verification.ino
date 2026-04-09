@@ -27,7 +27,7 @@
 
 // --- Board-specific motor configuration ---
 struct MotorDef {
-  uint32_t pin;
+  Pin pin;
   uint32_t channel;   // timer channel 1-4
 };
 

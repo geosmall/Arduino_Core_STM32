@@ -12,13 +12,13 @@
 //
 // Peripheral wiring matches BetaFPV G473 layout:
 //   SPI1 IMU: PA7/PA6/PA5, CS=PA4, INT=PC4 (ICM42688P breakout)
-//   SPI3 Flash: PB5_ALT1/PB4_ALT1/PB3_ALT1, CS=PB9 (W25Q module)
+//   SPI3 Flash: PB5/PB4/PB3, CS=PB9 (W25Q module)
 //   I2C1: PB7 SDA / PA15 SCL
 //   USART1: PA9 TX / PA10 RX (ELRS / loopback)
 //
 namespace BoardConfig {
   // Storage: W25Q SPI flash on SPI3 (ALT1 pins)
-  static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PB5_ALT1, PB4_ALT1, PB3_ALT1, PB9, 8000000};
+  static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PB5, PB4, PB3, PB9, 8000000};
 
   // IMU: ICM42688P on SPI1
   static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 2000000};
@@ -54,8 +54,8 @@ namespace BoardConfig {
     static constexpr MotorConfig motors[] = {
       {TIM1, PB0, 2, 125, 250},  // Motor 1: TIM1_CH2
       {TIM1, PB1, 3, 125, 250},  // Motor 2: TIM1_CH3
-      {TIM16, PB6_ALT2, 1, 125, 250},  // Motor 3: TIM16_CH1
-      {TIM8, PC13_ALT1, 4, 125, 250},  // Motor 4: TIM8_CH4
+      {TIM16, PB6, 1, 125, 250},  // Motor 3: TIM16_CH1
+      {TIM8, PC13, 4, 125, 250},  // Motor 4: TIM8_CH4
     };
 
     static constexpr int num_motors = sizeof(motors) / sizeof(motors[0]);

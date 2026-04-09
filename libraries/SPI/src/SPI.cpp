@@ -18,9 +18,9 @@ SPIClass SPI;
   */
 SPIClass::SPIClass()
 {
-  _spi.pin_miso = digitalPinToPinName(MISO);
-  _spi.pin_mosi = digitalPinToPinName(MOSI);
-  _spi.pin_sclk = digitalPinToPinName(SCK);
+  _spi.pin_miso = PIN_SPI_MISO.toPinName();
+  _spi.pin_mosi = PIN_SPI_MOSI.toPinName();
+  _spi.pin_sclk = PIN_SPI_SCK.toPinName();
   _spi.pin_ssel = NC;
 }
 
@@ -28,14 +28,10 @@ SPIClass::SPIClass()
   * @brief  Constructor to create another SPI instance attached to another SPI
   *         peripheral different of the default SPI. All pins must be attached to
   *         the same SPI peripheral. See datasheet of the microcontroller.
-  * @param  mosi: SPI mosi pin. Accepted format: number or Arduino format (Dx)
-  *         or ST format (Pxy).
-  * @param  miso: SPI miso pin. Accepted format: number or Arduino format (Dx)
-  *         or ST format (Pxy).
-  * @param  sclk: SPI clock pin. Accepted format: number or Arduino format (Dx)
-  *         or ST format (Pxy).
-  * @param  ssel: SPI ssel pin (optional). Accepted format: number or
-  *         Arduino format (Dx) or ST format (Pxy). By default is set to NC.
+  * @param  mosi: SPI mosi pin.
+  * @param  miso: SPI miso pin.
+  * @param  sclk: SPI clock pin.
+  * @param  ssel: SPI ssel pin (optional). By default is set to NC_PIN.
   *         This pin must correspond to a hardware CS pin which can be managed
   *         by the SPI peripheral itself. See the datasheet of the microcontroller
   *         or look at PinMap_SPI_SSEL[] inside the file PeripheralPins.c
@@ -43,12 +39,12 @@ SPIClass::SPIClass()
   *         another CS pin and don't pass a CS pin as parameter to any functions
   *         of the class.
   */
-SPIClass::SPIClass(uint32_t mosi, uint32_t miso, uint32_t sclk, uint32_t ssel)
+SPIClass::SPIClass(Pin mosi, Pin miso, Pin sclk, Pin ssel)
 {
-  _spi.pin_miso = digitalPinToPinName(miso);
-  _spi.pin_mosi = digitalPinToPinName(mosi);
-  _spi.pin_sclk = digitalPinToPinName(sclk);
-  _spi.pin_ssel = digitalPinToPinName(ssel);
+  _spi.pin_miso = miso.toPinName();
+  _spi.pin_mosi = mosi.toPinName();
+  _spi.pin_sclk = sclk.toPinName();
+  _spi.pin_ssel = ssel.toPinName();
 }
 
 /**
@@ -124,12 +120,6 @@ void SPIClass::setBitOrder(BitOrder bitOrder)
   * @brief  Deprecated function.
   *         Configure the data mode (clock polarity and clock phase)
   * @param  mode: SPI_MODE0, SPI_MODE1, SPI_MODE2 or SPI_MODE3
-  * @note
-  *         Mode          Clock Polarity (CPOL)   Clock Phase (CPHA)
-  *         SPI_MODE0             0                     0
-  *         SPI_MODE1             0                     1
-  *         SPI_MODE2             1                     0
-  *         SPI_MODE3             1                     1
   */
 void SPIClass::setDataMode(uint8_t mode)
 {
@@ -270,14 +260,3 @@ void SPIClass::detachInterrupt(void)
 {
   // Should be disableInterrupt()
 }
-
-#if defined(SUBGHZSPI_BASE)
-void SUBGHZSPIClass::enableDebugPins(uint32_t mosi, uint32_t miso, uint32_t sclk, uint32_t ssel)
-{
-  /* Configure SPI GPIO pins */
-  pinmap_pinout(digitalPinToPinName(mosi), PinMap_SPI_MOSI);
-  pinmap_pinout(digitalPinToPinName(miso), PinMap_SPI_MISO);
-  pinmap_pinout(digitalPinToPinName(sclk), PinMap_SPI_SCLK);
-  pinmap_pinout(digitalPinToPinName(ssel), PinMap_SPI_SSEL);
-}
-#endif

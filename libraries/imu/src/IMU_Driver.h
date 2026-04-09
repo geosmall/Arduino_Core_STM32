@@ -52,7 +52,7 @@ public:
      * @param csPin Chip select pin number
      * @param freq_hz SPI frequency in Hz (default: 1 MHz)
      */
-    void attachSPI(SPIClass& spi, uint8_t csPin, uint32_t freq_hz = 1000000);
+    void attachSPI(SPIClass& spi, Pin csPin, uint32_t freq_hz = 1000000);
 
     /**
      * @brief Attach I2C bus for communication

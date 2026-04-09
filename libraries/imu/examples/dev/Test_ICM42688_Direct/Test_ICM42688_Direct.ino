@@ -24,7 +24,7 @@ extern "C" void putchar_(char c) {
 
 // Board configuration - NUCLEO_F411RE ONLY
 #if defined(ARDUINO_NUCLEO_F411RE)
-#include "../../../../targets/NUCLEO_F411RE_HIL001.h"
+#include "targets/NUCLEO_F411RE_HIL001.h"
 #else
 #error "This example requires NUCLEO_F411RE board. Use default FQBN: STMicroelectronics:stm32:Nucleo_64:pnum=NUCLEO_F411RE"
 #endif
@@ -54,8 +54,8 @@ void setup() {
   // Display pin configuration from BoardConfig
   Serial.println("\nPin Configuration (BoardConfig):");
   printf_("  CS: 0x%02X, MOSI: 0x%02X, MISO: 0x%02X, SCLK: 0x%02X\n",
-         (int)IMU_CS_PIN, (int)IMU_MOSI_PIN,
-         (int)IMU_MISO_PIN, (int)IMU_SCLK_PIN);
+         (int)IMU_CS_PIN.toPinName(), (int)IMU_MOSI_PIN.toPinName(),
+         (int)IMU_MISO_PIN.toPinName(), (int)IMU_SCLK_PIN.toPinName());
   printf_("  SPI Speed: %lu Hz\n\n", (unsigned long)IMU_SPI_FREQ);
 
   // Initialize SPI with BoardConfig pins

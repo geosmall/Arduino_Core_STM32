@@ -22,7 +22,7 @@
  */
 
 #include <PWMOutputBank.h>
-#include "../../../../targets/NUCLEO_F411RE_HIL001.h"
+#include "targets/NUCLEO_F411RE_HIL001.h"
 
 // PWM Output Banks
 PWMOutputBank servo_pwm;
@@ -137,14 +137,14 @@ void setup() {
   tim2.setOverflow(0xFFFFFFFF);  // Max period (32-bit timer)
 
   // Configure CH1 for servo measurement (local pin definitions, not in target config)
-  const uint32_t SERVO_CAPTURE_PIN = PA0;  // TIM2_CH1 (Arduino A0)
+  const Pin SERVO_CAPTURE_PIN = PA0;  // TIM2_CH1 (Arduino A0)
   const uint32_t SERVO_CAPTURE_CH = 1;
   tim2.setMode(SERVO_CAPTURE_CH, TIMER_INPUT_CAPTURE_RISING, SERVO_CAPTURE_PIN);
   tim2.attachInterrupt(SERVO_CAPTURE_CH, servoCaptureCallback);
   Serial.println("Servo Capture: PA0 (A0, TIM2_CH1)");
 
   // Configure CH3 for ESC measurement (local pin definitions, not in target config)
-  const uint32_t ESC_CAPTURE_PIN = PB10;  // TIM2_CH3 (Arduino D6)
+  const Pin ESC_CAPTURE_PIN = PB10;  // TIM2_CH3 (Arduino D6)
   const uint32_t ESC_CAPTURE_CH = 3;
   tim2.setMode(ESC_CAPTURE_CH, TIMER_INPUT_CAPTURE_RISING, ESC_CAPTURE_PIN);
   tim2.attachInterrupt(ESC_CAPTURE_CH, escCaptureCallback);

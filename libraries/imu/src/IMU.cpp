@@ -11,13 +11,13 @@ IMU::IMU()
     us_ticks_ = SystemCoreClock / 1000000;
 }
 
-IMU::Result IMU::Init(SPIClass& spi, uint32_t cs_pin, uint32_t spi_freq_hz)
+IMU::Result IMU::Init(SPIClass& spi, Pin cs_pin, uint32_t spi_freq_hz)
 {
     // Store SPI reference and configuration
     p_spi_ = &spi;
     cs_pin_ = cs_pin;
     spi_freq_hz_ = spi_freq_hz;
-    cs_pin_name_ = digitalPinToPinName(cs_pin);
+    cs_pin_name_ = cs_pin.toPinName();
 
     // Initialize CS pin
     pinMode(cs_pin_, OUTPUT);

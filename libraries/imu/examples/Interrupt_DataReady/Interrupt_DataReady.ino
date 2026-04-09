@@ -15,11 +15,11 @@
 
 // Board configuration - Multi-board support
 #if defined(ARDUINO_BKMN_NERO)
-#include "../../../../targets/BKMN-NERO.h"
+#include "targets/BKMN-NERO.h"
 #elif defined(ARDUINO_BLACKPILL_F411CE)
-#include "../../../../targets/BLACKPILL_F411CE.h"
+#include "targets/BLACKPILL_F411CE.h"
 #else
-#include "../../../../targets/NUCLEO_F411RE_HIL001.h"
+#include "targets/NUCLEO_F411RE_HIL001.h"
 #endif
 
 // Create SPI instance using BoardConfig (software CS control)
@@ -48,14 +48,14 @@ void setup() {
     // Display pin configuration
     Serial.println("Pin Configuration (BoardConfig):");
     Serial.printf("  CS: %d, MOSI: %d, MISO: %d, SCLK: %d\n",
-           (int)BoardConfig::imu.spi.cs_pin,
-           (int)BoardConfig::imu.spi.mosi_pin,
-           (int)BoardConfig::imu.spi.miso_pin,
-           (int)BoardConfig::imu.spi.sclk_pin);
+           (int)BoardConfig::imu.spi.cs_pin.toPinName(),
+           (int)BoardConfig::imu.spi.mosi_pin.toPinName(),
+           (int)BoardConfig::imu.spi.miso_pin.toPinName(),
+           (int)BoardConfig::imu.spi.sclk_pin.toPinName());
     Serial.printf("  SPI Speed: %lu Hz\n", (unsigned long)BoardConfig::imu.spi.freq_hz);
 
-    if (BoardConfig::imu.int_pin != 0) {
-        Serial.printf("  Interrupt Pin: %d\n\n", (int)BoardConfig::imu.int_pin);
+    if (BoardConfig::imu.int_pin != NC_PIN) {
+        Serial.printf("  Interrupt Pin: %d\n\n", (int)BoardConfig::imu.int_pin.toPinName());
     } else {
         Serial.println("  Interrupt Pin: None configured");
         Serial.println("ERROR: This example requires interrupt pin!");
@@ -98,8 +98,7 @@ void setup() {
 
     // Configure interrupt pin
     pinMode(BoardConfig::imu.int_pin, INPUT);
-    attachInterrupt(digitalPinToInterrupt(BoardConfig::imu.int_pin),
-                    imu_data_ready_handler, RISING);
+    attachInterrupt(BoardConfig::imu.int_pin, imu_data_ready_handler, RISING);
 
     // Enable data ready interrupt on INT
     if (imu.EnableDataReadyInt() != 0) {

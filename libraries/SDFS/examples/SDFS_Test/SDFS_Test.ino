@@ -19,11 +19,11 @@ extern "C" void putchar_(char c) {
 
 // Board configuration for hardware abstraction
 #if defined(ARDUINO_BLACKPILL_F411CE)
-#include "../../../targets/BLACKPILL_F411CE.h"
+#include "targets/BLACKPILL_F411CE.h"
 #elif defined(ARDUINO_BKMN_NERO)
-#include "../../../targets/BKMN-NERO.h"
+#include "targets/BKMN-NERO.h"
 #else
-#include "../../../targets/NUCLEO_F411RE_SDFS.h"
+#include "targets/NUCLEO_F411RE_SDFS.h"
 #endif
 
 // Hardware configuration - BoardConfig integration

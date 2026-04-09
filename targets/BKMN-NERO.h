@@ -7,7 +7,7 @@
 #pragma once
 
 // Include ConfigTypes.h from targets/config directory
-#include "../../../../targets/config/ConfigTypes.h"
+#include "config/ConfigTypes.h"
 
 // UF2 bootloader config flash region (must match bootuf2 ports/stm32f7/boards.h)
 #define BOARD_FLASH_CONFIG_START  0x08008000UL
@@ -52,8 +52,8 @@ namespace BoardConfig {
     static constexpr uint32_t frequency_hz = 50;
 
     static constexpr ServoConfig servos[] = {
-      {TIM8, PC8_ALT1, 3, 1000, 2000},  // Servo 1: TIM8_CH3
-      {TIM8, PC9_ALT1, 4, 1000, 2000},  // Servo 2: TIM8_CH4
+      {TIM8, PC8, 3, 1000, 2000},  // Servo 1: TIM8_CH3
+      {TIM8, PC9, 4, 1000, 2000},  // Servo 2: TIM8_CH4
     };
 
     static constexpr int num_servos = sizeof(servos) / sizeof(servos[0]);
@@ -64,12 +64,12 @@ namespace BoardConfig {
 
     // Motor array - hardware timer assignments from Betaflight config
     static constexpr MotorConfig motors[] = {
-      {TIM5, PA0_ALT1, 1, 125, 250},  // Motor 1: TIM5_CH1
-      {TIM5, PA1_ALT1, 2, 125, 250},  // Motor 2: TIM5_CH2
-      {TIM5, PA2_ALT1, 3, 125, 250},  // Motor 3: TIM5_CH3
-      {TIM5, PA3_ALT1, 4, 125, 250},  // Motor 4: TIM5_CH4
-      {TIM3, PB0_ALT1, 3, 125, 250},  // Motor 5: TIM3_CH3
-      {TIM3, PB1_ALT1, 4, 125, 250},  // Motor 6: TIM3_CH4
+      {TIM5, PA0, 1, 125, 250},  // Motor 1: TIM5_CH1
+      {TIM5, PA1, 2, 125, 250},  // Motor 2: TIM5_CH2
+      {TIM5, PA2, 3, 125, 250},  // Motor 3: TIM5_CH3
+      {TIM5, PA3, 4, 125, 250},  // Motor 4: TIM5_CH4
+      {TIM3, PB0, 3, 125, 250},  // Motor 5: TIM3_CH3
+      {TIM3, PB1, 4, 125, 250},  // Motor 6: TIM3_CH4
     };
 
     static constexpr int num_motors = sizeof(motors) / sizeof(motors[0]);

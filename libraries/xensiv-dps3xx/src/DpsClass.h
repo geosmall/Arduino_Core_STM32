@@ -52,7 +52,7 @@ public:
     /**
      * SPI begin function for Dps3xx with 4-wire SPI
      */
-    void begin(SPIClass &bus, int32_t chipSelect);
+    void begin(SPIClass &bus, Pin chipSelect);
 #endif
 
 #ifndef DPS_DISABLESPI
@@ -64,7 +64,7 @@ public:
      * @param threeWire:        1 if Dps3xx is connected with 3-wire SPI
      *                          0 if Dps3xx is connected with 4-wire SPI (standard)
      */
-    void begin(SPIClass &bus, int32_t chipSelect, uint8_t threeWire);
+    void begin(SPIClass &bus, Pin chipSelect, uint8_t threeWire);
 #endif
 
     /**
@@ -277,7 +277,7 @@ protected:
 #ifndef DPS_DISABLESPI
     // used for SPI
     SPIClass *m_spibus;
-    int32_t m_chipSelect;
+    Pin m_chipSelect;
     uint8_t m_threeWire;
 #endif
     /**

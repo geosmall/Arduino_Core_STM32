@@ -3,8 +3,6 @@
  *
  * Provides 1 µs resolution PWM output for servo and ESC control using
  * explicit timer bank configuration to prevent frequency conflicts.
- *
- * Phase 1: Single timer, basic PWM output, runtime pulse width updates
  */
 
 #ifndef PWMOUTPUTBANK_H
@@ -38,12 +36,12 @@ public:
    * Attach a PWM channel to a specific pin
    *
    * @param channel Timer channel number (1-4)
-   * @param pin Arduino pin number
+   * @param pin Pin struct identifying the GPIO
    * @param min_us Minimum pulse width in microseconds (default: 1000)
    * @param max_us Maximum pulse width in microseconds (default: 2000)
    * @return true if channel attached successfully, false otherwise
    */
-  bool AttachChannel(uint32_t channel, uint32_t pin,
+  bool AttachChannel(uint32_t channel, Pin pin,
                      uint32_t min_us = 1000, uint32_t max_us = 2000);
 
   /**
@@ -106,7 +104,7 @@ private:
    * Channel configuration structure
    */
   struct ChannelConfig {
-    uint32_t pin;           // Arduino pin number
+    Pin pin;                // GPIO pin
     uint32_t channel;       // Timer channel (1-4)
     uint32_t min_us;        // Minimum pulse width
     uint32_t max_us;        // Maximum pulse width

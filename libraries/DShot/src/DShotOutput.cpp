@@ -47,7 +47,7 @@ int DShotOutput::findOrCreateGroup(TIM_TypeDef *timer)
   return -1;
 }
 
-int DShotOutput::AddMotor(TIM_TypeDef *timer, uint32_t pin, uint32_t channel,
+int DShotOutput::AddMotor(TIM_TypeDef *timer, Pin pin, uint32_t channel,
                           DShot::Speed speed,
                           const DShot::DMAResource *dma_override)
 {

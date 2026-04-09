@@ -15,19 +15,19 @@
 #include <DShot.h>
 
 #if defined(ARDUINO_OPEN_REVO)
-  #include "../../../../targets/OPEN-REVO.h"
+  #include "targets/OPEN-REVO.h"
   #define BOARD_NAME "OPEN_REVO"
 #elif defined(ARDUINO_JHEF_JHEF411)
-  #include "../../../../targets/JHEF-JHEF411.h"
+  #include "targets/JHEF-JHEF411.h"
   #define BOARD_NAME "JHEF_JHEF411"
 #elif defined(ARDUINO_BKMN_NERO)
-  #include "../../../../targets/BKMN-NERO.h"
+  #include "targets/BKMN-NERO.h"
   #define BOARD_NAME "BKMN_NERO"
 #elif defined(ARDUINO_BEFH_BETAFPVG473)
-  #include "../../../../targets/BEFH-BETAFPVG473.h"
+  #include "targets/BEFH-BETAFPVG473.h"
   #define BOARD_NAME "BEFH_BETAFPVG473"
 #elif defined(ARDUINO_MATEK_H743VI)
-  #include "../../../../targets/MTKS-MATEKH743.h"
+  #include "targets/MTKS-MATEKH743.h"
   #define BOARD_NAME "MATEK_H743VI"
 #else
   #error "Unsupported board. Supported: OPEN_REVO, JHEF_JHEF411, BKMN_NERO, BEFH_BETAFPVG473, MATEK_H743VI"

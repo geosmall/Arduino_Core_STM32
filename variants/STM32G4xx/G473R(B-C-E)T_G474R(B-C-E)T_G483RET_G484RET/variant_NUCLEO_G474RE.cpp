@@ -1,99 +1,12 @@
 /*
- *******************************************************************************
- * Copyright (c) 2019-2021, STMicroelectronics
- * All rights reserved.
+ * variant_NUCLEO_G474RE.cpp — Nucleo-64 G474RE (Pin refactor)
  *
- * This software component is licensed by ST under BSD 3-Clause license,
- * the "License"; You may not use this file except in compliance with the
- * License. You may obtain a copy of the License at:
- *                        opensource.org/licenses/BSD-3-Clause
- *
- *******************************************************************************
+ * Only SystemClock_Config remains. The digitalPin[] and analogInputPin[]
+ * arrays are eliminated — the Pin struct replaces D-number indirection.
  */
 #if defined(ARDUINO_NUCLEO_G474RE)
 
 #include "pins_arduino.h"
-
-// Digital PinName array
-const PinName digitalPin[] = {
-  // CN9
-  PC_5,  //D0
-  PC_4,  //D1
-  PA_10, //D2
-  PB_3,  //D3
-  PB_5,  //D4
-  PB_4,  //D5
-  PB_10, //D6
-  PA_8,  //D7
-  // CN5
-  PA_9,  //D8
-  PC_7,  //D9
-  PB_6,  //D10
-  PA_7,  //D11
-  PA_6,  //D12
-  PA_5,  //D13/LED
-  PB_9,  //D14
-  PB_8,  //D15
-  // CN7 Left Side
-  PC_10, //D16
-  PC_12, //D17
-  PA_13, //D18/SWDIO
-  PA_14, //D19/SWCLK
-  PA_15, //D20
-  PB_7,  //D21
-  PC_13, //D22
-  PC_14, //D23
-  PC_15, //D24
-  PF_0,  //D25
-  PF_1,  //D26
-  PC_2,  //D27
-  PC_3,  //D28
-  // CN7 Right Side
-  PD_2,  //D29
-  PC_11, //D30
-  // CN10 Left Side
-  PC_9,  //D31
-  // CN8
-  PA_0,  //D32/A0
-  PA_1,  //D33/A1
-  PA_4,  //D34/A2
-  PB_0,  //D35/A3
-  PC_1,  //D36/A4
-  PC_0,  //D37/A5
-  // CN10 Right side
-  PB_13, //D38/A6
-  PB_14, //D39/A7
-  PB_15, //D40/A8
-  PB_1,  //D41/A9
-  PB_2,  //D42/A10
-  PB_11, //D43/A11
-  PB_12, //D44/A12
-  PA_11, //D45
-  PA_12, //D46
-  PC_6,  //D47
-  PC_8,  //D48
-  PA_2,  //D49
-  PA_3   //D50
-};
-
-// Analog (Ax) pin number array
-const uint32_t analogInputPin[] = {
-  32, // A0
-  33, // A1
-  34, // A2
-  35, // A3
-  36, // A4
-  37, // A5
-  38, // A6
-  39, // A7
-  40, // A8
-  41, // A9
-  42, // A10
-  43, // A11
-  44  // A12
-};
-
-// ----------------------------------------------------------------------------
 
 #ifdef __cplusplus
 extern "C" {
@@ -101,6 +14,7 @@ extern "C" {
 
 /**
   * @brief  System Clock Configuration
+  *         170 MHz from 24 MHz HSE via PLL
   */
 WEAK void SystemClock_Config(void)
 {

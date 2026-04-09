@@ -251,6 +251,11 @@ void uart_enable_rx(serial_t *obj);
 
 size_t uart_debug_write(uint8_t *data, uint32_t size);
 
+/* Register the debug UART at runtime.  Called by HardwareSerial::begin()
+ * for the default Serial instance so that uart.c no longer needs the
+ * PIN_SERIAL_TX compile-time define (which forced PinName in variant headers). */
+void uart_set_debug(USART_TypeDef *uart, PinName tx);
+
 #endif /* HAL_UART_MODULE_ENABLED  && !HAL_UART_MODULE_ONLY */
 #ifdef __cplusplus
 }

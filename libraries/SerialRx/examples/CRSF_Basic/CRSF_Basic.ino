@@ -21,10 +21,10 @@
 #include <SerialRx.h>
 
 #if defined(ARDUINO_NUCLEO_F411RE)
-  #include "../../../../targets/NUCLEO_F411RE_HIL001.h"
+  #include "targets/NUCLEO_F411RE_HIL001.h"
   #define BOARD_NAME "Nucleo F411RE (HIL-001)"
 #elif defined(ARDUINO_BKMN_NERO)
-  #include "../../../../targets/BKMN-NERO.h"
+  #include "targets/BKMN-NERO.h"
   #define BOARD_NAME "NERO F7"
 #else
   #error "Unsupported board. Add your board's target header."
@@ -57,7 +57,7 @@ void setup() {
 
   if (rc.begin(config)) {
     Serial.print("RC Receiver initialized (RX=0x");
-    Serial.print(BoardConfig::rc_receiver.rx_pin, HEX);
+    Serial.print(BoardConfig::rc_receiver.rx_pin.toPinName(), HEX);
     Serial.print(", ");
     Serial.print(config.baudrate);
     Serial.println(" baud)");

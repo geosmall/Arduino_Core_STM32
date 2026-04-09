@@ -27,7 +27,7 @@
 
 // Board configuration - NERO F7 only (has ICM-20602)
 #if defined(ARDUINO_BKMN_NERO)
-#include "../../../../targets/BKMN-NERO.h"
+#include "targets/BKMN-NERO.h"
 #else
 #error "This example requires NERO F7 (FQBN: STM32_Robotics:stm32:FlightCtr:pnum=BKMN_NERO)"
 #endif
@@ -59,13 +59,13 @@ void setup()
     // Display pin configuration from BoardConfig
     Serial.println("Pin Configuration (BoardConfig):");
     Serial.print("  CS: ");
-    Serial.print((int)ICM206XX_CS_PIN);
+    Serial.print((int)ICM206XX_CS_PIN.toPinName());
     Serial.print(", MOSI: ");
-    Serial.print((int)ICM206XX_MOSI_PIN);
+    Serial.print((int)ICM206XX_MOSI_PIN.toPinName());
     Serial.print(", MISO: ");
-    Serial.print((int)ICM206XX_MISO_PIN);
+    Serial.print((int)ICM206XX_MISO_PIN.toPinName());
     Serial.print(", SCLK: ");
-    Serial.println((int)ICM206XX_SCLK_PIN);
+    Serial.println((int)ICM206XX_SCLK_PIN.toPinName());
     Serial.print("  SPI Speed: ");
     Serial.print((unsigned long)ICM206XX_SPI_FREQ);
     Serial.println(" Hz");

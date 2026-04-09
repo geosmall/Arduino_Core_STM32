@@ -126,7 +126,7 @@ public:
     constexpr SDFS_SPI() {}
     
     // Initialize with SPI settings - matches LittleFS_SPIFlash interface
-    bool begin(uint8_t cspin, SPIClass &spiport = SPI);
+    bool begin(Pin cspin, SPIClass &spiport = SPI);
     const char* getMediaName();
     
     // SPI speed configuration (call before begin())
@@ -135,6 +135,6 @@ public:
 
 private:
     SPIClass *port = nullptr;
-    uint8_t pin = 0;
+    Pin pin;
     bool initializeSDCard();
 };

@@ -10,16 +10,17 @@
 // separate timer banks with different frequencies.
 
 #include <PWMOutputBank.h>
+#include "WMath.h"
 
 // Board target selection based on Arduino board define
 #if defined(ARDUINO_MATEK_H743VI)
-  #include "../../../../targets/MTKS-MATEKH743.h"
+  #include "targets/MTKS-MATEKH743.h"
   #define BOARD_NAME "MATEK_H743VI"
 #elif defined(ARDUINO_BLACKPILL_F411CE)
-  #include "../../../../targets/BLACKPILL_F411CE.h"
+  #include "targets/BLACKPILL_F411CE.h"
   #define BOARD_NAME "BLACKPILL_F411CE"
 #elif defined(ARDUINO_NUCLEO_F411RE)
-  #include "../../../../targets/NUCLEO_F411RE_HIL001.h"
+  #include "targets/NUCLEO_F411RE_HIL001.h"
   #define BOARD_NAME "NUCLEO_F411RE"
 #else
   #error "Unsupported board variant. Supported: BLACKPILL_F411CE, NUCLEO_F411RE, MATEK_H743VI"
@@ -72,9 +73,9 @@ void setup() {
     while (1);
   }
   servo_pwm.Start();
-  Serial.print("  Servo1: pin=0x"); Serial.print(servo1.pin, HEX);
+  Serial.print("  Servo1: pin=P"); Serial.print((char)('A' + servo1.pin.port)); Serial.print(servo1.pin.pin);
   Serial.print(" ch="); Serial.println(servo1.channel);
-  Serial.print("  Servo2: pin=0x"); Serial.print(servo2.pin, HEX);
+  Serial.print("  Servo2: pin=P"); Serial.print((char)('A' + servo2.pin.port)); Serial.print(servo2.pin.pin);
   Serial.print(" ch="); Serial.println(servo2.channel);
   Serial.println();
 
@@ -102,9 +103,9 @@ void setup() {
     while (1);
   }
   motor_pwm.Start();
-  Serial.print("  Motor1: pin=0x"); Serial.print(motor1.pin, HEX);
+  Serial.print("  Motor1: pin=P"); Serial.print((char)('A' + motor1.pin.port)); Serial.print(motor1.pin.pin);
   Serial.print(" ch="); Serial.println(motor1.channel);
-  Serial.print("  Motor2: pin=0x"); Serial.print(motor2.pin, HEX);
+  Serial.print("  Motor2: pin=P"); Serial.print((char)('A' + motor2.pin.port)); Serial.print(motor2.pin.pin);
   Serial.print(" ch="); Serial.println(motor2.channel);
   Serial.println();
 

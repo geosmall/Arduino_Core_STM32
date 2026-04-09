@@ -17,13 +17,13 @@
 
 // Board configuration - Multi-board support
 #if defined(ARDUINO_BKMN_NERO)
-#include "../../../../targets/BKMN-NERO.h"
+#include "targets/BKMN-NERO.h"
 #elif defined(ARDUINO_BLACKPILL_F411CE)
-#include "../../../../targets/BLACKPILL_F411CE.h"
+#include "targets/BLACKPILL_F411CE.h"
 #elif defined(ARDUINO_WEACT_G474_HIL007)
-#include "../../../../targets/WEACT_G474_HIL007.h"
+#include "targets/WEACT_G474_HIL007.h"
 #else
-#include "../../../../targets/NUCLEO_F411RE_HIL001.h"
+#include "targets/NUCLEO_F411RE_HIL001.h"
 #endif
 
 // BoardConfig integration for dynamic pin configuration
@@ -52,8 +52,8 @@ void setup()
     // Display pin configuration from BoardConfig
     Serial.println("Pin Configuration (BoardConfig):");
     Serial.printf("  CS: 0x%02X, MOSI: 0x%02X, MISO: 0x%02X, SCLK: 0x%02X\n",
-           (int)IMU_CS_PIN, (int)IMU_MOSI_PIN,
-           (int)IMU_MISO_PIN, (int)IMU_SCLK_PIN);
+           (int)IMU_CS_PIN.toPinName(), (int)IMU_MOSI_PIN.toPinName(),
+           (int)IMU_MISO_PIN.toPinName(), (int)IMU_SCLK_PIN.toPinName());
     Serial.printf("  SPI Speed: %lu Hz\n\n", (unsigned long)IMU_SPI_FREQ);
 
     // Initialize SPI with BoardConfig pins

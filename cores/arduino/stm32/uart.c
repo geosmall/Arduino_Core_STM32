@@ -21,17 +21,13 @@ extern "C" {
 #endif
 #if defined(HAL_UART_MODULE_ENABLED) && !defined(HAL_UART_MODULE_ONLY)
 
-/* If DEBUG_UART is not defined assume this is the one linked to PIN_SERIAL_TX */
-#if !defined(DEBUG_UART)
-#if defined(PIN_SERIAL_TX)
-#define DEBUG_UART          pinmap_peripheral(digitalPinToPinName(PIN_SERIAL_TX), PinMap_UART_TX)
-#define DEBUG_PINNAME_TX    digitalPinToPinName(PIN_SERIAL_TX)
-#else
-/* No debug UART defined */
-#define DEBUG_UART          NP
-#define DEBUG_PINNAME_TX    NC
-#endif
-#endif
+/* Debug UART instance and TX pin — registered at runtime by the
+ * HardwareSerial constructor via uart_set_debug().  This replaces the old
+ * compile-time #define chain that derived DEBUG_UART from PIN_SERIAL_TX,
+ * which forced variant headers to use PinName values instead of Pin. */
+static USART_TypeDef *debug_uart_instance = (USART_TypeDef *)NP;
+static PinName        debug_uart_tx       = NC;
+
 #if !defined(DEBUG_UART_BAUDRATE)
 #define DEBUG_UART_BAUDRATE 9600
 #endif
@@ -683,14 +679,28 @@ void uart_config_lowpower(serial_t *obj)
   *         Default config: 8N1
   * @retval None
   */
+/**
+  * @brief  Register the debug UART instance and TX pin at runtime.
+  * @note   Called from HardwareSerial::begin() for the default Serial.
+  *         Replaces the old compile-time PIN_SERIAL_TX → DEBUG_UART chain.
+  * @param  uart : USART peripheral instance (e.g. USART2)
+  * @param  tx   : TX PinName (e.g. PA_2)
+  * @retval None
+  */
+void uart_set_debug(USART_TypeDef *uart, PinName tx)
+{
+  debug_uart_instance = uart;
+  debug_uart_tx = tx;
+}
+
 void uart_debug_init(void)
 {
-  if (DEBUG_UART != NP) {
-#if defined(DEBUG_PINNAME_TX)
-    serial_debug.pin_tx = DEBUG_PINNAME_TX;
-#else
-    serial_debug.pin_tx = pinmap_pin(DEBUG_UART, PinMap_UART_TX);
-#endif
+  if (debug_uart_instance != (USART_TypeDef *)NP) {
+    if (debug_uart_tx != NC) {
+      serial_debug.pin_tx = debug_uart_tx;
+    } else {
+      serial_debug.pin_tx = pinmap_pin(debug_uart_instance, PinMap_UART_TX);
+    }
     /* serial_debug.pin_rx set by default to NC to configure in half duplex mode */
     uart_init(&serial_debug, DEBUG_UART_BAUDRATE, UART_WORDLENGTH_8B, UART_PARITY_NONE, UART_STOPBITS_1);
   }
@@ -708,14 +718,14 @@ size_t uart_debug_write(uint8_t *data, uint32_t size)
   serial_t *obj = NULL;
 
   if (serial_debug.index >= UART_NUM) {
-    if (DEBUG_UART == NP) {
+    if (debug_uart_instance == (USART_TypeDef *)NP) {
       return 0;
     }
 
-    /* Search if DEBUG_UART already initialized */
+    /* Search if debug UART already initialized */
     for (serial_debug.index = 0; serial_debug.index < UART_NUM; serial_debug.index++) {
       if (uart_handlers[serial_debug.index] != NULL) {
-        if (DEBUG_UART == uart_handlers[serial_debug.index]->Instance) {
+        if (debug_uart_instance == uart_handlers[serial_debug.index]->Instance) {
           break;
         }
       }

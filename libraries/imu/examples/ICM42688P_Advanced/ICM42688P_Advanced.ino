@@ -34,9 +34,9 @@ extern "C" void putchar_(char c) {
 
 // Board configuration
 #if defined(ARDUINO_BLACKPILL_F411CE)
-#include "../../../../targets/BLACKPILL_F411CE.h"
+#include "targets/BLACKPILL_F411CE.h"
 #else
-#include "../../../../targets/NUCLEO_F411RE_HIL001.h"
+#include "targets/NUCLEO_F411RE_HIL001.h"
 #endif
 
 // ============================================================================
@@ -259,10 +259,10 @@ void setup() {
     // Display pin configuration
     Serial.println("Pin Configuration (BoardConfig):");
     printf("  CS: %d, MOSI: %d, MISO: %d, SCLK: %d\n",
-           (int)BoardConfig::imu.spi.cs_pin,
-           (int)BoardConfig::imu.spi.mosi_pin,
-           (int)BoardConfig::imu.spi.miso_pin,
-           (int)BoardConfig::imu.spi.sclk_pin);
+           (int)BoardConfig::imu.spi.cs_pin.toPinName(),
+           (int)BoardConfig::imu.spi.mosi_pin.toPinName(),
+           (int)BoardConfig::imu.spi.miso_pin.toPinName(),
+           (int)BoardConfig::imu.spi.sclk_pin.toPinName());
     printf("  SPI Speed: %lu Hz\n", (unsigned long)BoardConfig::imu.spi.freq_hz);
 
     // Give IMU time to stabilize

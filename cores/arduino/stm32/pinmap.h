@@ -60,6 +60,12 @@ uint32_t pinmap_find_function(PinName pin, const PinMap *map);
 uint32_t pinmap_function(PinName pin, const PinMap *map);
 void *pinmap_merge_peripheral(void *a, void *b);
 
+/* Peripheral-aware variants: match physical pin AND peripheral instance.
+ * Masks ALT bits during pin comparison so PA_0 matches PA_0_ALT1 when the
+ * peripheral field matches. This eliminates the ALT trap in AF resolution. */
+uint32_t pinmap_function_for_peripheral(PinName pin, void *peripheral, const PinMap *map);
+void pinmap_pinout_for_peripheral(PinName pin, void *peripheral, const PinMap *map);
+
 #ifdef __cplusplus
 }
 #endif

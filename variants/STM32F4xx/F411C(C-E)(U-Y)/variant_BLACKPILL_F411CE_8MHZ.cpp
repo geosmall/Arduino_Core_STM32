@@ -1,96 +1,37 @@
 /*
- *******************************************************************************
- * Copyright (c) 2011-2021, STMicroelectronics
- * All rights reserved.
+ * variant_BLACKPILL_F411CE_8MHZ.cpp — Board-specific system clock configuration
  *
- * This software component is licensed by ST under BSD 3-Clause license,
- * the "License"; You may not use this file except in compliance with the
- * License. You may obtain a copy of the License at:
- *                        opensource.org/licenses/BSD-3-Clause
- *
- *******************************************************************************
- * BlackPill F411CE 8MHz variant
- * WeAct Studio v3.1 with 8 MHz crystal and BootUF2 bootloader
+ * No digitalPin[] or analogInputPin[] arrays — those are eliminated
+ * by the Pin refactor. Only SystemClock_Config remains.
  */
 #if defined(ARDUINO_BLACKPILL_F411CE_8MHZ)
+
 #include "pins_arduino.h"
-
-// Digital PinName array - same as 25MHz variant
-const PinName digitalPin[] = {
-  PA_0,  // D0/A0
-  PA_1,  // D1/A1
-  PA_2,  // D2/A2
-  PA_3,  // D3/A3
-  PA_4,  // D4/A4
-  PA_5,  // D5/A5
-  PA_6,  // D6/A6
-  PA_7,  // D7/A7
-  PA_8,  // D8
-  PA_9,  // D9
-  PA_10, // D10
-  PA_11, // D11
-  PA_12, // D12
-  PA_13, // D13
-  PA_14, // D14
-  PA_15, // D15
-  PB_0,  // D16/A8
-  PB_1,  // D17/A9
-  PB_2,  // D18
-  PB_3,  // D19
-  PB_4,  // D20
-  PB_5,  // D21
-  PB_6,  // D22
-  PB_7,  // D23
-  PB_8,  // D24
-  PB_9,  // D25
-  PB_10, // D26
-  PB_12, // D27
-  PB_13, // D28
-  PB_14, // D29
-  PB_15, // D30
-  PC_13, // D31
-  PC_14, // D32
-  PC_15, // D33
-  PH_0,  // D34
-  PH_1   // D35
-};
-
-// Analog (Ax) pin number array
-const uint32_t analogInputPin[] = {
-  0,  // A0,  PA0
-  1,  // A1,  PA1
-  2,  // A2,  PA2
-  3,  // A3,  PA3
-  4,  // A4,  PA4
-  5,  // A5,  PA5
-  6,  // A6,  PA6
-  7,  // A7,  PA7
-  16, // A8,  PB0
-  17  // A9,  PB1
-};
-
-// ----------------------------------------------------------------------------
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * @brief  System Clock Configuration for 8 MHz HSE
- *         SYSCLK = 96 MHz, USB = 48 MHz
- */
-void SystemClock_Config(void)
+  * @brief  System Clock Configuration
+  *         SYSCLK = 96 MHz for BlackPill F411CE (8 MHz HSE)
+  *         8 MHz / 4 = 2 MHz → * 96 = 192 MHz VCO → / 2 = 96 MHz
+  *         USB: 192 MHz / 4 = 48 MHz
+  * @param  None
+  * @retval None
+  */
+WEAK void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {};
 
-  /** Configure the main internal regulator output voltage */
+  /* Configure the main internal regulator output voltage */
   __HAL_RCC_PWR_CLK_ENABLE();
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
-  /** Initializes the RCC Oscillators according to the specified parameters
-   *  in the RCC_OscInitTypeDef structure.
-   *  BlackPill 8MHz uses 8 MHz HSE crystal
+  /* Initializes the RCC Oscillators according to the specified parameters
+   * in the RCC_OscInitTypeDef structure.
+   * BlackPill 8MHz uses 8 MHz HSE crystal
    */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
@@ -104,7 +45,7 @@ void SystemClock_Config(void)
     Error_Handler();
   }
 
-  /** Initializes the CPU, AHB and APB buses clocks */
+  /* Initializes the CPU, AHB and APB buses clocks */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
                                 | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
@@ -121,4 +62,4 @@ void SystemClock_Config(void)
 }
 #endif
 
-#endif /* ARDUINO_BLACKPILL_F411CE && HSE_VALUE == 8000000U */
+#endif /* ARDUINO_BLACKPILL_F411CE_8MHZ */

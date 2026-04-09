@@ -32,7 +32,7 @@
 
 
 // set pin 10 as the slave select for the digital pot:
-const int slaveSelectPin = 10;
+const Pin slaveSelectPin = PA4;  // SPI1 NSS
 
 void setup() {
   // set the slaveSelectPin as an output:

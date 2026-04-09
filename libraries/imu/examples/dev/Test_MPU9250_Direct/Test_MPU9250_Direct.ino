@@ -27,7 +27,7 @@ extern "C" void putchar_(char c) {
 
 // Board configuration - BlackPill F411CE ONLY
 #if defined(ARDUINO_BLACKPILL_F411CE)
-#include "../../../../targets/BLACKPILL_F411CE.h"
+#include "targets/BLACKPILL_F411CE.h"
 #else
 #error "This example requires BLACKPILL_F411CE board. Use FQBN: STM32_Robotics:stm32:GenF4:pnum=BLACKPILL_F411CE"
 #endif
@@ -59,8 +59,8 @@ void setup()
     // Display pin configuration from BoardConfig
     Serial.println("\nPin Configuration (BoardConfig):");
     printf_("  CS: 0x%02X, MOSI: 0x%02X, MISO: 0x%02X, SCLK: 0x%02X\n",
-           (int)MPU9250_CS_PIN, (int)MPU9250_MOSI_PIN,
-           (int)MPU9250_MISO_PIN, (int)MPU9250_SCLK_PIN);
+           (int)MPU9250_CS_PIN.toPinName(), (int)MPU9250_MOSI_PIN.toPinName(),
+           (int)MPU9250_MISO_PIN.toPinName(), (int)MPU9250_SCLK_PIN.toPinName());
     printf_("  SPI Speed: %lu Hz\n\n", (unsigned long)MPU9250_SPI_FREQ);
 
     // Initialize SPI with BoardConfig pins

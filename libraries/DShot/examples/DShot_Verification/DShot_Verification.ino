@@ -38,7 +38,7 @@ static volatile uint32_t capture_buf[CAPTURE_BUF_SIZE];
 struct TestPass {
   // DShot output
   TIM_TypeDef *timer;
-  uint32_t pin;
+  Pin pin;
   uint32_t channel;        // timer channel (1-4)
   const char *label;
   // Input capture (all use TIM2, different channels)
@@ -87,7 +87,7 @@ static constexpr int NUM_THROTTLES = sizeof(test_throttles) / sizeof(test_thrott
 // Struct matching MotorConfig field names so DShotOutput::Init() template works
 struct OverrideMotor {
   TIM_TypeDef* timer;
-  uint32_t pin;
+  Pin pin;
   uint32_t channel;
   uint32_t min_us;
   uint32_t max_us;
@@ -131,7 +131,7 @@ static void initCaptureChannel(const TestPass &pass);
 static void armCapture(void);
 static int stopAndCountCaptures(void);
 static bool verifyPacket(uint16_t expected_throttle, bool expected_telemetry, int num_captured);
-static void disableMotorOutput(TIM_TypeDef *timer, uint32_t pin);
+static void disableMotorOutput(TIM_TypeDef *timer, Pin pin);
 static int runVerifyLoop(DShotOutput &dshot, int motor_idx);
 static int runTestPass(const TestPass &pass);
 static int runOverrideTestPass(const TestPass &pass);
@@ -275,7 +275,7 @@ static int runOverrideTestPass(const TestPass &pass)
 // ---------------------------------------------------------------------------
 // Disable a motor output
 // ---------------------------------------------------------------------------
-static void disableMotorOutput(TIM_TypeDef *timer, uint32_t pin)
+static void disableMotorOutput(TIM_TypeDef *timer, Pin pin)
 {
   LL_TIM_DisableAllOutputs(timer);
   LL_TIM_DisableCounter(timer);

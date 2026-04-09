@@ -21,6 +21,8 @@
 #include <unistd.h>
 #include <math.h>
 #include "Arduino.h"
+#include "core_debug.h"
+#include "stm32/uart.h"
 
 #include "Print.h"
 

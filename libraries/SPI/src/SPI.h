@@ -85,41 +85,24 @@ class SPISettings {
 class SPIClass {
   public:
     SPIClass();
-    SPIClass(uint32_t mosi, uint32_t miso, uint32_t sclk, uint32_t ssel = PNUM_NOT_DEFINED);
+    SPIClass(Pin mosi, Pin miso, Pin sclk, Pin ssel = NC_PIN);
 
     // setMISO/MOSI/SCLK/SSEL have to be called before begin()
-    void setMISO(uint32_t miso)
+    void setMISO(Pin miso)
     {
-      _spi.pin_miso = digitalPinToPinName(miso);
+      _spi.pin_miso = miso.toPinName();
     };
-    void setMOSI(uint32_t mosi)
+    void setMOSI(Pin mosi)
     {
-      _spi.pin_mosi = digitalPinToPinName(mosi);
+      _spi.pin_mosi = mosi.toPinName();
     };
-    void setSCLK(uint32_t sclk)
+    void setSCLK(Pin sclk)
     {
-      _spi.pin_sclk = digitalPinToPinName(sclk);
+      _spi.pin_sclk = sclk.toPinName();
     };
-    void setSSEL(uint32_t ssel)
+    void setSSEL(Pin ssel)
     {
-      _spi.pin_ssel = digitalPinToPinName(ssel);
-    };
-
-    void setMISO(PinName miso)
-    {
-      _spi.pin_miso = (miso);
-    };
-    void setMOSI(PinName mosi)
-    {
-      _spi.pin_mosi = (mosi);
-    };
-    void setSCLK(PinName sclk)
-    {
-      _spi.pin_sclk = (sclk);
-    };
-    void setSSEL(PinName ssel)
-    {
-      _spi.pin_ssel = (ssel);
+      _spi.pin_ssel = ssel.toPinName();
     };
 
     void begin(void);
@@ -166,7 +149,7 @@ class SPIClass {
 
   protected:
     // spi instance
-    spi_t         _spi;
+    spi_t         _spi = {};
 
   private:
     /* Current SPISettings */
@@ -174,18 +157,5 @@ class SPIClass {
 };
 
 extern SPIClass SPI;
-
-#if defined(SUBGHZSPI_BASE)
-class SUBGHZSPIClass : public SPIClass {
-  public:
-    SUBGHZSPIClass(): SPIClass{NC, NC, NC, NC}
-    {
-      _spi.spi = SUBGHZSPI;
-    }
-
-    void enableDebugPins(uint32_t mosi = DEBUG_SUBGHZSPI_MOSI, uint32_t miso = DEBUG_SUBGHZSPI_MISO, uint32_t sclk = DEBUG_SUBGHZSPI_SCLK, uint32_t ssel = DEBUG_SUBGHZSPI_SS);
-};
-
-#endif
 
 #endif /* _SPI_H_INCLUDED */

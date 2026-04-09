@@ -25,7 +25,7 @@
 #include <functional>
 
 #include "Stream.h"
-#include "Arduino.h"
+#include "Pin.h"
 extern "C" {
 #include "utility/twi.h"
 }
@@ -77,27 +77,19 @@ class TwoWire : public Stream {
 
   public:
     TwoWire();
-    TwoWire(uint32_t sda, uint32_t scl);
+    TwoWire(Pin sda, Pin scl);
     ~TwoWire();
     // setSCL/SDA have to be called before begin()
-    void setSCL(uint32_t scl)
+    void setSCL(Pin scl)
     {
-      _i2c.scl = digitalPinToPinName(scl);
+      _i2c.scl = scl.toPinName();
     };
-    void setSDA(uint32_t sda)
+    void setSDA(Pin sda)
     {
-      _i2c.sda = digitalPinToPinName(sda);
-    };
-    void setSCL(PinName scl)
-    {
-      _i2c.scl = scl;
-    };
-    void setSDA(PinName sda)
-    {
-      _i2c.sda = sda;
+      _i2c.sda = sda.toPinName();
     };
     void begin(bool generalCall = false);
-    void begin(uint32_t, uint32_t);
+    void begin(Pin sda, Pin scl);
     void begin(uint8_t, bool generalCall = false, bool NoStretchMode = false);
     void begin(int, bool generalCall = false, bool NoStretchMode = false);
     void end();

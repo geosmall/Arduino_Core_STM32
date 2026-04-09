@@ -613,17 +613,12 @@ void HardwareTimer::setCount(uint32_t counter, TimerFormat_t format)
 }
 
 /**
-  * @brief  Set channel mode
+  * @brief  Set channel mode (Pin overload)
   * @param  channel: Arduino channel [1..4]
   * @param  mode: mode configuration for the channel (see TimerModes_t)
-  * @param  pin: Arduino pin number, ex: D1, 1 or PA1
+  * @param  pin: Pin struct, ex: PB0
   * @retval None
   */
-void HardwareTimer::setMode(uint32_t channel, TimerModes_t mode, uint32_t pin, ChannelInputFilter_t filter)
-{
-  setMode(channel, mode, digitalPinToPinName(pin), filter);
-}
-
 /**
   * @brief  Set channel mode
   * @param  channel: Arduino channel [1..4]
@@ -631,8 +626,9 @@ void HardwareTimer::setMode(uint32_t channel, TimerModes_t mode, uint32_t pin, C
   * @param  pin: pin name, ex: PB_0
   * @retval None
   */
-void HardwareTimer::setMode(uint32_t channel, TimerModes_t mode, PinName pin, ChannelInputFilter_t filter)
+void HardwareTimer::setMode(uint32_t channel, TimerModes_t mode, Pin pin, ChannelInputFilter_t filter)
 {
+  PinName pn = pin.toPinName();
   int timChannel = getChannel(channel);
   int timAssociatedInputChannel;
   TIM_OC_InitTypeDef channelOC;
@@ -739,15 +735,19 @@ void HardwareTimer::setMode(uint32_t channel, TimerModes_t mode, PinName pin, Ch
   // Save channel selected mode to object attribute
   _ChannelMode[channel - 1] = mode;
 
-  if (pin != NC) {
-    if ((int)getTimerChannel(pin) == timChannel) {
-      /* Configure PWM GPIO pins */
-      pinmap_pinout(pin, PinMap_TIM);
+  if (pn != NC) {
+    /* Peripheral-aware AF: use this timer's Instance to resolve the correct
+     * AF number, even when the pin has multiple timer mappings (ALT trap fix). */
+    TIM_TypeDef *instance = _timerObj.handle.Instance;
+
+    if ((int)getTimerChannelForTimer(pn, instance) == timChannel) {
+      /* Configure GPIO with correct AF for this specific timer */
+      pinmap_pinout_for_peripheral(pn, instance, PinMap_TIM);
 #if defined(STM32F1xx)
       if ((mode == TIMER_INPUT_CAPTURE_RISING) || (mode == TIMER_INPUT_CAPTURE_FALLING) \
           || (mode == TIMER_INPUT_CAPTURE_BOTHEDGE) || (mode == TIMER_INPUT_FREQ_DUTY_MEASUREMENT)) {
         // on F1 family, input alternate function must configure GPIO in input mode
-        pinMode(pinNametoDigitalPin(pin), INPUT);
+        pin_function(pn, STM_PIN_DATA(STM_MODE_INPUT, GPIO_NOPULL, 0));
       }
 #endif
     } else {
@@ -756,7 +756,8 @@ void HardwareTimer::setMode(uint32_t channel, TimerModes_t mode, PinName pin, Ch
     }
 
 #if defined(TIM_CCER_CC1NE)
-    isComplementaryChannel[channel - 1] = STM_PIN_INVERTED(pinmap_function(pin, PinMap_TIM));
+    isComplementaryChannel[channel - 1] = STM_PIN_INVERTED(
+        pinmap_function_for_peripheral(pn, instance, PinMap_TIM));
 #endif
   }
 }
@@ -930,11 +931,6 @@ uint32_t HardwareTimer::getCaptureCompare(uint32_t channel,  TimerCompareFormat_
   * @param  CompareCallback: timer compare callback
   * @retval None
   */
-void HardwareTimer::setPWM(uint32_t channel, uint32_t pin, uint32_t frequency, uint32_t dutycycle, callback_function_t PeriodCallback, callback_function_t CompareCallback)
-{
-  setPWM(channel, digitalPinToPinName(pin), frequency, dutycycle, PeriodCallback, CompareCallback);
-}
-
 /**
   * @brief  All in one function to configure PWM
   * @param  channel: Arduino channel [1..4]
@@ -945,7 +941,7 @@ void HardwareTimer::setPWM(uint32_t channel, uint32_t pin, uint32_t frequency, u
   * @param  CompareCallback: timer compare callback
   * @retval None
   */
-void HardwareTimer::setPWM(uint32_t channel, PinName pin, uint32_t frequency, uint32_t dutycycle, callback_function_t PeriodCallback, callback_function_t CompareCallback)
+void HardwareTimer::setPWM(uint32_t channel, Pin pin, uint32_t frequency, uint32_t dutycycle, callback_function_t PeriodCallback, callback_function_t CompareCallback)
 {
   setMode(channel, TIMER_OUTPUT_COMPARE_PWM1, pin);
   setOverflow(frequency, HERTZ_FORMAT);

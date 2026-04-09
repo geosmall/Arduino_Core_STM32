@@ -21,11 +21,11 @@
 // Pin Configuration - Local definitions for Nucleo F411RE
 // ============================================================================
 #define PWM_TIMER TIM1
-const uint32_t PWM_PIN = PA8;               // D7 on Nucleo
+const Pin PWM_PIN = PA8;                    // D7 on Nucleo
 const uint32_t PWM_CHANNEL = 1;             // TIM1_CH1
 const uint32_t PWM_FREQUENCY_HZ = 1000;     // 1 kHz for easy verification
 
-const uint32_t CAPTURE_PIN = PA0;           // A0 on Nucleo
+const Pin CAPTURE_PIN = PA0;                // A0 on Nucleo
 const uint32_t CAPTURE_CHANNEL = 1;         // TIM2_CH1
 
 // ============================================================================

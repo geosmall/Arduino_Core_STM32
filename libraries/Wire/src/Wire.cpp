@@ -26,6 +26,7 @@ extern "C" {
 }
 
 #include "Wire.h"
+#include "Arduino.h"
 
 // Distinguish master from slave.
 // 0x01 is a reserved value, and thus cannot be used by slave devices
@@ -36,15 +37,15 @@ static const uint8_t MASTER_ADDRESS = 0x01;
 TwoWire::TwoWire()
 {
   memset((void *)&_i2c, 0, sizeof(_i2c));
-  _i2c.sda = digitalPinToPinName(SDA);
-  _i2c.scl = digitalPinToPinName(SCL);
+  _i2c.sda = SDA.toPinName();
+  _i2c.scl = SCL.toPinName();
 }
 
-TwoWire::TwoWire(uint32_t sda, uint32_t scl)
+TwoWire::TwoWire(Pin sda, Pin scl)
 {
   memset((void *)&_i2c, 0, sizeof(_i2c));
-  _i2c.sda = digitalPinToPinName(sda);
-  _i2c.scl = digitalPinToPinName(scl);
+  _i2c.sda = sda.toPinName();
+  _i2c.scl = scl.toPinName();
 }
 
 /**
@@ -58,10 +59,10 @@ TwoWire::~TwoWire()
 
 // Public Methods //////////////////////////////////////////////////////////////
 
-void TwoWire::begin(uint32_t sda, uint32_t scl)
+void TwoWire::begin(Pin sda, Pin scl)
 {
-  _i2c.sda = digitalPinToPinName(sda);
-  _i2c.scl = digitalPinToPinName(scl);
+  _i2c.sda = sda.toPinName();
+  _i2c.scl = scl.toPinName();
   begin();
 }
 
@@ -101,9 +102,6 @@ void TwoWire::begin(uint8_t address, bool generalCall, bool NoStretchMode)
   i2c_custom_init(&_i2c, 100000, I2C_ADDRESSINGMODE_7BIT, ownAddress);
 
   if (_i2c.isMaster == 0) {
-    // i2c_attachSlaveTxEvent(&_i2c, reinterpret_cast<void(*)(i2c_t*)>(&TwoWire::onRequestService));
-    // i2c_attachSlaveRxEvent(&_i2c, reinterpret_cast<void(*)(i2c_t*, uint8_t*, int)>(&TwoWire::onReceiveService));
-
     i2c_attachSlaveTxEvent(&_i2c, onRequestService);
     i2c_attachSlaveRxEvent(&_i2c, onReceiveService);
   }
@@ -376,13 +374,6 @@ int TwoWire::read(void)
   if (rxBufferIndex < rxBufferLength) {
     value = rxBuffer[rxBufferIndex];
     ++rxBufferIndex;
-
-    /* Commented as not I think it is not useful
-     * but kept to show that it is possible to
-     * reset rx buffer when no more data available */
-    /*if(rxBufferIndex == rxBufferLength) {
-      resetRxBuffer();
-    }*/
   }
   return value;
 }
@@ -531,10 +522,14 @@ inline void TwoWire::resetTxBuffer(void)
 // https://bits4device.wordpress.com/2017/07/28/i2c-bus-recovery/
 void TwoWire::recoverBus(void)
 {
-  pinMode(pinNametoDigitalPin(_i2c.sda), INPUT);
+  // Reconstruct Pin from PinName for pinMode() calls
+  Pin sdaPin = {(PortName)STM_PORT(_i2c.sda), (uint8_t)STM_PIN(_i2c.sda)};
+  Pin sclPin = {(PortName)STM_PORT(_i2c.scl), (uint8_t)STM_PIN(_i2c.scl)};
+
+  pinMode(sdaPin, INPUT);
 
   if (digitalReadFast(_i2c.sda) == LOW) {
-    pinMode(pinNametoDigitalPin(_i2c.scl), OUTPUT);
+    pinMode(sclPin, OUTPUT);
 
     for (int i = 0; i < 20; i++) {
       digitalWriteFast(_i2c.scl, LOW);
@@ -542,10 +537,10 @@ void TwoWire::recoverBus(void)
       digitalWriteFast(_i2c.scl, HIGH);
       delayMicroseconds(10);
     }
-    pinMode(pinNametoDigitalPin(_i2c.scl), INPUT);
+    pinMode(sclPin, INPUT);
   }
 }
 
 // Preinstantiate Objects //////////////////////////////////////////////////////
 
-TwoWire Wire = TwoWire(); //D14-D15
+TwoWire Wire = TwoWire();

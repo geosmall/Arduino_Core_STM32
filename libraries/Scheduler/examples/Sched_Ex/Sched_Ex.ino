@@ -26,7 +26,7 @@
 #include <SerialRx.h>
 
 // BoardConfig for HIL005 rig
-#include "../../../../targets/NUCLEO_F411RE_HIL005.h"
+#include "targets/NUCLEO_F411RE_HIL005.h"
 
 // =============================================================================
 // Board Configuration (from HIL005 target)

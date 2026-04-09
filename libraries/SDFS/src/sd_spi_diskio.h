@@ -7,14 +7,6 @@
 extern "C" {
 #endif
 
-// SPI SD card initialization function
-// Returns true if successful, false otherwise
-bool sd_spi_initialize(uint8_t cs_pin, SPIClass *spi_port);
-
-// Get current SPI settings
-uint8_t sd_spi_get_cs_pin(void);
-SPIClass* sd_spi_get_port(void);
-
 // SPI speed configuration (call before initialization)
 // speed_hz: SPI frequency in Hz (e.g., 1000000 for 1MHz)
 void sd_spi_set_speed(uint32_t speed_hz);
@@ -27,4 +19,9 @@ bool sd_spi_set_sector_size(uint16_t size);
 
 #ifdef __cplusplus
 }
+
+// C++ interface — uses Pin type
+bool sd_spi_initialize(Pin cs_pin, SPIClass *spi_port);
+Pin sd_spi_get_cs_pin(void);
+SPIClass* sd_spi_get_port(void);
 #endif

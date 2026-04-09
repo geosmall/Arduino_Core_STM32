@@ -32,23 +32,23 @@
 
 // Board target selection (auto-detects protocol from board config)
 #if defined(ARDUINO_OPEN_REVO)
-  #include "../../../../targets/OPEN-REVO.h"
+  #include "targets/OPEN-REVO.h"
   #define BOARD_NAME "OpenPilot Revolution (F405)"
   #define RC_PROTOCOL SerialRx::SBUS
 #elif defined(ARDUINO_DEVEBOX_H743)
-  #include "../../../../targets/DEVEBOX_H743_HIL006.h"
+  #include "targets/DEVEBOX_H743_HIL006.h"
   #define BOARD_NAME "DevEBox H743 (HIL-006)"
   #define RC_PROTOCOL SerialRx::SBUS
 #elif defined(ARDUINO_NUCLEO_H743ZI) || defined(ARDUINO_GENERIC_H743ZITX)
-  #include "../../../../../targets/MTKS-MATEKH743.h"
+  #include "targets/MTKS-MATEKH743.h"
   #define BOARD_NAME "MATEK H743"
   #define RC_PROTOCOL SerialRx::SBUS
 #elif defined(ARDUINO_NUCLEO_F411RE)
-  #include "../../../../../targets/NUCLEO_F411RE_HIL005.h"
+  #include "targets/NUCLEO_F411RE_HIL005.h"
   #define BOARD_NAME "Nucleo F411RE (HIL-005)"
   #define RC_PROTOCOL SerialRx::IBUS
 #else
-  #include "../../../../../targets/BLACKPILL_F411CE.h"
+  #include "targets/BLACKPILL_F411CE.h"
   #define BOARD_NAME "BlackPill F411CE"
   #define RC_PROTOCOL SerialRx::IBUS
 #endif

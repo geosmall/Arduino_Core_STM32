@@ -745,9 +745,9 @@ void i2c_custom_init(i2c_t *obj, uint32_t timing, uint32_t addressingMode, uint3
         }
 #endif // I2C6_BASE
 
-        /* Configure I2C GPIO pins */
-        pinmap_pinout(obj->scl, PinMap_I2C_SCL);
-        pinmap_pinout(obj->sda, PinMap_I2C_SDA);
+        /* Configure I2C GPIO pins — peripheral-aware AF resolution */
+        pinmap_pinout_for_peripheral(obj->scl, obj->i2c, PinMap_I2C_SCL);
+        pinmap_pinout_for_peripheral(obj->sda, obj->i2c, PinMap_I2C_SDA);
 
         handle->Instance             = obj->i2c;
 #ifdef I2C_TIMING

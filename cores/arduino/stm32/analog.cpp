@@ -1060,7 +1060,8 @@ void pwm_start(PinName pin, uint32_t PWM_freq, uint32_t value, TimerCompareForma
 
   previousMode = HT->getMode(channel);
   if (previousMode != TIMER_OUTPUT_COMPARE_PWM1) {
-    HT->setMode(channel, TIMER_OUTPUT_COMPARE_PWM1, pin);
+    HT->setMode(channel, TIMER_OUTPUT_COMPARE_PWM1,
+                 Pin{(PortName)STM_PORT(pin), (uint8_t)STM_PIN(pin)});
   }
   HT->setOverflow(PWM_freq, HERTZ_FORMAT);
   HT->setCaptureCompare(channel, value, resolution);

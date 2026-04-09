@@ -40,14 +40,14 @@ void DpsClass::begin(TwoWire &bus, uint8_t slaveAddress)
 }
 
 #ifndef DPS_DISABLESPI
-void DpsClass::begin(SPIClass &bus, int32_t chipSelect)
+void DpsClass::begin(SPIClass &bus, Pin chipSelect)
 {
     begin(bus, chipSelect, 0U);
 }
 #endif
 
 #ifndef DPS_DISABLESPI
-void DpsClass::begin(SPIClass &bus, int32_t chipSelect, uint8_t threeWire)
+void DpsClass::begin(SPIClass &bus, Pin chipSelect, uint8_t threeWire)
 {
     // this flag will show if the initialization was successful
     m_initFail = 0U;

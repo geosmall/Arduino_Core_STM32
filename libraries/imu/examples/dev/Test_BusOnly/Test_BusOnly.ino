@@ -23,10 +23,10 @@ extern "C" void putchar_(char c) {
 namespace BoardConfig {
   namespace imu {
     namespace spi {
-      static constexpr uint32_t mosi_pin = PA7;
-      static constexpr uint32_t miso_pin = PA6;
-      static constexpr uint32_t sclk_pin = PA5;
-      static constexpr uint32_t cs_pin = PA4;
+      static constexpr Pin mosi_pin = PA7;
+      static constexpr Pin miso_pin = PA6;
+      static constexpr Pin sclk_pin = PA5;
+      static constexpr Pin cs_pin = PA4;
     }
   }
 }

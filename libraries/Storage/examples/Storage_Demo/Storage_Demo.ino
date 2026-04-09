@@ -6,15 +6,15 @@
 
 // Include board configuration for StorageBackend enum
 #if defined(ARDUINO_BLACKPILL_F411CE)
-#include "../../../../targets/BLACKPILL_F411CE.h"
+#include "targets/BLACKPILL_F411CE.h"
 #elif defined(ARDUINO_BKMN_NERO)
-#include "../../../../targets/BKMN-NERO.h"
+#include "targets/BKMN-NERO.h"
 #elif defined(TARGET_NUCLEO_F411RE_HIL001)
 // Nucleo F411RE with LittleFS SPI flash rig
-#include "../../../../targets/NUCLEO_F411RE_HIL001.h"
+#include "targets/NUCLEO_F411RE_HIL001.h"
 #else
 // Default to NUCLEO_F411RE with SDFS
-#include "../../../../targets/NUCLEO_F411RE.h"
+#include "targets/NUCLEO_F411RE.h"
 #endif
 
 void setup() {

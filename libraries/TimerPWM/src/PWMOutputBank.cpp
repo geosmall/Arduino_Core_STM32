@@ -3,6 +3,7 @@
  */
 
 #include "PWMOutputBank.h"
+#include "WMath.h"
 
 PWMOutputBank::PWMOutputBank()
   : _timer(nullptr),
@@ -130,7 +131,7 @@ bool PWMOutputBank::Init(TIM_TypeDef *timer, uint32_t frequency_hz)
   return true;
 }
 
-bool PWMOutputBank::AttachChannel(uint32_t channel, uint32_t pin,
+bool PWMOutputBank::AttachChannel(uint32_t channel, Pin pin,
                                   uint32_t min_us, uint32_t max_us)
 {
   if (!_initialized) {
@@ -152,6 +153,8 @@ bool PWMOutputBank::AttachChannel(uint32_t channel, uint32_t pin,
   _channels[ch_index].active = true;
 
   // Configure timer channel for PWM output
+  // HardwareTimer::setMode uses pinmap_pinout_for_peripheral() internally,
+  // resolving the correct AF from timer instance + pin (no ALT encoding needed)
   _timer->setMode(channel, TIMER_OUTPUT_COMPARE_PWM1, pin);
 
   // Set initial pulse width using MICROSEC_COMPARE_FORMAT

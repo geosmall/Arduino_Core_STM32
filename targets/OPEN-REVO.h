@@ -54,7 +54,7 @@ namespace BoardConfig {
   // RC Receiver: Hardware-validated configuration
   // 3-pin SBUS header connected to USART1 with hardware inverter on PC0
   static constexpr RCReceiverConfig rc_receiver{PA10, PA9, 100000, 1000, 300};  // SBUS: 100k baud
-  static constexpr uint32_t rc_inverter_pin = PC0;  // HIGH=SBUS (inverted), LOW=iBus (non-inverted)
+  static constexpr Pin rc_inverter_pin = PC0;  // HIGH=SBUS (inverted), LOW=iBus (non-inverted)
 
   // Servo outputs - none configured
   namespace Servo {
@@ -69,12 +69,12 @@ namespace BoardConfig {
 
     // Motor array - hardware timer assignments from Betaflight config
     static constexpr MotorConfig motors[] = {
-      {TIM3, PB0_ALT1, 3, 125, 250},  // Motor 1: TIM3_CH3
-      {TIM3, PB1_ALT1, 4, 125, 250},  // Motor 2: TIM3_CH4
+      {TIM3, PB0, 3, 125, 250},  // Motor 1: TIM3_CH3
+      {TIM3, PB1, 4, 125, 250},  // Motor 2: TIM3_CH4
       {TIM2, PA3, 4, 125, 250},  // Motor 3: TIM2_CH4
       {TIM2, PA2, 3, 125, 250},  // Motor 4: TIM2_CH3
-      {TIM5, PA1_ALT1, 2, 125, 250},  // Motor 5: TIM5_CH2
-      {TIM5, PA0_ALT1, 1, 125, 250},  // Motor 6: TIM5_CH1
+      {TIM5, PA1, 2, 125, 250},  // Motor 5: TIM5_CH2
+      {TIM5, PA0, 1, 125, 250},  // Motor 6: TIM5_CH1
     };
 
     static constexpr int num_motors = sizeof(motors) / sizeof(motors[0]);

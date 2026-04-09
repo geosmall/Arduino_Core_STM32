@@ -77,7 +77,7 @@ static const struct chipinfo *chip_lookup(const uint8_t *id)
     return nullptr;
 }
 
-bool LittleFS_SPIFlash::begin(uint8_t cspin, SPIClass &spiport)
+bool LittleFS_SPIFlash::begin(Pin cspin, SPIClass &spiport)
 {
     pin = cspin;
     port = &spiport;

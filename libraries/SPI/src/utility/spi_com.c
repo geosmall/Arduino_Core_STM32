@@ -30,10 +30,6 @@ uint32_t spi_getClkFreqInst(SPI_TypeDef *spi_inst)
 {
   uint32_t spi_freq = SystemCoreClock;
   if (spi_inst != NP) {
-#if defined(STM32C0xx) || defined(STM32F0xx) || defined(STM32G0xx)
-    /* SPIx source CLK is PCKL1 */
-    spi_freq = HAL_RCC_GetPCLK1Freq();
-#else
 #if defined(SPI1_BASE)
     if (spi_inst == SPI1) {
 #if defined(RCC_PERIPHCLK_SPI1) || defined(RCC_PERIPHCLK_SPI123)
@@ -132,13 +128,6 @@ uint32_t spi_getClkFreqInst(SPI_TypeDef *spi_inst)
       }
     }
 #endif // SPI6_BASE
-#if defined(SUBGHZSPI_BASE)
-    if (spi_inst == SUBGHZSPI) {
-      /* Source CLK is APB3 (PCLK3) is derived from AHB3 clock  */
-      spi_freq = HAL_RCC_GetHCLK3Freq();
-    }
-#endif // SUBGHZSPI_BASE
-#endif
   }
   return spi_freq;
 }
@@ -154,14 +143,7 @@ uint32_t spi_getClkFreq(spi_t *obj)
   uint32_t spi_freq = SystemCoreClock;
 
   if (obj != NULL) {
-#if defined(SUBGHZSPI_BASE)
-    if (obj->handle.Instance == SUBGHZSPI) {
-      spi_inst = SUBGHZSPI;
-    } else
-#endif
-    {
-      spi_inst = pinmap_peripheral(obj->pin_sclk, PinMap_SPI_SCLK);
-    }
+    spi_inst = pinmap_peripheral(obj->pin_sclk, PinMap_SPI_SCLK);
 
     if (spi_inst != NP) {
       spi_freq = spi_getClkFreqInst(spi_inst);
@@ -210,39 +192,28 @@ void spi_init(spi_t *obj, uint32_t speed, SPIMode mode, uint8_t msb)
   uint32_t spi_freq = 0;
   uint32_t pull = 0;
 
-#if defined(SUBGHZSPI_BASE)
-  if (obj->spi != SUBGHZSPI) {
-#endif
-    // Determine the SPI to use
-    SPI_TypeDef *spi_mosi = pinmap_peripheral(obj->pin_mosi, PinMap_SPI_MOSI);
-    SPI_TypeDef *spi_miso = pinmap_peripheral(obj->pin_miso, PinMap_SPI_MISO);
-    SPI_TypeDef *spi_sclk = pinmap_peripheral(obj->pin_sclk, PinMap_SPI_SCLK);
-    SPI_TypeDef *spi_ssel = pinmap_peripheral(obj->pin_ssel, PinMap_SPI_SSEL);
+  // Determine the SPI to use
+  SPI_TypeDef *spi_mosi = pinmap_peripheral(obj->pin_mosi, PinMap_SPI_MOSI);
+  SPI_TypeDef *spi_miso = pinmap_peripheral(obj->pin_miso, PinMap_SPI_MISO);
+  SPI_TypeDef *spi_sclk = pinmap_peripheral(obj->pin_sclk, PinMap_SPI_SCLK);
+  SPI_TypeDef *spi_ssel = pinmap_peripheral(obj->pin_ssel, PinMap_SPI_SSEL);
 
-    /* Pins MOSI/MISO/SCLK must not be NP. ssel can be NP. */
-    if (spi_mosi == NP || spi_miso == NP || spi_sclk == NP) {
-      core_debug("ERROR: at least one SPI pin has no peripheral\n");
-      return;
-    }
-
-    SPI_TypeDef *spi_data = pinmap_merge_peripheral(spi_mosi, spi_miso);
-    SPI_TypeDef *spi_cntl = pinmap_merge_peripheral(spi_sclk, spi_ssel);
-
-    obj->spi = pinmap_merge_peripheral(spi_data, spi_cntl);
-
-    // Are all pins connected to the same SPI instance?
-    if (spi_data == NP || spi_cntl == NP || obj->spi == NP) {
-      core_debug("ERROR: SPI pins mismatch\n");
-      return;
-    }
-#if defined(SUBGHZSPI_BASE)
-  } else {
-    if (obj->pin_mosi != NC || obj->pin_miso != NC || obj->pin_sclk != NC || obj->pin_ssel != NC) {
-      core_debug("ERROR: SUBGHZ_SPI cannot define custom pins\n");
-      return;
-    }
+  /* Pins MOSI/MISO/SCLK must not be NP. ssel can be NP. */
+  if (spi_mosi == NP || spi_miso == NP || spi_sclk == NP) {
+    core_debug("ERROR: at least one SPI pin has no peripheral\n");
+    return;
   }
-#endif
+
+  SPI_TypeDef *spi_data = pinmap_merge_peripheral(spi_mosi, spi_miso);
+  SPI_TypeDef *spi_cntl = pinmap_merge_peripheral(spi_sclk, spi_ssel);
+
+  obj->spi = pinmap_merge_peripheral(spi_data, spi_cntl);
+
+  // Are all pins connected to the same SPI instance?
+  if (spi_data == NP || spi_cntl == NP || obj->spi == NP) {
+    core_debug("ERROR: SPI pins mismatch\n");
+    return;
+  }
 
   // Configure the SPI pins
   if (obj->pin_ssel != NC) {
@@ -256,7 +227,6 @@ void spi_init(spi_t *obj, uint32_t speed, SPIMode mode, uint8_t msb)
   handle->Init.Mode              = SPI_MODE_MASTER;
 
   spi_freq = spi_getClkFreqInst(obj->spi);
-  /* For SUBGHZSPI,  'SPI_BAUDRATEPRESCALER_*' == 'SUBGHZSPI_BAUDRATEPRESCALER_*' */
   if (speed >= (spi_freq / SPI_SPEED_CLOCK_DIV2_MHZ)) {
     handle->Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
   } else if (speed >= (spi_freq / SPI_SPEED_CLOCK_DIV4_MHZ)) {
@@ -272,10 +242,6 @@ void spi_init(spi_t *obj, uint32_t speed, SPIMode mode, uint8_t msb)
   } else if (speed >= (spi_freq / SPI_SPEED_CLOCK_DIV128_MHZ)) {
     handle->Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_128;
   } else {
-    /*
-     * As it is not possible to go below (spi_freq / SPI_SPEED_CLOCK_DIV256_MHZ).
-     * Set prescaler at max value so get the lowest frequency possible.
-     */
     handle->Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
   }
 
@@ -316,23 +282,18 @@ void spi_init(spi_t *obj, uint32_t speed, SPIMode mode, uint8_t msb)
   handle->Init.MasterKeepIOState = SPI_MASTER_KEEP_IO_STATE_ENABLE;  /* Recommended setting to avoid glitches */
 #endif
 
-#if defined(SUBGHZSPI_BASE)
-  if (handle->Instance != SUBGHZSPI) {
-#endif
-    /* Configure SPI GPIO pins */
-    pinmap_pinout(obj->pin_mosi, PinMap_SPI_MOSI);
-    pinmap_pinout(obj->pin_miso, PinMap_SPI_MISO);
-    pinmap_pinout(obj->pin_sclk, PinMap_SPI_SCLK);
-    /*
-    * According the STM32 Datasheet for SPI peripheral we need to PULLDOWN
-    * or PULLUP the SCK pin according the polarity used.
-    */
-    pull = (handle->Init.CLKPolarity == SPI_POLARITY_LOW) ? GPIO_PULLDOWN : GPIO_PULLUP;
-    pin_PullConfig(get_GPIO_Port(STM_PORT(obj->pin_sclk)), STM_LL_GPIO_PIN(obj->pin_sclk), pull);
-    pinmap_pinout(obj->pin_ssel, PinMap_SPI_SSEL);
-#if defined(SUBGHZSPI_BASE)
-  }
-#endif
+  /* Configure SPI GPIO pins — peripheral-aware AF resolution */
+  pinmap_pinout_for_peripheral(obj->pin_mosi, obj->spi, PinMap_SPI_MOSI);
+  pinmap_pinout_for_peripheral(obj->pin_miso, obj->spi, PinMap_SPI_MISO);
+  pinmap_pinout_for_peripheral(obj->pin_sclk, obj->spi, PinMap_SPI_SCLK);
+  /*
+  * According the STM32 Datasheet for SPI peripheral we need to PULLDOWN
+  * or PULLUP the SCK pin according the polarity used.
+  */
+  pull = (handle->Init.CLKPolarity == SPI_POLARITY_LOW) ? GPIO_PULLDOWN : GPIO_PULLUP;
+  pin_PullConfig(get_GPIO_Port(STM_PORT(obj->pin_sclk)), STM_LL_GPIO_PIN(obj->pin_sclk), pull);
+  pinmap_pinout_for_peripheral(obj->pin_ssel, obj->spi, PinMap_SPI_SSEL);
+
 #if defined SPI1_BASE
   // Enable SPI clock
   if (handle->Instance == SPI1) {
@@ -379,14 +340,6 @@ void spi_init(spi_t *obj, uint32_t speed, SPIMode mode, uint8_t msb)
     __HAL_RCC_SPI6_CLK_ENABLE();
     __HAL_RCC_SPI6_FORCE_RESET();
     __HAL_RCC_SPI6_RELEASE_RESET();
-  }
-#endif
-
-#if defined SUBGHZSPI_BASE
-  if (handle->Instance == SUBGHZSPI) {
-    __HAL_RCC_SUBGHZSPI_CLK_ENABLE();
-    __HAL_RCC_SUBGHZSPI_FORCE_RESET();
-    __HAL_RCC_SUBGHZSPI_RELEASE_RESET();
   }
 #endif
 
@@ -457,14 +410,6 @@ void spi_deinit(spi_t *obj)
     __HAL_RCC_SPI6_FORCE_RESET();
     __HAL_RCC_SPI6_RELEASE_RESET();
     __HAL_RCC_SPI6_CLK_DISABLE();
-  }
-#endif
-
-#if defined SUBGHZSPI_BASE
-  if (handle->Instance == SUBGHZSPI) {
-    __HAL_RCC_SUBGHZSPI_FORCE_RESET();
-    __HAL_RCC_SUBGHZSPI_RELEASE_RESET();
-    __HAL_RCC_SUBGHZSPI_CLK_DISABLE();
   }
 #endif
 }
@@ -546,5 +491,3 @@ spi_status_e spi_transfer(spi_t *obj, const uint8_t *tx_buffer, uint8_t *rx_buff
 #ifdef __cplusplus
 }
 #endif
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

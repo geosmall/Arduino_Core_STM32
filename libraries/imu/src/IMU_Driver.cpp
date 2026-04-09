@@ -31,7 +31,7 @@ IMU_Driver::~IMU_Driver()
     }
 }
 
-void IMU_Driver::attachSPI(SPIClass& spi, uint8_t csPin, uint32_t freq_hz)
+void IMU_Driver::attachSPI(SPIClass& spi, Pin csPin, uint32_t freq_hz)
 {
     // Clean up existing bus if present
     if (bus_ != nullptr) {

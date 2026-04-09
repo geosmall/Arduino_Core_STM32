@@ -31,7 +31,7 @@
 
 // Board configuration - ICM-20602 specific (NERO F7 flight controller)
 // This example requires ICM-206xx hardware. Other IMU chips will be rejected.
-#include "../../../../targets/BKMN-NERO.h"
+#include "targets/BKMN-NERO.h"
 
 // ============================================================================
 // ICM-20602 Register Definitions (MPU-6500 class register map)
@@ -220,10 +220,10 @@ void setup() {
     // Display pin configuration
     CI_LOG("Pin Configuration (BoardConfig):\n");
     CI_PRINTF("  CS: %d, MOSI: %d, MISO: %d, SCLK: %d\n",
-           (int)BoardConfig::imu.spi.cs_pin,
-           (int)BoardConfig::imu.spi.mosi_pin,
-           (int)BoardConfig::imu.spi.miso_pin,
-           (int)BoardConfig::imu.spi.sclk_pin);
+           (int)BoardConfig::imu.spi.cs_pin.toPinName(),
+           (int)BoardConfig::imu.spi.mosi_pin.toPinName(),
+           (int)BoardConfig::imu.spi.miso_pin.toPinName(),
+           (int)BoardConfig::imu.spi.sclk_pin.toPinName());
     CI_PRINTF("  SPI Speed: %lu Hz\n\n", (unsigned long)BoardConfig::imu.spi.freq_hz);
 
     // Give IMU time to stabilize

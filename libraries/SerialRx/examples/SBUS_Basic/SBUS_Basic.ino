@@ -29,10 +29,10 @@
 
 // Board configuration - multi-board support
 #if defined(ARDUINO_DEVEBOX_H743)
-  #include "../../../../targets/DEVEBOX_H743_HIL006.h"
+  #include "targets/DEVEBOX_H743_HIL006.h"
   #define BOARD_NAME "DevEBox H743 (HIL-006)"
 #elif defined(ARDUINO_OPEN_REVO)
-  #include "../../../../targets/OPEN-REVO.h"
+  #include "targets/OPEN-REVO.h"
   #define BOARD_NAME "OpenPilot Revolution (F405)"
 #else
   #error "Unsupported board. Use DEVEBOX_H743 or OPEN_REVO."
@@ -74,9 +74,9 @@ void setup() {
 
   if (rc.begin(config)) {
     Serial.print("RC Receiver initialized (RX=0x");
-    Serial.print(BoardConfig::rc_receiver.rx_pin, HEX);
+    Serial.print(BoardConfig::rc_receiver.rx_pin.toPinName(), HEX);
     Serial.print(", TX=0x");
-    Serial.print(BoardConfig::rc_receiver.tx_pin, HEX);
+    Serial.print(BoardConfig::rc_receiver.tx_pin.toPinName(), HEX);
     Serial.print(", ");
     Serial.print(config.baudrate);
     Serial.println(" baud)");
@@ -91,7 +91,7 @@ void setup() {
 #else
     #if defined(ARDUINO_OPEN_REVO)
     Serial.print("RX signal inversion: ENABLED (external inverter on pin 0x");
-    Serial.print(BoardConfig::rc_inverter_pin, HEX);
+    Serial.print(BoardConfig::rc_inverter_pin.toPinName(), HEX);
     Serial.println(")");
     #else
     Serial.println("WARNING: Hardware RX inversion not supported on this MCU!");

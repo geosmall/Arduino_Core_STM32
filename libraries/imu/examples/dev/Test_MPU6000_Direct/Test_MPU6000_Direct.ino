@@ -21,7 +21,7 @@
 
 // Board configuration - NUCLEO_F411RE with HIL005
 #if defined(ARDUINO_NUCLEO_F411RE)
-#include "../../../../targets/NUCLEO_F411RE_HIL005.h"
+#include "targets/NUCLEO_F411RE_HIL005.h"
 #else
 #error "This example requires NUCLEO_F411RE board"
 #endif
@@ -53,13 +53,13 @@ void setup()
     // Display pin configuration from BoardConfig
     Serial.println("\nPin Configuration (BoardConfig):");
     Serial.print("  CS: 0x");
-    Serial.print((int)MPU6000_CS_PIN, HEX);
+    Serial.print((int)MPU6000_CS_PIN.toPinName(), HEX);
     Serial.print(", MOSI: 0x");
-    Serial.print((int)MPU6000_MOSI_PIN, HEX);
+    Serial.print((int)MPU6000_MOSI_PIN.toPinName(), HEX);
     Serial.print(", MISO: 0x");
-    Serial.print((int)MPU6000_MISO_PIN, HEX);
+    Serial.print((int)MPU6000_MISO_PIN.toPinName(), HEX);
     Serial.print(", SCLK: 0x");
-    Serial.println((int)MPU6000_SCLK_PIN, HEX);
+    Serial.println((int)MPU6000_SCLK_PIN.toPinName(), HEX);
     Serial.print("  SPI Speed: ");
     Serial.print((unsigned long)MPU6000_SPI_FREQ);
     Serial.println(" Hz\n");

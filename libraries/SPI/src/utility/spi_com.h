@@ -92,5 +92,3 @@ uint32_t spi_getClkFreq(spi_t *obj);
 #endif
 
 #endif /* __SPI_COM_H */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

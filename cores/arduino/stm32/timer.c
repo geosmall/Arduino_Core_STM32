@@ -744,6 +744,36 @@ uint32_t getTimerChannel(PinName pin)
   return channel;
 }
 
+/**
+  * @brief  Return HAL timer channel for a specific timer instance
+  * @param  pin: PinName (physical, no ALT encoding needed)
+  * @param  timer: timer instance (e.g. TIM3)
+  * @retval Valid HAL channel, or 0 with error on mismatch
+  */
+uint32_t getTimerChannelForTimer(PinName pin, TIM_TypeDef *timer)
+{
+  uint32_t function = pinmap_function_for_peripheral(pin, timer, PinMap_TIM);
+  uint32_t channel = 0;
+  switch (STM_PIN_CHANNEL(function)) {
+    case 1:
+      channel = TIM_CHANNEL_1;
+      break;
+    case 2:
+      channel = TIM_CHANNEL_2;
+      break;
+    case 3:
+      channel = TIM_CHANNEL_3;
+      break;
+    case 4:
+      channel = TIM_CHANNEL_4;
+      break;
+    default:
+      _Error_Handler("TIM: Unknown timer channel", (int)(STM_PIN_CHANNEL(function)));
+      break;
+  }
+  return channel;
+}
+
 #endif /* HAL_TIM_MODULE_ENABLED && !HAL_TIM_MODULE_ONLY */
 
 #ifdef __cplusplus
