@@ -26,51 +26,85 @@ If these don't exist, the chip package hasn't been added yet — that's a larger
 
 Bare `#define` macros only. **Do not `#include` any header** — this file is included from the HAL conf chain before Pin.h is available. Pin-style names (`PA5`, not `PA_5`) resolve to Pin constexpr values later when evaluated in user code.
 
-Required defines:
+Required defines (use `#ifndef` guards so BoardConfig targets or sketches can override):
 
 ```cpp
 #pragma once
 
 // On-board LED and button (use PNUM_NOT_DEFINED if absent)
-#define LED_BUILTIN             PA5
-#define USER_BTN                PC13
+#ifndef LED_BUILTIN
+  #define LED_BUILTIN             PA5
+#endif
+#ifndef USER_BTN
+  #define USER_BTN                PC13
+#endif
 
-// Timer assignments (TIM6/TIM7 preferred when available)
-#define TIMER_TONE              TIM10
-#define TIMER_SERVO             TIM11
+// Timer assignments (TIM6/TIM7 preferred when available — no GPIO conflict)
+#ifndef TIMER_TONE
+  #define TIMER_TONE              TIM10
+#endif
+#ifndef TIMER_SERVO
+  #define TIMER_SERVO             TIM11
+#endif
 
 // Default SPI bus
-#define PIN_SPI_MOSI            PA7
-#define PIN_SPI_MISO            PA6
-#define PIN_SPI_SCK             PA5
+#ifndef PIN_SPI_MOSI
+  #define PIN_SPI_MOSI            PA7
+#endif
+#ifndef PIN_SPI_MISO
+  #define PIN_SPI_MISO            PA6
+#endif
+#ifndef PIN_SPI_SCK
+  #define PIN_SPI_SCK             PA5
+#endif
 
 // Debug UART
-#define SERIAL_UART_INSTANCE    2
-#define PIN_SERIAL_RX           PA3
-#define PIN_SERIAL_TX           PA2
+#ifndef SERIAL_UART_INSTANCE
+  #define SERIAL_UART_INSTANCE    2
+#endif
+#ifndef PIN_SERIAL_RX
+  #define PIN_SERIAL_RX           PA3
+#endif
+#ifndef PIN_SERIAL_TX
+  #define PIN_SERIAL_TX           PA2
+#endif
 
 // Default I2C bus
-#define PIN_WIRE_SDA            PB9
-#define PIN_WIRE_SCL            PB8
+#ifndef PIN_WIRE_SDA
+  #define PIN_WIRE_SDA            PB9
+#endif
+#ifndef PIN_WIRE_SCL
+  #define PIN_WIRE_SCL            PB8
+#endif
 
 // HSE crystal (omit for HSI-only boards)
 #define HSE_VALUE               8000000U
 
 // Required by core
-#define NUM_DIGITAL_PINS        52
-#define NUM_ANALOG_INPUTS       16
+#ifndef NUM_DIGITAL_PINS
+  #define NUM_DIGITAL_PINS        52
+#endif
+#ifndef NUM_ANALOG_INPUTS
+  #define NUM_ANALOG_INPUTS       16
+#endif
 
 // UF2 bootloader (if applicable)
 #define BOOTUF2_DBL_TAP_MAGIC   0xF01669EFUL
 #define BOOTUF2_DBL_TAP_ADDR    0x2001FFF0UL
 
 // Extra HAL modules (if needed beyond defaults)
-// #define HAL_DAC_MODULE_ENABLED
+#if !defined(HAL_DAC_MODULE_DISABLED)
+  #define HAL_DAC_MODULE_ENABLED
+#endif
 
 // C++ only
 #ifdef __cplusplus
-  #define SERIAL_PORT_MONITOR   Serial
-  #define SERIAL_PORT_HARDWARE  Serial
+  #ifndef SERIAL_PORT_MONITOR
+    #define SERIAL_PORT_MONITOR   Serial
+  #endif
+  #ifndef SERIAL_PORT_HARDWARE
+    #define SERIAL_PORT_HARDWARE  Serial
+  #endif
 #endif
 ```
 
@@ -173,4 +207,4 @@ Config types are defined in `targets/config/ConfigTypes.h`. Dev boards (Nucleo, 
 - Existing variant example: `variants/STM32F4xx/F411R(C-E)T/variant_NUCLEO_F411RE.h`
 - BoardConfig example: `targets/BKMN-NERO.h`
 - Pin system docs: `doc/PIN_USE.md`
-- Unused variant directories contain `variant_generic.h/.cpp` with old-style pin definitions. These won't compile against the refactored core but are useful as reference for pin mappings and clock config.
+- Unused variant directories contain `variant_generic.h/.cpp` with upstream-style pin definitions (`#define PA0 47` macros, `digitalPin[]` arrays). These won't compile against the refactored core but are useful as reference for pin mappings and `SystemClock_Config()` when writing a new variant.

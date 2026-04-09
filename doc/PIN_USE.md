@@ -2,6 +2,12 @@
 
 How GPIO pins are named, stored, and converted in the refactored STM32 Arduino Core.
 
+### Background: the old pin system
+
+The upstream stm32duino core used Arduino-style pin numbering where each physical pin was assigned an integer index via `#define` macros in variant headers (e.g., `#define PA0 47`). While beginner-friendly, this encourages treating pins as interchangeable integers — code like `for (int pin = 0; pin < 10; pin++) digitalWrite(pin, HIGH)` compiles and runs but sweeps across unrelated GPIO pins, a pattern that makes no sense on a real board and can damage hardware. Mapping between these integers and actual hardware required lookup arrays (`digitalPin[]`, `analogInputPin[]`) and indirection macros (`digitalPinToPinName()`). This created six different ways to refer to the same physical pin (`PA_0`, `PA0`, `D46`, `A0`, `PA0_ALT1`, `0x00`) and a class of silent AF-resolution bugs where the wrong peripheral could be selected for multi-function pins.
+
+This fork targets developers building flight controllers and robotics systems. The integer abstraction hides information on hardware use and can cause silent non-obvious compile time bugs. The refactored core replaces the integer system with two types: a `Pin` struct for user code and the existing `PinName` enum for the HAL layer. See [What Was Removed](#what-was-removed) for the full list of eliminated constructs.
+
 ---
 
 ## Two Types, One Boundary
@@ -14,9 +20,9 @@ The pin system has two types with a single conversion point between them:
 | `PinName` | HAL layer, PinMap tables, PeripheralPins.c | ST vendor code currency |
 
 ```
-User code        HAL boundary         ST HAL / LL drivers
-─────────        ────────────         ───────────────────
-Pin PA0  ──→  pin.toPinName()  ──→  PinName PA_0 = 0x00
+User code       HAL boundary         ST HAL / LL drivers
+─────────       ────────────         ───────────────────
+Pin PA0    ──→  pin.toPinName() ──→  PinName PA_0 = 0x00
 ```
 
 A `Pin` is a small constexpr struct (port enum + 1-byte pin index). A `PinName` is a uint32_t-sized enum. They encode the same information differently:

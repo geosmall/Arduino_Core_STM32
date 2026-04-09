@@ -9,7 +9,7 @@
  * as macros here — they resolve to Pin constexpr values when evaluated in
  * user code, after Arduino.h has included Pin.h.
  *
- * SystemClock_Config is in clock_BKMN_NERO.c (same variant directory).
+ * SystemClock_Config is in variant_BKMN_NERO.cpp (same variant directory).
  */
 #pragma once
 
