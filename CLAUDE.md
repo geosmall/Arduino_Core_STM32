@@ -110,7 +110,7 @@ Board-specific configurations are defined through the variant system, allowing t
 - **Nucleo F411RE**: `STM32_Robotics:stm32:Nucleo_64:pnum=NUCLEO_F411RE`
 - **BlackPill F411CE**: `STM32_Robotics:stm32:GenF4:pnum=BLACKPILL_F411CE`
 - **NERO F7**: `STM32_Robotics:stm32:FlightCtr:pnum=BKMN_NERO`
-- **WeAct G474**: `STM32_Robotics:stm32:GenG4:pnum=WEACT_G474_HIL007`
+- **WeAct G474**: `STM32_Robotics:stm32:GenG4:pnum=WEACT_G474CE`
 - **BetaFPV G473**: `STM32_Robotics:stm32:FlightCtr:pnum=BEFH_BETAFPVG473`
 - **MATEK H743**: `STM32_Robotics:stm32:FlightCtr:pnum=MATEK_H743VI`
 

@@ -267,6 +267,16 @@ GenF4.menu.pnum.BLACKPILL_F411CE.build.variant=STM32F4xx/F411C(C-E)(U-Y)
 GenF4.menu.pnum.BLACKPILL_F411CE.build.variant_h=variant_{build.board}.h
 GenF4.menu.pnum.BLACKPILL_F411CE.build.peripheral_pins=-DCUSTOM_PERIPHERAL_PINS
 
+# BlackPill F411CE (8 MHz HSE)
+GenF4.menu.pnum.BLACKPILL_F411CE_8MHZ=BlackPill F411CE 8MHz
+GenF4.menu.pnum.BLACKPILL_F411CE_8MHZ.upload.maximum_size=524288
+GenF4.menu.pnum.BLACKPILL_F411CE_8MHZ.upload.maximum_data_size=131072
+GenF4.menu.pnum.BLACKPILL_F411CE_8MHZ.build.board=BLACKPILL_F411CE_8MHZ
+GenF4.menu.pnum.BLACKPILL_F411CE_8MHZ.build.product_line=STM32F411xE
+GenF4.menu.pnum.BLACKPILL_F411CE_8MHZ.build.variant=STM32F4xx/F411C(C-E)(U-Y)
+GenF4.menu.pnum.BLACKPILL_F411CE_8MHZ.build.variant_h=variant_BLACKPILL_F411CE_8MHZ.h
+GenF4.menu.pnum.BLACKPILL_F411CE_8MHZ.build.peripheral_pins=-DCUSTOM_PERIPHERAL_PINS
+
 ################################################################################
 # Generic STM32F7 series
 
@@ -358,16 +368,16 @@ GenG4.menu.upload_method.clipboard.upload.protocol=0
 GenG4.menu.upload_method.clipboard.upload.options=-g
 GenG4.menu.upload_method.clipboard.upload.tool=clipboard_upload
 
-# WeAct G474 HIL-007 test rig
-GenG4.menu.pnum.WEACT_G474_HIL007=WeAct G474 HIL-007
-GenG4.menu.pnum.WEACT_G474_HIL007.upload.maximum_size=458752
-GenG4.menu.pnum.WEACT_G474_HIL007.upload.maximum_data_size=131072
-GenG4.menu.pnum.WEACT_G474_HIL007.build.board=WEACT_G474_HIL007
-GenG4.menu.pnum.WEACT_G474_HIL007.build.product_line=STM32G474xx
-GenG4.menu.pnum.WEACT_G474_HIL007.build.variant=STM32G4xx/G473C(B-C-E)U_G474C(B-C-E)U_G483CEU_G484CEU
-GenG4.menu.pnum.WEACT_G474_HIL007.build.variant_h=variant_WEACT_G474_HIL007.h
-GenG4.menu.pnum.WEACT_G474_HIL007.build.uf2_family=0x4c71240a
-GenG4.menu.pnum.WEACT_G474_HIL007.build.uf2_flash_offset=0x10000
+# WeAct G474CE core board
+GenG4.menu.pnum.WEACT_G474CE=WeAct G474CE
+GenG4.menu.pnum.WEACT_G474CE.upload.maximum_size=458752
+GenG4.menu.pnum.WEACT_G474CE.upload.maximum_data_size=131072
+GenG4.menu.pnum.WEACT_G474CE.build.board=WEACT_G474CE
+GenG4.menu.pnum.WEACT_G474CE.build.product_line=STM32G474xx
+GenG4.menu.pnum.WEACT_G474CE.build.variant=STM32G4xx/G473C(B-C-E)U_G474C(B-C-E)U_G483CEU_G484CEU
+GenG4.menu.pnum.WEACT_G474CE.build.variant_h=variant_WEACT_G474CE.h
+GenG4.menu.pnum.WEACT_G474CE.build.uf2_family=0x4c71240a
+GenG4.menu.pnum.WEACT_G474CE.build.uf2_flash_offset=0x10000
 
 ################################################################################
 # Generic STM32H7 Series
@@ -410,6 +420,15 @@ GenH7.menu.upload_method.clipboard=Clipboard (Copy Path)
 GenH7.menu.upload_method.clipboard.upload.protocol=0
 GenH7.menu.upload_method.clipboard.upload.options=-g
 GenH7.menu.upload_method.clipboard.upload.tool=clipboard_upload
+
+# DevEBox H743VITx
+GenH7.menu.pnum.DEVEBOX_H743=DevEBox H743VITx
+GenH7.menu.pnum.DEVEBOX_H743.upload.maximum_size=2097152
+GenH7.menu.pnum.DEVEBOX_H743.upload.maximum_data_size=524288
+GenH7.menu.pnum.DEVEBOX_H743.build.board=DEVEBOX_H743
+GenH7.menu.pnum.DEVEBOX_H743.build.product_line=STM32H743xx
+GenH7.menu.pnum.DEVEBOX_H743.build.variant=STM32H7xx/H742V(G-I)(H-T)_H743V(G-I)(H-T)_H750VBT_H753VI(H-T)
+GenH7.menu.pnum.DEVEBOX_H743.build.variant_h=variant_DEVEBOX_H743.h
 
 ################################################################################
 # Flight Controller Boards

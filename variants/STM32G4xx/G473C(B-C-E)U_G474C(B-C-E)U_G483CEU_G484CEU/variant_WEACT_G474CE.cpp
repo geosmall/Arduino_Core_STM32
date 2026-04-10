@@ -1,10 +1,10 @@
 /*
- * variant_WEACT_G474_HIL007.cpp — Board-specific system clock configuration
+ * variant_WEACT_G474CE.cpp — Board-specific system clock configuration
  *
  * No digitalPin[] or analogInputPin[] arrays — those are eliminated
  * by the Pin refactor. Only SystemClock_Config remains.
  */
-#if defined(ARDUINO_WEACT_G474_HIL007)
+#if defined(ARDUINO_WEACT_G474CE)
 
 #include "pins_arduino.h"
 
@@ -85,4 +85,4 @@ WEAK void SystemClock_Config(void)
 }
 #endif
 
-#endif /* ARDUINO_WEACT_G474_HIL007 */
+#endif /* ARDUINO_WEACT_G474CE */

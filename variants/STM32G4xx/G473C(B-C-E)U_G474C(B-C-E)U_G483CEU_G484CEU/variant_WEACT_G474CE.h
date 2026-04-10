@@ -1,7 +1,7 @@
 /*
- * variant_WEACT_G474_HIL007.h — WeAct G474CEU HIL-007 test rig (Pin refactor)
+ * variant_WEACT_G474CE.h — WeAct G474CEU core board (Pin refactor)
  *
- * G474CEU6 with 8 MHz HSE, 170 MHz SYSCLK, ICM42688P on SPI1, W25Q flash on SPI3.
+ * G474CEU6 with 8 MHz HSE, 170 MHz SYSCLK.
  *
  * NOTE: This header is included from the HAL conf chain (before HAL modules
  * are loaded), so it CANNOT include Pin.h. Pin constants like PA5 are used

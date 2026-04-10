@@ -23,7 +23,7 @@ add_library(variant_bin STATIC EXCLUDE_FROM_ALL
   PeripheralPins.c
   variant_generic.cpp
   variant_BEFH_BETAFPVG473.cpp
-  variant_WEACT_G474_HIL007.cpp
+  variant_WEACT_G474CE.cpp
 )
 target_link_libraries(variant_bin PUBLIC variant_usage)
 
