@@ -16,23 +16,36 @@ A focused STM32 Arduino core for robotics and flight controller development.
 
 ## Overview
 
-This is a **fork of the STM32 Arduino Core** optimized for robotics applications including drone flight controllers, real-time data logging, and sensor management.
+This is a **fork of the STM32 Arduino Core** optimized for robotics applications including drone flight controllers, real-time data logging, and sensor management. It targets developers with some hardware experience rather than early stage beginners.
+
+## What Makes This Fork Different
+
+- **Type-safe `Pin` struct** replaces Arduino integer pin numbering. User code passes `Pin` constants (`PA0`, `PB7`) to every API; a compiler error catches `PA_0` (PinName enum) or raw integers at the call site. See [doc/PIN_USE.md](doc/PIN_USE.md).
+- **Peripheral-aware AF resolution** fixes the upstream "ALT pin trap" where timers on multi-function pins silently picked the wrong alternate function. HardwareTimer, DShot, SPI, Wire, and HardwareSerial all use `pinmap_function_for_peripheral()` to resolve AF against a specific peripheral instance, not just the pin.
+- **Four STM32 families supported**: F4, F7, G4, H7 — with the same robotics library set on all of them. DShot DMA verified on all three DMA architectures (F4/F7 fixed-stream, G4 DMAMUX channel, H7 DMAMUX stream).
+- **Focused board set**: 15 variants across the four families, curated for flight controller and robotics work. No thousands-of-chips boards.txt to wade through.
+- **Robotics libraries as first-class citizens**: IMU, SerialRx (IBus/SBUS/CRSF), TimerPWM, DShot, LittleFS, SDFS, Storage, Scheduler ship with the core.
 
 ## Supported Hardware
 
 | Category | Boards |
 |----------|--------|
-| Development | Nucleo F411RE, BlackPill F411CE, WeAct G474 |
+| Nucleo-32 | Nucleo G431KB |
+| Nucleo-64 | Nucleo F411RE, Nucleo G474RE |
+| Nucleo-144 | Nucleo F722ZE, Nucleo H743ZI, Nucleo H753ZI |
+| Generic dev boards | BlackPill F411CE (25 MHz), BlackPill F411CE 8MHz, WeAct G474CE, DevEBox H743VITx |
 | Flight Controllers | NOXE V3 (F411), OpenPilot Revo (F405), NERO F7 (F722), BetaFPV G473, MATEK H743 |
+
+All 15 boards share the same core, libraries, and build system. HIL testing on 10 rigs across all four STM32 families.
 
 ## Key Features
 
 - **Robotics Libraries**: IMU sensors, RC receivers, servo/ESC control, storage systems
 - **UF2 Bootloader Support**: Drag-and-drop firmware upload without debugger
 - **Storage Systems**: LittleFS (SPI flash), SDFS (SD card) with unified API
-- **IMU Support**: ICM-42688-P, MPU-6000, MPU-9250/9255 with magnetometer calibration
+- **IMU Support**: ICM-42688-P, ICM-206xx, MPU-6000, MPU-9250/9255 with magnetometer calibration
 - **RC Protocols**: IBus, SBUS, and CRSF with hardware validation
-- **PWM Control**: Hardware timer PWM for servos/ESCs with 1µs resolution
+- **PWM and DShot**: Hardware timer PWM (1 µs resolution) and DShot 150/300/600/1200 with DMA
 
 ## Quick Start
 
@@ -52,7 +65,7 @@ void loop() {
 }
 ```
 
-1. Select board: **Tools → Board → STM32 Robotics → Nucleo 64 → NUCLEO_F411RE**
+1. Select board: **Tools → Board → STM32 Robotics → Nucleo-64 → NUCLEO_F411RE**
 2. Select port: **Tools → Port → [your port]**
 3. Click **Upload**
 
@@ -142,8 +155,10 @@ After bootloader is installed:
 
 ## Development Status
 
-- **✅ Complete**: Storage (LittleFS, SDFS), IMU library (6-DOF/9-DOF), SerialRx (IBus, SBUS, CRSF), TimerPWM, DShot
-- **✅ Complete**: UF2 bootloaders for 5 flight controller boards
+- **Complete**: Pin struct refactor — type-safe API, peripheral-aware AF resolution, 15 board variants across F4/F7/G4/H7
+- **Complete**: Storage (LittleFS, SDFS), IMU library (6-DOF/9-DOF), SerialRx (IBus, SBUS, CRSF), TimerPWM, DShot
+- **Complete**: UF2 bootloaders for 5 flight controller boards
+- **Complete**: HIL verification on 10 rigs covering all four STM32 families
 
 ## Resources
 
