@@ -38,9 +38,10 @@ void loop()
   // Set all motors to the same throttle
   motors.SetAllThrottle(throttle);
   motors.Send();
+  delayMicroseconds(250);
 
-  // Toggle LED to show activity
-  digitalWrite(LED_BUILTIN, throttle & 0x100 ? HIGH : LOW);
+  // Stateless 1 Hz LED blink: millis()/500 increments every 500 ms,
+  digitalWrite(LED_BUILTIN, (millis() / 500UL) & 1UL);
 
   throttle++;
   if (throttle > 2047) {
