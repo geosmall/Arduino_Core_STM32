@@ -278,6 +278,30 @@ static uint32_t getDMAMUXRequest(TIM_TypeDef *timer, uint8_t ch_index)
   return 0;
 }
 
+#if defined(STM32G4xx)
+// Burst mode uses timer UPDATE event as DMA trigger (Betaflight-compatible).
+// Maps timer -> its DMAMUX UPDATE request ID.
+static uint32_t getDMAMUXRequestUpdate(TIM_TypeDef *timer)
+{
+#if defined(TIM1_BASE)
+  if (timer == TIM1) return LL_DMAMUX_REQ_TIM1_UP;
+#endif
+#if defined(TIM2_BASE)
+  if (timer == TIM2) return LL_DMAMUX_REQ_TIM2_UP;
+#endif
+#if defined(TIM3_BASE)
+  if (timer == TIM3) return LL_DMAMUX_REQ_TIM3_UP;
+#endif
+#if defined(TIM4_BASE)
+  if (timer == TIM4) return LL_DMAMUX_REQ_TIM4_UP;
+#endif
+#if defined(TIM8_BASE)
+  if (timer == TIM8) return LL_DMAMUX_REQ_TIM8_UP;
+#endif
+  return 0;
+}
+#endif
+
 bool resolveDMA(MotorHW *motor)
 {
   uint32_t dmamux_req = getDMAMUXRequest(motor->timer, motor->channel_index);
@@ -563,7 +587,10 @@ void initDMABurst(BurstGroup *group)
 #elif defined(STM32G4xx)
   LL_DMA_DisableChannel(group->dma, group->dma_stream);
   LL_DMA_DeInit(group->dma, group->dma_stream);
-  dma_init.PeriphRequest = getDMAMUXRequest(group->timer, group->trigger_ch_index);
+  // Burst DMA is paced by the timer UPDATE event (one request per PWM period),
+  // matching Betaflight. Required on TIM3/TIM4 to avoid draining all burst
+  // words on a single CC event before preloaded CCRs can take effect.
+  dma_init.PeriphRequest = getDMAMUXRequestUpdate(group->timer);
 #endif
 
   LL_DMA_Init(group->dma, group->dma_stream, &dma_init);
@@ -595,13 +622,28 @@ void triggerDMABurst(BurstGroup *group)
                         LL_TIM_DMABURST_BASEADDR_CCR1,
                         burstLengthToLL(group->burst_length));
 
-  // Enable DMA request for the trigger channel's CC event
+  // Enable DMA request for the timer UPDATE event (burst is period-paced).
+  // Non-G4 families retain the legacy CC-event trigger pending hardware
+  // verification; see DSHOT_PR.md "DShot burst-DMA G4 fix".
+#if defined(STM32G4xx)
+  LL_TIM_EnableDMAReq_UPDATE(group->timer);
+#else
   enableTimDMAReq(group->timer, group->trigger_ch_index);
+#endif
 }
 
 void cleanupPreviousBurstTransfer(BurstGroup *group)
 {
+#if defined(STM32G4xx)
+  LL_TIM_DisableDMAReq_UPDATE(group->timer);
+  // Defensive: clear any CC DMA request bits that may have been left set by
+  // a previous (pre-fix) binary running on the board — avoids stale-state
+  // bugs on rapid re-flash without power cycle.
+  CLEAR_BIT(group->timer->DIER, TIM_DIER_CC1DE | TIM_DIER_CC2DE
+                              | TIM_DIER_CC3DE | TIM_DIER_CC4DE);
+#else
   disableTimDMAReq(group->timer, group->trigger_ch_index);
+#endif
 
 #if defined(STM32G4xx)
   LL_DMA_DisableChannel(group->dma, group->dma_stream);
