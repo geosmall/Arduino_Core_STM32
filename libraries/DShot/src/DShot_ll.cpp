@@ -197,6 +197,38 @@ static const DMAMapping dma_map[] = {
 #endif
 };
 
+// TIM_UP DMA mapping for F4/F7 burst mode — paced by the timer UPDATE event
+// (Betaflight-compatible). Keyed by timer only. Source: Betaflight
+// timer_def.h:236-243 (F4) / :339-346 (F7), verified against RM0383 (F411)
+// Table 28 and RM0431 (F722) Table 27 DMA request maps.
+struct TimUpMapping {
+  TIM_TypeDef *timer;
+  DMA_TypeDef *dma;
+  uint32_t stream;
+  uint32_t channel_sel;
+};
+
+static const TimUpMapping tim_up_map[] = {
+#if defined(TIM1_BASE)
+  {TIM1, DMA2, LL_DMA_STREAM_5, LL_DMA_CHANNEL_6},  // TIM1_UP
+#endif
+#if defined(TIM2_BASE)
+  {TIM2, DMA1, LL_DMA_STREAM_7, LL_DMA_CHANNEL_3},  // TIM2_UP
+#endif
+#if defined(TIM3_BASE)
+  {TIM3, DMA1, LL_DMA_STREAM_2, LL_DMA_CHANNEL_5},  // TIM3_UP
+#endif
+#if defined(TIM4_BASE)
+  {TIM4, DMA1, LL_DMA_STREAM_6, LL_DMA_CHANNEL_2},  // TIM4_UP
+#endif
+#if defined(TIM5_BASE)
+  {TIM5, DMA1, LL_DMA_STREAM_0, LL_DMA_CHANNEL_6},  // TIM5_UP
+#endif
+#if defined(TIM8_BASE)
+  {TIM8, DMA2, LL_DMA_STREAM_1, LL_DMA_CHANNEL_7},  // TIM8_UP
+#endif
+};
+
 bool resolveDMA(MotorHW *motor)
 {
   for (size_t i = 0; i < sizeof(dma_map) / sizeof(dma_map[0]); i++) {
@@ -278,29 +310,33 @@ static uint32_t getDMAMUXRequest(TIM_TypeDef *timer, uint8_t ch_index)
   return 0;
 }
 
-#if defined(STM32G4xx)
 // Burst mode uses timer UPDATE event as DMA trigger (Betaflight-compatible).
 // Maps timer -> its DMAMUX UPDATE request ID.
 static uint32_t getDMAMUXRequestUpdate(TIM_TypeDef *timer)
 {
+#if defined(STM32H7xx)
+  #define _DSHOT_UP_REQ(n) LL_DMAMUX1_REQ_TIM ## n ## _UP
+#else
+  #define _DSHOT_UP_REQ(n) LL_DMAMUX_REQ_TIM ## n ## _UP
+#endif
 #if defined(TIM1_BASE)
-  if (timer == TIM1) return LL_DMAMUX_REQ_TIM1_UP;
+  if (timer == TIM1) return _DSHOT_UP_REQ(1);
 #endif
 #if defined(TIM2_BASE)
-  if (timer == TIM2) return LL_DMAMUX_REQ_TIM2_UP;
+  if (timer == TIM2) return _DSHOT_UP_REQ(2);
 #endif
 #if defined(TIM3_BASE)
-  if (timer == TIM3) return LL_DMAMUX_REQ_TIM3_UP;
+  if (timer == TIM3) return _DSHOT_UP_REQ(3);
 #endif
 #if defined(TIM4_BASE)
-  if (timer == TIM4) return LL_DMAMUX_REQ_TIM4_UP;
+  if (timer == TIM4) return _DSHOT_UP_REQ(4);
 #endif
 #if defined(TIM8_BASE)
-  if (timer == TIM8) return LL_DMAMUX_REQ_TIM8_UP;
+  if (timer == TIM8) return _DSHOT_UP_REQ(8);
 #endif
+  #undef _DSHOT_UP_REQ
   return 0;
 }
-#endif
 
 bool resolveDMA(MotorHW *motor)
 {
@@ -531,13 +567,15 @@ static uint32_t burstLengthToLL(uint8_t length)
 bool resolveDMABurst(BurstGroup *group)
 {
 #if defined(STM32F4xx) || defined(STM32F7xx)
-  // Look up the trigger channel's DMA stream from the fixed F4/F7 map
-  for (size_t i = 0; i < sizeof(dma_map) / sizeof(dma_map[0]); i++) {
-    if (dma_map[i].timer == group->timer &&
-        dma_map[i].ch_index == group->trigger_ch_index) {
-      group->dma = dma_map[i].dma;
-      group->dma_stream = dma_map[i].stream;
-      group->dma_channel_sel = dma_map[i].channel_sel;
+  // Burst DMA is paced by the timer UPDATE event — look up the TIM_UP
+  // stream for this timer (Betaflight-compatible). Keyed by timer only;
+  // trigger_ch_index is unused on F4/F7 burst because the stream request
+  // is TIM_UP, not any particular CC channel.
+  for (size_t i = 0; i < sizeof(tim_up_map) / sizeof(tim_up_map[0]); i++) {
+    if (tim_up_map[i].timer == group->timer) {
+      group->dma = tim_up_map[i].dma;
+      group->dma_stream = tim_up_map[i].stream;
+      group->dma_channel_sel = tim_up_map[i].channel_sel;
       return true;
     }
   }
@@ -582,7 +620,10 @@ void initDMABurst(BurstGroup *group)
 #elif defined(STM32H7xx)
   LL_DMA_DisableStream(group->dma, group->dma_stream);
   LL_DMA_DeInit(group->dma, group->dma_stream);
-  dma_init.PeriphRequest = getDMAMUXRequest(group->timer, group->trigger_ch_index);
+  // Burst DMA is paced by the timer UPDATE event (one request per PWM period),
+  // matching Betaflight. Required on TIM3/TIM4 to avoid draining all burst
+  // words on a single CC event before preloaded CCRs can take effect.
+  dma_init.PeriphRequest = getDMAMUXRequestUpdate(group->timer);
 
 #elif defined(STM32G4xx)
   LL_DMA_DisableChannel(group->dma, group->dma_stream);
@@ -622,28 +663,20 @@ void triggerDMABurst(BurstGroup *group)
                         LL_TIM_DMABURST_BASEADDR_CCR1,
                         burstLengthToLL(group->burst_length));
 
-  // Enable DMA request for the timer UPDATE event (burst is period-paced).
-  // Non-G4 families retain the legacy CC-event trigger pending hardware
-  // verification; see DSHOT_PR.md "DShot burst-DMA G4 fix".
-#if defined(STM32G4xx)
+  // Enable DMA request for the timer UPDATE event (burst is period-paced,
+  // one DMA request per PWM period). Uniform across F4/F7/G4/H7 after
+  // porting the G4 UPDATE-trigger fix to all families.
   LL_TIM_EnableDMAReq_UPDATE(group->timer);
-#else
-  enableTimDMAReq(group->timer, group->trigger_ch_index);
-#endif
 }
 
 void cleanupPreviousBurstTransfer(BurstGroup *group)
 {
-#if defined(STM32G4xx)
   LL_TIM_DisableDMAReq_UPDATE(group->timer);
   // Defensive: clear any CC DMA request bits that may have been left set by
   // a previous (pre-fix) binary running on the board — avoids stale-state
   // bugs on rapid re-flash without power cycle.
   CLEAR_BIT(group->timer->DIER, TIM_DIER_CC1DE | TIM_DIER_CC2DE
                               | TIM_DIER_CC3DE | TIM_DIER_CC4DE);
-#else
-  disableTimDMAReq(group->timer, group->trigger_ch_index);
-#endif
 
 #if defined(STM32G4xx)
   LL_DMA_DisableChannel(group->dma, group->dma_stream);

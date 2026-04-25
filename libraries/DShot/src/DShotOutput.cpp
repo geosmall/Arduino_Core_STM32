@@ -131,28 +131,18 @@ bool DShotOutput::shouldUseBurst(int g) const
   int group_motor_count = 0;
 
 #if defined(STM32F4xx) || defined(STM32F7xx)
-  // F4/F7: conflict-triggered — check for stream collisions
-  uint32_t group_streams[4];
-
+  // F4/F7: 2+ motors on same timer => burst. Also escape-hatch: if any
+  // motor's per-channel stream is already claimed (e.g. UART RX via
+  // dma_set_handler), promote the whole group to burst so the library
+  // can fall through to the TIM_UP stream instead.
   for (int m = 0; m < _num_motors; m++) {
     if (_motors[m].timer != _groups[g].timer) continue;
-
-    // Cross-group or UART conflict: stream already claimed?
     if (dma_is_claimed(_motors[m].dma, _motors[m].dma_stream)) {
       return true;
     }
-    // Internal conflict: two motors in this group resolved to same stream?
-    for (int s = 0; s < group_motor_count; s++) {
-      if (group_streams[s] == _motors[m].dma_stream) {
-        return true;
-      }
-    }
-    if (group_motor_count < 4) {
-      group_streams[group_motor_count] = _motors[m].dma_stream;
-    }
     group_motor_count++;
   }
-  return false;
+  return group_motor_count >= 2;
 #else
   // G4/H7: burst for stream conservation when 2+ motors share a timer
   for (int m = 0; m < _num_motors; m++) {
