@@ -1,47 +1,48 @@
 /**
  * DShot_Validation — multi-board DShot library loopback verification.
  *
- * Consolidates DShot_Verification (per-channel) and DShot_Burst_Verification
- * (burst) into a single two-phase sketch covering NUCLEO-F411RE,
- * NUCLEO-F722ZE, NUCLEO-H753ZI, and NUCLEO-G474RE. Requires a permanent
- * jumper fixture — see DSHOT_VERIF_PLAN.md in the workspace root.
+ * Two-phase HIL test covering all four supported STM32 families on
+ * Nucleo-64 and Nucleo-144 boards. Requires a permanent jumper
+ * fixture (find pins by raw Pxx silkscreen label):
  *
- * Fixture (all boards share the same MCU-pin wiring; only the Nucleo-64 vs
- * Nucleo-144 header labels differ):
+ *   NUCLEO-G474RE (Nucleo-64, 4 jumpers):
+ *     PB4 -> PA0,  PA8  -> PA1,  PB0 -> PB10,  PB6 -> PA10 (TIM2_CH4 AF10)
  *
- *   Outputs (DShot):
- *     PB4  TIM3_CH1          (captured on F411RE/F722ZE/H753ZI/G474RE)
- *     PA8  TIM1_CH1          (captured)
- *     PB0  TIM3_CH3          (captured — phase B only)
- *     PB6  TIM4_CH1          (captured on F722ZE/H753ZI/G474RE — not F411)
- *     PA9  TIM1_CH2          (decoy, no jumper; forces TIM1 burst)
- *     PB5  TIM3_CH2          (decoy, no jumper; forces TIM3 burst)
- *     PB7  TIM4_CH2          (decoy, no jumper; forces TIM4 burst where used)
+ *   NUCLEO-F411RE (Nucleo-64, 3 jumpers):
+ *     PB4 -> PA0,  PA8  -> PA1,  PB0 -> PB10
+ *     (no TIM4 burst: only TIM2_CH4 alt is PA3 = VCOM RX)
  *
- *   Captures (TIM2 input capture + DMA):
- *     PA0  TIM2_CH1 AF1     <-- PB4
- *     PA1  TIM2_CH2 AF1     <-- PA8
- *     PB10 TIM2_CH3 AF1     <-- PB0
- *     PA10 TIM2_CH4 AF10    <-- PB6  (G474RE only)
- *     PB11 TIM2_CH4 AF1     <-- PB6  (F722ZE / H753ZI)
+ *   NUCLEO-F722ZE (Nucleo-144 Zio, 3 jumpers):
+ *     PB4 -> PA0,  PE11 -> PB3,  PB0 -> PB10
+ *     (no TIM4 burst: F4/F7 DMA1 Stream 6 is silicon-shared between
+ *      TIM4_UP and TIM2_CH2 capture, RM0431 Tbl 26)
  *
- * Phase A — concurrent burst on TIM1 + TIM3 (+ TIM4 where fixture allows).
- *           Two motors per timer (captured + decoy) force burst mode; each
- *           decoy gets a distinct throttle so a stride/interleaving bug
- *           decodes the wrong value.
- * Phase B — per-channel (non-burst) DShot600 on TIM1_CH1 + TIM3_CH3.
+ *   NUCLEO-H753ZI (Nucleo-144 Zio, 4 jumpers):
+ *     PB4 -> PA0,  PE11 -> PB3,  PB0 -> PB10,  PB6 -> PB11
  *
- * Each phase runs 5 throttle values (0, 48, 500, 1000, 2047). A full run
- * is 10 PASS rows. Sketch emits "*STOP*" on completion so the CI harness
- * can detect exit.
+ * Decoy outputs (no jumper; drive only — force burst mode):
+ *   PA9 (Nucleo-64 TIM1_CH2), PE13 (Nucleo-144 TIM1_CH3),
+ *   PB5 (TIM3_CH2), PB7 (TIM4_CH2 where used).
  *
- * Build:
- *   ./ci/build.sh Arduino_Core_STM32/libraries/DShot/examples/DShot_Validation \
- *       STM32_Robotics:stm32:Nucleo_64:pnum=NUCLEO_G474RE
+ * Phases:
+ *   A — concurrent burst on TIM1 + TIM3 (+ TIM4 where fixture allows).
+ *       Two motors per timer (captured + decoy) force burst mode; each
+ *       decoy gets a distinct throttle so a stride/interleaving bug
+ *       decodes the wrong value.
+ *   B — per-channel (non-burst) DShot600 on TIM1 + TIM3_CH3. TIM1
+ *       channel is CH1 on Nucleo-64, CH2 on Nucleo-144 (PE11).
+ *
+ * Each phase runs 5 throttle values (0, 48, 500, 1000, 2047). A full
+ * run is 10 PASS rows. Sketch emits "*STOP*" on completion so the CI
+ * harness can detect exit.
+ *
  * Run (G474RE via ST-Link):
  *   ./ci/saflash_stlink.sh \
  *       Arduino_Core_STM32/libraries/DShot/examples/DShot_Validation \
  *       STM32_Robotics:stm32:Nucleo_64:pnum=NUCLEO_G474RE --timeout 20
+ *
+ * Full fixture documentation, coverage matrix, expected output, and
+ * troubleshooting: see README.md alongside this sketch.
  */
 
 #include <DShot.h>
