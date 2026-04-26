@@ -116,6 +116,19 @@ Nucleo_64.menu.pnum.NUCLEO_F411RE.build.series=STM32F4xx
 Nucleo_64.menu.pnum.NUCLEO_F411RE.build.product_line=STM32F411xE
 Nucleo_64.menu.pnum.NUCLEO_F411RE.build.variant=STM32F4xx/F411R(C-E)T
 
+# NUCLEO_F405RG board
+Nucleo_64.menu.pnum.NUCLEO_F405RG=Nucleo F405RG
+Nucleo_64.menu.pnum.NUCLEO_F405RG.node="NODE_F405RG,NUCLEO"
+Nucleo_64.menu.pnum.NUCLEO_F405RG.upload.maximum_size=1048576
+Nucleo_64.menu.pnum.NUCLEO_F405RG.upload.maximum_data_size=131072
+Nucleo_64.menu.pnum.NUCLEO_F405RG.build.mcu=cortex-m4
+Nucleo_64.menu.pnum.NUCLEO_F405RG.build.fpu=-mfpu=fpv4-sp-d16
+Nucleo_64.menu.pnum.NUCLEO_F405RG.build.float-abi=-mfloat-abi=hard
+Nucleo_64.menu.pnum.NUCLEO_F405RG.build.board=NUCLEO_F405RG
+Nucleo_64.menu.pnum.NUCLEO_F405RG.build.series=STM32F4xx
+Nucleo_64.menu.pnum.NUCLEO_F405RG.build.product_line=STM32F405xx
+Nucleo_64.menu.pnum.NUCLEO_F405RG.build.variant=STM32F4xx/F405RGT_F415RGT
+
 # NUCLEO_G474RE board
 Nucleo_64.menu.pnum.NUCLEO_G474RE=Nucleo G474RE
 Nucleo_64.menu.pnum.NUCLEO_G474RE.node=NODE_G474RE
