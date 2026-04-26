@@ -47,6 +47,12 @@
 
 #include <DShot.h>
 #include "stm32yyxx_ll.h"
+
+// NUCLEO-F405RG breadboard rig has no working VCOM (PCB-level rework
+// artifact); route output via RTT over SWD instead of Serial.
+#if defined(ARDUINO_NUCLEO_F405RG)
+  #define USE_RTT
+#endif
 #include "ci_log.h"
 
 // ---------------------------------------------------------------------------
@@ -71,6 +77,21 @@
 
 #elif defined(ARDUINO_NUCLEO_F411RE)
   #define BOARD_NAME         "NUCLEO-F411RE"
+  #define HAS_TIM4_BURST     0
+  #define NUM_CAP            3
+  #define TIM1_PIN_A         PA8
+  #define TIM1_CH_A          1
+  #define TIM1_PIN_B         PA9
+  #define TIM1_CH_B          2
+  #define TIM1_LABEL_A       "TIM1_CH1"
+  #define TIM1_LABEL_B       "TIM1_CH2(decoy)"
+
+#elif defined(ARDUINO_NUCLEO_F405RG)
+  #define BOARD_NAME         "NUCLEO-F405RG"
+  // Same Nucleo-64 layout, same F4 family, same DMA1 Stream 6
+  // TIM4_UP / TIM2_CH2 collision as F411 — fixture is identical.
+  // This rig has no working VCOM (PCB-level rework artifact); use RTT
+  // for output (USE_RTT defined just before ci_log.h include below).
   #define HAS_TIM4_BURST     0
   #define NUM_CAP            3
   #define TIM1_PIN_A         PA8
@@ -187,7 +208,7 @@ static const CapPin cap_pins[NUM_CAP] = {
   {GPIOA, LL_GPIO_PIN_10, LL_GPIO_AF_10},  // TIM2_CH4 (AF10 on G4)
 };
 
-#elif defined(ARDUINO_NUCLEO_F411RE)
+#elif defined(ARDUINO_NUCLEO_F411RE) || defined(ARDUINO_NUCLEO_F405RG)
 static const CapPin cap_pins[NUM_CAP] = {
   {GPIOA, LL_GPIO_PIN_0,  LL_GPIO_AF_1},   // TIM2_CH1
   {GPIOA, LL_GPIO_PIN_1,  LL_GPIO_AF_1},   // TIM2_CH2
