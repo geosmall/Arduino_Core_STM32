@@ -36,7 +36,7 @@ Peripheral → DMAMUX → DMA Stream → Memory
 
 DShot motor output is currently the only DMA consumer in this codebase. The `dma.c`/`dma.h` dispatch layer provides centralized ownership tracking via `dma_claim()` / `dma_is_claimed()` and IRQ callback dispatch via `dma_set_handler()`.
 
-UART DMA was removed in Phase 9 — interrupt-mode UART is sufficient for all current serial protocols at ≤115200 baud. See `UART_DSHOT_DMA_CLEANUP_PLAN.md` in the workspace root for rationale and re-implementation guidance if UART DMA is needed in the future.
+UART DMA was removed in an earlier cleanup pass — interrupt-mode UART is sufficient for all current serial protocols at ≤115200 baud. Future DMA consumers (UART, SPI, ADC) would integrate via the same `dma_set_handler()` claim path used by DShot. See `libraries/DShot/README.md` (Design Notes) for the broader DMA-consumer rationale.
 
 ## STM32H7 Cache Coherency
 
