@@ -317,9 +317,10 @@ When moving between rigs:
   test validates (port of the G4 UPDATE-trigger fix to F4/F7/H7),
   including silicon-level RM cross-check of the TIM_UP DMA mapping
   table.
-- `DSHOT_SALEAE_TEST.md` (workspace root) — external logic-analyzer
-  verification procedure for G474RE, paired with the
-  `DShot_Basic_Logic_Analyzer` sketch.
+- `DShot_Basic_Logic_Analyzer/DShot_Basic_Logic_Analyzer.ino` —
+  sister example sketch for external logic-analyzer (Saleae) DShot
+  waveform decode. Setup procedure, probe maps, capture config and
+  PASS criteria are in its top comment block.
 - `libraries/DShot/src/DShot_ll.cpp` — library source exercised by
   this test.
 - Workspace `README.md` (HIL table) — rig identifier serials +

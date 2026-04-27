@@ -101,9 +101,6 @@
  * Saleae capture instead — no TIM2 capture, no Stream 6 contention,
  * TIM4 burst output goes through the new tim_up_map and is verified
  * directly via waveform decode.
- *
- * See DSHOT_SALEAE_TEST.md in the workspace root for the full procedure
- * and troubleshooting guide.
  */
 
 #include <DShot.h>
