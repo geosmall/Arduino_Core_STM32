@@ -88,8 +88,11 @@ limitation.
 
 The TIM_UP code path on F722 is still exercised end-to-end by TIM1
 burst and TIM3 burst — only the TIM4_UP table entry is unverified at
-runtime (silicon-validated against RM, see `DSHOT_BURST_FIX_PLAN.md`
-in the workspace).
+runtime, but silicon-validated against ST RM0383 Table 28 (F411) and
+RM0431 Table 26 (F722) — both list DMA1 Stream 6 Ch 2 as a sole-cell
+TIM4_UP assignment with no aliasing peripheral. See the comment on
+`tim_up_map[]` in `libraries/DShot/src/DShot_ll.cpp` for the full
+RM citation.
 
 The Nucleo-144 fixture differs from Nucleo-64 in two places:
 **PE11/PE13 in place of PA8/PA9** for TIM1 (PA8 lives only on the
@@ -313,15 +316,15 @@ When moving between rigs:
 
 ## Related documents
 
-- `DSHOT_BURST_FIX_PLAN.md` (workspace root) — library fix this
-  test validates (port of the G4 UPDATE-trigger fix to F4/F7/H7),
-  including silicon-level RM cross-check of the TIM_UP DMA mapping
-  table.
+- `libraries/DShot/src/DShot_ll.cpp` — library source exercised by
+  this test. The `tim_up_map[]` declaration carries the full RM
+  citation for the F4/F7 TIM_UP DMA mapping (Betaflight reference
+  + RM0383 Table 28 / RM0431 Table 26 cross-check). The library's
+  port of the G4 UPDATE-trigger burst fix to F4/F7/H7 is captured
+  in commit message `ec3584c06`.
 - `DShot_Basic_Logic_Analyzer/DShot_Basic_Logic_Analyzer.ino` —
   sister example sketch for external logic-analyzer (Saleae) DShot
   waveform decode. Setup procedure, probe maps, capture config and
   PASS criteria are in its top comment block.
-- `libraries/DShot/src/DShot_ll.cpp` — library source exercised by
-  this test.
 - Workspace `README.md` (HIL table) — rig identifier serials +
   per-rig fixture notes.
