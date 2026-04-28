@@ -499,7 +499,7 @@ void cleanupPreviousTransfer(MotorHW *motor)
 void triggerDMA(MotorHW *motor)
 {
 #if defined(__DCACHE_PRESENT) && (__DCACHE_PRESENT == 1U)
-  // Flush DCache to ensure DMA reads current buffer contents (H7, some F7)
+  // Flush DCache to ensure DMA reads current buffer contents (F7 / H7)
   SCB_CleanDCache_by_Addr(motor->dma_buffer, sizeof(motor->dma_buffer));
 #endif
 

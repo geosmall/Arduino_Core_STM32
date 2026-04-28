@@ -150,27 +150,34 @@ Defined commands are in `DShot::Command` (see `DShot_packet.h`):
   Per-rig fixture, expected output, and troubleshooting are in
   the example's own [README.md](examples/DShot_Validation/README.md).
 
-## H7-specific notes
+## Cortex-M7 D-Cache (F7, H7)
 
-The H7's Cortex-M7 has a small CPU-side data cache (D-Cache)
-that buffers SRAM reads and writes for performance. DMA hardware
-accesses SRAM directly and bypasses this cache, so a DMA buffer
-the CPU just wrote must be flushed from cache back to SRAM
-before the DMA fires — otherwise the peripheral reads stale data
-and the transfer is corrupted. F4 / F7 / G4 don't have this
-issue (no D-Cache or it's off by default).
+Both Cortex-M7 chip families — F7 and H7 — have a small
+CPU-side data cache (D-Cache) that buffers SRAM reads and writes
+for performance. **This Arduino core enables D-Cache by default
+on every Cortex-M7 chip** in `cores/arduino/main.cpp` (via
+`SCB_EnableDCache()`); set `D_CACHE_DISABLED` at build time to
+opt out. F4 and G4 are Cortex-M4 and have no L1 data cache, so
+the issue below doesn't apply to them.
+
+DMA hardware accesses SRAM directly and bypasses the D-Cache, so
+a DMA buffer the CPU just wrote must be flushed from cache back
+to SRAM before the DMA fires — otherwise the peripheral reads
+stale data and the transfer is corrupted.
 
 **The DShot library handles this internally** for its own DMA
 buffers: `SCB_CleanDCache_by_Addr` is called before every
-per-motor and burst-mode DMA trigger (`DShot_ll.cpp`). Sketch
+per-motor and burst-mode DMA trigger, gated by `__DCACHE_PRESENT`
+in `DShot_ll.cpp` so the same code is a no-op on F4 / G4. Sketch
 authors do not need to manage cache or arrange special buffer
-placement for DShot.
+placement for DShot on any family.
 
 If you're integrating other DMA consumers alongside DShot in the
-same sketch, see [`doc/DMA.md`](../../doc/DMA.md) "STM32H7 cache
-coherency" for the broader H7 DMA-buffer story — including the
-core's pre-configured non-cached D2 SRAM3 region at `0x30040000`,
-which lets you skip the manual flush for buffers placed there.
+same sketch, see [`doc/DMA.md`](../../doc/DMA.md) "Cortex-M7
+cache coherency" for the broader DMA-buffer story — including
+the H7 core's pre-configured non-cached D2 SRAM3 region at
+`0x30040000`, which lets you skip the manual flush for buffers
+placed there.
 
 ## Troubleshooting
 

@@ -53,7 +53,8 @@ Peripheral → DMAMUX1 → DMA Stream → Memory
 ```
 
 H7 also has a D-Cache that requires explicit cache management
-for DMA buffers — see "STM32H7 cache coherency" below.
+for DMA buffers — see "Cortex-M7 cache coherency" below (the
+same applies to F7, which uses the same M7 core).
 
 ## DMA allocation strategy
 
@@ -170,18 +171,38 @@ The DShot library makes use of about half of the F411 DMA stream
 budget at most (a 5-motor JHEF411 board uses 3 streams via burst);
 adding any single other DMA consumer would not exhaust the pool.
 
-## STM32H7 cache coherency
+## Cortex-M7 cache coherency
 
-H7 has a D-Cache that can cause DMA coherency issues. DMA buffers
-on H7 must be placed in non-cached memory, *or* the producer must
-flush the cache before triggering DMA (`SCB_CleanDCache_by_Addr`)
-and the consumer must invalidate before reading (after a
-peripheral-to-memory transfer). DShot uses the flush-before-trigger
-pattern.
+Both Cortex-M7 chip families — F7 and H7 — have a small
+CPU-side data cache (D-Cache) that buffers SRAM reads and writes
+for performance. **This Arduino core enables D-Cache by default
+on every Cortex-M7 chip** in `cores/arduino/main.cpp` (via
+`SCB_EnableDCache()`); set `D_CACHE_DISABLED` at build time to
+opt out. F4 and G4 are Cortex-M4 and have no L1 data cache.
 
-The core provides D2 SRAM3 (0x30040000–0x30047FFF, 32 KB)
-configured as non-cached via MPU; place DMA-touched buffers there
-to skip the manual flush.
+When D-Cache is enabled, DMA buffers in cached SRAM regions can
+get out of sync with what the peripheral hardware actually sees
+(DMA accesses SRAM directly, bypassing the cache). The fix is
+either:
+
+1. **Cache management on every transfer.** The producer flushes
+   the cache before triggering DMA (`SCB_CleanDCache_by_Addr`);
+   the consumer invalidates before reading (after a
+   peripheral-to-memory transfer, `SCB_InvalidateDCache_by_Addr`).
+   DShot uses the flush-before-trigger pattern; the call sites
+   are guarded by `__DCACHE_PRESENT` so the same code is a no-op
+   on F4 / G4 builds.
+2. **Place the buffer in non-cached memory.** F7 has DTCM RAM
+   (Data Tightly-Coupled Memory) that's directly attached to the
+   M7 core and isn't cached. H7 ships with D2 SRAM3
+   (0x30040000–0x30047FFF, 32 KB) pre-configured as non-cached
+   via MPU; placing DMA-touched buffers there skips the manual
+   flush entirely.
+
+DShot does its own cache management internally (option 1) so
+sketch authors don't need to think about this. If you add another
+DMA consumer that uses statically-placed buffers, choose either
+option above for that consumer's buffers.
 
 ## References
 
