@@ -150,6 +150,22 @@ Defined commands are in `DShot::Command` (see `DShot_packet.h`):
   Per-rig fixture, expected output, and troubleshooting are in
   the example's own [README.md](examples/DShot_Validation/README.md).
 
+## H7-specific notes
+
+The H7 D-Cache and DMA can interact in subtle ways — DMA buffers
+in cached SRAM need explicit cache management to stay coherent
+with peripheral hardware. **The DShot library handles this
+internally** for its own DMA buffers: `SCB_CleanDCache_by_Addr`
+is called before every per-motor and burst-mode DMA trigger
+(`DShot_ll.cpp`). Sketch authors do not need to manage cache or
+arrange special buffer placement for DShot.
+
+If you're integrating other DMA consumers alongside DShot in the
+same sketch, see [`doc/DMA.md`](../../doc/DMA.md) "STM32H7 cache
+coherency" for the broader H7 DMA-buffer story — including the
+core's pre-configured non-cached D2 SRAM3 region at `0x30040000`,
+which lets you skip the manual flush for buffers placed there.
+
 ## Troubleshooting
 
 - **`IsInitFailed()` returns true** — DMA stream conflict. Build
