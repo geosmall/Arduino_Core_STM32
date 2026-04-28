@@ -152,13 +152,19 @@ Defined commands are in `DShot::Command` (see `DShot_packet.h`):
 
 ## H7-specific notes
 
-The H7 D-Cache and DMA can interact in subtle ways — DMA buffers
-in cached SRAM need explicit cache management to stay coherent
-with peripheral hardware. **The DShot library handles this
-internally** for its own DMA buffers: `SCB_CleanDCache_by_Addr`
-is called before every per-motor and burst-mode DMA trigger
-(`DShot_ll.cpp`). Sketch authors do not need to manage cache or
-arrange special buffer placement for DShot.
+The H7's Cortex-M7 has a small CPU-side data cache (D-Cache)
+that buffers SRAM reads and writes for performance. DMA hardware
+accesses SRAM directly and bypasses this cache, so a DMA buffer
+the CPU just wrote must be flushed from cache back to SRAM
+before the DMA fires — otherwise the peripheral reads stale data
+and the transfer is corrupted. F4 / F7 / G4 don't have this
+issue (no D-Cache or it's off by default).
+
+**The DShot library handles this internally** for its own DMA
+buffers: `SCB_CleanDCache_by_Addr` is called before every
+per-motor and burst-mode DMA trigger (`DShot_ll.cpp`). Sketch
+authors do not need to manage cache or arrange special buffer
+placement for DShot.
 
 If you're integrating other DMA consumers alongside DShot in the
 same sketch, see [`doc/DMA.md`](../../doc/DMA.md) "STM32H7 cache
