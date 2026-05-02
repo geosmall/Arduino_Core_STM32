@@ -7,7 +7,7 @@ namespace DShot {
 
 // DShot bit timing constants (timer ticks at DShot clock rate)
 static constexpr uint32_t BIT_0_DUTY  = 7;   // Bit 0: ~37% duty cycle
-static constexpr uint32_t BIT_1_DUTY  = 14;  // Bit 1: ~74% duty cycle
+static constexpr uint32_t BIT_1_DUTY  = 15;  // Bit 1: 75% duty cycle (DShot spec)
 static constexpr uint32_t BIT_PERIOD  = 19;  // Total period per bit
 static constexpr int DMA_BUF_SIZE     = 18;  // 16 data bits + 2 zero-padding (frame reset)
 

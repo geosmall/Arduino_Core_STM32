@@ -108,7 +108,7 @@
 // 0 = MODE_FIXED (decoder PASS-criteria capture)
 // 1 = MODE_SWEEP (throttle 0..2047 wrap check)
 #ifndef DSHOT_LA_SWEEP
-  #define DSHOT_LA_SWEEP 1
+  #define DSHOT_LA_SWEEP 0
 #endif
 
 #if !defined(ARDUINO_NUCLEO_G474RE) && !defined(ARDUINO_NUCLEO_F411RE) \
