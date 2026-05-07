@@ -15,7 +15,9 @@ extern "C" {
 /**
   * @brief  System Clock Configuration
   *         SYSCLK = 168 MHz for OpenPilot Revolution F405 (8 MHz HSE)
-  *         8 MHz / 8 = 1 MHz → * 336 = 336 MHz VCO → / 2 = 168 MHz
+  *         8 MHz / 4 = 2 MHz → * 168 = 336 MHz VCO → / 2 = 168 MHz
+  *         PLL input is 2 MHz to match Betaflight; ST AN3988 prefers
+  *         ≥2 MHz for jitter. SYSCLK and prescalers unchanged.
   *         USB: 336 MHz / 7 = 48 MHz
   * @param  None
   * @retval None
@@ -31,14 +33,14 @@ WEAK void SystemClock_Config(void)
 
   /* Initializes the CPU, AHB and APB busses clocks
    * HSE = 8MHz, SYSCLK = 168MHz
-   * PLL: M=8, N=336, P=2, Q=7
+   * PLL: M=4, N=168, P=2, Q=7  (2 MHz PLL input — matches Betaflight)
    */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 8;
-  RCC_OscInitStruct.PLL.PLLN = 336;
+  RCC_OscInitStruct.PLL.PLLM = 4;
+  RCC_OscInitStruct.PLL.PLLN = 168;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 7;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
