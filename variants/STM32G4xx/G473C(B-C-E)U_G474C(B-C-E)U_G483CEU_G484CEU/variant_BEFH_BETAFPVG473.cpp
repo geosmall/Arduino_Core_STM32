@@ -14,8 +14,11 @@ extern "C" {
 
 /**
   * @brief  System Clock Configuration
-  *         SYSCLK = 170 MHz for BetaFPV G473 (8 MHz HSE)
-  *         8 MHz / 2 = 4 MHz → * 85 = 340 MHz VCO → / 2 = 170 MHz
+  *         SYSCLK = 168 MHz for BetaFPV G473 (8 MHz HSE)
+  *         8 MHz / 2 = 4 MHz → * 84 = 336 MHz VCO → / 2 = 168 MHz
+  *         168 MHz chosen (vs 170 MHz spec max) so 420000 baud divides
+  *         exactly: BRR = 168e6 / (16 * 420000) = 25, zero CRSF baud
+  *         error. Aligns SYSCLK to Betaflight default for G4.
   *         USB: HSI48 + CRS (synced to USB SOF)
   * @param  None
   * @retval None
@@ -40,10 +43,10 @@ WEAK void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV2;   // 8 MHz / 2 = 4 MHz VCO input
-  RCC_OscInitStruct.PLL.PLLN = 85;                // 4 MHz * 85 = 340 MHz VCO
+  RCC_OscInitStruct.PLL.PLLN = 84;                // 4 MHz * 84 = 336 MHz VCO
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV6;
-  RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;    // 340 MHz / 2 = 170 MHz SYSCLK
+  RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;    // 336 MHz / 2 = 168 MHz SYSCLK
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
     Error_Handler();
   }
