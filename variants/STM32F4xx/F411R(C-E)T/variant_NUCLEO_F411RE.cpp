@@ -14,7 +14,13 @@ extern "C" {
 
 /**
   * @brief  System Clock Configuration
-  *         SYSCLK = 100000000 Hz for NUCLEO_F411RE
+  *         SYSCLK = 96 MHz for NUCLEO_F411RE (8 MHz HSE bypass, ST-Link MCO)
+  *         Aligned to Betaflight F411 default profile (96 MHz, USB-friendly).
+  *         8 MHz / 4 = 2 MHz → * 192 = 384 MHz VCO → / 4 = 96 MHz SYSCLK
+  *         USB: 384 MHz / 8 = 48 MHz exact (PLLQ).
+  *         Note: prior config (PLLN=100, PLLQ=4) produced USB at 50 MHz,
+  *         which is 4.2% out-of-spec for USB-FS PHY (±2500 ppm tolerance).
+  *         This config restores spec-compliant USB clocking.
   * @param  None
   * @retval None
   */
@@ -32,10 +38,10 @@ WEAK void SystemClock_Config(void)
   RCC_OscInitStruct.HSEState = RCC_HSE_BYPASS;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 4;
-  RCC_OscInitStruct.PLL.PLLN = 100;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = 4;
+  RCC_OscInitStruct.PLL.PLLM = 4;             // 8 MHz / 4 = 2 MHz PLL input
+  RCC_OscInitStruct.PLL.PLLN = 192;           // 2 MHz * 192 = 384 MHz VCO
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV4; // 384 / 4 = 96 MHz SYSCLK
+  RCC_OscInitStruct.PLL.PLLQ = 8;             // 384 / 8 = 48 MHz USB
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
     Error_Handler();
   }
