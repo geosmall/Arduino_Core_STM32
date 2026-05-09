@@ -9,15 +9,18 @@
 extern "C" {
 #endif
 
-// Same 480 MHz clock config as NUCLEO_H743ZI (identical Nucleo-144 hardware)
+// Same 400 MHz clock config as NUCLEO_H743ZI (identical Nucleo-144 hardware).
+// Aligned to Betaflight default (400 MHz / VOS1) — works on both Rev.Y and
+// Rev.V silicon; trades 80 MHz for broad silicon-revision compatibility.
 WEAK void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {};
   RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {};
+  RCC_CRSInitTypeDef RCC_CRSInitStruct = {};
 
   HAL_PWREx_ConfigSupply(PWR_LDO_SUPPLY);
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE0);
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
   while (!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {}
 
   __HAL_RCC_PLL_PLLSOURCE_CONFIG(RCC_PLLSOURCE_HSE);
@@ -27,10 +30,10 @@ WEAK void SystemClock_Config(void)
   RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 1;
-  RCC_OscInitStruct.PLL.PLLN = 120;
-  RCC_OscInitStruct.PLL.PLLP = 2;
-  RCC_OscInitStruct.PLL.PLLQ = 8;
+  RCC_OscInitStruct.PLL.PLLM = 1;    // 8 MHz / 1 = 8 MHz
+  RCC_OscInitStruct.PLL.PLLN = 100;  // 8 MHz * 100 = 800 MHz VCO
+  RCC_OscInitStruct.PLL.PLLP = 2;    // 800 MHz / 2 = 400 MHz SYSCLK
+  RCC_OscInitStruct.PLL.PLLQ = 8;    // 800 MHz / 8 = 100 MHz
   RCC_OscInitStruct.PLL.PLLR = 2;
   RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_3;
   RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
@@ -49,7 +52,7 @@ WEAK void SystemClock_Config(void)
   RCC_ClkInitStruct.APB1CLKDivider = RCC_APB1_DIV2;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV2;
   RCC_ClkInitStruct.APB4CLKDivider = RCC_APB4_DIV2;
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK) {
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK) {
     Error_Handler();
   }
 
@@ -90,6 +93,18 @@ WEAK void SystemClock_Config(void)
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK) {
     Error_Handler();
   }
+
+  // Configure Clock Recovery System for HSI48 → USB SOF auto-trim.
+  // Without CRS, HSI48 (±1% factory, ±2-3% over temp) is out of USB-FS spec
+  // (±2500 ppm). Pattern matches Betaflight system_stm32h7xx.c:539-549.
+  __HAL_RCC_CRS_CLK_ENABLE();
+  RCC_CRSInitStruct.Prescaler = RCC_CRS_SYNC_DIV1;
+  RCC_CRSInitStruct.Source = RCC_CRS_SYNC_SOURCE_USB1;
+  RCC_CRSInitStruct.Polarity = RCC_CRS_SYNC_POLARITY_RISING;
+  RCC_CRSInitStruct.ReloadValue = RCC_CRS_RELOADVALUE_DEFAULT;
+  RCC_CRSInitStruct.ErrorLimitValue = RCC_CRS_ERRORLIMIT_DEFAULT;
+  RCC_CRSInitStruct.HSI48CalibrationValue = RCC_CRS_HSI48CALIBRATION_DEFAULT;
+  HAL_RCCEx_CRSConfig(&RCC_CRSInitStruct);
 }
 
 #ifdef __cplusplus
