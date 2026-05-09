@@ -14,9 +14,13 @@ extern "C" {
 
 /**
   * @brief  System Clock Configuration
-  *         SYSCLK = 480 MHz for DevEBox H743 (25 MHz HSE crystal)
-  *         PLL1: 25 MHz / 5 = 5 MHz → * 96 = 480 MHz → / 1 = 480 MHz
-  *         USB: PLL1 Q = 480 MHz / 10 = 48 MHz
+  *         SYSCLK = 400 MHz for DevEBox H743 (25 MHz HSE crystal)
+  *         Aligned to Betaflight default (400 MHz / VOS1) — works on
+  *         both Rev.Y and Rev.V silicon.
+  *         PLL1: 25 MHz / 4 = 6.25 MHz → * 128 = 800 MHz → / 2 = 400 MHz
+  *         HCLK = 200 MHz (AHB /2), PCLK1/2/3/4 = 100 MHz (APB /2)
+  *         USB: HSI48 + CRS (synced to USB1 SOF) — PLL1_Q at 400 MHz
+  *         cannot produce 48 MHz cleanly, so USB is rerouted off PLL1.
   * @param  None
   * @retval None
   */
@@ -25,25 +29,27 @@ WEAK void SystemClock_Config(void)
   RCC_OscInitTypeDef RCC_OscInitStruct = {};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {};
   RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {};
+  RCC_CRSInitTypeDef RCC_CRSInitStruct = {};
 
   /* Supply configuration update enable */
   HAL_PWREx_ConfigSupply(PWR_LDO_SUPPLY);
 
-  /* Configure the main internal regulator output voltage — VOS0 (boost) */
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE0);
+  /* Configure the main internal regulator output voltage — VOS1 (Rev.Y compat) */
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
   while (!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {}
 
-  /* PLL1: 25 MHz HSE → 480 MHz SYSCLK */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  /* PLL1: 25 MHz HSE → 400 MHz SYSCLK; HSI48 enabled for USB */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE | RCC_OSCILLATORTYPE_HSI48;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 5;    // 25 MHz / 5 = 5 MHz
-  RCC_OscInitStruct.PLL.PLLN = 96;   // 5 MHz * 96 = 480 MHz
-  RCC_OscInitStruct.PLL.PLLP = 1;    // 480 MHz / 1 = 480 MHz SYSCLK
-  RCC_OscInitStruct.PLL.PLLQ = 10;   // 480 MHz / 10 = 48 MHz USB
-  RCC_OscInitStruct.PLL.PLLR = 10;
-  RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_2;
+  RCC_OscInitStruct.PLL.PLLM = 4;    // 25 MHz / 4 = 6.25 MHz PLL input
+  RCC_OscInitStruct.PLL.PLLN = 128;  // 6.25 MHz * 128 = 800 MHz VCO
+  RCC_OscInitStruct.PLL.PLLP = 2;    // 800 MHz / 2 = 400 MHz SYSCLK
+  RCC_OscInitStruct.PLL.PLLQ = 8;    // 800 MHz / 8 = 100 MHz (used for QSPI/SDMMC)
+  RCC_OscInitStruct.PLL.PLLR = 8;
+  RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_2;  // 4-8 MHz band; 6.25 MHz fits
   RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
   RCC_OscInitStruct.PLL.PLLFRACN = 0;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
@@ -56,12 +62,12 @@ WEAK void SystemClock_Config(void)
                                 | RCC_CLOCKTYPE_D3PCLK1 | RCC_CLOCKTYPE_D1PCLK1;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.SYSCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV2;     // 240 MHz
-  RCC_ClkInitStruct.APB3CLKDivider = RCC_APB3_DIV2;     // 120 MHz
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_APB1_DIV2;     // 120 MHz
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV2;     // 120 MHz
-  RCC_ClkInitStruct.APB4CLKDivider = RCC_APB4_DIV2;     // 120 MHz
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK) {
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV2;     // 200 MHz
+  RCC_ClkInitStruct.APB3CLKDivider = RCC_APB3_DIV2;     // 100 MHz
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_APB1_DIV2;     // 100 MHz
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV2;     // 100 MHz
+  RCC_ClkInitStruct.APB4CLKDivider = RCC_APB4_DIV2;     // 100 MHz
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK) {
     Error_Handler();
   }
 
@@ -91,12 +97,12 @@ WEAK void SystemClock_Config(void)
   PeriphClkInitStruct.PLL3.PLL3VCOSEL = RCC_PLL3VCOMEDIUM;
   PeriphClkInitStruct.PLL3.PLL3FRACN = 0;
   PeriphClkInitStruct.AdcClockSelection = RCC_ADCCLKSOURCE_PLL2;
-  PeriphClkInitStruct.UsbClockSelection = RCC_USBCLKSOURCE_PLL;
+  PeriphClkInitStruct.UsbClockSelection = RCC_USBCLKSOURCE_HSI48;  // CRS-trimmed to USB SOF
   PeriphClkInitStruct.QspiClockSelection = RCC_QSPICLKSOURCE_PLL;
   PeriphClkInitStruct.SdmmcClockSelection = RCC_SDMMCCLKSOURCE_PLL;
-  PeriphClkInitStruct.Lpuart1ClockSelection = RCC_LPUART1CLKSOURCE_PLL2;
-  PeriphClkInitStruct.Usart16ClockSelection = RCC_USART16CLKSOURCE_PLL2;
-  PeriphClkInitStruct.Usart234578ClockSelection = RCC_USART234578CLKSOURCE_PLL2;
+  PeriphClkInitStruct.Lpuart1ClockSelection = RCC_LPUART1CLKSOURCE_D3PCLK1;       // 100 MHz
+  PeriphClkInitStruct.Usart16ClockSelection = RCC_USART16CLKSOURCE_D2PCLK2;       // 100 MHz
+  PeriphClkInitStruct.Usart234578ClockSelection = RCC_USART234578CLKSOURCE_D2PCLK1; // 100 MHz
   PeriphClkInitStruct.I2c123ClockSelection = RCC_I2C123CLKSOURCE_PLL3;
   PeriphClkInitStruct.I2c4ClockSelection = RCC_I2C4CLKSOURCE_PLL3;
   PeriphClkInitStruct.Spi123ClockSelection = RCC_SPI123CLKSOURCE_PLL2;
@@ -105,6 +111,18 @@ WEAK void SystemClock_Config(void)
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK) {
     Error_Handler();
   }
+
+  // Configure Clock Recovery System for HSI48 → USB SOF auto-trim.
+  // Without CRS, HSI48 (±1% factory, ±2-3% over temp) is out of USB-FS spec
+  // (±2500 ppm). Pattern matches Betaflight system_stm32h7xx.c:539-549.
+  __HAL_RCC_CRS_CLK_ENABLE();
+  RCC_CRSInitStruct.Prescaler = RCC_CRS_SYNC_DIV1;
+  RCC_CRSInitStruct.Source = RCC_CRS_SYNC_SOURCE_USB1;
+  RCC_CRSInitStruct.Polarity = RCC_CRS_SYNC_POLARITY_RISING;
+  RCC_CRSInitStruct.ReloadValue = RCC_CRS_RELOADVALUE_DEFAULT;
+  RCC_CRSInitStruct.ErrorLimitValue = RCC_CRS_ERRORLIMIT_DEFAULT;
+  RCC_CRSInitStruct.HSI48CalibrationValue = RCC_CRS_HSI48CALIBRATION_DEFAULT;
+  HAL_RCCEx_CRSConfig(&RCC_CRSInitStruct);
 }
 
 #ifdef __cplusplus
