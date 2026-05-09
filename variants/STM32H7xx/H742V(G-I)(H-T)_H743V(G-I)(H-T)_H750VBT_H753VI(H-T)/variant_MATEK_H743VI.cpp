@@ -30,6 +30,7 @@ WEAK void SystemClock_Config(void)
   RCC_OscInitTypeDef RCC_OscInitStruct = {};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {};
   RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {};
+  RCC_CRSInitTypeDef RCC_CRSInitStruct = {};
 
   /* Supply configuration update enable */
   HAL_PWREx_ConfigSupply(PWR_LDO_SUPPLY);
@@ -40,9 +41,10 @@ WEAK void SystemClock_Config(void)
 
   __HAL_RCC_PLL_PLLSOURCE_CONFIG(RCC_PLLSOURCE_HSE);
 
-  /* PLL1: 8 MHz HSE → 400 MHz SYSCLK */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  /* PLL1: 8 MHz HSE → 400 MHz SYSCLK; HSI48 enabled for USB */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE | RCC_OSCILLATORTYPE_HSI48;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = 1;    // 8 MHz / 1 = 8 MHz
@@ -72,14 +74,14 @@ WEAK void SystemClock_Config(void)
     Error_Handler();
   }
 
-  /* Peripheral clocks — PLL2 for ADC/SPI/UART, PLL3 for USB/I2C */
+  /* Peripheral clocks — PLL2 for ADC; USB on HSI48 (CRS-trimmed); USART/I2C on PCLK */
   PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USB | RCC_PERIPHCLK_QSPI
                                              | RCC_PERIPHCLK_SDMMC | RCC_PERIPHCLK_ADC
                                              | RCC_PERIPHCLK_LPUART1 | RCC_PERIPHCLK_USART16
                                              | RCC_PERIPHCLK_USART234578 | RCC_PERIPHCLK_I2C123
                                              | RCC_PERIPHCLK_I2C4 | RCC_PERIPHCLK_SPI123
                                              | RCC_PERIPHCLK_SPI45 | RCC_PERIPHCLK_SPI6;
-  /* PLL2: 8 MHz / 1 → * 20 = 160 MHz → / 2 = 80 MHz */
+  /* PLL2: 8 MHz / 1 → * 20 = 160 MHz → / 2 = 80 MHz (used for ADC) */
   PeriphClkInitStruct.PLL2.PLL2M = 1;
   PeriphClkInitStruct.PLL2.PLL2N = 20;
   PeriphClkInitStruct.PLL2.PLL2P = 2;
@@ -88,20 +90,12 @@ WEAK void SystemClock_Config(void)
   PeriphClkInitStruct.PLL2.PLL2RGE = RCC_PLL2VCIRANGE_3;
   PeriphClkInitStruct.PLL2.PLL2VCOSEL = RCC_PLL2VCOMEDIUM;
   PeriphClkInitStruct.PLL2.PLL2FRACN = 0.0;
-  /* PLL3: 8 MHz / 1 → * 24 = 192 MHz, Q = 192/4 = 48 MHz USB */
-  PeriphClkInitStruct.PLL3.PLL3M = 1;
-  PeriphClkInitStruct.PLL3.PLL3N = 24;
-  PeriphClkInitStruct.PLL3.PLL3P = 2;
-  PeriphClkInitStruct.PLL3.PLL3Q = 4;   // 192 MHz / 4 = 48 MHz (USB)
-  PeriphClkInitStruct.PLL3.PLL3R = 2;
-  PeriphClkInitStruct.PLL3.PLL3RGE = RCC_PLL3VCIRANGE_3;
-  PeriphClkInitStruct.PLL3.PLL3VCOSEL = RCC_PLL3VCOWIDE;
-  PeriphClkInitStruct.PLL3.PLL3FRACN = 0.0;
+  /* PLL3 no longer needed — USB moved to HSI48+CRS, LPUART1 to D3PCLK1 */
   PeriphClkInitStruct.AdcClockSelection = RCC_ADCCLKSOURCE_PLL2;
-  PeriphClkInitStruct.UsbClockSelection = RCC_USBCLKSOURCE_PLL3;
+  PeriphClkInitStruct.UsbClockSelection = RCC_USBCLKSOURCE_HSI48;       // CRS-trimmed to USB SOF
   PeriphClkInitStruct.QspiClockSelection = RCC_QSPICLKSOURCE_D1HCLK;
   PeriphClkInitStruct.SdmmcClockSelection = RCC_SDMMCCLKSOURCE_PLL;
-  PeriphClkInitStruct.Lpuart1ClockSelection = RCC_LPUART1CLKSOURCE_PLL3;
+  PeriphClkInitStruct.Lpuart1ClockSelection = RCC_LPUART1CLKSOURCE_D3PCLK1;  // 100 MHz (was PLL3_R 96)
   PeriphClkInitStruct.Usart16ClockSelection = RCC_USART16CLKSOURCE_D2PCLK2;
   PeriphClkInitStruct.Usart234578ClockSelection = RCC_USART234578CLKSOURCE_D2PCLK1;
   PeriphClkInitStruct.I2c123ClockSelection = RCC_I2C123CLKSOURCE_D2PCLK1;
@@ -112,6 +106,18 @@ WEAK void SystemClock_Config(void)
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK) {
     Error_Handler();
   }
+
+  // Configure Clock Recovery System for HSI48 → USB SOF auto-trim.
+  // Without CRS, HSI48 (±1% factory, ±2-3% over temp) is out of USB-FS spec
+  // (±2500 ppm). Pattern matches Betaflight system_stm32h7xx.c:539-549.
+  __HAL_RCC_CRS_CLK_ENABLE();
+  RCC_CRSInitStruct.Prescaler = RCC_CRS_SYNC_DIV1;
+  RCC_CRSInitStruct.Source = RCC_CRS_SYNC_SOURCE_USB1;
+  RCC_CRSInitStruct.Polarity = RCC_CRS_SYNC_POLARITY_RISING;
+  RCC_CRSInitStruct.ReloadValue = RCC_CRS_RELOADVALUE_DEFAULT;
+  RCC_CRSInitStruct.ErrorLimitValue = RCC_CRS_ERRORLIMIT_DEFAULT;
+  RCC_CRSInitStruct.HSI48CalibrationValue = RCC_CRS_HSI48CALIBRATION_DEFAULT;
+  HAL_RCCEx_CRSConfig(&RCC_CRSInitStruct);
 }
 
 #ifdef __cplusplus
