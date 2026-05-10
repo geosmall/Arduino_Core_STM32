@@ -26,6 +26,9 @@
 #elif defined(ARDUINO_BKMN_NERO)
   #include "targets/BKMN-NERO.h"
   #define BOARD_NAME "NERO F7"
+#elif defined(ARDUINO_NUCLEO_G474RE)
+  #include "targets/NUCLEO_G474RE_ER6.h"
+  #define BOARD_NAME "Nucleo G474RE (ER6 fixture)"
 #else
   #error "Unsupported board. Add your board's target header."
 #endif
