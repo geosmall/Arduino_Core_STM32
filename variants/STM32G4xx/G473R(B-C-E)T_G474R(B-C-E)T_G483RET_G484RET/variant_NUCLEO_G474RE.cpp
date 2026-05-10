@@ -14,7 +14,15 @@ extern "C" {
 
 /**
   * @brief  System Clock Configuration
-  *         170 MHz from 24 MHz HSE via PLL
+  *         168 MHz from 24 MHz HSE via PLL
+  *
+  *         HSE 24 MHz / PLLM=6 = 4 MHz PLL input
+  *         × PLLN=84 = 336 MHz VCO (within G4 VOS-Boost 96-344 MHz)
+  *         / PLLR=2 = 168 MHz SYSCLK = HCLK = PCLK1 = PCLK2
+  *
+  *         At 168 MHz, USART BRR for 420000 baud = 400 exact (0 ppm),
+  *         matching WeAct G474 / BetaFPV G473 / Betaflight default.
+  *         USB unaffected (sourced from HSI48 + nothing depends on PLLQ here).
   */
 WEAK void SystemClock_Config(void)
 {
@@ -34,7 +42,7 @@ WEAK void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV6;
-  RCC_OscInitStruct.PLL.PLLN = 85;
+  RCC_OscInitStruct.PLL.PLLN = 84;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV6;
   RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
