@@ -59,6 +59,7 @@ namespace BoardConfig {
   // ============================================================================
   namespace Motor {
     static constexpr uint32_t frequency_hz = 2000;
+    static constexpr Protocol protocol = Protocol::ONESHOT125;
 
     // DMA overrides: per-channel dedicated streams (matches Betaflight dma_opt=1)
     static constexpr MotorConfig motors[] = {

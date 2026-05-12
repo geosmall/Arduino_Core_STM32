@@ -38,4 +38,34 @@ namespace BoardConfig {
   // IMU: ICM-42688-P on SPI2 (Morpho CN10)
   static constexpr SPIConfig imu_spi{PB15, PB14, PB13, PB12, 2000000};
   static constexpr IMUConfig imu{imu_spi, PC4, 1000000};
+
+  // Status LED: NUCLEO-G474RE onboard LD2 (green) is on PA5
+  static constexpr LEDConfig status_leds{PA5};
+
+  // Servos: none configured on HIL-008
+  namespace Servo {
+    static constexpr uint32_t frequency_hz = 50;
+    static constexpr ServoConfig servos[] = {};
+    static constexpr int num_servos = 0;
+  };
+
+  // Motors: 4-motor DShot600 fixture (HIL-008 permanent capture jumpers).
+  // Non-complementary channels only (DShot lib doesn't drive CHxN).
+  //   M1 PB4  -> TIM3_CH1  (PA0 capture)
+  //   M2 PA8  -> TIM1_CH1  (PA1 capture)  — only option on PA8
+  //   M3 PB0  -> TIM3_CH3  (PB10 capture) — via PB_0_ALT1, resolved by pinmap
+  //   M4 PB6  -> TIM4_CH1  (PA10 capture)
+  // DMA auto-resolves (dma=nullptr); M1+M3 share TIM3, DShot lib auto-groups.
+  namespace Motor {
+    static constexpr uint32_t frequency_hz = 2000;  // unused for DShot, kept for API symmetry
+    static constexpr Protocol protocol = Protocol::DSHOT600;
+
+    static constexpr MotorConfig motors[] = {
+      {TIM3, PB4, 1, 0, 0},   // Motor 1: TIM3_CH1
+      {TIM1, PA8, 1, 0, 0},   // Motor 2: TIM1_CH1
+      {TIM3, PB0, 3, 0, 0},   // Motor 3: TIM3_CH3 (PB_0_ALT1)
+      {TIM4, PB6, 1, 0, 0},   // Motor 4: TIM4_CH1
+    };
+    static constexpr int num_motors = sizeof(motors) / sizeof(motors[0]);
+  };
 }

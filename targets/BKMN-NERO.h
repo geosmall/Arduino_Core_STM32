@@ -61,6 +61,7 @@ namespace BoardConfig {
   // Motors: ONESHOT125 protocol (125-250 µs)
   namespace Motor {
     static constexpr uint32_t frequency_hz = 2000;
+    static constexpr Protocol protocol = Protocol::ONESHOT125;
 
     // Motor array - hardware timer assignments from Betaflight config
     static constexpr MotorConfig motors[] = {

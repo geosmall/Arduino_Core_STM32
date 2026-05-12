@@ -34,6 +34,7 @@ namespace BoardConfig {
   // Motors: Same pins as MATEK H743 (none wired — bench test only)
   namespace Motor {
     static constexpr uint32_t frequency_hz = 2000;
+    static constexpr Protocol protocol = Protocol::ONESHOT125;
 
     static constexpr MotorConfig motors[] = {
       {TIM3, PB0, 3, 125, 250},  // Motor 1: TIM3_CH3

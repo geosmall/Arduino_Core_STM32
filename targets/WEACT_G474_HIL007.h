@@ -50,6 +50,7 @@ namespace BoardConfig {
   // Motors: match BetaFPV G473 timer assignments
   namespace Motor {
     static constexpr uint32_t frequency_hz = 2000;
+    static constexpr Protocol protocol = Protocol::ONESHOT125;
 
     static constexpr MotorConfig motors[] = {
       {TIM1, PB0, 2, 125, 250},  // Motor 1: TIM1_CH2

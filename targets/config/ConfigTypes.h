@@ -20,6 +20,12 @@ enum class CS_Mode {
     HARDWARE   // Hardware-controlled CS via SPI peripheral
 };
 
+// Motor protocol selection — per-board via BoardConfig::Motor::protocol
+enum class Protocol {
+    ONESHOT125,  // OneShot125 PWM, 125-250 µs pulse (uses MotorConfig::min_us/max_us)
+    DSHOT600     // DShot600 digital, 0=disarm / 48-2047 throttle (range protocol-defined)
+};
+
 namespace BoardConfig {
   struct SPIConfig {
     constexpr SPIConfig(Pin mosi, Pin miso, Pin sclk, Pin cs,
@@ -155,29 +161,44 @@ namespace BoardConfig {
   };
 }
 
-// Motor abstraction for runtime timer grouping
+// Motor abstraction for runtime timer grouping with protocol dispatch.
+//
+// Init(motors, count, frequency_hz, protocol) selects the backend at startup.
+// SetMotor(idx, scaled_0_1) is protocol-aware: caller passes a normalized
+// 0..1 float; backend converts to OneShot125 µs (min_us..max_us) or DShot
+// throttle (48..2047 with 0 = disarm). Update() pushes pending values
+// (required for DShot; no-op for OneShot125). Disarm() drives all motors
+// to safe state.
 #include <PWMOutputBank.h>
+#include <DShot.h>
 
 class MotorManager {
 private:
   static constexpr int MAX_TIMERS = 4;
   static constexpr int MAX_MOTORS = 8;
 
+  // OneShot125 backend
   struct TimerBank {
     TIM_TypeDef* timer;
     PWMOutputBank pwm;
     bool initialized;
   };
-
   TimerBank banks[MAX_TIMERS];
   int num_banks;
 
   struct MotorInfo {
     int bank_index;
     uint32_t channel;
+    uint32_t min_us;
+    uint32_t max_us;
   };
   MotorInfo motor_info[MAX_MOTORS];
   int num_motors;
+
+  // DShot backend — always embedded, only initialized when protocol == DSHOT600
+  DShotOutput dshot;
+
+  Protocol protocol;
 
   int FindOrCreateBank(TIM_TypeDef* timer) {
     for (int i = 0; i < num_banks; i++) {
@@ -192,44 +213,90 @@ private:
   }
 
 public:
-  MotorManager() : num_banks(0), num_motors(0) {}
+  MotorManager() : num_banks(0), num_motors(0), protocol(Protocol::ONESHOT125) {}
 
   template<typename MotorArray>
-  bool Init(const MotorArray& motors, int count, uint32_t frequency_hz) {
+  bool Init(const MotorArray& motors, int count, uint32_t frequency_hz,
+            Protocol proto = Protocol::ONESHOT125) {
     if (count > MAX_MOTORS) return false;
     num_motors = count;
+    protocol = proto;
 
-    for (int i = 0; i < count; i++) {
-      const auto& motor = motors[i];
-      int bank_idx = FindOrCreateBank(motor.timer);
-      if (bank_idx < 0) return false;
+    if (proto == Protocol::ONESHOT125) {
+      for (int i = 0; i < count; i++) {
+        const auto& motor = motors[i];
+        int bank_idx = FindOrCreateBank(motor.timer);
+        if (bank_idx < 0) return false;
 
-      if (!banks[bank_idx].initialized) {
-        banks[bank_idx].pwm.Init(motor.timer, frequency_hz);
-        banks[bank_idx].initialized = true;
+        if (!banks[bank_idx].initialized) {
+          banks[bank_idx].pwm.Init(motor.timer, frequency_hz);
+          banks[bank_idx].initialized = true;
+        }
+
+        banks[bank_idx].pwm.AttachChannel(motor.channel, motor.pin, motor.min_us, motor.max_us);
+        motor_info[i].bank_index = bank_idx;
+        motor_info[i].channel = motor.channel;
+        motor_info[i].min_us = motor.min_us;
+        motor_info[i].max_us = motor.max_us;
       }
-
-      banks[bank_idx].pwm.AttachChannel(motor.channel, motor.pin, motor.min_us, motor.max_us);
-      motor_info[i].bank_index = bank_idx;
-      motor_info[i].channel = motor.channel;
+      return true;
     }
-    return true;
+    if (proto == Protocol::DSHOT600) {
+      return dshot.Init(motors, count, DShot::DSHOT600);
+    }
+    return false;
   }
 
-  void SetMotor(int motor_idx, uint32_t pulse_width_us) {
+  // Protocol-aware motor command.
+  // scaled_0_1: normalized 0..1 throttle. Values outside [0,1] are clamped.
+  //   OneShot125: 0 -> min_us pulse, 1 -> max_us pulse, linear in between.
+  //   DSHOT600  : 0 -> throttle 0 (disarm command), >0 -> 48 + scaled*(2047-48).
+  void SetMotor(int motor_idx, float scaled_0_1) {
     if (motor_idx < 0 || motor_idx >= num_motors) return;
-    banks[motor_info[motor_idx].bank_index].pwm.SetPulseWidth(
-      motor_info[motor_idx].channel, pulse_width_us
-    );
-  }
+    if (scaled_0_1 < 0.0f) scaled_0_1 = 0.0f;
+    if (scaled_0_1 > 1.0f) scaled_0_1 = 1.0f;
 
-  void ArmAll(uint32_t min_pulse_us = 125) {
-    for (int i = 0; i < num_motors; i++) {
-      SetMotor(i, min_pulse_us);
+    if (protocol == Protocol::ONESHOT125) {
+      const auto& info = motor_info[motor_idx];
+      uint32_t pulse_us = info.min_us +
+                          (uint32_t)(scaled_0_1 * (info.max_us - info.min_us) + 0.5f);
+      banks[info.bank_index].pwm.SetPulseWidth(info.channel, pulse_us);
+    } else if (protocol == Protocol::DSHOT600) {
+      uint16_t throttle = (scaled_0_1 <= 0.0f)
+                          ? 0
+                          : (uint16_t)(48.0f + scaled_0_1 * (2047.0f - 48.0f) + 0.5f);
+      dshot.SetThrottle(motor_idx, throttle);
     }
   }
+
+  // Push pending values to motors. Required for DShot (sends one frame).
+  // No-op for OneShot125 — TimerPWM CCR registers latch automatically.
+  void Update() {
+    if (protocol == Protocol::DSHOT600) {
+      dshot.Send();
+    }
+  }
+
+  // Drive all motors to safe/disarmed state.
+  //   OneShot125: writes min_us pulse to every motor.
+  //   DSHOT600  : sends throttle 0 (disarm) to every motor and pushes a frame.
+  void Disarm() {
+    if (protocol == Protocol::ONESHOT125) {
+      for (int i = 0; i < num_motors; i++) {
+        const auto& info = motor_info[i];
+        banks[info.bank_index].pwm.SetPulseWidth(info.channel, info.min_us);
+      }
+    } else if (protocol == Protocol::DSHOT600) {
+      dshot.Disarm();
+      dshot.Send();
+    }
+  }
+
+  // Legacy alias for code that still calls ArmAll(). Same effect as Disarm().
+  void ArmAll() { Disarm(); }
 
   int GetNumMotors() const { return num_motors; }
+  Protocol GetProtocol() const { return protocol; }
 };
 
 // Servo abstraction for runtime timer grouping
