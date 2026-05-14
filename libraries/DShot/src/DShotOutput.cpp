@@ -2,6 +2,19 @@
 #include "dma.h"
 #include "core_debug.h"
 
+// Enable CC channel, branching on CHxN flag.
+// Multiplying LL_TIM_CHANNEL_CHx by 4 converts the CCxE bit position into
+// the CCxNE position (mirror of Betaflight's LL_EX_TIM_CC_EnableNChannel
+// in stm32g4xx_ll_ex.h:135).
+static void ccEnable(TIM_TypeDef *timer, const DShot::MotorHW *motor)
+{
+  if (motor->n_channel) {
+    LL_TIM_CC_EnableChannel(timer, motor->ll_channel * 4);
+  } else {
+    LL_TIM_CC_EnableChannel(timer, motor->ll_channel);
+  }
+}
+
 DShotOutput::DShotOutput()
   : _num_groups(0), _num_motors(0), _speed(DShot::DSHOT600),
     _timers_started(false), _dma_initialized(false), _dma_init_failed(false)
@@ -92,21 +105,31 @@ int DShotOutput::AddMotor(TIM_TypeDef *timer, Pin pin, uint32_t channel,
     motor->dma_buffer[i] = 0;
   }
 
-  // Configure GPIO for timer output
-  DShot::initGPIO(pin, timer, motor->ll_channel);
+  // Configure GPIO for timer output. Auto-detects CHxN via the AF inverted
+  // bit so the caller's MotorConfig stays unchanged (no extra struct field).
+  motor->n_channel = DShot::initGPIO(pin, timer, motor->ll_channel);
 
   // Initialize output compare for this channel
   // (initTimer sets up the time base; we add OC per channel here)
   LL_TIM_OC_InitTypeDef oc_init;
   LL_TIM_OC_StructInit(&oc_init);
   oc_init.OCMode = LL_TIM_OCMODE_PWM1;
-  oc_init.OCState = LL_TIM_OCSTATE_ENABLE;
-  oc_init.OCIdleState = LL_TIM_OCIDLESTATE_LOW;
-  oc_init.OCPolarity = LL_TIM_OCPOLARITY_HIGH;
   oc_init.CompareValue = 0;
+  if (motor->n_channel) {
+    // Drive the complementary output. Mirrors Betaflight
+    // pwm_output_dshot_hal.c:316-319 — OCState left at struct-init default
+    // (DISABLE) so only the N-side buffer is active.
+    oc_init.OCNState = LL_TIM_OCSTATE_ENABLE;
+    oc_init.OCNIdleState = LL_TIM_OCIDLESTATE_LOW;
+    oc_init.OCNPolarity = LL_TIM_OCPOLARITY_HIGH;
+  } else {
+    oc_init.OCState = LL_TIM_OCSTATE_ENABLE;
+    oc_init.OCIdleState = LL_TIM_OCIDLESTATE_LOW;
+    oc_init.OCPolarity = LL_TIM_OCPOLARITY_HIGH;
+  }
   LL_TIM_OC_Init(timer, motor->ll_channel, &oc_init);
   LL_TIM_OC_EnablePreload(timer, motor->ll_channel);
-  LL_TIM_CC_EnableChannel(timer, motor->ll_channel);
+  ccEnable(timer, motor);
 
   // DMA resolution and init deferred to initAllDMA() (called from Send/startTimers).
   // This allows detecting stream conflicts across all motors on a timer group

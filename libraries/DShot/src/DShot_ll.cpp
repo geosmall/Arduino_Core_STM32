@@ -79,7 +79,7 @@ void enableDMAClk(DMA_TypeDef *dma)
 // ---------------------------------------------------------------------------
 // GPIO init — configure pin AF for timer output
 // ---------------------------------------------------------------------------
-void initGPIO(Pin pin, TIM_TypeDef *timer, uint32_t ll_channel)
+bool initGPIO(Pin pin, TIM_TypeDef *timer, uint32_t ll_channel)
 {
   PinName pin_name = pin.toPinName();
 
@@ -98,6 +98,8 @@ void initGPIO(Pin pin, TIM_TypeDef *timer, uint32_t ll_channel)
   // Set output speed to high for better signal integrity
   GPIO_TypeDef *port = get_GPIO_Port(STM_PORT(pin_name));
   LL_GPIO_SetPinSpeed(port, STM_LL_GPIO_PIN(pin_name), LL_GPIO_SPEED_FREQ_HIGH);
+
+  return STM_PIN_INVERTED(function) != 0;
 }
 
 // ---------------------------------------------------------------------------

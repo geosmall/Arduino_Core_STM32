@@ -22,8 +22,9 @@ struct DMAResource {
 struct MotorHW {
   // Timer
   TIM_TypeDef *timer;
-  uint32_t ll_channel;         // LL_TIM_CHANNEL_CHx
+  uint32_t ll_channel;         // LL_TIM_CHANNEL_CHx (compare register index)
   uint8_t  channel_index;      // 0-3 (CH1-CH4)
+  bool     n_channel;          // true if pin AF maps to complementary output (CHxN)
 
   // DMA
   DMA_TypeDef *dma;
@@ -41,8 +42,9 @@ struct MotorHW {
   bool     telemetry;
 };
 
-// Initialize GPIO alternate function for timer output
-void initGPIO(Pin pin, TIM_TypeDef *timer, uint32_t ll_channel);
+// Initialize GPIO alternate function for timer output.
+// Returns true if the resolved AF maps to a complementary output (CHxN).
+bool initGPIO(Pin pin, TIM_TypeDef *timer, uint32_t ll_channel);
 
 // Initialize timer for DShot: prescaler for target speed, ARR=BIT_PERIOD, PWM1 mode
 void initTimer(TIM_TypeDef *timer, uint32_t ll_channel, Speed speed);
