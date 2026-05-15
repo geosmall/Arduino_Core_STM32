@@ -57,10 +57,10 @@ namespace BoardConfig {
     static constexpr ServoConfig servos[] = {};
     static constexpr int num_servos = 0;
   };
-  // Motors: ONESHOT125 protocol (125-250 µs)
+  // Motors: DSHOT600 (CHx + CHxN auto-detected by DShot lib)
   namespace Motor {
     static constexpr uint32_t frequency_hz = 2000;
-    static constexpr Protocol protocol = Protocol::ONESHOT125;
+    static constexpr Protocol protocol = Protocol::DSHOT600;
 
     // Motor array - hardware timer assignments from Betaflight config
     static constexpr MotorConfig motors[] = {
