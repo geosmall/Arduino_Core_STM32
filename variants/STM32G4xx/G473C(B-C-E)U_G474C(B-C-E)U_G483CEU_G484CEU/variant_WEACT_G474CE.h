@@ -42,17 +42,18 @@
   #define PIN_SPI_SCK             PA5
 #endif
 
-// UART Definitions — USART1 for Serial
+// UART Definitions — USART2 for Serial (PA2/PA3), leaving USART1 (PA9/PA10) free
+// for CRSF/ELRS or other peripheral use.
 #ifndef SERIAL_UART_INSTANCE
-  #define SERIAL_UART_INSTANCE    1
+  #define SERIAL_UART_INSTANCE    2
 #endif
 
-// Default pin used for generic 'Serial' instance (USART1)
+// Default pin used for generic 'Serial' instance (USART2)
 #ifndef PIN_SERIAL_RX
-  #define PIN_SERIAL_RX           PA10
+  #define PIN_SERIAL_RX           PA3
 #endif
 #ifndef PIN_SERIAL_TX
-  #define PIN_SERIAL_TX           PA9
+  #define PIN_SERIAL_TX           PA2
 #endif
 
 // I2C Definitions — I2C1 (sensors)
