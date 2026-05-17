@@ -36,8 +36,8 @@ namespace BoardConfig {
   // ADC: Battery voltage and current monitoring
   static constexpr ADCConfig battery{PA0, PA1, 110, 750};
 
-  // Status LED (WeAct onboard LED on PC13)
-  static constexpr LEDConfig status_leds{PC13};
+  // Status LED (WeAct onboard blue LED on PC6)
+  static constexpr LEDConfig status_leds{PC6};
 
   // Servo outputs - none configured
   namespace Servo {
