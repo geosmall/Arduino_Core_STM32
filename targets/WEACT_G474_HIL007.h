@@ -30,8 +30,8 @@ namespace BoardConfig {
   // USART1: RC receiver / loopback
   static constexpr UARTConfig uart1{PA9, PA10, 115200};
 
-  // RC Receiver: IBus/SBUS on USART1 (start with loopback jumper PA9→PA10)
-  static constexpr RCReceiverConfig rc_receiver{PB11, PB10, 115200, 1000, 300};
+  // RC Receiver: CRSF (ELRS) on USART1 — ER6 signal lead wired to PA10 (RX), 5V/GND from board.
+  static constexpr RCReceiverConfig rc_receiver{PA10, PA9, 420000, 1000, 300};
 
   // ADC: Battery voltage and current monitoring
   static constexpr ADCConfig battery{PA0, PA1, 110, 750};
@@ -50,7 +50,7 @@ namespace BoardConfig {
   // Motors: match BetaFPV G473 timer assignments
   namespace Motor {
     static constexpr uint32_t frequency_hz = 2000;
-    static constexpr Protocol protocol = Protocol::ONESHOT125;
+    static constexpr Protocol protocol = Protocol::DSHOT600;
 
     static constexpr MotorConfig motors[] = {
       {TIM1, PB0, 2, 125, 250},  // Motor 1: TIM1_CH2
