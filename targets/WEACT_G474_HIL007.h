@@ -30,8 +30,9 @@ namespace BoardConfig {
   // USART1: RC receiver / loopback
   static constexpr UARTConfig uart1{PA9, PA10, 115200};
 
-  // RC Receiver: CRSF (ELRS) on USART1 — ER6 signal lead wired to PA10 (RX), 5V/GND from board.
-  static constexpr RCReceiverConfig rc_receiver{PA10, PA9, 420000, 1000, 300};
+  // RC Receiver: CRSF (ELRS) on USART3 — matches BEFH-BETAFPVG473 (SERIALRX_UART = USART3).
+  // ER6 signal lead wired to PB11 (RX), 5V/GND from board.
+  static constexpr RCReceiverConfig rc_receiver{PB11, PB10, 420000, 1000, 300};
 
   // ADC: Battery voltage and current monitoring
   static constexpr ADCConfig battery{PA0, PA1, 110, 750};

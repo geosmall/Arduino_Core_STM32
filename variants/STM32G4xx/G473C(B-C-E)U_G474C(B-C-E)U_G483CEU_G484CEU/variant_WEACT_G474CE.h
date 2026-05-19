@@ -42,18 +42,20 @@
   #define PIN_SPI_SCK             PA5
 #endif
 
-// UART Definitions — USART2 for Serial (PA2/PA3), leaving USART1 (PA9/PA10) free
-// for CRSF/ELRS or other peripheral use.
+// UART Definitions — USART1 for Serial (PA9/PA10), matching BEFH-BETAFPVG473
+// surrogate role. USART1 is shared with CRSF/ELRS at runtime; use RTT for debug
+// output, or declare an explicit HardwareSerial on PA2/PA3 (USART2) for a
+// secondary bench path.
 #ifndef SERIAL_UART_INSTANCE
-  #define SERIAL_UART_INSTANCE    2
+  #define SERIAL_UART_INSTANCE    1
 #endif
 
-// Default pin used for generic 'Serial' instance (USART2)
+// Default pin used for generic 'Serial' instance (USART1)
 #ifndef PIN_SERIAL_RX
-  #define PIN_SERIAL_RX           PA3
+  #define PIN_SERIAL_RX           PA10
 #endif
 #ifndef PIN_SERIAL_TX
-  #define PIN_SERIAL_TX           PA2
+  #define PIN_SERIAL_TX           PA9
 #endif
 
 // I2C Definitions — I2C1 (sensors)
