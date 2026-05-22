@@ -26,6 +26,22 @@ enum class Protocol {
     DSHOT600     // DShot600 digital, 0=disarm / 48-2047 throttle (range protocol-defined)
 };
 
+// IMU chip-to-board alignment — mirrors Betaflight's 8 cardinal sensor_align_e values.
+// Per-target compile-time constant; consumed by BoardAlignment to build the
+// sensor-to-board rotation matrix R_sensor_to_board. Composed at init with the
+// user-configured board-to-vehicle alignment into a single hot-path matrix.
+// Non-90°-boundary mounts (Betaflight's ALIGN_CUSTOM) are out of scope here.
+enum class IMUAlignment : uint8_t {
+    CW0_DEG,         // No rotation
+    CW90_DEG,        // 90° clockwise about Z (yaw)
+    CW180_DEG,       // 180° about Z
+    CW270_DEG,       // 270° clockwise about Z
+    CW0_DEG_FLIP,    // 180° roll then no yaw
+    CW90_DEG_FLIP,   // 180° roll then 90° yaw
+    CW180_DEG_FLIP,  // 180° roll then 180° yaw
+    CW270_DEG_FLIP   // 180° roll then 270° yaw
+};
+
 namespace BoardConfig {
   struct SPIConfig {
     constexpr SPIConfig(Pin mosi, Pin miso, Pin sclk, Pin cs,
@@ -75,12 +91,15 @@ namespace BoardConfig {
 
   struct IMUConfig {
     constexpr IMUConfig(const SPIConfig& spi_config, Pin interrupt_pin = NC_PIN,
-                       uint32_t setup_freq_hz = 0)
-      : spi(spi_config), int_pin(interrupt_pin), setup_freq_hz(setup_freq_hz) {}
+                       uint32_t setup_freq_hz = 0,
+                       IMUAlignment chip_alignment = IMUAlignment::CW0_DEG)
+      : spi(spi_config), int_pin(interrupt_pin), setup_freq_hz(setup_freq_hz),
+        alignment(chip_alignment) {}
 
     const SPIConfig spi;
     const Pin int_pin;             // NC_PIN = no interrupt
     const uint32_t setup_freq_hz;  // 0 = use spi.freq_hz for setup (slow initialization)
+    const IMUAlignment alignment;  // Chip-to-board rotation (Betaflight GYRO_x_ALIGN)
 
     // Helper: Get effective setup frequency (slow initialization)
     constexpr uint32_t get_setup_freq() const {
