@@ -1,6 +1,6 @@
 /*
  * Auto-generated BoardConfig from Betaflight target config
- * Generated: 2026-03-15 15:29:52
+ * Generated: 2026-05-22 08:35:41
  * Generator: betaflight_target_converter.py
  */
 
@@ -19,7 +19,7 @@ namespace BoardConfig {
 
   // IMU: ICM42688P on SPI1
   static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 8000000};
-  static constexpr IMUConfig imu{imu_spi, PC4, 1000000};
+  static constexpr IMUConfig imu{imu_spi, PC4, 1000000, IMUAlignment::CW180_DEG};
 
   // I2C1: Environmental sensors
   static constexpr I2CConfig sensors{PB7, PA15, 400000};

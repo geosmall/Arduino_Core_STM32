@@ -109,6 +109,18 @@ class TestCodeGenerator(unittest.TestCase):
         # Should have interrupt pin (PB3)
         self.assertIn("PB3", code)
 
+    def test_generate_imu_alignment(self):
+        """JHEF411 has GYRO_1_ALIGN CW180_DEG — must appear as 4th IMUConfig arg."""
+        code = self.generator.generate()
+        self.assertIn("IMUAlignment::CW180_DEG", code)
+        # And the 4th-arg position specifically
+        match = re.search(
+            r"IMUConfig imu\{imu_spi,\s*\w+,\s*\d+,\s*IMUAlignment::(\w+)\}",
+            code,
+        )
+        self.assertIsNotNone(match, "IMUConfig must emit 4 positional args incl. alignment")
+        self.assertEqual(match.group(1), "CW180_DEG")
+
     def test_generate_i2c(self):
         """Test I2C config generation."""
         code = self.generator.generate()
