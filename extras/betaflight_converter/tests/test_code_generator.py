@@ -3,6 +3,7 @@ Tests for BoardConfig code generator.
 """
 
 import unittest
+import tempfile
 from pathlib import Path
 import sys
 import re
@@ -55,8 +56,8 @@ class TestCodeGenerator(unittest.TestCase):
         # Should have header guard
         self.assertIn("#pragma once", code)
 
-        # Should include ConfigTypes (with relative path)
-        self.assertIn('#include "../../../targets/config/ConfigTypes.h"', code)
+        # Should include ConfigTypes (resolved via targets/ on include path)
+        self.assertIn('#include "config/ConfigTypes.h"', code)
 
         # Should have namespace
         self.assertIn("namespace BoardConfig {", code)
@@ -167,9 +168,9 @@ class TestCodeGenerator(unittest.TestCase):
         self.assertIn("namespace Motor {", code)
         self.assertIn("frequency_hz", code)
 
-        # Should have motor array structure
-        self.assertIn("struct MotorConfig", code)
-        self.assertIn("motors[]", code)
+        # Should have motor array declaration (the emitter inlines the struct
+        # type from ConfigTypes.h, doesn't redeclare it)
+        self.assertIn("MotorConfig motors[]", code)
         self.assertIn("num_motors", code)
 
         # Should have correct timer references
@@ -247,13 +248,15 @@ class TestCodeGenerator(unittest.TestCase):
         self.assertIn("frequency_hz = 50", code)
 
         # Should have servo array structure
-        self.assertIn("struct ServoConfig", code)
+        self.assertIn("ServoConfig servos[]", code)
         self.assertIn("servos[]", code)
         self.assertIn("num_servos", code)
 
     def test_save_to_file(self):
         """Test saving generated code to file."""
-        output_path = Path("/tmp/test_generated_JHEF411.h")
+        # tempfile.gettempdir() honors $TMPDIR; /tmp is not always writable
+        # (e.g. when running under a sandbox that allowlists $TMPDIR only).
+        output_path = Path(tempfile.gettempdir()) / "test_generated_JHEF411.h"
 
         # Generate and save
         self.generator.save(output_path)
