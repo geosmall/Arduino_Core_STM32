@@ -85,25 +85,12 @@ class SPISettings {
 class SPIClass {
   public:
     SPIClass();
-    SPIClass(Pin mosi, Pin miso, Pin sclk, Pin ssel = NC_PIN);
-
-    // setMISO/MOSI/SCLK/SSEL have to be called before begin()
-    void setMISO(Pin miso)
-    {
-      _spi.pin_miso = miso.toPinName();
-    };
-    void setMOSI(Pin mosi)
-    {
-      _spi.pin_mosi = mosi.toPinName();
-    };
-    void setSCLK(Pin sclk)
-    {
-      _spi.pin_sclk = sclk.toPinName();
-    };
-    void setSSEL(Pin ssel)
-    {
-      _spi.pin_ssel = ssel.toPinName();
-    };
+    // Peripheral-aware ctor: caller names the SPI instance explicitly, so
+    // multi-mapping pins (e.g. G473 PB3/4/5 → SPI1+AF5 or SPI3+AF6)
+    // resolve unambiguously via pinmap_pinout_for_peripheral. See
+    // doc/PIN_USE.md "Peripheral-aware pin resolution".
+    SPIClass(SPI_TypeDef *instance, Pin mosi, Pin miso, Pin sclk,
+             Pin ssel = NC_PIN);
 
     void begin(void);
     void begin(SPISettings settings);

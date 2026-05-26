@@ -43,16 +43,26 @@ enum class IMUAlignment : uint8_t {
 };
 
 namespace BoardConfig {
+  // Aggregate (no user-defined ctor) so `static constexpr SPIConfig x{..., SPI1}`
+  // compiles. CMSIS peripheral macros (`SPI1`, `SPI3`, ...) expand to
+  // `reinterpret_cast<SPI_TypeDef*>(SPI<n>_BASE)`, which is not a core
+  // constant expression — a user-defined constexpr ctor receiving such a
+  // value rejects compile-time initialization. Aggregate brace-init does
+  // not, matching the precedent set by MotorConfig + `TIM1`.
+  //
+  // `instance` disambiguates multi-mapping pins (e.g. G473 PB3/4/5, which
+  // carry both SPI1+AF5 and SPI3+AF6 entries in PinMap_SPI_*). nullptr
+  // preserves legacy first-match resolution — kept as a default member
+  // initializer so existing target headers compile unchanged. See
+  // doc/PIN_USE.md and BOARD_CONFIG_PERIPHERAL_AWARE_PLAN.md for context.
   struct SPIConfig {
-    constexpr SPIConfig(Pin mosi, Pin miso, Pin sclk, Pin cs,
-                       uint32_t frequency_hz = 1000000,
-                       CS_Mode mode = CS_Mode::SOFTWARE)
-      : mosi_pin(mosi), miso_pin(miso), sclk_pin(sclk), cs_pin(cs),
-        freq_hz(frequency_hz), cs_mode(mode) {}
-
-    const Pin mosi_pin, miso_pin, sclk_pin, cs_pin;
-    const uint32_t freq_hz;
-    const CS_Mode cs_mode;
+    Pin mosi_pin;
+    Pin miso_pin;
+    Pin sclk_pin;
+    Pin cs_pin;
+    uint32_t freq_hz = 1000000;
+    SPI_TypeDef* instance = nullptr;
+    CS_Mode cs_mode = CS_Mode::SOFTWARE;
 
     // Helper: Get SSEL pin for SPIClass constructor
     // SW mode: returns NC_PIN (disables hardware SSEL)
@@ -78,15 +88,15 @@ namespace BoardConfig {
     const uint32_t freq_hz;
   };
 
+  // Aggregate (no user-defined ctor) — see SPIConfig for the rationale.
   struct StorageConfig {
-    constexpr StorageConfig(StorageBackend backend, Pin mosi, Pin miso,
-                           Pin sclk, Pin cs, uint32_t frequency_hz = 1000000)
-      : backend_type(backend), mosi_pin(mosi), miso_pin(miso), sclk_pin(sclk),
-        cs_pin(cs), freq_hz(frequency_hz) {}
-
-    const StorageBackend backend_type;
-    const Pin mosi_pin, miso_pin, sclk_pin, cs_pin;
-    const uint32_t freq_hz;
+    StorageBackend backend_type;
+    Pin mosi_pin;
+    Pin miso_pin;
+    Pin sclk_pin;
+    Pin cs_pin;
+    uint32_t freq_hz = 1000000;
+    SPI_TypeDef* instance = nullptr;
   };
 
   struct IMUConfig {

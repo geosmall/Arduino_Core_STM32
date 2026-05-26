@@ -17,8 +17,9 @@
 //   USART1: PA9 TX / PA10 RX (ELRS / loopback)
 //
 namespace BoardConfig {
-  // Storage: W25Q SPI flash on SPI3 (ALT1 pins)
-  static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PB5, PB4, PB3, PB9, 8000000};
+  // Storage: W25Q SPI flash on SPI3 (PB3/4/5 also carry SPI1+AF5 entries in
+  // PinMap_SPI_*; naming SPI3 makes the AF6 routing explicit).
+  static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PB5, PB4, PB3, PB9, 8000000, SPI3};
 
   // IMU: ICM42688P on SPI1
   // Chip alignment mirrors BEFH-BETAFPVG473 (Betaflight GYRO_1_ALIGN CW180_DEG,
