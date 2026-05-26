@@ -50,8 +50,9 @@ namespace BoardConfig {
   // Status LEDs
   static constexpr LEDConfig status_leds{PC15, PC14};
 
-  // RC Receiver: IBus/SBUS (adjust protocol based on actual wiring)
-  static constexpr RCReceiverConfig rc_receiver{PB11, PB10, 115200, 1000, 300};
+  // RC Receiver on USART3 (SERIALRX_UART). Naming USART3 makes the AF7 routing
+  // explicit even though PB11/PB10 are unambiguous on this MCU.
+  static constexpr RCReceiverConfig rc_receiver{PB11, PB10, 115200, 1000, 300, USART3};
 
   // Servo outputs - none configured
   namespace Servo {

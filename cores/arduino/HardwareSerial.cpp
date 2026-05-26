@@ -115,14 +115,24 @@
 #endif // HAVE_HWSERIALx
 
 // Constructors ////////////////////////////////////////////////////////////////
-HardwareSerial::HardwareSerial(Pin _rx, Pin _tx, Pin _rts, Pin _cts)
+HardwareSerial::HardwareSerial(USART_TypeDef *instance, Pin _rx, Pin _tx)
 {
-  init(_rx.toPinName(), _tx.toPinName(),
-       _rts.toPinName(), _cts.toPinName());
+  /* Zero-init _serial: uart_init guards the legacy first-match resolution
+   * with `if (obj->uart == NULL)`. Without this, _serial.uart starts as
+   * indeterminate (HardwareSerial::_serial is a plain struct member),
+   * which would defeat the guard. */
+  memset((void *)&_serial, 0, sizeof(_serial));
+  _serial.uart = instance;
+  init(_rx.toPinName(), _tx.toPinName());
 }
 
 HardwareSerial::HardwareSerial(void *peripheral, HalfDuplexMode_t halfDuplex)
 {
+  /* Zero-init _serial (see (USART_TypeDef*, Pin, Pin) ctor for rationale).
+   * This ctor intentionally leaves _serial.uart = NULL afterwards so
+   * uart_init resolves the peripheral via first-match merge — Serial1..N
+   * globals must keep working bit-for-bit. */
+  memset((void *)&_serial, 0, sizeof(_serial));
   // If PIN_SERIALy_RX is not defined assume half-duplex
   _serial.pin_rx = NC;
   // If Serial is defined in variant set
@@ -299,6 +309,8 @@ HardwareSerial::HardwareSerial(void *peripheral, HalfDuplexMode_t halfDuplex)
 
 HardwareSerial::HardwareSerial(Pin _rxtx)
 {
+  /* Zero-init _serial (see (USART_TypeDef*, Pin, Pin) ctor for rationale). */
+  memset((void *)&_serial, 0, sizeof(_serial));
   init(NC, _rxtx.toPinName());
 }
 

@@ -72,12 +72,15 @@ namespace BoardConfig {
     }
   };
 
+  // Aggregate (no user-defined ctor) — see SPIConfig for the rationale.
+  // `instance` disambiguates multi-mapping UART pins; nullptr preserves
+  // legacy first-match resolution. The USART_TypeDef* alias also accepts
+  // LPUART1/LPUART2 (CMSIS declares them as (USART_TypeDef*)<base>).
   struct UARTConfig {
-    constexpr UARTConfig(Pin tx, Pin rx, uint32_t baud)
-      : tx_pin(tx), rx_pin(rx), baud_rate(baud) {}
-
-    const Pin tx_pin, rx_pin;
-    const uint32_t baud_rate;
+    Pin tx_pin;
+    Pin rx_pin;
+    uint32_t baud_rate;
+    USART_TypeDef* instance = nullptr;
   };
 
   // Aggregate (no user-defined ctor) — see SPIConfig for the rationale.
@@ -144,18 +147,15 @@ namespace BoardConfig {
     const Pin led2_pin;   // Secondary status LED (NC_PIN = not present)
   };
 
+  // Aggregate (no user-defined ctor) — see SPIConfig / UARTConfig for the
+  // rationale on the `instance` field.
   struct RCReceiverConfig {
-    constexpr RCReceiverConfig(Pin rx, Pin tx, uint32_t baud,
-                               uint32_t timeout_ms = 1000,
-                               uint32_t idle_threshold_us = 300)
-      : rx_pin(rx), tx_pin(tx), baud_rate(baud),
-        timeout_ms(timeout_ms), idle_threshold_us(idle_threshold_us) {}
-
-    const Pin rx_pin;                   // UART RX pin (receiver output)
-    const Pin tx_pin;                   // UART TX pin (receiver input, usually unused)
-    const uint32_t baud_rate;           // Protocol baudrate (115200=IBus, 100000=SBUS)
-    const uint32_t timeout_ms;          // Failsafe timeout in milliseconds
-    const uint32_t idle_threshold_us;   // Software idle detection threshold (0=disabled)
+    Pin rx_pin;                   // UART RX pin (receiver output)
+    Pin tx_pin;                   // UART TX pin (receiver input, usually unused)
+    uint32_t baud_rate;           // Protocol baudrate (115200=IBus, 100000=SBUS)
+    uint32_t timeout_ms = 1000;   // Failsafe timeout in milliseconds
+    uint32_t idle_threshold_us = 300;  // Software idle detection threshold (0=disabled)
+    USART_TypeDef* instance = nullptr;
   };
 
   struct GPSConfig {

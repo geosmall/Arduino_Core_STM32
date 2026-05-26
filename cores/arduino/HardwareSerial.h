@@ -106,7 +106,12 @@ class HardwareSerial : public Stream {
     serial_t _serial;
 
   public:
-    HardwareSerial(Pin _rx, Pin _tx, Pin _rts = NC_PIN, Pin _cts = NC_PIN);
+    // Peripheral-aware ctor: caller names the U(S)ART/LPUART instance and
+    // its rx/tx pins. uart_init bypasses the legacy first-match resolution
+    // and routes GPIO config through pinmap_pinout_for_peripheral against
+    // this instance, so multi-mapping pins resolve unambiguously. Pass
+    // NC_PIN for _rx to construct a TX-only port. See doc/PIN_USE.md.
+    HardwareSerial(USART_TypeDef *instance, Pin _rx, Pin _tx);
     HardwareSerial(void *peripheral, HalfDuplexMode_t halfDuplex = HALF_DUPLEX_DISABLED);
     HardwareSerial(Pin _rxtx);
     void begin(unsigned long baud)

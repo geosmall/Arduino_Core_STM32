@@ -24,11 +24,11 @@
 #include <SerialRx.h>
 
 // Hardware configuration
-// TX: USART6 for IBus frame generation
-HardwareSerial SerialTx(NC, PA11);  // TX-only on PA11 (USART6 TX)
+// TX: USART6 for IBus frame generation (TX-only — pass NC_PIN for RX).
+HardwareSerial SerialTx(USART6, NC_PIN, PA11);
 
 // RX: USART1 for SerialRx library
-HardwareSerial SerialRC(PA10, PA9);  // USART1 (RX=PA10, TX=PA9)
+HardwareSerial SerialRC(USART1, PA10, PA9);
 
 // SerialRx instance
 SerialRx rc;

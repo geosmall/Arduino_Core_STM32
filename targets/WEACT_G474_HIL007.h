@@ -34,8 +34,10 @@ namespace BoardConfig {
   static constexpr UARTConfig uart1{PA9, PA10, 115200};
 
   // RC Receiver: CRSF (ELRS) on USART3 — matches BEFH-BETAFPVG473 (SERIALRX_UART = USART3).
-  // ER6 signal lead wired to PB11 (RX), 5V/GND from board.
-  static constexpr RCReceiverConfig rc_receiver{PB11, PB10, 420000, 1000, 300};
+  // ER6 signal lead wired to PB11 (RX), 5V/GND from board. Naming USART3 makes
+  // the AF7 routing explicit (PB10/PB11 are unambiguous on G474 but the convention
+  // matches the peripheral-aware migration across SPI/I2C/UART).
+  static constexpr RCReceiverConfig rc_receiver{PB11, PB10, 420000, 1000, 300, USART3};
 
   // ADC: Battery voltage and current monitoring
   static constexpr ADCConfig battery{PA0, PA1, 110, 750};
