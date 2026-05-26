@@ -1,13 +1,13 @@
 /*
  * Auto-generated BoardConfig from Betaflight target config
- * Generated: 2026-03-05 05:04:41
+ * Generated: 2026-05-26 05:20:01
  * Generator: betaflight_target_converter.py
  */
 
 #pragma once
 
 // Include ConfigTypes.h from targets/config directory
-#include "../../../targets/config/ConfigTypes.h"
+#include "config/ConfigTypes.h"
 
 // Board: NERO
 // Manufacturer: BKMN
@@ -15,23 +15,23 @@
 // Gyro: MPU6500
 namespace BoardConfig {
   // Storage: SD card on SPI3
-  static constexpr StorageConfig storage{StorageBackend::SDFS, PC12, PC11, PC10, PA15, 8000000};
+  static constexpr StorageConfig storage{StorageBackend::SDFS, PC12, PC11, PC10, PA15, 8000000, SPI3};
 
   // IMU: MPU6500 on SPI1
-  static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PC4, 8000000};
-  static constexpr IMUConfig imu{imu_spi, PB15, 1000000};
+  static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PC4, 8000000, SPI1};
+  static constexpr IMUConfig imu{imu_spi, PB15, 1000000, IMUAlignment::CW0_DEG};
 
   // I2C1: Environmental sensors
-  static constexpr I2CConfig sensors{PB9, PB8, 400000};
+  static constexpr I2CConfig sensors{PB9, PB8, 400000, I2C1};
 
   // USART1: Serial port
-  static constexpr UARTConfig uart1{PA9, PA10, 115200};
+  static constexpr UARTConfig uart1{PA9, PA10, 115200, USART1};
 
   // USART3: Serial port
-  static constexpr UARTConfig uart3{PB10, PB11, 115200};
+  static constexpr UARTConfig uart3{PB10, PB11, 115200, USART3};
 
   // USART6: Serial port
-  static constexpr UARTConfig uart6{PC6, PC7, 115200};
+  static constexpr UARTConfig uart6{PC6, PC7, 115200, USART6};
 
   // ADC: Battery voltage and current monitoring
   static constexpr ADCConfig battery{PC3, PC2, 110, 170};
@@ -39,8 +39,8 @@ namespace BoardConfig {
   // Status LEDs
   static constexpr LEDConfig status_leds{PB6, PB5};
 
-  // RC Receiver: IBus/SBUS (adjust protocol based on actual wiring)
-  static constexpr RCReceiverConfig rc_receiver{PA10, PA9, 115200, 1000, 300};
+  // RC Receiver: USART1 (default — no SERIALRX_UART in config)
+  static constexpr RCReceiverConfig rc_receiver{PA10, PA9, 115200, 1000, 300, USART1};
 
   // Servo outputs - none configured
   namespace Servo {

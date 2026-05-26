@@ -157,7 +157,7 @@ class BoardConfigGenerator:
 
         lines = [
             f"  // Storage: {comment} on {spi_bus.bus_name}",
-            f"  static constexpr StorageConfig storage{{{backend}, {spi_bus.mosi}, {spi_bus.miso}, {spi_bus.sclk}, {cs_pin}, 8000000}};",
+            f"  static constexpr StorageConfig storage{{{backend}, {spi_bus.mosi}, {spi_bus.miso}, {spi_bus.sclk}, {cs_pin}, 8000000, {spi_bus.bus_name}}};",
             ""
         ]
 
@@ -206,7 +206,7 @@ class BoardConfigGenerator:
 
         lines = [
             f"  // IMU: {chip_comment} on {spi_bus.bus_name}",
-            f"  static constexpr SPIConfig imu_spi{{{spi_bus.mosi}, {spi_bus.miso}, {spi_bus.sclk}, {cs_pin}, 8000000}};",
+            f"  static constexpr SPIConfig imu_spi{{{spi_bus.mosi}, {spi_bus.miso}, {spi_bus.sclk}, {cs_pin}, 8000000, {spi_bus.bus_name}}};",
         ]
         if align_comment:
             lines.append(align_comment)
@@ -242,7 +242,7 @@ class BoardConfigGenerator:
                 usage_desc = "Environmental sensors"
 
             lines.append(f"  // {bus.bus_name}: {usage_desc}")
-            lines.append(f"  static constexpr I2CConfig {var_name}{{{bus.sda}, {bus.scl}, 400000}};")
+            lines.append(f"  static constexpr I2CConfig {var_name}{{{bus.sda}, {bus.scl}, 400000, {bus.bus_name}}};")
             lines.append("")
 
         return "\n".join(lines)
@@ -258,7 +258,7 @@ class BoardConfigGenerator:
             # Determine usage from serial config
             usage = f"UART{uart.uart_num}"
             lines.append(f"  // {uart.uart_name}: Serial port")
-            lines.append(f"  static constexpr UARTConfig uart{uart.uart_num}{{{uart.tx}, {uart.rx}, 115200}};")
+            lines.append(f"  static constexpr UARTConfig uart{uart.uart_num}{{{uart.tx}, {uart.rx}, 115200, {uart.uart_name}}};")
             lines.append("")
 
         return "\n".join(lines)
@@ -327,7 +327,7 @@ class BoardConfigGenerator:
                   "  // RC Receiver: USART1 (default — no SERIALRX_UART in config)"
         lines = [
             comment,
-            f"  static constexpr RCReceiverConfig rc_receiver{{{rx_uart.rx}, {rx_uart.tx}, 115200, 1000, 300}};",
+            f"  static constexpr RCReceiverConfig rc_receiver{{{rx_uart.rx}, {rx_uart.tx}, 115200, 1000, 300, {rx_uart.uart_name}}};",
             ""
         ]
         return "\n".join(lines)

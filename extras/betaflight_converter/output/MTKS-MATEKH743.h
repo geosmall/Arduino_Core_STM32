@@ -1,6 +1,6 @@
 /*
  * Auto-generated BoardConfig from Betaflight target config
- * Generated: 2026-03-15 15:29:56
+ * Generated: 2026-05-26 05:20:01
  * Generator: betaflight_target_converter.py
  */
 
@@ -15,35 +15,35 @@
 // Gyro: MPU6000, MPU6500, ICM42605, ICM42688P
 namespace BoardConfig {
   // IMU: MPU6000, MPU6500, ICM42605, ICM42688P on SPI1
-  static constexpr SPIConfig imu_spi{PD7, PA6, PA5, PC15, 8000000};
-  static constexpr IMUConfig imu{imu_spi, PB2, 1000000};
+  static constexpr SPIConfig imu_spi{PD7, PA6, PA5, PC15, 8000000, SPI1};
+  static constexpr IMUConfig imu{imu_spi, PB2, 1000000, IMUAlignment::CW0_DEG_FLIP};
 
   // I2C1: Airspeed sensor, external compass
-  static constexpr I2CConfig airspeed{PB7, PB6, 400000};
+  static constexpr I2CConfig airspeed{PB7, PB6, 400000, I2C1};
 
   // I2C2: Barometer, compass
-  static constexpr I2CConfig baro{PB11, PB10, 400000};
+  static constexpr I2CConfig baro{PB11, PB10, 400000, I2C2};
 
   // LPUART1: Serial port
-  static constexpr UARTConfig uart1{PA9, PA10, 115200};
+  static constexpr UARTConfig uart1{PA9, PA10, 115200, LPUART1};
 
   // USART2: Serial port
-  static constexpr UARTConfig uart2{PD5, PD6, 115200};
+  static constexpr UARTConfig uart2{PD5, PD6, 115200, USART2};
 
   // USART3: Serial port
-  static constexpr UARTConfig uart3{PD8, PD9, 115200};
+  static constexpr UARTConfig uart3{PD8, PD9, 115200, USART3};
 
   // UART4: Serial port
-  static constexpr UARTConfig uart4{PB9, PB8, 115200};
+  static constexpr UARTConfig uart4{PB9, PB8, 115200, UART4};
 
   // USART6: Serial port
-  static constexpr UARTConfig uart6{PC6, PC7, 115200};
+  static constexpr UARTConfig uart6{PC6, PC7, 115200, USART6};
 
   // UART7: Serial port
-  static constexpr UARTConfig uart7{PE8, PE7, 115200};
+  static constexpr UARTConfig uart7{PE8, PE7, 115200, UART7};
 
   // UART8: Serial port
-  static constexpr UARTConfig uart8{PE1, PE0, 115200};
+  static constexpr UARTConfig uart8{PE1, PE0, 115200, UART8};
 
   // ADC: Battery voltage and current monitoring
   static constexpr ADCConfig battery{PC0, PC1, 110, 250};
@@ -52,7 +52,7 @@ namespace BoardConfig {
   static constexpr LEDConfig status_leds{PE3, PE4};
 
   // RC Receiver: USART6 (from SERIALRX_UART)
-  static constexpr RCReceiverConfig rc_receiver{PC7, PC6, 115200, 1000, 300};
+  static constexpr RCReceiverConfig rc_receiver{PC7, PC6, 115200, 1000, 300, USART6};
 
   // Servo outputs - 50 Hz PWM for standard servos
   namespace Servo {
