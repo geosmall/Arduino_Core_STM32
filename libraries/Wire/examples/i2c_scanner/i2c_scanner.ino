@@ -28,26 +28,23 @@
 
 /* Example pinmap for Bluepill I2Cs (by Testato)
 
- I2C-1 standard pins: PB7(sda) PB6(scl)
- Use it by "Wire" without pin declaration
-  Wire.begin();
+ I2C-1 standard pins: PB7(sda) PB6(scl) — variant default
+ Use the default Wire global, no pin declaration needed:
+   Wire.begin();
 
  I2C-1 alternative pins: PB9(sda) PB8(scl)
- Remap the first I2C before call begin()
-  Wire.setSDA(PB9);
-  Wire.setSCL(PB8);
-  Wire.begin();
+ Create a dedicated TwoWire naming the peripheral instance:
+   TwoWire wire1_alt(I2C1, PB9, PB8);
+   wire1_alt.begin();
 
  I2C-2: PB11(sda) PB10(scl)
- Remap the second I2C before call begin()
-  Wire.setSDA(PB11);
-  Wire.setSCL(PB10);
-  Wire.begin();
+   TwoWire wire2(I2C2, PB11, PB10);
+   wire2.begin();
 
- If you want to use the two I2Cs simultaneously, create a new instance for the second I2C
-  TwoWire Wire2(PB11,PB10);
-  Wire2.begin();
-
+ Naming the *_TypeDef* instance (I2C1, I2C2, ...) is required since the
+ legacy pin-pair ctor and setSDA/setSCL setters were removed — they
+ routed via first-match pinmap walk, which silently misroutes on
+ multi-mapping pins. See doc/PIN_USE.md.
 */
 
 

@@ -77,19 +77,12 @@ class TwoWire : public Stream {
 
   public:
     TwoWire();
-    TwoWire(Pin sda, Pin scl);
+    // Peripheral-aware ctor: caller names the I2C instance explicitly so
+    // multi-mapping pins resolve unambiguously via pinmap_pinout_for_peripheral.
+    // See doc/PIN_USE.md "Peripheral-aware pin resolution".
+    TwoWire(I2C_TypeDef *instance, Pin sda, Pin scl);
     ~TwoWire();
-    // setSCL/SDA have to be called before begin()
-    void setSCL(Pin scl)
-    {
-      _i2c.scl = scl.toPinName();
-    };
-    void setSDA(Pin sda)
-    {
-      _i2c.sda = sda.toPinName();
-    };
     void begin(bool generalCall = false);
-    void begin(Pin sda, Pin scl);
     void begin(uint8_t, bool generalCall = false, bool NoStretchMode = false);
     void begin(int, bool generalCall = false, bool NoStretchMode = false);
     void end();

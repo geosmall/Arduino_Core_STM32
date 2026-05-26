@@ -80,12 +80,14 @@ namespace BoardConfig {
     const uint32_t baud_rate;
   };
 
+  // Aggregate (no user-defined ctor) — see SPIConfig for the rationale.
+  // `instance` disambiguates multi-mapping I2C pins; nullptr preserves
+  // legacy first-match resolution for backward compat.
   struct I2CConfig {
-    constexpr I2CConfig(Pin sda, Pin scl, uint32_t frequency_hz = 100000)
-      : sda_pin(sda), scl_pin(scl), freq_hz(frequency_hz) {}
-
-    const Pin sda_pin, scl_pin;
-    const uint32_t freq_hz;
+    Pin sda_pin;
+    Pin scl_pin;
+    uint32_t freq_hz = 100000;
+    I2C_TypeDef* instance = nullptr;
   };
 
   // Aggregate (no user-defined ctor) — see SPIConfig for the rationale.

@@ -34,6 +34,12 @@ static const uint8_t MASTER_ADDRESS = 0x01;
 
 // Constructors ////////////////////////////////////////////////////////////////
 
+/**
+  * @brief  Default constructor. Uses pin configuration of variant.h.
+  *         The peripheral instance is left null; i2c_custom_init resolves
+  *         it from the variant's PIN_WIRE_* / SDA/SCL defines, which are
+  *         unambiguous on every current target.
+  */
 TwoWire::TwoWire()
 {
   memset((void *)&_i2c, 0, sizeof(_i2c));
@@ -41,9 +47,19 @@ TwoWire::TwoWire()
   _i2c.scl = SCL.toPinName();
 }
 
-TwoWire::TwoWire(Pin sda, Pin scl)
+/**
+  * @brief  Peripheral-aware constructor: caller names the I2C instance.
+  * @param  instance: I2C_TypeDef* (I2C1, I2C2, ...). i2c_custom_init routes
+  *         each pin's GPIO config via pinmap_pinout_for_peripheral against
+  *         this instance, so multi-mapping pins resolve unambiguously.
+  * @param  sda/scl: I2C data/clock pins. Must reach `instance` in
+  *         PinMap_I2C_SDA/SCL under some AF; otherwise i2c_custom_init
+  *         errors via core_debug.
+  */
+TwoWire::TwoWire(I2C_TypeDef *instance, Pin sda, Pin scl)
 {
   memset((void *)&_i2c, 0, sizeof(_i2c));
+  _i2c.i2c = instance;
   _i2c.sda = sda.toPinName();
   _i2c.scl = scl.toPinName();
 }
@@ -58,13 +74,6 @@ TwoWire::~TwoWire()
 }
 
 // Public Methods //////////////////////////////////////////////////////////////
-
-void TwoWire::begin(Pin sda, Pin scl)
-{
-  _i2c.sda = sda.toPinName();
-  _i2c.scl = scl.toPinName();
-  begin();
-}
 
 void TwoWire::begin(bool generalCall)
 {
