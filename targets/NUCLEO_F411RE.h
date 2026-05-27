@@ -10,8 +10,9 @@ namespace BoardConfig {
 
   // IMU: SPI connections via jumpers (reduced speed for reliability)
   // Single frequency for development/testing
+  // Chip alignment: CW0_DEG (bench breadboard, flat mount).
   static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 1000000};
-  static constexpr IMUConfig imu{imu_spi, PC4};
+  static constexpr IMUConfig imu{imu_spi, PC4, 1000000, IMUAlignment::CW0_DEG};
 
   // GPS: UART communication
   static constexpr UARTConfig gps{PA9, PA10, 115200};

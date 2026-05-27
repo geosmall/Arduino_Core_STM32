@@ -15,6 +15,9 @@ SPIClass SPI;
 
 /**
   * @brief  Default constructor. Uses pin configuration of variant.h.
+  *         The peripheral instance is left null; spi_init resolves it from
+  *         the variant's PIN_SPI_* defines, which are unambiguous on every
+  *         current target.
   */
 SPIClass::SPIClass()
 {
@@ -25,22 +28,20 @@ SPIClass::SPIClass()
 }
 
 /**
-  * @brief  Constructor to create another SPI instance attached to another SPI
-  *         peripheral different of the default SPI. All pins must be attached to
-  *         the same SPI peripheral. See datasheet of the microcontroller.
-  * @param  mosi: SPI mosi pin.
-  * @param  miso: SPI miso pin.
-  * @param  sclk: SPI clock pin.
-  * @param  ssel: SPI ssel pin (optional). By default is set to NC_PIN.
-  *         This pin must correspond to a hardware CS pin which can be managed
-  *         by the SPI peripheral itself. See the datasheet of the microcontroller
-  *         or look at PinMap_SPI_SSEL[] inside the file PeripheralPins.c
-  *         corresponding to the board. If you configure this pin you can't use
-  *         another CS pin and don't pass a CS pin as parameter to any functions
-  *         of the class.
+  * @brief  Peripheral-aware constructor: caller names the SPI instance.
+  * @param  instance: SPI_TypeDef* (SPI1, SPI2, SPI3, ...). spi_init routes
+  *         each pin's GPIO config via pinmap_pinout_for_peripheral against
+  *         this instance, so multi-mapping pins resolve unambiguously.
+  * @param  mosi/miso/sclk: SPI data/clock pins. Must all reach `instance`
+  *         in PinMap_SPI_MOSI/MISO/SCLK under some AF; otherwise spi_init
+  *         errors out via core_debug.
+  * @param  ssel: optional hardware-NSS pin (NC_PIN to disable). Must reach
+  *         `instance` in PinMap_SPI_SSEL when supplied.
   */
-SPIClass::SPIClass(Pin mosi, Pin miso, Pin sclk, Pin ssel)
+SPIClass::SPIClass(SPI_TypeDef *instance, Pin mosi, Pin miso, Pin sclk,
+                   Pin ssel)
 {
+  _spi.spi      = instance;
   _spi.pin_miso = miso.toPinName();
   _spi.pin_mosi = mosi.toPinName();
   _spi.pin_sclk = sclk.toPinName();

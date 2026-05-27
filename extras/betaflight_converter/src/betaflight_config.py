@@ -346,13 +346,13 @@ class BetaflightConfig:
             self.settings['blackbox_device'] = device_map.get(device, device)
             return
 
-        # Gyro alignment
+        # Gyro alignment — preserve full Betaflight identifier so all 8
+        # cardinal orientations (CW{0,90,180,270}_DEG and _FLIP variants)
+        # survive end-to-end and match IMUAlignment enum names verbatim.
         match = Patterns.GYRO_ALIGN.match(line)
         if match:
             gyro_num = match.group(1)
             align = match.group(2)
-            # Strip _DEG suffix for compatibility
-            align = align.replace('_DEG', '').replace('_FLIP', '')
             self.settings[f'gyro_{gyro_num}_sensor_align'] = align
             return
 

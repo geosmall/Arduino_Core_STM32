@@ -17,8 +17,9 @@ namespace BoardConfig {
   //                                                              MOSI  MISO  SCLK  CS   Freq
 
   // IMU: MPU-6000 on SPI1 (1 MHz for breadboard), interrupt on PB3
+  // Chip alignment: CW0_DEG (bench breadboard, flat mount).
   static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 1000000};
-  static constexpr IMUConfig imu{imu_spi, PB3};
+  static constexpr IMUConfig imu{imu_spi, PB3, 1000000, IMUAlignment::CW0_DEG};
 
   // I2C1: DPS310 barometer and other sensors
   static constexpr I2CConfig sensors{PB9, PB8, 400000};

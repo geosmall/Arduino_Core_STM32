@@ -655,21 +655,37 @@ void i2c_custom_init(i2c_t *obj, uint32_t timing, uint32_t addressingMode, uint3
 
     I2C_HandleTypeDef *handle = &(obj->handle);
 
-    // Determine the I2C to use
-    I2C_TypeDef *i2c_sda = pinmap_peripheral(obj->sda, PinMap_I2C_SDA);
-    I2C_TypeDef *i2c_scl = pinmap_peripheral(obj->scl, PinMap_I2C_SCL);
+    /*
+     * Determine the I2C instance.
+     *
+     * Two paths (mirrors spi_init in spi_com.c):
+     *   1. Caller supplied an explicit instance (peripheral-aware ctor).
+     *      Trust it; per-pin GPIO config below routes via
+     *      pinmap_pinout_for_peripheral against this instance, so
+     *      multi-mapping pins resolve unambiguously.
+     *   2. Caller did not (default-global Wire path, no-arg ctor).
+     *      Walk the pinmap and merge — works because the variant's
+     *      SDA/SCL defines are unambiguous on every current target.
+     */
+    if (obj->i2c == NULL) {
+      I2C_TypeDef *i2c_sda = pinmap_peripheral(obj->sda, PinMap_I2C_SDA);
+      I2C_TypeDef *i2c_scl = pinmap_peripheral(obj->scl, PinMap_I2C_SCL);
 
-    //Pins SDA/SCL must not be NP
-    if (i2c_sda == NP || i2c_scl == NP) {
-      core_debug("ERROR: at least one I2C pin has no peripheral\n");
-    } else {
+      // Pins SDA/SCL must not be NP
+      if (i2c_sda == NP || i2c_scl == NP) {
+        core_debug("ERROR: at least one I2C pin has no peripheral\n");
+        return;
+      }
 
       obj->i2c = pinmap_merge_peripheral(i2c_sda, i2c_scl);
 
       if (obj->i2c == NP) {
         core_debug("ERROR: I2C pins mismatch\n");
+        return;
+      }
+    }
 
-      } else {
+    {
 
 #if defined I2C1_BASE
         // Enable I2C1 clock if not done
@@ -787,7 +803,6 @@ void i2c_custom_init(i2c_t *obj, uint32_t timing, uint32_t addressingMode, uint3
         /* Initialize default values */
         obj->slaveRxNbData = 0;
         obj->slaveMode = SLAVE_MODE_LISTEN;
-      }
     }
   }
 }

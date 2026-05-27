@@ -1,13 +1,13 @@
 /*
  * Auto-generated BoardConfig from Betaflight target config
- * Generated: 2026-03-05 05:04:41
+ * Generated: 2026-05-26 05:20:01
  * Generator: betaflight_target_converter.py
  */
 
 #pragma once
 
 // Include ConfigTypes.h from targets/config directory
-#include "../../../targets/config/ConfigTypes.h"
+#include "config/ConfigTypes.h"
 
 // Board: BLACKPILL_F411CE
 // Manufacturer: WACT
@@ -15,20 +15,20 @@
 // Gyro: MPU9250
 namespace BoardConfig {
   // Storage: W25Q128FV SPI flash on SPI1
-  static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PA7, PA6, PA5, PA4, 8000000};
+  static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PA7, PA6, PA5, PA4, 8000000, SPI1};
 
   // IMU: MPU9250 on SPI2
-  static constexpr SPIConfig imu_spi{PB15, PB14, PB13, PB12, 8000000};
-  static constexpr IMUConfig imu{imu_spi, PB2, 1000000};
+  static constexpr SPIConfig imu_spi{PB15, PB14, PB13, PB12, 8000000, SPI2};
+  static constexpr IMUConfig imu{imu_spi, PB2, 1000000, IMUAlignment::CW0_DEG};
 
   // I2C1: Environmental sensors
-  static constexpr I2CConfig sensors{PB9, PB8, 400000};
+  static constexpr I2CConfig sensors{PB9, PB8, 400000, I2C1};
 
   // USART1: Serial port
-  static constexpr UARTConfig uart1{PA9, PA10, 115200};
+  static constexpr UARTConfig uart1{PA9, PA10, 115200, USART1};
 
   // USART2: Serial port
-  static constexpr UARTConfig uart2{PA2, PA3, 115200};
+  static constexpr UARTConfig uart2{PA2, PA3, 115200, USART2};
 
   // ADC: Battery voltage and current monitoring
   static constexpr ADCConfig battery{PA1, PA0, 110, 170};
@@ -36,8 +36,8 @@ namespace BoardConfig {
   // Status LEDs
   static constexpr LEDConfig status_leds{PC13};
 
-  // RC Receiver: IBus/SBUS (adjust protocol based on actual wiring)
-  static constexpr RCReceiverConfig rc_receiver{PA10, PA9, 115200, 1000, 300};
+  // RC Receiver: USART1 (default — no SERIALRX_UART in config)
+  static constexpr RCReceiverConfig rc_receiver{PA10, PA9, 115200, 1000, 300, USART1};
 
   // Servo outputs - 50 Hz PWM for standard servos
   namespace Servo {

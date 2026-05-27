@@ -157,7 +157,7 @@ class BoardConfigGenerator:
 
         lines = [
             f"  // Storage: {comment} on {spi_bus.bus_name}",
-            f"  static constexpr StorageConfig storage{{{backend}, {spi_bus.mosi}, {spi_bus.miso}, {spi_bus.sclk}, {cs_pin}, 8000000}};",
+            f"  static constexpr StorageConfig storage{{{backend}, {spi_bus.mosi}, {spi_bus.miso}, {spi_bus.sclk}, {cs_pin}, 8000000, {spi_bus.bus_name}}};",
             ""
         ]
 
@@ -187,12 +187,33 @@ class BoardConfigGenerator:
         chips = self.bf_config.get_gyro_chips()
         chip_comment = ", ".join(chips) if chips else "IMU"
 
+        # Chip-to-board alignment from GYRO_1_ALIGN. Default to CW0_DEG when the
+        # source config doesn't specify one. Values come straight from the parser
+        # and match IMUAlignment enum names; unknown/non-cardinal values (e.g.
+        # Betaflight's ALIGN_CUSTOM) fall back to CW0_DEG with a TODO comment.
+        VALID_ALIGNMENTS = {
+            'CW0_DEG', 'CW90_DEG', 'CW180_DEG', 'CW270_DEG',
+            'CW0_DEG_FLIP', 'CW90_DEG_FLIP', 'CW180_DEG_FLIP', 'CW270_DEG_FLIP',
+        }
+        raw_align = self.bf_config.settings.get('gyro_1_sensor_align', 'CW0_DEG')
+        if raw_align in VALID_ALIGNMENTS:
+            align_token = f"IMUAlignment::{raw_align}"
+            align_comment = None
+        else:
+            align_token = "IMUAlignment::CW0_DEG"
+            align_comment = (f"  // TODO: GYRO_1_ALIGN={raw_align} is not a "
+                             "cardinal orientation; review against IMUAlignment enum.")
+
         lines = [
             f"  // IMU: {chip_comment} on {spi_bus.bus_name}",
-            f"  static constexpr SPIConfig imu_spi{{{spi_bus.mosi}, {spi_bus.miso}, {spi_bus.sclk}, {cs_pin}, 8000000}};",
-            f"  static constexpr IMUConfig imu{{imu_spi, {int_pin}, 1000000}};",
-            ""
+            f"  static constexpr SPIConfig imu_spi{{{spi_bus.mosi}, {spi_bus.miso}, {spi_bus.sclk}, {cs_pin}, 8000000, {spi_bus.bus_name}}};",
         ]
+        if align_comment:
+            lines.append(align_comment)
+        lines.append(
+            f"  static constexpr IMUConfig imu{{imu_spi, {int_pin}, 1000000, {align_token}}};"
+        )
+        lines.append("")
 
         return "\n".join(lines)
 
@@ -221,7 +242,7 @@ class BoardConfigGenerator:
                 usage_desc = "Environmental sensors"
 
             lines.append(f"  // {bus.bus_name}: {usage_desc}")
-            lines.append(f"  static constexpr I2CConfig {var_name}{{{bus.sda}, {bus.scl}, 400000}};")
+            lines.append(f"  static constexpr I2CConfig {var_name}{{{bus.sda}, {bus.scl}, 400000, {bus.bus_name}}};")
             lines.append("")
 
         return "\n".join(lines)
@@ -237,7 +258,7 @@ class BoardConfigGenerator:
             # Determine usage from serial config
             usage = f"UART{uart.uart_num}"
             lines.append(f"  // {uart.uart_name}: Serial port")
-            lines.append(f"  static constexpr UARTConfig uart{uart.uart_num}{{{uart.tx}, {uart.rx}, 115200}};")
+            lines.append(f"  static constexpr UARTConfig uart{uart.uart_num}{{{uart.tx}, {uart.rx}, 115200, {uart.uart_name}}};")
             lines.append("")
 
         return "\n".join(lines)
@@ -306,7 +327,7 @@ class BoardConfigGenerator:
                   "  // RC Receiver: USART1 (default — no SERIALRX_UART in config)"
         lines = [
             comment,
-            f"  static constexpr RCReceiverConfig rc_receiver{{{rx_uart.rx}, {rx_uart.tx}, 115200, 1000, 300}};",
+            f"  static constexpr RCReceiverConfig rc_receiver{{{rx_uart.rx}, {rx_uart.tx}, 115200, 1000, 300, {rx_uart.uart_name}}};",
             ""
         ]
         return "\n".join(lines)

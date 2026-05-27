@@ -134,8 +134,8 @@ class TestBetaflightConfig(unittest.TestCase):
         self.assertEqual(self.config.settings['ibata_scale'], '170')
 
     def test_gyro_align_setting(self):
-        """Test GYRO_1_ALIGN → settings mapping."""
-        self.assertEqual(self.config.settings['gyro_1_sensor_align'], 'CW180')
+        """Test GYRO_1_ALIGN → settings mapping (full identifier preserved)."""
+        self.assertEqual(self.config.settings['gyro_1_sensor_align'], 'CW180_DEG')
 
     def test_pin_format_identity(self):
         """Test convert_pin_format is identity (pins already Arduino format)."""
@@ -181,6 +181,24 @@ class TestBetaflightConfig(unittest.TestCase):
         config_path = Path(__file__).parent.parent / "bf_configs/JHEF411"
         config = BetaflightConfig(config_path)
         self.assertEqual(config.board_name, "JHEF411")
+
+
+class TestGyroAlignFlipPreservation(unittest.TestCase):
+    """MATEKH743 has CW0_DEG_FLIP + CW90_DEG_FLIP — the previous lossy parse
+    stripped both _DEG and _FLIP and would have mangled these to 'CW0' and
+    'CW90', silently dropping the FLIP information needed to reconstruct
+    the chip-to-board rotation."""
+
+    @classmethod
+    def setUpClass(cls):
+        config_path = Path(__file__).parent.parent / "bf_configs/MATEKH743"
+        cls.config = BetaflightConfig(config_path)
+
+    def test_gyro_1_align_flip_preserved(self):
+        self.assertEqual(self.config.settings['gyro_1_sensor_align'], 'CW0_DEG_FLIP')
+
+    def test_gyro_2_align_flip_preserved(self):
+        self.assertEqual(self.config.settings['gyro_2_sensor_align'], 'CW90_DEG_FLIP')
 
 
 class TestTimerResolution(unittest.TestCase):

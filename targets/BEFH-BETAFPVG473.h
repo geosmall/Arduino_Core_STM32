@@ -19,12 +19,15 @@
 // MCU: STM32G47X
 // Gyro: ICM42688P
 namespace BoardConfig {
-  // Storage: W25Q128FV SPI flash on SPI3
-  static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PB5, PB4, PB3, PB9, 8000000};
+  // Storage: W25Q128FV SPI flash on SPI3 (PB3/4/5 also carry SPI1+AF5 entries
+  // in PinMap_SPI_*; naming SPI3 makes the AF6 routing explicit).
+  static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PB5, PB4, PB3, PB9, 8000000, SPI3};
 
   // IMU: ICM42688P on SPI1
+  // Chip alignment from Betaflight GYRO_1_ALIGN CW180_DEG
+  // (bf_configs/BETAFPVG473/config.h:109).
   static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 8000000};
-  static constexpr IMUConfig imu{imu_spi, PC4, 1000000};
+  static constexpr IMUConfig imu{imu_spi, PC4, 1000000, IMUAlignment::CW180_DEG};
 
   // I2C1: Environmental sensors
   static constexpr I2CConfig sensors{PB7, PA15, 400000};
@@ -47,8 +50,9 @@ namespace BoardConfig {
   // Status LEDs
   static constexpr LEDConfig status_leds{PC15, PC14};
 
-  // RC Receiver: IBus/SBUS (adjust protocol based on actual wiring)
-  static constexpr RCReceiverConfig rc_receiver{PB11, PB10, 115200, 1000, 300};
+  // RC Receiver on USART3 (SERIALRX_UART). Naming USART3 makes the AF7 routing
+  // explicit even though PB11/PB10 are unambiguous on this MCU.
+  static constexpr RCReceiverConfig rc_receiver{PB11, PB10, 115200, 1000, 300, USART3};
 
   // Servo outputs - none configured
   namespace Servo {

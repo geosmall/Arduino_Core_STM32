@@ -3,6 +3,15 @@
 #include <SPI.h>
 #include "LittleFS.h"
 
+// Board configuration — peripheral-aware SPI bus selection
+#if defined(ARDUINO_BLACKPILL_F411CE)
+#include "targets/BLACKPILL_F411CE.h"
+#elif defined(ARDUINO_WEACT_G474CE)
+#include "targets/WEACT_G474_HIL007.h"
+#else
+#include "targets/NUCLEO_F411RE_HIL001.h"
+#endif
+
 /** Uncomment to erase W25QXX chip */
 // #define ERASE_CHIP
 
@@ -11,15 +20,11 @@ void Local_Error_Handler()
     asm("BKPT #0\n"); // break into the debugger
 }
 
-#if defined(ARDUINO_BLACKPILL_F411CE)
-//              MOSI  MISO  SCLK
-SPIClass SPIbus(PA7,  PA6,  PA5);
-#define CS_PIN PA4
-#else
-//              MOSI  MISO  SCLK
-SPIClass SPIbus(PC12, PC11, PC10);
-#define CS_PIN PD2
-#endif
+SPIClass SPIbus(BoardConfig::storage.instance,
+                BoardConfig::storage.mosi_pin,
+                BoardConfig::storage.miso_pin,
+                BoardConfig::storage.sclk_pin);
+#define CS_PIN BoardConfig::storage.cs_pin
 
 LittleFS_SPIFlash myfs;
 

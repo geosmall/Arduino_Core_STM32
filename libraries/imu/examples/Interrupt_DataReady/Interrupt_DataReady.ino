@@ -23,7 +23,8 @@
 #endif
 
 // Create SPI instance using BoardConfig (software CS control)
-SPIClass spi_bus(BoardConfig::imu.spi.mosi_pin,
+SPIClass spi_bus(BoardConfig::imu.spi.instance,
+                 BoardConfig::imu.spi.mosi_pin,
                  BoardConfig::imu.spi.miso_pin,
                  BoardConfig::imu.spi.sclk_pin,
                  BoardConfig::imu.spi.get_ssel_pin());

@@ -192,27 +192,41 @@ void spi_init(spi_t *obj, uint32_t speed, SPIMode mode, uint8_t msb)
   uint32_t spi_freq = 0;
   uint32_t pull = 0;
 
-  // Determine the SPI to use
-  SPI_TypeDef *spi_mosi = pinmap_peripheral(obj->pin_mosi, PinMap_SPI_MOSI);
-  SPI_TypeDef *spi_miso = pinmap_peripheral(obj->pin_miso, PinMap_SPI_MISO);
-  SPI_TypeDef *spi_sclk = pinmap_peripheral(obj->pin_sclk, PinMap_SPI_SCLK);
-  SPI_TypeDef *spi_ssel = pinmap_peripheral(obj->pin_ssel, PinMap_SPI_SSEL);
+  /*
+   * Determine the SPI instance.
+   *
+   * Two paths:
+   *   1. Caller supplied an explicit instance (peripheral-aware ctor).
+   *      Trust it; per-pin GPIO config below routes via
+   *      pinmap_pinout_for_peripheral against this instance, so
+   *      multi-mapping pins (e.g. G473 PB3/4/5 with SPI1+AF5 *and*
+   *      SPI3+AF6 entries) resolve unambiguously.
+   *   2. Caller did not (default-global SPI path, no-arg ctor).
+   *      Walk the pinmap and merge — works because variant PIN_SPI_*
+   *      defines are unambiguous on every current target.
+   */
+  if (obj->spi == NULL) {
+    SPI_TypeDef *spi_mosi = pinmap_peripheral(obj->pin_mosi, PinMap_SPI_MOSI);
+    SPI_TypeDef *spi_miso = pinmap_peripheral(obj->pin_miso, PinMap_SPI_MISO);
+    SPI_TypeDef *spi_sclk = pinmap_peripheral(obj->pin_sclk, PinMap_SPI_SCLK);
+    SPI_TypeDef *spi_ssel = pinmap_peripheral(obj->pin_ssel, PinMap_SPI_SSEL);
 
-  /* Pins MOSI/MISO/SCLK must not be NP. ssel can be NP. */
-  if (spi_mosi == NP || spi_miso == NP || spi_sclk == NP) {
-    core_debug("ERROR: at least one SPI pin has no peripheral\n");
-    return;
-  }
+    /* Pins MOSI/MISO/SCLK must not be NP. ssel can be NP. */
+    if (spi_mosi == NP || spi_miso == NP || spi_sclk == NP) {
+      core_debug("ERROR: at least one SPI pin has no peripheral\n");
+      return;
+    }
 
-  SPI_TypeDef *spi_data = pinmap_merge_peripheral(spi_mosi, spi_miso);
-  SPI_TypeDef *spi_cntl = pinmap_merge_peripheral(spi_sclk, spi_ssel);
+    SPI_TypeDef *spi_data = pinmap_merge_peripheral(spi_mosi, spi_miso);
+    SPI_TypeDef *spi_cntl = pinmap_merge_peripheral(spi_sclk, spi_ssel);
 
-  obj->spi = pinmap_merge_peripheral(spi_data, spi_cntl);
+    obj->spi = pinmap_merge_peripheral(spi_data, spi_cntl);
 
-  // Are all pins connected to the same SPI instance?
-  if (spi_data == NP || spi_cntl == NP || obj->spi == NP) {
-    core_debug("ERROR: SPI pins mismatch\n");
-    return;
+    // Are all pins connected to the same SPI instance?
+    if (spi_data == NP || spi_cntl == NP || obj->spi == NP) {
+      core_debug("ERROR: SPI pins mismatch\n");
+      return;
+    }
   }
 
   // Configure the SPI pins

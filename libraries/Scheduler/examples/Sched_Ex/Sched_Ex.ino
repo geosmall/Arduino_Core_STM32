@@ -36,8 +36,9 @@
 #define IMU_CS_PIN      BoardConfig::imu.spi.cs_pin
 #define IMU_SPI_FREQ    BoardConfig::imu.spi.freq_hz
 
-// RC Receiver: IBus on USART1 (Serial1)
-HardwareSerial Serial1(PB7, PB6);  // RX, TX for USART1
+// RC Receiver: IBus on USART1 (Serial1) — overrides variant's default Serial1
+// pins with the IBus-receiver pinout on HIL-005 (PB7=RX, PB6=TX).
+HardwareSerial Serial1(USART1, PB7, PB6);
 #define RC_SERIAL       Serial1
 #define RC_BAUDRATE     BoardConfig::rc_receiver.baud_rate
 #define RC_TIMEOUT_MS   BoardConfig::rc_receiver.timeout_ms

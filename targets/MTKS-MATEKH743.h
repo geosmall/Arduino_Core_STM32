@@ -23,8 +23,12 @@ namespace BoardConfig {
   static constexpr StorageConfig storage{StorageBackend::NONE, NC_PIN, NC_PIN, NC_PIN, NC_PIN};
 
   // IMU: MPU6500, MPU6000, ICM42688P, ICM42605 on SPI1
+  // Chip alignment from Betaflight GYRO_1_ALIGN CW0_DEG_FLIP
+  // (bf_configs/MATEKH743/config.h:160). _FLIP means the chip is mounted
+  // Z-axis inverted relative to the airframe — code that assumes CW0_DEG
+  // would read gravity vector upside-down.
   static constexpr SPIConfig imu_spi{PD7, PA6, PA5, PC15, 8000000};
-  static constexpr IMUConfig imu{imu_spi, PB2, 1000000};
+  static constexpr IMUConfig imu{imu_spi, PB2, 1000000, IMUAlignment::CW0_DEG_FLIP};
 
   // I2C1: Airspeed sensor, external compass
   static constexpr I2CConfig airspeed{PB7, PB6, 400000};

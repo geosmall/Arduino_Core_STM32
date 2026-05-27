@@ -3,6 +3,7 @@ Tests for BoardConfig code generator.
 """
 
 import unittest
+import tempfile
 from pathlib import Path
 import sys
 import re
@@ -55,8 +56,8 @@ class TestCodeGenerator(unittest.TestCase):
         # Should have header guard
         self.assertIn("#pragma once", code)
 
-        # Should include ConfigTypes (with relative path)
-        self.assertIn('#include "../../../targets/config/ConfigTypes.h"', code)
+        # Should include ConfigTypes (resolved via targets/ on include path)
+        self.assertIn('#include "config/ConfigTypes.h"', code)
 
         # Should have namespace
         self.assertIn("namespace BoardConfig {", code)
@@ -90,6 +91,13 @@ class TestCodeGenerator(unittest.TestCase):
         # Should have CS pin (PB2)
         self.assertIn("PB2", code)
 
+        # Must carry the SPI instance literal as the final field — this is what
+        # disambiguates multi-mapping pins post Pin refactor. Bare pin in pin
+        # slots, SPI<n> at the end.
+        match = re.search(r"StorageConfig storage\{[^}]+,\s*(SPI\d+)\s*\}", code)
+        self.assertIsNotNone(match, "StorageConfig must emit SPI_TypeDef* instance literal")
+        self.assertEqual(match.group(1), "SPI2")
+
     def test_generate_imu(self):
         """Test IMU config generation."""
         code = self.generator.generate()
@@ -109,6 +117,23 @@ class TestCodeGenerator(unittest.TestCase):
         # Should have interrupt pin (PB3)
         self.assertIn("PB3", code)
 
+        # IMU SPIConfig must carry the SPI instance literal as the final field.
+        match = re.search(r"SPIConfig imu_spi\{[^}]+,\s*(SPI\d+)\s*\}", code)
+        self.assertIsNotNone(match, "SPIConfig imu_spi must emit SPI_TypeDef* instance literal")
+        self.assertEqual(match.group(1), "SPI1")
+
+    def test_generate_imu_alignment(self):
+        """JHEF411 has GYRO_1_ALIGN CW180_DEG — must appear as 4th IMUConfig arg."""
+        code = self.generator.generate()
+        self.assertIn("IMUAlignment::CW180_DEG", code)
+        # And the 4th-arg position specifically
+        match = re.search(
+            r"IMUConfig imu\{imu_spi,\s*\w+,\s*\d+,\s*IMUAlignment::(\w+)\}",
+            code,
+        )
+        self.assertIsNotNone(match, "IMUConfig must emit 4 positional args incl. alignment")
+        self.assertEqual(match.group(1), "CW180_DEG")
+
     def test_generate_i2c(self):
         """Test I2C config generation."""
         code = self.generator.generate()
@@ -119,6 +144,11 @@ class TestCodeGenerator(unittest.TestCase):
         # Should have I2C1 pins (PB8, PB9)
         self.assertIn("PB8", code)
         self.assertIn("PB9", code)
+
+        # I2CConfig must carry the I2C_TypeDef* instance literal at the end.
+        match = re.search(r"I2CConfig sensors\{[^}]+,\s*(I2C\d+)\s*\}", code)
+        self.assertIsNotNone(match, "I2CConfig must emit I2C_TypeDef* instance literal")
+        self.assertEqual(match.group(1), "I2C1")
 
     def test_generate_uarts(self):
         """Test UART config generation."""
@@ -135,6 +165,14 @@ class TestCodeGenerator(unittest.TestCase):
         # UART2: PA2/PA3
         self.assertIn("PA2", code)
         self.assertIn("PA3", code)
+
+        # Each UARTConfig must carry the USART_TypeDef* instance literal.
+        u1 = re.search(r"UARTConfig uart1\{[^}]+,\s*(\w+)\s*\}", code)
+        u2 = re.search(r"UARTConfig uart2\{[^}]+,\s*(\w+)\s*\}", code)
+        self.assertIsNotNone(u1)
+        self.assertIsNotNone(u2)
+        self.assertEqual(u1.group(1), "USART1")
+        self.assertEqual(u2.group(1), "USART2")
 
     def test_generate_adc(self):
         """Test ADC config generation."""
@@ -155,9 +193,9 @@ class TestCodeGenerator(unittest.TestCase):
         self.assertIn("namespace Motor {", code)
         self.assertIn("frequency_hz", code)
 
-        # Should have motor array structure
-        self.assertIn("struct MotorConfig", code)
-        self.assertIn("motors[]", code)
+        # Should have motor array declaration (the emitter inlines the struct
+        # type from ConfigTypes.h, doesn't redeclare it)
+        self.assertIn("MotorConfig motors[]", code)
         self.assertIn("num_motors", code)
 
         # Should have correct timer references
@@ -190,6 +228,34 @@ class TestCodeGenerator(unittest.TestCase):
         self.assertIn("frequency_hz = 2000", code)
         self.assertIn("ONESHOT125 protocol", code)
         self.assertIn("125, 250", code)  # OneShot125 pulse range
+
+    def test_rc_receiver_carries_uart_instance(self):
+        """RCReceiverConfig must carry the USART_TypeDef* instance literal.
+
+        JHEF411 has no SERIALRX_UART in config → defaults to USART1.
+        """
+        code = self.generator.generate()
+        match = re.search(r"RCReceiverConfig rc_receiver\{[^}]+,\s*(\w+)\s*\}", code)
+        self.assertIsNotNone(match, "RCReceiverConfig must emit USART_TypeDef* instance literal")
+        self.assertEqual(match.group(1), "USART1")
+
+    def test_no_alt_in_spi_i2c_uart_emissions(self):
+        """SPI/Storage/I2C/UART/RC receiver lines must not carry _ALT suffixes.
+
+        Pin disambiguation now flows through the *_TypeDef* instance literal.
+        Emitted lines like 'StorageConfig{..., PB5_ALT1, ...}' would not compile
+        against the Pin type (Arduino_Core_STM32/doc/PIN_USE.md). Motor lines
+        keep their _ALT pin syntax — that's TimerPWM's already-migrated
+        peripheral-aware path, not in PR 1's scope.
+        """
+        code = self.generator.generate()
+        for line in code.split('\n'):
+            if any(tag in line for tag in (
+                'StorageConfig', 'SPIConfig', 'I2CConfig',
+                'UARTConfig', 'RCReceiverConfig',
+            )):
+                self.assertNotIn('_ALT', line,
+                                 f"Found _ALT suffix in non-motor emission: {line}")
 
     def test_valid_cpp_syntax(self):
         """Test generated code has valid C++ syntax."""
@@ -235,13 +301,15 @@ class TestCodeGenerator(unittest.TestCase):
         self.assertIn("frequency_hz = 50", code)
 
         # Should have servo array structure
-        self.assertIn("struct ServoConfig", code)
+        self.assertIn("ServoConfig servos[]", code)
         self.assertIn("servos[]", code)
         self.assertIn("num_servos", code)
 
     def test_save_to_file(self):
         """Test saving generated code to file."""
-        output_path = Path("/tmp/test_generated_JHEF411.h")
+        # tempfile.gettempdir() honors $TMPDIR; /tmp is not always writable
+        # (e.g. when running under a sandbox that allowlists $TMPDIR only).
+        output_path = Path(tempfile.gettempdir()) / "test_generated_JHEF411.h"
 
         # Generate and save
         self.generator.save(output_path)

@@ -203,6 +203,37 @@ class TestPeripheralPinMap(unittest.TestCase):
         self.assertTrue(self.pinmap.validate_uart(uart2_pins, "USART2"),
                         "JHEF411 UART2 should validate")
 
+    def test_get_pin_for_spi_bus_returns_bare_pin(self):
+        """get_pin_for_spi_bus must never emit an _ALT suffix.
+
+        Pin disambiguation is the caller's job via an SPI_TypeDef* instance
+        handed to the SPI driver. The Pin type intentionally has no ALT bits
+        (Arduino_Core_STM32/doc/PIN_USE.md), so any emitted PB5_ALT1 in
+        generated headers would produce uncompilable code.
+
+        F411 carries the canonical multi-mapping case: PB_5 → SPI1 AND
+        PB_5_ALT1 → SPI3 in PinMap_SPI_MOSI. Both must resolve to the BARE
+        "PB5" pin literal here — the SPI instance is what disambiguates.
+        """
+        # Single-mapping case: pin returned unchanged.
+        pin = self.pinmap.get_pin_for_spi_bus("PA7", "MOSI", "SPI1")
+        self.assertEqual(pin, "PA7")
+
+        # Multi-mapping case, first-match (PB_5 → SPI1): bare pin.
+        pin = self.pinmap.get_pin_for_spi_bus("PB5", "MOSI", "SPI1")
+        self.assertEqual(pin, "PB5")
+        self.assertNotIn("_ALT", pin)
+
+        # Multi-mapping case, alternate (PB_5_ALT1 → SPI3): still bare pin,
+        # never "PB5_ALT1". This is the bit that blew up the old emitter.
+        pin = self.pinmap.get_pin_for_spi_bus("PB5", "MOSI", "SPI3")
+        self.assertEqual(pin, "PB5")
+        self.assertNotIn("_ALT", pin)
+
+        # Non-existent mapping: returns None.
+        pin = self.pinmap.get_pin_for_spi_bus("PA7", "MOSI", "SPI99")
+        self.assertIsNone(pin)
+
 
 if __name__ == '__main__':
     unittest.main()

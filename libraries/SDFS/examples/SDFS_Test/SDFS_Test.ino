@@ -28,9 +28,15 @@ extern "C" void putchar_(char c) {
 
 // Hardware configuration - BoardConfig integration
 #define CS_PIN BoardConfig::storage.cs_pin
-#define SPI_MOSI BoardConfig::storage.mosi_pin
-#define SPI_MISO BoardConfig::storage.miso_pin
-#define SPI_SCLK BoardConfig::storage.sclk_pin
+
+// Dedicated peripheral-aware SPI bus for the SD card. Naming the
+// instance avoids the silent first-match contention the legacy
+// SPI.setMOSI/setMISO/setSCLK path was vulnerable to on multi-mapping
+// pins. Passed to sdfs.begin() below.
+SPIClass spi_sd(BoardConfig::storage.instance,
+                BoardConfig::storage.mosi_pin,
+                BoardConfig::storage.miso_pin,
+                BoardConfig::storage.sclk_pin);
 
 // Create SDFS instance
 SDFS_SPI sdfs;
@@ -44,14 +50,9 @@ void setup() {
   Serial.println("=========================");
   Serial.println("Mode: Arduino IDE (manual)");
 
-  // Configure SPI pins
-  SPI.setMOSI(SPI_MOSI);
-  SPI.setMISO(SPI_MISO);
-  SPI.setSCLK(SPI_SCLK);
-
-  // Initialize SDFS
+  // Initialize SDFS on the dedicated peripheral-aware SPI bus.
   Serial.print("Initializing SD card...");
-  if (sdfs.begin(CS_PIN)) {
+  if (sdfs.begin(CS_PIN, spi_sd)) {
     Serial.println(" SUCCESS");
 
     // Display card information

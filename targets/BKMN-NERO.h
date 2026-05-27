@@ -23,8 +23,10 @@ namespace BoardConfig {
   static constexpr StorageConfig storage{StorageBackend::SDFS, PC12, PC11, PC10, PA15, 8000000};
 
   // IMU: ICM20602 on SPI1
+  // Chip alignment: CW0_DEG (NERO bf_config doesn't declare
+  // GYRO_1_ALIGN — Betaflight's implicit default applies).
   static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PC4, 8000000};
-  static constexpr IMUConfig imu{imu_spi, PB2, 1000000};
+  static constexpr IMUConfig imu{imu_spi, PB2, 1000000, IMUAlignment::CW0_DEG};
 
   // I2C1: Environmental sensors
   static constexpr I2CConfig sensors{PB9, PB8, 400000};

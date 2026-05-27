@@ -1,6 +1,6 @@
 /*
  * Auto-generated BoardConfig from Betaflight target config
- * Generated: 2026-03-15 15:29:52
+ * Generated: 2026-05-26 05:20:01
  * Generator: betaflight_target_converter.py
  */
 
@@ -15,26 +15,26 @@
 // Gyro: ICM42688P
 namespace BoardConfig {
   // Storage: W25Q128FV SPI flash on SPI3
-  static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PB5_ALT1, PB4_ALT1, PB3_ALT1, PB9, 8000000};
+  static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PB5, PB4, PB3, PB9, 8000000, SPI3};
 
   // IMU: ICM42688P on SPI1
-  static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 8000000};
-  static constexpr IMUConfig imu{imu_spi, PC4, 1000000};
+  static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 8000000, SPI1};
+  static constexpr IMUConfig imu{imu_spi, PC4, 1000000, IMUAlignment::CW180_DEG};
 
   // I2C1: Environmental sensors
-  static constexpr I2CConfig sensors{PB7, PA15, 400000};
+  static constexpr I2CConfig sensors{PB7, PA15, 400000, I2C1};
 
   // USART1: Serial port
-  static constexpr UARTConfig uart1{PA9, PA10, 115200};
+  static constexpr UARTConfig uart1{PA9, PA10, 115200, USART1};
 
   // LPUART1: Serial port
-  static constexpr UARTConfig uart2{PA2, PA3, 115200};
+  static constexpr UARTConfig uart2{PA2, PA3, 115200, LPUART1};
 
   // USART3: Serial port
-  static constexpr UARTConfig uart3{PB10, PB11, 115200};
+  static constexpr UARTConfig uart3{PB10, PB11, 115200, USART3};
 
   // UART4: Serial port
-  static constexpr UARTConfig uart4{PC10, PC11, 115200};
+  static constexpr UARTConfig uart4{PC10, PC11, 115200, UART4};
 
   // ADC: Battery voltage and current monitoring
   static constexpr ADCConfig battery{PA0, PA1, 110, 750};
@@ -43,7 +43,7 @@ namespace BoardConfig {
   static constexpr LEDConfig status_leds{PC15, PC14};
 
   // RC Receiver: USART3 (from SERIALRX_UART)
-  static constexpr RCReceiverConfig rc_receiver{PB11, PB10, 115200, 1000, 300};
+  static constexpr RCReceiverConfig rc_receiver{PB11, PB10, 115200, 1000, 300, USART3};
 
   // Servo outputs - none configured
   namespace Servo {

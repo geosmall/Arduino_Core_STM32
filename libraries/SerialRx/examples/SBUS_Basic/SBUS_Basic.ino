@@ -39,8 +39,8 @@
 #endif
 
 // Create HardwareSerial instance using BoardConfig
-HardwareSerial SerialRC(BoardConfig::rc_receiver.rx_pin,
-                        BoardConfig::rc_receiver.tx_pin);
+HardwareSerial SerialRC(BoardConfig::rc_receiver.instance,
+                        BoardConfig::rc_receiver.rx_pin,                        BoardConfig::rc_receiver.tx_pin);
 
 // Create SerialRx instance (protocol configured in setup)
 SerialRx rc;

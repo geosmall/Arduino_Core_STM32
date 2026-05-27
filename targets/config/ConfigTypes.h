@@ -26,17 +26,43 @@ enum class Protocol {
     DSHOT600     // DShot600 digital, 0=disarm / 48-2047 throttle (range protocol-defined)
 };
 
-namespace BoardConfig {
-  struct SPIConfig {
-    constexpr SPIConfig(Pin mosi, Pin miso, Pin sclk, Pin cs,
-                       uint32_t frequency_hz = 1000000,
-                       CS_Mode mode = CS_Mode::SOFTWARE)
-      : mosi_pin(mosi), miso_pin(miso), sclk_pin(sclk), cs_pin(cs),
-        freq_hz(frequency_hz), cs_mode(mode) {}
+// IMU chip-to-board alignment — mirrors Betaflight's 8 cardinal sensor_align_e values.
+// Per-target compile-time constant; consumed by BoardAlignment to build the
+// sensor-to-board rotation matrix R_sensor_to_board. Composed at init with the
+// user-configured board-to-vehicle alignment into a single hot-path matrix.
+// Non-90°-boundary mounts (Betaflight's ALIGN_CUSTOM) are out of scope here.
+enum class IMUAlignment : uint8_t {
+    CW0_DEG,         // No rotation
+    CW90_DEG,        // 90° clockwise about Z (yaw)
+    CW180_DEG,       // 180° about Z
+    CW270_DEG,       // 270° clockwise about Z
+    CW0_DEG_FLIP,    // 180° roll then no yaw
+    CW90_DEG_FLIP,   // 180° roll then 90° yaw
+    CW180_DEG_FLIP,  // 180° roll then 180° yaw
+    CW270_DEG_FLIP   // 180° roll then 270° yaw
+};
 
-    const Pin mosi_pin, miso_pin, sclk_pin, cs_pin;
-    const uint32_t freq_hz;
-    const CS_Mode cs_mode;
+namespace BoardConfig {
+  // Aggregate (no user-defined ctor) so `static constexpr SPIConfig x{..., SPI1}`
+  // compiles. CMSIS peripheral macros (`SPI1`, `SPI3`, ...) expand to
+  // `reinterpret_cast<SPI_TypeDef*>(SPI<n>_BASE)`, which is not a core
+  // constant expression — a user-defined constexpr ctor receiving such a
+  // value rejects compile-time initialization. Aggregate brace-init does
+  // not, matching the precedent set by MotorConfig + `TIM1`.
+  //
+  // `instance` disambiguates multi-mapping pins (e.g. G473 PB3/4/5, which
+  // carry both SPI1+AF5 and SPI3+AF6 entries in PinMap_SPI_*). nullptr
+  // preserves legacy first-match resolution — kept as a default member
+  // initializer so existing target headers compile unchanged. See
+  // doc/PIN_USE.md and BOARD_CONFIG_PERIPHERAL_AWARE_PLAN.md for context.
+  struct SPIConfig {
+    Pin mosi_pin;
+    Pin miso_pin;
+    Pin sclk_pin;
+    Pin cs_pin;
+    uint32_t freq_hz = 1000000;
+    SPI_TypeDef* instance = nullptr;
+    CS_Mode cs_mode = CS_Mode::SOFTWARE;
 
     // Helper: Get SSEL pin for SPIClass constructor
     // SW mode: returns NC_PIN (disables hardware SSEL)
@@ -46,41 +72,49 @@ namespace BoardConfig {
     }
   };
 
+  // Aggregate (no user-defined ctor) — see SPIConfig for the rationale.
+  // `instance` disambiguates multi-mapping UART pins; nullptr preserves
+  // legacy first-match resolution. The USART_TypeDef* alias also accepts
+  // LPUART1/LPUART2 (CMSIS declares them as (USART_TypeDef*)<base>).
   struct UARTConfig {
-    constexpr UARTConfig(Pin tx, Pin rx, uint32_t baud)
-      : tx_pin(tx), rx_pin(rx), baud_rate(baud) {}
-
-    const Pin tx_pin, rx_pin;
-    const uint32_t baud_rate;
+    Pin tx_pin;
+    Pin rx_pin;
+    uint32_t baud_rate;
+    USART_TypeDef* instance = nullptr;
   };
 
+  // Aggregate (no user-defined ctor) — see SPIConfig for the rationale.
+  // `instance` disambiguates multi-mapping I2C pins; nullptr preserves
+  // legacy first-match resolution for backward compat.
   struct I2CConfig {
-    constexpr I2CConfig(Pin sda, Pin scl, uint32_t frequency_hz = 100000)
-      : sda_pin(sda), scl_pin(scl), freq_hz(frequency_hz) {}
-
-    const Pin sda_pin, scl_pin;
-    const uint32_t freq_hz;
+    Pin sda_pin;
+    Pin scl_pin;
+    uint32_t freq_hz = 100000;
+    I2C_TypeDef* instance = nullptr;
   };
 
+  // Aggregate (no user-defined ctor) — see SPIConfig for the rationale.
   struct StorageConfig {
-    constexpr StorageConfig(StorageBackend backend, Pin mosi, Pin miso,
-                           Pin sclk, Pin cs, uint32_t frequency_hz = 1000000)
-      : backend_type(backend), mosi_pin(mosi), miso_pin(miso), sclk_pin(sclk),
-        cs_pin(cs), freq_hz(frequency_hz) {}
-
-    const StorageBackend backend_type;
-    const Pin mosi_pin, miso_pin, sclk_pin, cs_pin;
-    const uint32_t freq_hz;
+    StorageBackend backend_type;
+    Pin mosi_pin;
+    Pin miso_pin;
+    Pin sclk_pin;
+    Pin cs_pin;
+    uint32_t freq_hz = 1000000;
+    SPI_TypeDef* instance = nullptr;
   };
 
   struct IMUConfig {
     constexpr IMUConfig(const SPIConfig& spi_config, Pin interrupt_pin = NC_PIN,
-                       uint32_t setup_freq_hz = 0)
-      : spi(spi_config), int_pin(interrupt_pin), setup_freq_hz(setup_freq_hz) {}
+                       uint32_t setup_freq_hz = 0,
+                       IMUAlignment chip_alignment = IMUAlignment::CW0_DEG)
+      : spi(spi_config), int_pin(interrupt_pin), setup_freq_hz(setup_freq_hz),
+        alignment(chip_alignment) {}
 
     const SPIConfig spi;
     const Pin int_pin;             // NC_PIN = no interrupt
     const uint32_t setup_freq_hz;  // 0 = use spi.freq_hz for setup (slow initialization)
+    const IMUAlignment alignment;  // Chip-to-board rotation (Betaflight GYRO_x_ALIGN)
 
     // Helper: Get effective setup frequency (slow initialization)
     constexpr uint32_t get_setup_freq() const {
@@ -113,18 +147,15 @@ namespace BoardConfig {
     const Pin led2_pin;   // Secondary status LED (NC_PIN = not present)
   };
 
+  // Aggregate (no user-defined ctor) — see SPIConfig / UARTConfig for the
+  // rationale on the `instance` field.
   struct RCReceiverConfig {
-    constexpr RCReceiverConfig(Pin rx, Pin tx, uint32_t baud,
-                               uint32_t timeout_ms = 1000,
-                               uint32_t idle_threshold_us = 300)
-      : rx_pin(rx), tx_pin(tx), baud_rate(baud),
-        timeout_ms(timeout_ms), idle_threshold_us(idle_threshold_us) {}
-
-    const Pin rx_pin;                   // UART RX pin (receiver output)
-    const Pin tx_pin;                   // UART TX pin (receiver input, usually unused)
-    const uint32_t baud_rate;           // Protocol baudrate (115200=IBus, 100000=SBUS)
-    const uint32_t timeout_ms;          // Failsafe timeout in milliseconds
-    const uint32_t idle_threshold_us;   // Software idle detection threshold (0=disabled)
+    Pin rx_pin;                   // UART RX pin (receiver output)
+    Pin tx_pin;                   // UART TX pin (receiver input, usually unused)
+    uint32_t baud_rate;           // Protocol baudrate (115200=IBus, 100000=SBUS)
+    uint32_t timeout_ms = 1000;   // Failsafe timeout in milliseconds
+    uint32_t idle_threshold_us = 300;  // Software idle detection threshold (0=disabled)
+    USART_TypeDef* instance = nullptr;
   };
 
   struct GPSConfig {

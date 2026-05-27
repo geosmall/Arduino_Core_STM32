@@ -362,7 +362,7 @@ class PeripheralPinMap:
 
     def get_pin_for_spi_bus(self, base_pin: str, signal: str, target_bus: str) -> Optional[str]:
         """
-        Find the correct pin format (base or ALT) that maps to the target SPI bus.
+        Verify base_pin can reach target_bus via any AF, returning the bare base pin.
 
         Args:
             base_pin: Base pin name without ALT suffix (e.g., "PB5")
@@ -370,43 +370,45 @@ class PeripheralPinMap:
             target_bus: Target SPI bus (e.g., "SPI3")
 
         Returns:
-            Pin format that maps to target bus (e.g., "PB5" or "PB5_ALT1"), or None if not found
+            base_pin if a mapping to target_bus exists (under any AF/ALT variant),
+            else None.
+
+        Pin disambiguation is the caller's responsibility via an SPI_TypeDef*
+        instance handed to the peripheral driver (see Pin refactor:
+        Arduino_Core_STM32/doc/PIN_USE.md). The Pin type intentionally has no
+        ALT bits, so emitting "PB5_ALT1" here would produce uncompilable code.
 
         Example:
-            get_pin_for_spi_bus("PB5", "MOSI", "SPI3") → "PB5_ALT1"
+            get_pin_for_spi_bus("PB5", "MOSI", "SPI3") → "PB5"
             get_pin_for_spi_bus("PB5", "MOSI", "SPI1") → "PB5"
         """
-        # Find all SPI pins that match the base pin and signal
-        matching_pins = [sp for sp in self.spi_pins
-                        if sp.pin == base_pin and sp.signal == signal]
-
-        # Look for entry that maps to target bus
-        for sp in matching_pins:
-            if sp.bus == target_bus:
-                # Return pin with ALT suffix if present
-                return base_pin + sp.alt_variant
+        for sp in self.spi_pins:
+            if sp.pin == base_pin and sp.signal == signal and sp.bus == target_bus:
+                return base_pin
 
         # No match found - pin can't reach target bus
         return None
 
     def get_pin_for_i2c_bus(self, base_pin: str, signal: str, target_bus: str) -> Optional[str]:
-        """Find the correct pin format (base or ALT) for target I2C bus."""
-        matching_pins = [ip for ip in self.i2c_pins
-                        if ip.pin == base_pin and ip.signal == signal]
+        """Verify base_pin can reach target I2C bus; return bare base pin.
 
-        for ip in matching_pins:
-            if ip.bus == target_bus:
-                return base_pin + ip.alt_variant
+        See get_pin_for_spi_bus for the rationale: instance disambiguation
+        is carried by an I2C_TypeDef* literal, not by an ALT suffix on the pin.
+        """
+        for ip in self.i2c_pins:
+            if ip.pin == base_pin and ip.signal == signal and ip.bus == target_bus:
+                return base_pin
 
         return None
 
     def get_pin_for_uart(self, base_pin: str, signal: str, target_uart: str) -> Optional[str]:
-        """Find the correct pin format (base or ALT) for target UART."""
-        matching_pins = [up for up in self.uart_pins
-                        if up.pin == base_pin and up.signal == signal]
+        """Verify base_pin can reach target UART; return bare base pin.
 
-        for up in matching_pins:
-            if up.uart == target_uart:
-                return base_pin + up.alt_variant
+        See get_pin_for_spi_bus for the rationale: instance disambiguation
+        is carried by a USART_TypeDef* literal, not by an ALT suffix on the pin.
+        """
+        for up in self.uart_pins:
+            if up.pin == base_pin and up.signal == signal and up.uart == target_uart:
+                return base_pin
 
         return None

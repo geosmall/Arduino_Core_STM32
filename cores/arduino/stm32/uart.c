@@ -109,60 +109,72 @@ void uart_init(serial_t *obj, uint32_t baudrate, uint32_t databits, uint32_t par
 
   UART_HandleTypeDef *huart = &(obj->handle);
 
-  /* Determine the U(S)ART peripheral to use (USART1, USART2, ...) */
-  USART_TypeDef *uart_tx = pinmap_peripheral(obj->pin_tx, PinMap_UART_TX);
-  USART_TypeDef *uart_rx = pinmap_peripheral(obj->pin_rx, PinMap_UART_RX);
-  USART_TypeDef *uart_rts = pinmap_peripheral(obj->pin_rts, PinMap_UART_RTS);
-  USART_TypeDef *uart_cts = pinmap_peripheral(obj->pin_cts, PinMap_UART_CTS);
-
-  /* Pin Tx must not be NP */
-  if (uart_tx == NP) {
-    if (obj != &serial_debug) {
-      core_debug("ERROR: [U(S)ART] Tx pin has no peripheral!\n");
-    }
-    return;
-  }
-  /* Pin Rx must not be NP if not half-duplex */
-  if ((obj->pin_rx != NC) && (uart_rx == NP)) {
-    if (obj != &serial_debug) {
-      core_debug("ERROR: [U(S)ART] Rx pin has no peripheral!\n");
-    }
-    return;
-  }
-  /* Pin RTS must not be NP if flow control is enabled */
-  if ((obj->pin_rts != NC) && (uart_rts == NP)) {
-    if (obj != &serial_debug) {
-      core_debug("ERROR: [U(S)ART] RTS pin has no peripheral!\n");
-    }
-    return;
-  }
-  /* Pin CTS must not be NP if flow control is enabled */
-  if ((obj->pin_cts != NC) && (uart_cts == NP)) {
-    if (obj != &serial_debug) {
-      core_debug("ERROR: [U(S)ART] CTS pin has no peripheral!\n");
-    }
-    return;
-  }
-
   /*
-   * Get the peripheral name (USART1, USART2, ...) from the pin
-   * and assign it to the object
+   * Determine the U(S)ART/LPUART instance.
+   *
+   * Two paths (mirrors spi_init / i2c_custom_init):
+   *   1. Caller supplied an explicit instance (peripheral-aware ctor).
+   *      Trust it; per-pin GPIO config below routes via
+   *      pinmap_pinout_for_peripheral against this instance, so
+   *      multi-mapping pins resolve unambiguously.
+   *   2. Caller did not (default-global Serial1..N or the legacy
+   *      void* ctor that sources pins from variant defines). Walk
+   *      the pinmap and merge — works because variant PIN_SERIALn_*
+   *      defines are unambiguous on all current targets.
    */
-  obj->uart = pinmap_merge_peripheral(uart_tx, uart_rx);
-  /* We also merge RTS/CTS and assert all pins belong to the same instance */
-  obj->uart = pinmap_merge_peripheral(obj->uart, uart_rts);
-  obj->uart = pinmap_merge_peripheral(obj->uart, uart_cts);
+  if (obj->uart == NULL) {
+    USART_TypeDef *uart_tx = pinmap_peripheral(obj->pin_tx, PinMap_UART_TX);
+    USART_TypeDef *uart_rx = pinmap_peripheral(obj->pin_rx, PinMap_UART_RX);
+    USART_TypeDef *uart_rts = pinmap_peripheral(obj->pin_rts, PinMap_UART_RTS);
+    USART_TypeDef *uart_cts = pinmap_peripheral(obj->pin_cts, PinMap_UART_CTS);
 
-  if (obj->uart == NP) {
-    if (obj != &serial_debug) {
-      core_debug("ERROR: [U(S)ART] Rx/Tx/RTS/CTS pins peripherals mismatch!\n");
+    /* Pin Tx must not be NP */
+    if (uart_tx == NP) {
+      if (obj != &serial_debug) {
+        core_debug("ERROR: [U(S)ART] Tx pin has no peripheral!\n");
+      }
+      return;
     }
-    return;
+    /* Pin Rx must not be NP if not half-duplex */
+    if ((obj->pin_rx != NC) && (uart_rx == NP)) {
+      if (obj != &serial_debug) {
+        core_debug("ERROR: [U(S)ART] Rx pin has no peripheral!\n");
+      }
+      return;
+    }
+    /* Pin RTS must not be NP if flow control is enabled */
+    if ((obj->pin_rts != NC) && (uart_rts == NP)) {
+      if (obj != &serial_debug) {
+        core_debug("ERROR: [U(S)ART] RTS pin has no peripheral!\n");
+      }
+      return;
+    }
+    /* Pin CTS must not be NP if flow control is enabled */
+    if ((obj->pin_cts != NC) && (uart_cts == NP)) {
+      if (obj != &serial_debug) {
+        core_debug("ERROR: [U(S)ART] CTS pin has no peripheral!\n");
+      }
+      return;
+    }
+
+    /* Merge Tx/Rx/RTS/CTS pin instances; assert they belong to the same one. */
+    obj->uart = pinmap_merge_peripheral(uart_tx, uart_rx);
+    obj->uart = pinmap_merge_peripheral(obj->uart, uart_rts);
+    obj->uart = pinmap_merge_peripheral(obj->uart, uart_cts);
+
+    if (obj->uart == NP) {
+      if (obj != &serial_debug) {
+        core_debug("ERROR: [U(S)ART] Rx/Tx/RTS/CTS pins peripherals mismatch!\n");
+      }
+      return;
+    }
   }
 
-  /* Enable USART clock */
+  /* Enable USART clock. (First branch is plain `if`, not `else if`: the
+   * `else if` chain used to attach to the original `if (obj->uart == NP)`
+   * error guard that has moved inside the resolution block above.) */
 #if defined(USART1_BASE)
-  else if (obj->uart == USART1) {
+  if (obj->uart == USART1) {
     __HAL_RCC_USART1_FORCE_RESET();
     __HAL_RCC_USART1_RELEASE_RESET();
     __HAL_RCC_USART1_CLK_ENABLE();
@@ -171,7 +183,7 @@ void uart_init(serial_t *obj, uint32_t baudrate, uint32_t databits, uint32_t par
   }
 #endif
 #if defined(USART2_BASE)
-  else if (obj->uart == USART2) {
+  if (obj->uart == USART2) {
     __HAL_RCC_USART2_FORCE_RESET();
     __HAL_RCC_USART2_RELEASE_RESET();
     __HAL_RCC_USART2_CLK_ENABLE();
@@ -180,7 +192,7 @@ void uart_init(serial_t *obj, uint32_t baudrate, uint32_t databits, uint32_t par
   }
 #endif
 #if defined(USART3_BASE)
-  else if (obj->uart == USART3) {
+  if (obj->uart == USART3) {
     __HAL_RCC_USART3_FORCE_RESET();
     __HAL_RCC_USART3_RELEASE_RESET();
     __HAL_RCC_USART3_CLK_ENABLE();
@@ -189,7 +201,7 @@ void uart_init(serial_t *obj, uint32_t baudrate, uint32_t databits, uint32_t par
   }
 #endif
 #if defined(UART4_BASE)
-  else if (obj->uart == UART4) {
+  if (obj->uart == UART4) {
     __HAL_RCC_UART4_FORCE_RESET();
     __HAL_RCC_UART4_RELEASE_RESET();
     __HAL_RCC_UART4_CLK_ENABLE();
@@ -197,7 +209,7 @@ void uart_init(serial_t *obj, uint32_t baudrate, uint32_t databits, uint32_t par
     obj->irq = UART4_IRQn;
   }
 #elif defined(USART4_BASE)
-  else if (obj->uart == USART4) {
+  if (obj->uart == USART4) {
     __HAL_RCC_USART4_FORCE_RESET();
     __HAL_RCC_USART4_RELEASE_RESET();
     __HAL_RCC_USART4_CLK_ENABLE();
@@ -206,7 +218,7 @@ void uart_init(serial_t *obj, uint32_t baudrate, uint32_t databits, uint32_t par
   }
 #endif
 #if defined(UART5_BASE)
-  else if (obj->uart == UART5) {
+  if (obj->uart == UART5) {
     __HAL_RCC_UART5_FORCE_RESET();
     __HAL_RCC_UART5_RELEASE_RESET();
     __HAL_RCC_UART5_CLK_ENABLE();
@@ -214,7 +226,7 @@ void uart_init(serial_t *obj, uint32_t baudrate, uint32_t databits, uint32_t par
     obj->irq = UART5_IRQn;
   }
 #elif defined(USART5_BASE)
-  else if (obj->uart == USART5) {
+  if (obj->uart == USART5) {
     __HAL_RCC_USART5_FORCE_RESET();
     __HAL_RCC_USART5_RELEASE_RESET();
     __HAL_RCC_USART5_CLK_ENABLE();
@@ -223,7 +235,7 @@ void uart_init(serial_t *obj, uint32_t baudrate, uint32_t databits, uint32_t par
   }
 #endif
 #if defined(USART6_BASE)
-  else if (obj->uart == USART6) {
+  if (obj->uart == USART6) {
     __HAL_RCC_USART6_FORCE_RESET();
     __HAL_RCC_USART6_RELEASE_RESET();
     __HAL_RCC_USART6_CLK_ENABLE();
@@ -232,7 +244,7 @@ void uart_init(serial_t *obj, uint32_t baudrate, uint32_t databits, uint32_t par
   }
 #endif
 #if defined(LPUART1_BASE)
-  else if (obj->uart == LPUART1) {
+  if (obj->uart == LPUART1) {
     __HAL_RCC_LPUART1_FORCE_RESET();
     __HAL_RCC_LPUART1_RELEASE_RESET();
     __HAL_RCC_LPUART1_CLK_ENABLE();
@@ -241,7 +253,7 @@ void uart_init(serial_t *obj, uint32_t baudrate, uint32_t databits, uint32_t par
   }
 #endif
 #if defined(LPUART2_BASE)
-  else if (obj->uart == LPUART2) {
+  if (obj->uart == LPUART2) {
     __HAL_RCC_LPUART2_FORCE_RESET();
     __HAL_RCC_LPUART2_RELEASE_RESET();
     __HAL_RCC_LPUART2_CLK_ENABLE();
@@ -250,7 +262,7 @@ void uart_init(serial_t *obj, uint32_t baudrate, uint32_t databits, uint32_t par
   }
 #endif
 #if defined(UART7_BASE)
-  else if (obj->uart == UART7) {
+  if (obj->uart == UART7) {
     __HAL_RCC_UART7_FORCE_RESET();
     __HAL_RCC_UART7_RELEASE_RESET();
     __HAL_RCC_UART7_CLK_ENABLE();
@@ -258,7 +270,7 @@ void uart_init(serial_t *obj, uint32_t baudrate, uint32_t databits, uint32_t par
     obj->irq = UART7_IRQn;
   }
 #elif defined(USART7_BASE)
-  else if (obj->uart == USART7) {
+  if (obj->uart == USART7) {
     __HAL_RCC_USART7_FORCE_RESET();
     __HAL_RCC_USART7_RELEASE_RESET();
     __HAL_RCC_USART7_CLK_ENABLE();
@@ -267,7 +279,7 @@ void uart_init(serial_t *obj, uint32_t baudrate, uint32_t databits, uint32_t par
   }
 #endif
 #if defined(UART8_BASE)
-  else if (obj->uart == UART8) {
+  if (obj->uart == UART8) {
     __HAL_RCC_UART8_FORCE_RESET();
     __HAL_RCC_UART8_RELEASE_RESET();
     __HAL_RCC_UART8_CLK_ENABLE();
@@ -275,7 +287,7 @@ void uart_init(serial_t *obj, uint32_t baudrate, uint32_t databits, uint32_t par
     obj->irq = UART8_IRQn;
   }
 #elif defined(USART8_BASE)
-  else if (obj->uart == USART8) {
+  if (obj->uart == USART8) {
     __HAL_RCC_USART8_FORCE_RESET();
     __HAL_RCC_USART8_RELEASE_RESET();
     __HAL_RCC_USART8_CLK_ENABLE();
@@ -284,7 +296,7 @@ void uart_init(serial_t *obj, uint32_t baudrate, uint32_t databits, uint32_t par
   }
 #endif
 #if defined(UART9_BASE)
-  else if (obj->uart == UART9) {
+  if (obj->uart == UART9) {
     __HAL_RCC_UART9_FORCE_RESET();
     __HAL_RCC_UART9_RELEASE_RESET();
     __HAL_RCC_UART9_CLK_ENABLE();
@@ -293,7 +305,7 @@ void uart_init(serial_t *obj, uint32_t baudrate, uint32_t databits, uint32_t par
   }
 #endif
 #if defined(UART10_BASE)
-  else if (obj->uart == UART10) {
+  if (obj->uart == UART10) {
     __HAL_RCC_UART10_FORCE_RESET();
     __HAL_RCC_UART10_RELEASE_RESET();
     __HAL_RCC_UART10_CLK_ENABLE();
@@ -302,7 +314,7 @@ void uart_init(serial_t *obj, uint32_t baudrate, uint32_t databits, uint32_t par
   }
 #endif
 #if defined(USART10_BASE)
-  else if (obj->uart == USART10) {
+  if (obj->uart == USART10) {
     __HAL_RCC_USART10_FORCE_RESET();
     __HAL_RCC_USART10_RELEASE_RESET();
     __HAL_RCC_USART10_CLK_ENABLE();
@@ -311,21 +323,21 @@ void uart_init(serial_t *obj, uint32_t baudrate, uint32_t databits, uint32_t par
   }
 #endif
 
-  /* Configure UART GPIO pins */
-  pinmap_pinout(obj->pin_tx, PinMap_UART_TX);
-  if (uart_rx != NP) {
-    pinmap_pinout(obj->pin_rx, PinMap_UART_RX);
+  /* Configure UART GPIO pins — peripheral-aware AF resolution */
+  pinmap_pinout_for_peripheral(obj->pin_tx, obj->uart, PinMap_UART_TX);
+  if (obj->pin_rx != NC) {
+    pinmap_pinout_for_peripheral(obj->pin_rx, obj->uart, PinMap_UART_RX);
   }
 
   /* Configure flow control */
   uint32_t flow_control = UART_HWCONTROL_NONE;
-  if (uart_rts != NP) {
+  if (obj->pin_rts != NC) {
     flow_control |= UART_HWCONTROL_RTS;
-    pinmap_pinout(obj->pin_rts, PinMap_UART_RTS);
+    pinmap_pinout_for_peripheral(obj->pin_rts, obj->uart, PinMap_UART_RTS);
   }
-  if (uart_cts != NP) {
+  if (obj->pin_cts != NC) {
     flow_control |= UART_HWCONTROL_CTS;
-    pinmap_pinout(obj->pin_cts, PinMap_UART_CTS);
+    pinmap_pinout_for_peripheral(obj->pin_cts, obj->uart, PinMap_UART_CTS);
   }
 
   /* Configure uart */
@@ -372,7 +384,7 @@ void uart_init(serial_t *obj, uint32_t baudrate, uint32_t databits, uint32_t par
       HAL_UARTEx_DisableStopMode(huart);
     }
     /* Trying default LPUART clock source */
-    if (uart_rx == NP) {
+    if (obj->pin_rx == NC) {
       if (HAL_HalfDuplex_Init(huart) == HAL_OK) {
         return;
       }
@@ -392,7 +404,7 @@ void uart_init(serial_t *obj, uint32_t baudrate, uint32_t databits, uint32_t par
         __HAL_RCC_LPUART2_CONFIG(RCC_LPUART2CLKSOURCE_LSE);
       }
 #endif
-      if (uart_rx == NP) {
+      if (obj->pin_rx == NC) {
         if (HAL_HalfDuplex_Init(huart) == HAL_OK) {
           return;
         }
@@ -409,7 +421,7 @@ void uart_init(serial_t *obj, uint32_t baudrate, uint32_t databits, uint32_t par
         __HAL_RCC_LPUART2_CONFIG(RCC_LPUART2CLKSOURCE_HSI);
       }
 #endif
-      if (uart_rx == NP) {
+      if (obj->pin_rx == NC) {
         if (HAL_HalfDuplex_Init(huart) == HAL_OK) {
           return;
         }
@@ -431,7 +443,7 @@ void uart_init(serial_t *obj, uint32_t baudrate, uint32_t databits, uint32_t par
       __HAL_RCC_LPUART2_CONFIG(RCC_LPUART2CLKSOURCE_PCLK1);
     }
 #endif
-    if (uart_rx == NP) {
+    if (obj->pin_rx == NC) {
       if (HAL_HalfDuplex_Init(huart) == HAL_OK) {
         return;
       }
@@ -451,7 +463,7 @@ void uart_init(serial_t *obj, uint32_t baudrate, uint32_t databits, uint32_t par
   }
 #endif
 
-  if (uart_rx == NP) {
+  if (obj->pin_rx == NC) {
     if (HAL_HalfDuplex_Init(huart) != HAL_OK) {
       return;
     }
