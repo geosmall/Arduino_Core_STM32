@@ -106,13 +106,24 @@ class HardwareSerial : public Stream {
     serial_t _serial;
 
   public:
-    // Peripheral-aware ctor: caller names the U(S)ART/LPUART instance and
-    // its rx/tx pins. uart_init bypasses the legacy first-match resolution
-    // and routes GPIO config through pinmap_pinout_for_peripheral against
-    // this instance, so multi-mapping pins resolve unambiguously. Pass
-    // NC_PIN for _rx to construct a TX-only port. See doc/PIN_USE.md.
+    /* Peripheral-aware ctor — preferred for new code that names custom pins
+     * (e.g. via BoardConfig::rc_receiver). uart_init binds `instance`
+     * directly and routes GPIO config via pinmap_pinout_for_peripheral,
+     * so multi-mapping pins resolve unambiguously. USART_TypeDef* also
+     * accepts LPUART1/LPUART2 (CMSIS aliases them to USART_TypeDef*).
+     * Pass NC_PIN for _rx to construct a TX-only port. See doc/PIN_USE.md. */
     HardwareSerial(USART_TypeDef *instance, Pin _rx, Pin _tx);
+
+    /* Default-globals ctor — backs Serial, Serial1..N (definitions below).
+     * Caller supplies just the peripheral pointer; this ctor picks RX/TX
+     * from the variant's PIN_SERIALn_RX/TX defines and leaves
+     * serial.uart = NULL so uart_init resolves the peripheral itself via
+     * first-match pinmap walk. Safe because variant defaults are
+     * unambiguous on every current target. */
     HardwareSerial(void *peripheral, HalfDuplexMode_t halfDuplex = HALF_DUPLEX_DISABLED);
+
+    /* Half-duplex single-pin ctor: RX and TX share the wire on _rxtx.
+     * uart_init then takes the half-duplex branch (HAL_HalfDuplex_Init). */
     HardwareSerial(Pin _rxtx);
     void begin(unsigned long baud)
     {

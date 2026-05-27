@@ -115,25 +115,50 @@
 #endif // HAVE_HWSERIALx
 
 // Constructors ////////////////////////////////////////////////////////////////
+//
+// Three ctors, one dispatch field: _serial.uart.
+//   - Set non-NULL by this ctor  → uart_init fast path: trust the instance,
+//     bind handle->Instance directly, configure GPIO via
+//     pinmap_pinout_for_peripheral (peripheral-aware AF resolution).
+//   - Left NULL by the other two → uart_init legacy path: walk PinMap_UART_*,
+//     merge Tx/Rx/RTS/CTS to find one common peripheral, then bind.
+//
+// The memset in every ctor is load-bearing: HardwareSerial::_serial is a
+// plain struct member (zero-init only for globals; indeterminate for any
+// non-global instance), and uart_init's `if (obj->uart == NULL)` guard
+// depends on a deterministic starting value.
+
+/* Peripheral-aware ctor. Caller has named both the instance and the pins;
+ * uart_init can skip the pinmap-merge resolution that would otherwise
+ * misroute on multi-mapping pins. */
 HardwareSerial::HardwareSerial(USART_TypeDef *instance, Pin _rx, Pin _tx)
 {
-  /* Zero-init _serial: uart_init guards the legacy first-match resolution
-   * with `if (obj->uart == NULL)`. Without this, _serial.uart starts as
-   * indeterminate (HardwareSerial::_serial is a plain struct member),
-   * which would defeat the guard. */
   memset((void *)&_serial, 0, sizeof(_serial));
   _serial.uart = instance;
   init(_rx.toPinName(), _tx.toPinName());
 }
 
+/* Default-globals ctor — backs Serial / Serial1..N (definitions at lines
+ * ~37-95). Example: `HardwareSerial Serial1(USART1)` constructs Serial1
+ * bound to USART1 using the variant's PIN_SERIAL1_RX / PIN_SERIAL1_TX
+ * pins (e.g. PA10/PA9 on F411). The bulk of this function is a long
+ * if/else chain that maps `peripheral` (USART1, USART2, …, LPUART1, …)
+ * to the matching variant PIN_SERIALn_RX/TX defines and calls setRx/setTx
+ * with them. The trailing pinmap_peripheral fallback (~line 280) handles
+ * boards where PIN_SERIAL_TX is defined but Serial is mapped to a
+ * non-default peripheral (typically SerialUSB) — it lets the variant
+ * override pin choice without breaking the lookup. _serial.uart is
+ * intentionally left NULL so uart_init takes the legacy first-match path
+ * (safe: variant defines are unambiguous on every current target).
+ *
+ * Behavior preserved from upstream — only the memset is new (the
+ * peripheral-aware ctor above introduced an `obj->uart == NULL` guard in
+ * uart_init that requires a deterministic starting value). */
 HardwareSerial::HardwareSerial(void *peripheral, HalfDuplexMode_t halfDuplex)
 {
-  /* Zero-init _serial (see (USART_TypeDef*, Pin, Pin) ctor for rationale).
-   * This ctor intentionally leaves _serial.uart = NULL afterwards so
-   * uart_init resolves the peripheral via first-match merge — Serial1..N
-   * globals must keep working bit-for-bit. */
   memset((void *)&_serial, 0, sizeof(_serial));
-  // If PIN_SERIALy_RX is not defined assume half-duplex
+  // If no PIN_SERIALn_RX matches `peripheral` below, the field stays NC
+  // and uart_init takes the half-duplex branch.
   _serial.pin_rx = NC;
   // If Serial is defined in variant set
   // the Rx/Tx pins for com port if defined
@@ -307,9 +332,11 @@ HardwareSerial::HardwareSerial(void *peripheral, HalfDuplexMode_t halfDuplex)
   init(_serial.pin_rx, _serial.pin_tx);
 }
 
+/* Half-duplex single-pin ctor: RX and TX share `_rxtx`. init() sets
+ * pin_rx = NC; uart_init then takes the half-duplex branch
+ * (HAL_HalfDuplex_Init instead of HAL_UART_Init). */
 HardwareSerial::HardwareSerial(Pin _rxtx)
 {
-  /* Zero-init _serial (see (USART_TypeDef*, Pin, Pin) ctor for rationale). */
   memset((void *)&_serial, 0, sizeof(_serial));
   init(NC, _rxtx.toPinName());
 }
