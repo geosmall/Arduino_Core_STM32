@@ -19,8 +19,11 @@ namespace BoardConfig {
   static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PB15, PB14, PB13, PB2, 1000000};
 
   // IMU: MPU6000, ICM42688P on SPI1 (1 MHz for breadboard/jumper wires)
+  // Chip alignment: CW0_DEG (bench breadboard rig — chip mounted flat
+  // on the NUCLEO PCB. The production JHEF411 board mounts the IMU
+  // CW180_DEG; see targets/JHEF-JHEF411.h.)
   static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 1000000};
-  static constexpr IMUConfig imu{imu_spi, PB3, 1000000};
+  static constexpr IMUConfig imu{imu_spi, PB3, 1000000, IMUAlignment::CW0_DEG};
 
   // I2C1: Environmental sensors
   static constexpr I2CConfig sensors{PB9, PB8, 400000};

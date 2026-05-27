@@ -27,8 +27,10 @@ namespace BoardConfig {
   static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PC12, PC11, PC10, PB3, 8000000};
 
   // IMU: MPU6500, MPU6000 on SPI1
+  // Chip alignment from Betaflight GYRO_1_ALIGN CW270_DEG
+  // (bf_configs/REVO/config.h).
   static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 8000000};
-  static constexpr IMUConfig imu{imu_spi, PC4, 1000000};
+  static constexpr IMUConfig imu{imu_spi, PC4, 1000000, IMUAlignment::CW270_DEG};
 
   // I2C1: Environmental sensors
   static constexpr I2CConfig sensors{PB9, PB8, 400000};

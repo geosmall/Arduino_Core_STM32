@@ -18,8 +18,10 @@ namespace BoardConfig {
   static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PA7, PA6, PA5, PA4, 8000000};
 
   // IMU: MPU9250 on SPI2 (1 MHz for breadboard/jumper wire setup)
+  // Chip alignment from Betaflight GYRO_1_ALIGN CW0_DEG
+  // (bf_configs/BLACKPILL_F411CE/config.h).
   static constexpr SPIConfig imu_spi{PB15, PB14, PB13, PB12, 1000000};
-  static constexpr IMUConfig imu{imu_spi, PB2, 1000000};
+  static constexpr IMUConfig imu{imu_spi, PB2, 1000000, IMUAlignment::CW0_DEG};
 
   // I2C1: Environmental sensors
   static constexpr I2CConfig sensors{PB9, PB8, 400000};
