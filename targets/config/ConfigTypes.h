@@ -54,7 +54,7 @@ namespace BoardConfig {
   // carry both SPI1+AF5 and SPI3+AF6 entries in PinMap_SPI_*). nullptr
   // preserves legacy first-match resolution — kept as a default member
   // initializer so existing target headers compile unchanged. See
-  // doc/PIN_USE.md and BOARD_CONFIG_PERIPHERAL_AWARE_PLAN.md for context.
+  // Arduino_Core_STM32/doc/PIN_USE.md for the peripheral-aware pin model.
   struct SPIConfig {
     Pin mosi_pin;
     Pin miso_pin;
