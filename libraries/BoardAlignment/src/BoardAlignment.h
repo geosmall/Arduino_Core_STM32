@@ -51,4 +51,14 @@ Mat3f makeBetaflightBoardAlignMatrix(float yaw_deg,
 // betaflight/src/main/sensors/boardalignment.c:94-145.
 Mat3f makeTargetSensorAlignMatrix(IMUAlignment a);
 
+// Full R_sensor_to_vehicle = R_board_to_vehicle * R_sensor_to_board.
+//   R_sensor_to_board: per-target chip mounting (compile-time, IMUAlignment).
+//   R_board_to_vehicle: per-airframe FC mounting (runtime, yaw/pitch/roll deg).
+// Applied as v_vehicle = R * v_sensor, so the chip alignment acts first.
+// This owns the composition order so callers cannot transpose the operands.
+Mat3f makeSensorToVehicleMatrix(IMUAlignment chip,
+                                float yaw_deg,
+                                float pitch_deg,
+                                float roll_deg);
+
 }  // namespace BoardAlignment

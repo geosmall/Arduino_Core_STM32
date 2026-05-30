@@ -69,4 +69,14 @@ Mat3f makeTargetSensorAlignMatrix(IMUAlignment a) {
     return R;
 }
 
+Mat3f makeSensorToVehicleMatrix(IMUAlignment chip,
+                                float yaw_deg,
+                                float pitch_deg,
+                                float roll_deg) {
+    const Mat3f sensor_to_board  = makeTargetSensorAlignMatrix(chip);
+    const Mat3f board_to_vehicle = makeBetaflightBoardAlignMatrix(yaw_deg, pitch_deg, roll_deg);
+    // Left operand applies last: v_vehicle = board_to_vehicle * (sensor_to_board * v).
+    return mat3_mul_mat3(board_to_vehicle, sensor_to_board);
+}
+
 }  // namespace BoardAlignment
