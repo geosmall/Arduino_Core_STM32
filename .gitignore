@@ -17,6 +17,7 @@ cmake/examples/*/build/
 *.bin
 !bootloaders/*.bin
 *.hex
+!bootloaders/*.hex
 *.elf
 *.map
 
