@@ -12,12 +12,12 @@ Pre-built UF2 bootloaders for STM32 flight controller boards. These bootloaders 
 | BetaFPV G473 | STM32G473CE | 8MHz | `bootuf2-betafpv_g473-v*.bin` |
 | MATEK H743 | STM32H743VI | 8MHz | `bootuf2-matek_h743-v*.bin` |
 
-Each target ships in two formats with identical content:
+Each target ships as `.bin` and `.hex` (identical image, load address `0x08000000`),
+produced and version-stamped by `build_sync_bootloaders.sh`:
 
-- **`.bin`** — used by the Arduino IDE "Burn Bootloader" flow and direct J-Link/ST-Link flashing (load address `0x08000000`).
-- **`.hex`** — same image in Intel HEX form (load address embedded). Provided for tools that do not accept raw binaries, notably betaflight-configurator (see below).
-
-Both are produced and version-stamped by `build_sync_bootloaders.sh`.
+- **`.bin`** — used by all flashing methods below (Arduino IDE, J-Link, dfu-util).
+- **`.hex`** — same image in Intel HEX form, provided for downstream/external tools
+  that consume Intel HEX (e.g. STM32CubeProgrammer).
 
 > **Important:** Bootloaders are HSE (crystal) specific. Boards with different crystal frequencies require a different bootloader build.
 
@@ -44,20 +44,26 @@ JLinkExe -device <mcu> -if SWD -speed 4000 -autoconnect 1
 > exit
 ```
 
-### Via betaflight-configurator (replacing Betaflight, no SWD probe)
+### Via dfu-util (USB, no SWD probe — e.g. converting a Betaflight board)
 
-Use the `.hex` artifact to install the bootloader over USB on a board currently
-running Betaflight, without a J-Link/ST-Link. betaflight-configurator accepts
-`.hex`/`.uf2` but **not** raw `.bin`.
+Installs the bootloader over USB on a board currently running Betaflight, without a
+J-Link/ST-Link. Uses the `.bin`.
 
-1. **Firmware Flasher** tab → **Load Firmware [Local]** → select `bootuf2-<target>-v<version>.hex`.
-2. Connect; the configurator reboots the FC into the STM32 ROM DFU (`0483:df11`) — no BOOT0 jumper needed.
-3. **Enable "Full chip erase".** This is mandatory: a partial (page-only) erase
-   leaves the old Betaflight application at the app slot, which the UF2 bootloader's
-   validity check then jumps into, bricking boot. A full erase clears the app slot
-   so the bootloader stays in UF2 mode.
-4. **Flash Firmware.** The board reboots into the UF2 bootloader and enumerates as
-   a mass-storage drive (`239a:006f`), ready for `.uf2` application uploads.
+1. Enter the STM32 ROM DFU bootloader: in the Betaflight CLI type `bl` (or hold BOOT0
+   and power on). The board enumerates as `0483:df11`.
+2. Mass-erase, then download with reset:
+   ```bash
+   dfu-util -a 0 -s 0x08000000:mass-erase:force
+   dfu-util -R -a 0 --dfuse-address 0x08000000 -D bootuf2-<target>-v<version>.bin
+   ```
+   The mass-erase is required: it clears the old Betaflight application at the app slot,
+   so bootuf2 finds an empty slot and stays in UF2 mode instead of jumping into stale
+   firmware. The board then reboots into the UF2 bootloader and mounts as a mass-storage
+   drive (`239a:006f`), ready for `.uf2` application uploads.
+
+> **Note:** betaflight-configurator's DFU flasher is **not** a reliable way to install
+> bootuf2 — on STM32G4 its DFU flash aborts ("addresses not found" / failed address load)
+> from inconsistent descriptor handling, even though the image is valid. Use `dfu-util`.
 
 ## Bootloader Entry Methods
 
