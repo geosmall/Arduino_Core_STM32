@@ -71,11 +71,25 @@ void requestSystemBootloader(void)
 
 void systemDFU_checkAndJump(void)
 {
-  if (s_sysdfu_marker != SYSTEM_DFU_MAGIC) {
+  /* Honor the request only on a software reset (what NVIC_SystemReset, and thus
+     requestSystemBootloader(), produces). A cold power-on leaves the .noinit marker
+     indeterminate, but POR clears the software-reset flag (sets PORRSTF instead), so a
+     random marker match cannot trigger a spurious DFU entry. */
+#if defined(STM32H7xx)
+  const uint32_t softReset = RCC->RSR & RCC_RSR_SFTRSTF;
+#else
+  const uint32_t softReset = RCC->CSR & RCC_CSR_SFTRSTF;
+#endif
+  const uint32_t requested = (s_sysdfu_marker == SYSTEM_DFU_MAGIC);
+
+  /* Clear unconditionally: one-shot, and ensures an indeterminate cold-boot value
+     can't persist and fire on a later software reset. */
+  s_sysdfu_marker = 0;
+  __DSB();
+
+  if (!softReset || !requested) {
     return;
   }
-  s_sysdfu_marker = 0;   /* clear so we only jump once */
-  __DSB();
 
   /* Minimal jump from the clean post-reset state (premain() runs this first: clocks at
      reset HSI default, HAL not initialized, caches off, interrupts enabled). Interrupts
