@@ -328,6 +328,13 @@ public:
 
   int GetNumMotors() const { return num_motors; }
   Protocol GetProtocol() const { return protocol; }
+
+  // Sound the ESC beacon (motor-as-speaker), pattern 1-5 = low..high pitch.
+  // DShot only; no-op for OneShot125 (PWM has no command channel).
+  // BLOCKING (~100 ms+ per note via delay) — call only while disarmed.
+  void Beep(uint8_t pattern = 1) {
+    if (protocol == Protocol::DSHOT600) dshot.Beep(pattern);
+  }
 };
 
 // Servo abstraction for runtime timer grouping
