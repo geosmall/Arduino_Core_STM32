@@ -23,7 +23,7 @@ This is a **fork of the STM32 Arduino Core** optimized for robotics applications
 - **Type-safe `Pin` struct** replaces Arduino integer pin numbering. User code passes `Pin` constants (`PA0`, `PB7`) to every API; a compiler error catches `PA_0` (PinName enum) or raw integers at the call site. See [doc/PIN_USE.md](doc/PIN_USE.md).
 - **Peripheral-aware AF resolution** fixes the upstream "ALT pin trap" where timers on multi-function pins silently picked the wrong alternate function. HardwareTimer, DShot, SPI, Wire, and HardwareSerial all use `pinmap_function_for_peripheral()` to resolve AF against a specific peripheral instance, not just the pin.
 - **Four STM32 families supported**: F4, F7, G4, H7 — with the same robotics library set on all of them. DShot DMA verified on all three DMA architectures (F4/F7 fixed-stream, G4 DMAMUX channel, H7 DMAMUX stream).
-- **Focused board set**: 15 variants across the four families, curated for flight controller and robotics work. No thousands-of-chips boards.txt to wade through.
+- **Focused board set**: 16 variants across the four families, curated for flight controller and robotics work. No thousands-of-chips boards.txt to wade through.
 - **Robotics libraries as first-class citizens**: IMU, SerialRx (IBus/SBUS/CRSF), TimerPWM, DShot, LittleFS, SDFS, Storage, Scheduler ship with the core.
 
 ## Supported Hardware
@@ -31,12 +31,12 @@ This is a **fork of the STM32 Arduino Core** optimized for robotics applications
 | Category | Boards |
 |----------|--------|
 | Nucleo-32 | Nucleo G431KB |
-| Nucleo-64 | Nucleo F411RE, Nucleo G474RE |
+| Nucleo-64 | Nucleo F411RE, Nucleo F405RG, Nucleo G474RE |
 | Nucleo-144 | Nucleo F722ZE, Nucleo H743ZI, Nucleo H753ZI |
 | Generic dev boards | BlackPill F411CE (25 MHz), BlackPill F411CE 8MHz, WeAct G474CE, DevEBox H743VITx |
 | Flight Controllers | NOXE V3 (F411), OpenPilot Revo (F405), NERO F7 (F722), BetaFPV G473, MATEK H743 |
 
-All 15 boards share the same core, libraries, and build system. HIL testing on 10 rigs across all four STM32 families.
+All 16 boards share the same core, libraries, and build system. HIL testing on 10 rigs across all four STM32 families.
 
 ## Key Features
 
@@ -126,6 +126,7 @@ After bootloader is installed:
 - **SerialRx** - RC receiver protocols (IBus, SBUS, CRSF)
 - **TimerPWM** - Hardware PWM for servos/ESCs (1µs resolution)
 - **Scheduler** - INav-based cooperative multitasking
+- **BoardAlignment** - Chip + board IMU rotation matrix (FLU vehicle frame)
 
 ### Core
 - **SPI**, **Wire**, **SoftwareSerial** - Communication
@@ -143,7 +144,7 @@ After bootloader is installed:
 ```
 ├── cores/arduino/         # Arduino core implementation
 ├── variants/              # Board-specific pin definitions
-├── libraries/             # Robotics libraries (22 libraries)
+├── libraries/             # Robotics libraries (23 libraries)
 ├── bootloaders/           # UF2 bootloader binaries
 ├── targets/               # Board configuration headers
 ├── extras/
@@ -155,7 +156,7 @@ After bootloader is installed:
 
 ## Development Status
 
-- **Complete**: Pin struct refactor — type-safe API, peripheral-aware AF resolution, 15 board variants across F4/F7/G4/H7
+- **Complete**: Pin struct refactor — type-safe API, peripheral-aware AF resolution, 16 board variants across F4/F7/G4/H7
 - **Complete**: Storage (LittleFS, SDFS), IMU library (6-DOF/9-DOF), SerialRx (IBus, SBUS, CRSF), TimerPWM, DShot
 - **Complete**: UF2 bootloaders for 5 flight controller boards
 - **Complete**: HIL verification on 10 rigs covering all four STM32 families
