@@ -4,13 +4,16 @@ Pre-built UF2 bootloaders for STM32 flight controller boards. These bootloaders 
 
 ## Available Bootloaders
 
-| Target | MCU | HSE | File |
-|--------|-----|-----|------|
-| NOXE V3 | STM32F411CE | 8MHz | `bootuf2-noxe_v3-v*.bin` |
-| Revolution F405 | STM32F405RG | 8MHz | `bootuf2-revo_f405-v*.bin` |
-| NERO F7 | STM32F722RE | 8MHz | `bootuf2-nero_f7-v*.bin` |
-| BetaFPV G473 | STM32G473CE | 8MHz | `bootuf2-betafpv_g473-v*.bin` |
-| MATEK H743 | STM32H743VI | 8MHz | `bootuf2-matek_h743-v*.bin` |
+| Target | MCU | HSE | USB ID | File |
+|--------|-----|-----|--------|------|
+| NOXE V3 | STM32F411CE | 8MHz | `cafe:d411` | `bootuf2-noxe_v3-v*.bin` |
+| Revolution F405 | STM32F405RG | 8MHz | `cafe:d405` | `bootuf2-revo_f405-v*.bin` |
+| NERO F7 | STM32F722RE | 8MHz | `cafe:d722` | `bootuf2-nero_f7-v*.bin` |
+| BetaFPV G473 | STM32G473CE | 8MHz | `cafe:d473` | `bootuf2-betafpv_g473-v*.bin` |
+| MATEK H743 | STM32H743VI | 8MHz | `cafe:d743` | `bootuf2-matek_h743-v*.bin` |
+
+The USB identity is `cafe` (VID) with a per-board PID (above); in bootloader mode the
+device reports manufacturer string `bootuf2`.
 
 Each target ships as `.bin` and `.hex` (identical image, load address `0x08000000`),
 produced and version-stamped by `build_sync_bootloaders.sh`:
@@ -59,7 +62,7 @@ J-Link/ST-Link. Uses the `.bin`.
    The mass-erase is required: it clears the old Betaflight application at the app slot,
    so bootuf2 finds an empty slot and stays in UF2 mode instead of jumping into stale
    firmware. The board then reboots into the UF2 bootloader and mounts as a mass-storage
-   drive (`239a:006f`), ready for `.uf2` application uploads.
+   drive (`cafe:<pid>` — see the USB ID column above), ready for `.uf2` application uploads.
 
 > **Note:** betaflight-configurator's DFU flasher is **not** a reliable way to install
 > bootuf2 — on STM32G4 its DFU flash aborts ("addresses not found" / failed address load)

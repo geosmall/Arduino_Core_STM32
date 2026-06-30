@@ -339,7 +339,7 @@ GenG4.name=Generic STM32G4 series
 
 GenG4.build.core=arduino
 GenG4.build.board=GenG4
-GenG4.build.st_extra_flags=-D{build.product_line} {build.enable_usb} {build.xSerial}
+GenG4.build.st_extra_flags=-D{build.product_line} {build.enable_usb} {build.xSerial} {build.bootloader_flags}
 GenG4.build.mcu=cortex-m4
 GenG4.build.fpu=-mfpu=fpv4-sp-d16
 GenG4.build.float-abi=-mfloat-abi=hard
@@ -530,7 +530,7 @@ FlightCtr.menu.pnum.JHEF_JHEF411.build.variant=STM32F4xx/F411C(C-E)(U-Y)
 FlightCtr.menu.pnum.JHEF_JHEF411.build.variant_h=variant_JHEF_JHEF411.h
 FlightCtr.menu.pnum.JHEF_JHEF411.build.uf2_family=0x57755a57
 FlightCtr.menu.pnum.JHEF_JHEF411.build.uf2_flash_offset=0x10000
-FlightCtr.menu.pnum.JHEF_JHEF411.build.bootloader_bin=bootuf2-noxe_v3-v2.0.0.bin
+FlightCtr.menu.pnum.JHEF_JHEF411.build.bootloader_bin=bootuf2-noxe_v3-v2.0.1.bin
 
 # NERO F7 (BKMN) F722RET flight controller
 FlightCtr.menu.pnum.BKMN_NERO=NERO F7 (BKMN)
@@ -544,7 +544,7 @@ FlightCtr.menu.pnum.BKMN_NERO.build.variant=STM32F7xx/F722R(C-E)T_F730R8T_F732RE
 FlightCtr.menu.pnum.BKMN_NERO.build.variant_h=variant_BKMN_NERO.h
 FlightCtr.menu.pnum.BKMN_NERO.build.uf2_family=0x53b80f00
 FlightCtr.menu.pnum.BKMN_NERO.build.uf2_flash_offset=0x10000
-FlightCtr.menu.pnum.BKMN_NERO.build.bootloader_bin=bootuf2-nero_f7-v2.0.0.bin
+FlightCtr.menu.pnum.BKMN_NERO.build.bootloader_bin=bootuf2-nero_f7-v2.0.1.bin
 
 # BetaFPV G473 (BEFH) flight controller
 FlightCtr.menu.pnum.BEFH_BETAFPVG473=BetaFPV G473 (BEFH)
@@ -558,7 +558,7 @@ FlightCtr.menu.pnum.BEFH_BETAFPVG473.build.variant=STM32G4xx/G473C(B-C-E)U_G474C
 FlightCtr.menu.pnum.BEFH_BETAFPVG473.build.variant_h=variant_BEFH_BETAFPVG473.h
 FlightCtr.menu.pnum.BEFH_BETAFPVG473.build.uf2_family=0x4c71240a
 FlightCtr.menu.pnum.BEFH_BETAFPVG473.build.uf2_flash_offset=0x10000
-FlightCtr.menu.pnum.BEFH_BETAFPVG473.build.bootloader_bin=bootuf2-betafpv_g473-v2.0.0.bin
+FlightCtr.menu.pnum.BEFH_BETAFPVG473.build.bootloader_bin=bootuf2-betafpv_g473-v2.0.1.bin
 
 # DevEBox H743VITx
 FlightCtr.menu.pnum.DEVEBOX_H743=DevEBox H743VITx
@@ -587,7 +587,7 @@ FlightCtr.menu.pnum.MATEK_H743VI.build.variant=STM32H7xx/H742V(G-I)(H-T)_H743V(G
 FlightCtr.menu.pnum.MATEK_H743VI.build.variant_h=variant_MATEK_H743VI.h
 FlightCtr.menu.pnum.MATEK_H743VI.build.uf2_family=0x6db66082
 FlightCtr.menu.pnum.MATEK_H743VI.build.uf2_flash_offset=0x20000
-FlightCtr.menu.pnum.MATEK_H743VI.build.bootloader_bin=bootuf2-matek_h743-v2.0.0.bin
+FlightCtr.menu.pnum.MATEK_H743VI.build.bootloader_bin=bootuf2-matek_h743-v2.0.1.bin
 
 ################################################################################
 # Serialx activation
