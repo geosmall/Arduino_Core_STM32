@@ -15,20 +15,20 @@
 //
 namespace BoardConfig {
   // Storage: No onboard SPI flash or SD card
-  static constexpr StorageConfig storage{StorageBackend::NONE, NC_PIN, NC_PIN, NC_PIN, NC_PIN};
+  static constexpr StorageConfig storage{StorageBackend::NONE, NC_PIN, NC_PIN, NC_PIN, NC_PIN, 0, SpiDev::None};
 
   // IMU: ICM42688P on SPI1
   // Chip alignment: CW0_DEG (bench breadboard, flat mount). No interrupt
   // pin wired; 1 MHz setup frequency.
-  static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 2000000};
+  static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 2000000, SpiDev::Spi1};
   static constexpr IMUConfig imu{imu_spi, NC_PIN, 1000000, IMUAlignment::CW0_DEG};
 
   // RC Receiver: SBUS on USART1 (RX=PA10, TX=PA9)
   // 100000 baud for SBUS protocol, H7 hardware RX inversion
-  static constexpr RCReceiverConfig rc_receiver{PA10, PA9, 100000, 1000, 300};
+  static constexpr RCReceiverConfig rc_receiver{PA10, PA9, 100000, 1000, 300, UartDev::Usart1};
 
   // I2C1: Available for sensors (PB7/PB6)
-  static constexpr I2CConfig sensors{PB7, PB6, 400000};
+  static constexpr I2CConfig sensors{PB7, PB6, 400000, I2CDev::I2c1};
 
   // Status LED: PE3 (DevEBox schematic)
   static constexpr LEDConfig status_leds{PE3};

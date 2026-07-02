@@ -13,22 +13,22 @@
 //
 namespace BoardConfig {
   // Storage: W25Q SPI flash on SPI2 (1 MHz for breadboard/jumper wires)
-  static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PB15, PB14, PB13, PB2, 1000000};
+  static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PB15, PB14, PB13, PB2, 1000000, SpiDev::Spi2};
   //                                                              MOSI  MISO  SCLK  CS   Freq
 
   // IMU: MPU-6000 on SPI1 (1 MHz for breadboard), interrupt on PB3
   // Chip alignment: CW0_DEG (bench breadboard, flat mount).
-  static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 1000000};
+  static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 1000000, SpiDev::Spi1};
   static constexpr IMUConfig imu{imu_spi, PB3, 1000000, IMUAlignment::CW0_DEG};
 
   // I2C1: DPS310 barometer and other sensors
-  static constexpr I2CConfig sensors{PB9, PB8, 400000};
+  static constexpr I2CConfig sensors{PB9, PB8, 400000, I2CDev::I2c1};
 
   // RC Receiver: IBus on USART1 (RX=PB7, TX=PB6)
-  static constexpr RCReceiverConfig rc_receiver{PB7, PB6, 115200, 1000, 300};
+  static constexpr RCReceiverConfig rc_receiver{PB7, PB6, 115200, 1000, 300, UartDev::Usart1};
 
   // GPS: USART2 (Nucleo Arduino header D1/D0)
-  static constexpr UARTConfig gps{PA2, PA3, 9600};
+  static constexpr UARTConfig gps{PA2, PA3, 9600, UartDev::Usart2};
 
   // Status LED
   static constexpr LEDConfig status_leds{PC13};

@@ -33,11 +33,11 @@
 //    abs-max VDDIO+0.5V — needs series Rs or a level-shifted board.
 //    Verified before commit (see HIL-008 IMU fixture notes).
 namespace BoardConfig {
-  static constexpr RCReceiverConfig rc_receiver{PC11, PC10, 420000, 1000, 300};
+  static constexpr RCReceiverConfig rc_receiver{PC11, PC10, 420000, 1000, 300, UartDev::Uart4};
 
   // IMU: ICM-42688-P on SPI2 (Morpho CN10)
   // Chip alignment: CW0_DEG (bench breadboard, flat mount).
-  static constexpr SPIConfig imu_spi{PB15, PB14, PB13, PB12, 2000000};
+  static constexpr SPIConfig imu_spi{PB15, PB14, PB13, PB12, 2000000, SpiDev::Spi2};
   static constexpr IMUConfig imu{imu_spi, PC4, 1000000, IMUAlignment::CW0_DEG};
 
   // Status LED: NUCLEO-G474RE onboard LD2 (green) is on PA5

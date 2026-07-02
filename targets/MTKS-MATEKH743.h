@@ -20,42 +20,42 @@
 // Gyro: MPU6500, MPU6000, ICM42688P, ICM42605
 namespace BoardConfig {
   // Storage: No onboard SPI flash or SD card
-  static constexpr StorageConfig storage{StorageBackend::NONE, NC_PIN, NC_PIN, NC_PIN, NC_PIN};
+  static constexpr StorageConfig storage{StorageBackend::NONE, NC_PIN, NC_PIN, NC_PIN, NC_PIN, 0, SpiDev::None};
 
   // IMU: MPU6500, MPU6000, ICM42688P, ICM42605 on SPI1
   // Chip alignment from Betaflight GYRO_1_ALIGN CW0_DEG_FLIP
   // (bf_configs/MATEKH743/config.h:160). _FLIP means the chip is mounted
   // Z-axis inverted relative to the airframe — code that assumes CW0_DEG
   // would read gravity vector upside-down.
-  static constexpr SPIConfig imu_spi{PD7, PA6, PA5, PC15, 8000000};
+  static constexpr SPIConfig imu_spi{PD7, PA6, PA5, PC15, 8000000, SpiDev::Spi1};
   static constexpr IMUConfig imu{imu_spi, PB2, 1000000, IMUAlignment::CW0_DEG_FLIP};
 
   // I2C1: Airspeed sensor, external compass
-  static constexpr I2CConfig airspeed{PB7, PB6, 400000};
+  static constexpr I2CConfig airspeed{PB7, PB6, 400000, I2CDev::I2c1};
 
   // I2C2: Barometer, compass
-  static constexpr I2CConfig baro{PB11, PB10, 400000};
+  static constexpr I2CConfig baro{PB11, PB10, 400000, I2CDev::I2c2};
 
   // LPUART1: Serial port
-  static constexpr UARTConfig uart1{PA9, PA10, 115200};
+  static constexpr UARTConfig uart1{PA9, PA10, 115200, UartDev::Lpuart1};
 
   // USART2: Serial port
-  static constexpr UARTConfig uart2{PD5, PD6, 115200};
+  static constexpr UARTConfig uart2{PD5, PD6, 115200, UartDev::Usart2};
 
   // USART3: Serial port
-  static constexpr UARTConfig uart3{PD8, PD9, 115200};
+  static constexpr UARTConfig uart3{PD8, PD9, 115200, UartDev::Usart3};
 
   // UART4: Serial port
-  static constexpr UARTConfig uart4{PB9, PB8, 115200};
+  static constexpr UARTConfig uart4{PB9, PB8, 115200, UartDev::Uart4};
 
   // USART6: Serial port
-  static constexpr UARTConfig uart6{PC6, PC7, 115200};
+  static constexpr UARTConfig uart6{PC6, PC7, 115200, UartDev::Usart6};
 
   // UART7: Serial port
-  static constexpr UARTConfig uart7{PE8, PE7, 115200};
+  static constexpr UARTConfig uart7{PE8, PE7, 115200, UartDev::Uart7};
 
   // UART8: Serial port
-  static constexpr UARTConfig uart8{PE1, PE0, 115200};
+  static constexpr UARTConfig uart8{PE1, PE0, 115200, UartDev::Uart8};
 
   // ADC: Battery voltage and current monitoring
   static constexpr ADCConfig battery{PC0, PC1, 110, 250};
@@ -64,7 +64,7 @@ namespace BoardConfig {
   static constexpr LEDConfig status_leds{PE3, PE4};
 
   // RC Receiver: USART6 (from SERIALRX_UART)
-  static constexpr RCReceiverConfig rc_receiver{PC7, PC6, 115200, 1000, 300};
+  static constexpr RCReceiverConfig rc_receiver{PC7, PC6, 115200, 1000, 300, UartDev::Usart6};
 
   // GPS: USART2 (PD5/PD6)
   static constexpr GPSConfig gps{PD5, PD6, 9600};

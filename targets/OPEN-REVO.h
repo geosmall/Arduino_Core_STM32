@@ -24,28 +24,28 @@
 // Gyro: MPU6500, MPU6000
 namespace BoardConfig {
   // Storage: W25Q128FV SPI flash on SPI3
-  static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PC12, PC11, PC10, PB3, 8000000};
+  static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PC12, PC11, PC10, PB3, 8000000, SpiDev::Spi3};
 
   // IMU: MPU6500, MPU6000 on SPI1
   // Chip alignment from Betaflight GYRO_1_ALIGN CW270_DEG
   // (bf_configs/REVO/config.h).
-  static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 8000000};
+  static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 8000000, SpiDev::Spi1};
   static constexpr IMUConfig imu{imu_spi, PC4, 1000000, IMUAlignment::CW270_DEG};
 
   // I2C1: Environmental sensors
-  static constexpr I2CConfig sensors{PB9, PB8, 400000};
+  static constexpr I2CConfig sensors{PB9, PB8, 400000, I2CDev::I2c1};
 
   // USART1: Serial port
-  static constexpr UARTConfig uart1{PA9, PA10, 115200};
+  static constexpr UARTConfig uart1{PA9, PA10, 115200, UartDev::Usart1};
 
   // USART3: Serial port
-  static constexpr UARTConfig uart3{PB10, PB11, 115200};
+  static constexpr UARTConfig uart3{PB10, PB11, 115200, UartDev::Usart3};
 
   // UART4: Serial port
-  static constexpr UARTConfig uart4{PA0, PA1, 115200};
+  static constexpr UARTConfig uart4{PA0, PA1, 115200, UartDev::Uart4};
 
   // USART6: Serial port
-  static constexpr UARTConfig uart6{PC6, PC7, 115200};
+  static constexpr UARTConfig uart6{PC6, PC7, 115200, UartDev::Usart6};
 
   // ADC: Battery voltage and current monitoring
   static constexpr ADCConfig battery{PC2, PC1, 110, 170};
@@ -55,7 +55,7 @@ namespace BoardConfig {
 
   // RC Receiver: Hardware-validated configuration
   // 3-pin SBUS header connected to USART1 with hardware inverter on PC0
-  static constexpr RCReceiverConfig rc_receiver{PA10, PA9, 100000, 1000, 300};  // SBUS: 100k baud
+  static constexpr RCReceiverConfig rc_receiver{PA10, PA9, 100000, 1000, 300, UartDev::Usart1};  // SBUS: 100k baud
   static constexpr Pin rc_inverter_pin = PC0;  // HIGH=SBUS (inverted), LOW=iBus (non-inverted)
 
   // Servo outputs - none configured

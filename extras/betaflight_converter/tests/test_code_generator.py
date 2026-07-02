@@ -216,9 +216,11 @@ class TestCodeGenerator(unittest.TestCase):
         self.assertIn("{TIM1, PA9, 2,", motors_code)   # Motor 2
         self.assertIn("{TIM1, PA10, 3,", motors_code)  # Motor 3
 
-        # TIM3 motors (motors 4-5 in JHEF411 config)
-        self.assertIn("{TIM3, PB0_ALT1, 3,", motors_code)  # Motor 4
-        self.assertIn("{TIM3, PB4, 1,", motors_code)       # Motor 5
+        # TIM3 motors (motors 4-5 in JHEF411 config). Plain base pin — the AF
+        # (PB0 -> TIM3_CH3 via the ALT map) is resolved by the DShot/PWM lib
+        # from (pin, timer), not encoded in BoardConfig. See doc/PIN_USE.md.
+        self.assertIn("{TIM3, PB0, 3,", motors_code)  # Motor 4
+        self.assertIn("{TIM3, PB4, 1,", motors_code)  # Motor 5
 
     def test_protocol_detection(self):
         """Test motor protocol detection."""
@@ -239,23 +241,20 @@ class TestCodeGenerator(unittest.TestCase):
         self.assertIsNotNone(match, "RCReceiverConfig must emit USART_TypeDef* instance literal")
         self.assertEqual(match.group(1), "USART1")
 
-    def test_no_alt_in_spi_i2c_uart_emissions(self):
-        """SPI/Storage/I2C/UART/RC receiver lines must not carry _ALT suffixes.
+    def test_no_alt_pin_suffixes_anywhere(self):
+        """No emitted BoardConfig line may carry an _ALT pin suffix.
 
-        Pin disambiguation now flows through the *_TypeDef* instance literal.
-        Emitted lines like 'StorageConfig{..., PB5_ALT1, ...}' would not compile
-        against the Pin type (Arduino_Core_STM32/doc/PIN_USE.md). Motor lines
-        keep their _ALT pin syntax — that's TimerPWM's already-migrated
-        peripheral-aware path, not in PR 1's scope.
+        BoardConfig names physical pins; ALT-encoded macros (PB0_ALT1) are
+        undefined in custom variant headers and violate the Pin model
+        (Arduino_Core_STM32/doc/PIN_USE.md). Disambiguation flows through the
+        *_TypeDef* instance literal (SPI/Storage/I2C/UART/RC) or through
+        (pin, timer) AF resolution in the DShot/PWM lib (motors/servos) — never
+        through an _ALT pin token in the emitted header.
         """
         code = self.generator.generate()
         for line in code.split('\n'):
-            if any(tag in line for tag in (
-                'StorageConfig', 'SPIConfig', 'I2CConfig',
-                'UARTConfig', 'RCReceiverConfig',
-            )):
-                self.assertNotIn('_ALT', line,
-                                 f"Found _ALT suffix in non-motor emission: {line}")
+            self.assertNotIn('_ALT', line,
+                             f"Found _ALT suffix in emission: {line}")
 
     def test_valid_cpp_syntax(self):
         """Test generated code has valid C++ syntax."""

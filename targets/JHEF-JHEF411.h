@@ -20,22 +20,22 @@
 // Gyro: MPU6000, ICM42688P
 namespace BoardConfig {
   // Storage: W25Q128FV SPI flash on SPI2
-  static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PB15, PB14, PB13, PB2, 8000000};
+  static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PB15, PB14, PB13, PB2, 8000000, SpiDev::Spi2};
 
   // IMU: MPU6000, ICM42688P on SPI1
   // Chip alignment from Betaflight GYRO_1_ALIGN CW180_DEG
   // (bf_configs/JHEF411/config.h).
-  static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 8000000};
+  static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 8000000, SpiDev::Spi1};
   static constexpr IMUConfig imu{imu_spi, PB3, 1000000, IMUAlignment::CW180_DEG};
 
   // I2C1: Environmental sensors
-  static constexpr I2CConfig sensors{PB9, PB8, 400000};
+  static constexpr I2CConfig sensors{PB9, PB8, 400000, I2CDev::I2c1};
 
   // USART1: Serial port
-  static constexpr UARTConfig uart1{PB6, PB7, 115200};
+  static constexpr UARTConfig uart1{PB6, PB7, 115200, UartDev::Usart1};
 
   // USART2: Serial port
-  static constexpr UARTConfig uart2{PA2, PA3, 115200};
+  static constexpr UARTConfig uart2{PA2, PA3, 115200, UartDev::Usart2};
 
   // ADC: Battery voltage and current monitoring
   static constexpr ADCConfig battery{PA0, PA1, 110, 170};
@@ -44,7 +44,7 @@ namespace BoardConfig {
   static constexpr LEDConfig status_leds{PC13};
 
   // RC Receiver: IBus/SBUS (adjust protocol based on actual wiring)
-  static constexpr RCReceiverConfig rc_receiver{PB7, PB6, 115200, 1000, 300};
+  static constexpr RCReceiverConfig rc_receiver{PB7, PB6, 115200, 1000, 300, UartDev::Usart1};
 
   // Servo outputs - none configured
   namespace Servo {

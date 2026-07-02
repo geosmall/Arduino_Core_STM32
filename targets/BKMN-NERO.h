@@ -20,25 +20,25 @@
 // Gyro: ICM20602
 namespace BoardConfig {
   // Storage: SD card on SPI3
-  static constexpr StorageConfig storage{StorageBackend::SDFS, PC12, PC11, PC10, PA15, 8000000};
+  static constexpr StorageConfig storage{StorageBackend::SDFS, PC12, PC11, PC10, PA15, 8000000, SpiDev::Spi3};
 
   // IMU: ICM20602 on SPI1
   // Chip alignment: CW0_DEG (NERO bf_config doesn't declare
   // GYRO_1_ALIGN — Betaflight's implicit default applies).
-  static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PC4, 8000000};
+  static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PC4, 8000000, SpiDev::Spi1};
   static constexpr IMUConfig imu{imu_spi, PB2, 1000000, IMUAlignment::CW0_DEG};
 
   // I2C1: Environmental sensors
-  static constexpr I2CConfig sensors{PB9, PB8, 400000};
+  static constexpr I2CConfig sensors{PB9, PB8, 400000, I2CDev::I2c1};
 
   // USART1: Serial port
-  static constexpr UARTConfig uart1{PA9, PA10, 115200};
+  static constexpr UARTConfig uart1{PA9, PA10, 115200, UartDev::Usart1};
 
   // USART3: Serial port
-  static constexpr UARTConfig uart3{PB10, PB11, 115200};
+  static constexpr UARTConfig uart3{PB10, PB11, 115200, UartDev::Usart3};
 
   // USART6: Serial port
-  static constexpr UARTConfig uart6{PC6, PC7, 115200};
+  static constexpr UARTConfig uart6{PC6, PC7, 115200, UartDev::Usart6};
 
   // ADC: Battery voltage and current monitoring
   static constexpr ADCConfig battery{PC3, PC2, 110, 170};
@@ -47,7 +47,7 @@ namespace BoardConfig {
   static constexpr LEDConfig status_leds{PB6, PB5};
 
   // RC Receiver: IBus/SBUS on USART3 (top-right header, see wiring diagram)
-  static constexpr RCReceiverConfig rc_receiver{PB11, PB10, 115200, 1000, 300};
+  static constexpr RCReceiverConfig rc_receiver{PB11, PB10, 115200, 1000, 300, UartDev::Usart3};
 
   // Servo outputs - 50 Hz PWM for standard servos
   namespace Servo {

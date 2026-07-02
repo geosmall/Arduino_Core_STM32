@@ -16,23 +16,23 @@
 // Gyro: MPU6000, ICM42688P
 namespace BoardConfig {
   // Storage: W25Q128FV SPI flash on SPI2 (1 MHz for breadboard/jumper wires)
-  static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PB15, PB14, PB13, PB2, 1000000};
+  static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PB15, PB14, PB13, PB2, 1000000, SpiDev::Spi2};
 
   // IMU: MPU6000, ICM42688P on SPI1 (1 MHz for breadboard/jumper wires)
   // Chip alignment: CW0_DEG (bench breadboard rig — chip mounted flat
   // on the NUCLEO PCB. The production JHEF411 board mounts the IMU
   // CW180_DEG; see targets/JHEF-JHEF411.h.)
-  static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 1000000};
+  static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 1000000, SpiDev::Spi1};
   static constexpr IMUConfig imu{imu_spi, PB3, 1000000, IMUAlignment::CW0_DEG};
 
   // I2C1: Environmental sensors
-  static constexpr I2CConfig sensors{PB9, PB8, 400000};
+  static constexpr I2CConfig sensors{PB9, PB8, 400000, I2CDev::I2c1};
 
   // USART1: Serial port
-  static constexpr UARTConfig uart1{PB6, PB7, 115200};
+  static constexpr UARTConfig uart1{PB6, PB7, 115200, UartDev::Usart1};
 
   // USART2: Serial port
-  static constexpr UARTConfig uart2{PA2, PA3, 115200};
+  static constexpr UARTConfig uart2{PA2, PA3, 115200, UartDev::Usart2};
 
   // ADC: Battery voltage and current monitoring
   static constexpr ADCConfig battery{PA0, PA1, 110, 170};
@@ -41,7 +41,7 @@ namespace BoardConfig {
   static constexpr LEDConfig status_leds{PC13};
 
   // RC Receiver: IBus/SBUS (adjust protocol based on actual wiring)
-  static constexpr RCReceiverConfig rc_receiver{PB7, PB6, 115200, 1000, 300};
+  static constexpr RCReceiverConfig rc_receiver{PB7, PB6, 115200, 1000, 300, UartDev::Usart1};
 
   // GPS: USART2 (directly on Nucleo Arduino header D1/D0)
   static constexpr GPSConfig gps{PA2, PA3, 9600};

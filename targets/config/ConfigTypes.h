@@ -5,6 +5,7 @@
 
 #include "Pin.h"
 #include "stm32/pinmap.h"
+#include "PeriphResolve.h"  // device enums (SpiDev, ...) + handles + resolvers
 
 // Storage backend types
 enum class StorageBackend {
@@ -43,25 +44,21 @@ enum class IMUAlignment : uint8_t {
 };
 
 namespace BoardConfig {
-  // Aggregate (no user-defined ctor) so `static constexpr SPIConfig x{..., SPI1}`
-  // compiles. CMSIS peripheral macros (`SPI1`, `SPI3`, ...) expand to
-  // `reinterpret_cast<SPI_TypeDef*>(SPI<n>_BASE)`, which is not a core
-  // constant expression — a user-defined constexpr ctor receiving such a
-  // value rejects compile-time initialization. Aggregate brace-init does
-  // not, matching the precedent set by MotorConfig + `TIM1`.
-  //
-  // `instance` disambiguates multi-mapping pins (e.g. G473 PB3/4/5, which
-  // carry both SPI1+AF5 and SPI3+AF6 entries in PinMap_SPI_*). nullptr
-  // preserves legacy first-match resolution — kept as a default member
-  // initializer so existing target headers compile unchanged. See
-  // Arduino_Core_STM32/doc/PIN_USE.md for the peripheral-aware pin model.
+  // `instance` names the SPI peripheral by device enum (SpiInstance, see
+  // PeriphResolve.h) rather than a raw CMSIS pointer. The enum is a constant
+  // expression, so SPIConfig stays a literal type usable in `static constexpr`
+  // aggregates — including nested inside IMUConfig. It is mandatory (no
+  // default): a target that omits its SPI device fails to compile, so peripheral
+  // selection is always explicit and deterministic (never pin-derived). The
+  // resolver disambiguates multi-mapping pins (e.g. G473 PB3/4/5 = SPI1+AF5 /
+  // SPI3+AF6). See doc/STM32_GOTCHAS.md and doc/PIN_USE.md.
   struct SPIConfig {
     Pin mosi_pin;
     Pin miso_pin;
     Pin sclk_pin;
     Pin cs_pin;
     uint32_t freq_hz = 1000000;
-    SPI_TypeDef* instance = nullptr;
+    SpiInstance instance;  // mandatory: e.g. SpiDev::Spi1
     CS_Mode cs_mode = CS_Mode::SOFTWARE;
 
     // Helper: Get SSEL pin for SPIClass constructor
@@ -72,28 +69,23 @@ namespace BoardConfig {
     }
   };
 
-  // Aggregate (no user-defined ctor) — see SPIConfig for the rationale.
-  // `instance` disambiguates multi-mapping UART pins; nullptr preserves
-  // legacy first-match resolution. The USART_TypeDef* alias also accepts
-  // LPUART1/LPUART2 (CMSIS declares them as (USART_TypeDef*)<base>).
+  // `instance` names the USART/UART/LPUART by device enum — see SPIConfig.
   struct UARTConfig {
     Pin tx_pin;
     Pin rx_pin;
     uint32_t baud_rate;
-    USART_TypeDef* instance = nullptr;
+    UartInstance instance;  // mandatory: e.g. UartDev::Usart1
   };
 
-  // Aggregate (no user-defined ctor) — see SPIConfig for the rationale.
-  // `instance` disambiguates multi-mapping I2C pins; nullptr preserves
-  // legacy first-match resolution for backward compat.
+  // `instance` names the I2C peripheral by device enum — see SPIConfig.
   struct I2CConfig {
     Pin sda_pin;
     Pin scl_pin;
     uint32_t freq_hz = 100000;
-    I2C_TypeDef* instance = nullptr;
+    I2CInstance instance;  // mandatory: e.g. I2CDev::I2c1
   };
 
-  // Aggregate (no user-defined ctor) — see SPIConfig for the rationale.
+  // `instance` names the SPI peripheral by device enum — see SPIConfig.
   struct StorageConfig {
     StorageBackend backend_type;
     Pin mosi_pin;
@@ -101,9 +93,11 @@ namespace BoardConfig {
     Pin sclk_pin;
     Pin cs_pin;
     uint32_t freq_hz = 1000000;
-    SPI_TypeDef* instance = nullptr;
+    SpiInstance instance;  // mandatory: e.g. SpiDev::Spi2
   };
 
+  // Nests SPIConfig by value. Fine as a constexpr-ctor type now that SPIConfig's
+  // `instance` is a device enum (a constant expression), not a CMSIS pointer.
   struct IMUConfig {
     constexpr IMUConfig(const SPIConfig& spi_config, Pin interrupt_pin = NC_PIN,
                        uint32_t setup_freq_hz = 0,
@@ -147,15 +141,14 @@ namespace BoardConfig {
     const Pin led2_pin;   // Secondary status LED (NC_PIN = not present)
   };
 
-  // Aggregate (no user-defined ctor) — see SPIConfig / UARTConfig for the
-  // rationale on the `instance` field.
+  // `instance` names the USART/UART by device enum — see SPIConfig / UARTConfig.
   struct RCReceiverConfig {
     Pin rx_pin;                   // UART RX pin (receiver output)
     Pin tx_pin;                   // UART TX pin (receiver input, usually unused)
     uint32_t baud_rate;           // Protocol baudrate (115200=IBus, 100000=SBUS)
     uint32_t timeout_ms = 1000;   // Failsafe timeout in milliseconds
     uint32_t idle_threshold_us = 300;  // Software idle detection threshold (0=disabled)
-    USART_TypeDef* instance = nullptr;
+    UartInstance instance;        // mandatory: e.g. UartDev::Usart3
   };
 
   struct GPSConfig {
@@ -172,19 +165,19 @@ namespace BoardConfig {
   // DMA streams at runtime. When non-null, the specified DMA resource is used
   // directly (from Betaflight dma_opt translation or manual assignment).
   struct MotorConfig {
-    TIM_TypeDef* timer;
+    TimInstance timer;       // mandatory device enum: e.g. TimDev::Tim3
     Pin pin;
     uint32_t channel;        // Timer channel (1-4)
     uint32_t min_us;         // Min pulse width (PWM protocols)
     uint32_t max_us;         // Max pulse width (PWM protocols)
-    DMA_TypeDef* dma;        // DMA controller (nullptr = auto-resolve)
-    uint32_t dma_stream;     // Stream/channel number (0-7)
-    uint32_t dma_channel_sel; // F4/F7 channel select index (0-7, ignored on G4/H7)
+    DmaInstance dma;         // DmaCtrl::None (default) = auto-resolve from timer
+    uint32_t dma_stream = 0; // Stream/channel number (0-7)
+    uint32_t dma_channel_sel = 0; // F4/F7 channel select index (0-7, ignored on G4/H7)
   };
 
   // Servo output configuration (used by ServoManager)
   struct ServoConfig {
-    TIM_TypeDef* timer;
+    TimInstance timer;       // mandatory device enum: e.g. TimDev::Tim3
     Pin pin;
     uint32_t channel;        // Timer channel (1-4)
     uint32_t min_us;         // Min pulse width (typically 1000)

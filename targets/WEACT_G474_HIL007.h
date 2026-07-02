@@ -19,25 +19,25 @@
 namespace BoardConfig {
   // Storage: W25Q SPI flash on SPI3 (PB3/4/5 also carry SPI1+AF5 entries in
   // PinMap_SPI_*; naming SPI3 makes the AF6 routing explicit).
-  static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PB5, PB4, PB3, PB9, 8000000, SPI3};
+  static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PB5, PB4, PB3, PB9, 8000000, SpiDev::Spi3};
 
   // IMU: ICM42688P on SPI1
   // Chip alignment mirrors BEFH-BETAFPVG473 (Betaflight GYRO_1_ALIGN CW180_DEG,
   // see betaflight/src/config/configs/BETAFPVG473/config.h:109) per surrogate role.
-  static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 2000000};
+  static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 2000000, SpiDev::Spi1};
   static constexpr IMUConfig imu{imu_spi, PC4, 1000000, IMUAlignment::CW180_DEG};
 
   // I2C1: Sensors
-  static constexpr I2CConfig sensors{PB7, PA15, 400000};
+  static constexpr I2CConfig sensors{PB7, PA15, 400000, I2CDev::I2c1};
 
   // USART1: RC receiver / loopback
-  static constexpr UARTConfig uart1{PA9, PA10, 115200};
+  static constexpr UARTConfig uart1{PA9, PA10, 115200, UartDev::Usart1};
 
   // RC Receiver: CRSF (ELRS) on USART3 — matches BEFH-BETAFPVG473 (SERIALRX_UART = USART3).
   // ER6 signal lead wired to PB11 (RX), 5V/GND from board. Naming USART3 makes
   // the AF7 routing explicit (PB10/PB11 are unambiguous on G474 but the convention
   // matches the peripheral-aware migration across SPI/I2C/UART).
-  static constexpr RCReceiverConfig rc_receiver{PB11, PB10, 420000, 1000, 300, USART3};
+  static constexpr RCReceiverConfig rc_receiver{PB11, PB10, 420000, 1000, 300, UartDev::Usart3};
 
   // ADC: Battery voltage and current monitoring
   static constexpr ADCConfig battery{PA0, PA1, 110, 750};

@@ -368,7 +368,7 @@ class BoardConfigGenerator:
         lines.append("    static constexpr ServoConfig servos[] = {")
 
         for servo in sorted(servos, key=lambda s: s.index):
-            lines.append(f"      {{{servo.timer}, {servo.pin_arduino}, {servo.channel}, {min_us}, {max_us}}},  // Servo {servo.index}: {servo.timer}_CH{servo.channel}")
+            lines.append(f"      {{{servo.timer}, {servo.pin_bf}, {servo.channel}, {min_us}, {max_us}}},  // Servo {servo.index}: {servo.timer}_CH{servo.channel}")
 
         lines.append("    };")
         lines.append("")
@@ -399,7 +399,12 @@ class BoardConfigGenerator:
             ""
         ]
 
-        # Generate motor array
+        # Generate motor array. Emit the plain base pin (pin_bf), never the
+        # ALT-decorated pin_arduino: BoardConfig names physical pins and the
+        # DShot/PWM lib resolves the AF from (pin, timer) via
+        # pinmap_function_for_peripheral(). ALT-encoded macros (PB0_ALT1) are
+        # undefined in custom variant headers and violate the Pin model — see
+        # Arduino_Core_STM32/doc/PIN_USE.md.
         lines.append("    // Motor array - hardware timer assignments from Betaflight config")
         lines.append("    static constexpr MotorConfig motors[] = {")
 
@@ -416,7 +421,7 @@ class BoardConfigGenerator:
 
             if dma:
                 lines.append(
-                    f"      {{{motor.timer}, {motor.pin_arduino}, {motor.channel}, "
+                    f"      {{{motor.timer}, {motor.pin_bf}, {motor.channel}, "
                     f"{min_us}, {max_us}, DMA{dma.controller}, {dma.stream}, "
                     f"{dma.channel_sel}}},  // Motor {motor.index}: "
                     f"{motor.timer}_CH{motor.channel}, "
@@ -424,7 +429,7 @@ class BoardConfigGenerator:
                 )
             else:
                 lines.append(
-                    f"      {{{motor.timer}, {motor.pin_arduino}, {motor.channel}, "
+                    f"      {{{motor.timer}, {motor.pin_bf}, {motor.channel}, "
                     f"{min_us}, {max_us}}},  // Motor {motor.index}: "
                     f"{motor.timer}_CH{motor.channel}"
                 )
