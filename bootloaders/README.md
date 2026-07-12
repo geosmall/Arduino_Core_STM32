@@ -8,6 +8,7 @@ Pre-built UF2 bootloaders for STM32 flight controller boards. These bootloaders 
 |--------|-----|-----|--------|------|
 | NOXE V3 | STM32F411CE | 8MHz | `cafe:d411` | `bootuf2-noxe_v3-v*.bin` |
 | Revolution F405 | STM32F405RG | 8MHz | `cafe:d405` | `bootuf2-revo_f405-v*.bin` |
+| BetaFPV F405 (Pavo Pico II) | STM32F405RG | 8MHz | `cafe:d40a` | `bootuf2-betafpv_f405-v*.bin` |
 | NERO F7 | STM32F722RE | 8MHz | `cafe:d722` | `bootuf2-nero_f7-v*.bin` |
 | BetaFPV G473 | STM32G473CE | 8MHz | `cafe:d473` | `bootuf2-betafpv_g473-v*.bin` |
 | MATEK H743 | STM32H743VI | 8MHz | `cafe:d743` | `bootuf2-matek_h743-v*.bin` |
