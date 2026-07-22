@@ -42,14 +42,48 @@ if git -C "$BUILD_ID_SRC" rev-parse --git-dir >/dev/null 2>&1 \
   BUILD_GIT_BRANCH="$(git -C "$BUILD_ID_SRC" rev-parse --abbrev-ref HEAD 2>/dev/null || echo detached)"
   BUILD_UTC_TIME="$(TZ=UTC0 git -C "$BUILD_ID_SRC" log -1 --date=format-local:%Y-%m-%dT%H:%M:%SZ --format=%cd 2>/dev/null || echo nogit)"
   # Dirty = tracked-file edits OR a modified core submodule (--ignore-submodules=none).
-  # Untracked files are excluded (--untracked-files=no): they aren't compiled into
-  # the binary, and this workspace always carries untracked scratch/plan files; the
-  # old diff-index check ignored them too. Without -uno every build would be -dirty.
+  # General untracked files are excluded (--untracked-files=no): this workspace
+  # always carries untracked scratch/plan files, so -uall globally would mark
+  # every build dirty. EXCEPTION below: untracked SOURCE files inside the sketch
+  # dir DO count -- Arduino compiles every source in the sketch dir and sketch-dir
+  # headers shadow library headers, so such a file changes the binary while
+  # leaving the tracked tree clean (one of the two bypasses behind the 2026-07
+  # poisoned-binary incident).
   if [ -n "$(git -C "$BUILD_ID_SRC" status --porcelain --untracked-files=no --ignore-submodules=none 2>/dev/null)" ]; then
+    BUILD_GIT_SHA="${BUILD_GIT_SHA}-dirty"
+  elif [ -n "$(git -C "$BUILD_ID_SRC" status --porcelain --untracked-files=all -- . 2>/dev/null \
+               | grep '^??' | grep -Ei '\.(h|hpp|c|cpp|cxx|ino|s)$')" ]; then
     BUILD_GIT_SHA="${BUILD_GIT_SHA}-dirty"
   fi
 else
   BUILD_GIT_SHA="nogit"; BUILD_GIT_BRANCH="nogit"; BUILD_UTC_TIME="nogit"
+fi
+
+# ----------------------------------------------------------------------------
+# Core provenance: CORE_GIT_SHA stamps the platform actually being compiled
+# (BOARD_PLATFORM_PATH -- not assumed to be a submodule of the sketch's repo).
+# Dirty = tracked edits, or untracked source files under the compiled core
+# trees (they build in and shadow, same hazard as sketch-dir untracked
+# sources). 'nogit' for a non-git platform install (Board Manager).
+#
+# NOTE this stamp describes the core SOURCE TREE at prebuild time, not what
+# the linker consumes: a stale cached core.a (arduino-cli#2382) can still be
+# linked under a clean stamp. ci/build.sh clears that cache unconditionally;
+# for builds made outside it, a core mismatch is at least VISIBLE via this
+# field when investigating a suspect binary.
+# ----------------------------------------------------------------------------
+if git -C "$BOARD_PLATFORM_PATH" rev-parse --git-dir >/dev/null 2>&1 \
+   && CORE_GIT_SHA="$(git -C "$BOARD_PLATFORM_PATH" rev-parse --short=9 HEAD 2>/dev/null)" \
+   && [ -n "$CORE_GIT_SHA" ]; then
+  if [ -n "$(git -C "$BOARD_PLATFORM_PATH" status --porcelain --untracked-files=no 2>/dev/null)" ]; then
+    CORE_GIT_SHA="${CORE_GIT_SHA}-dirty"
+  elif [ -n "$(git -C "$BOARD_PLATFORM_PATH" status --porcelain --untracked-files=all \
+               -- cores libraries system variants targets 2>/dev/null \
+               | grep '^??' | grep -Ei '\.(h|hpp|c|cpp|cxx|s)$')" ]; then
+    CORE_GIT_SHA="${CORE_GIT_SHA}-dirty"
+  fi
+else
+  CORE_GIT_SHA="nogit"
 fi
 
 BUILD_ID_NEW="$(cat <<EOF
@@ -57,9 +91,10 @@ BUILD_ID_NEW="$(cat <<EOF
 // Do not edit or commit; regenerated into the build dir each build.
 #ifndef BUILD_ID_H
 #define BUILD_ID_H
-#define BUILD_GIT_SHA    "${BUILD_GIT_SHA}"
-#define BUILD_GIT_BRANCH "${BUILD_GIT_BRANCH}"
-#define BUILD_UTC_TIME   "${BUILD_UTC_TIME}"
+#define BUILD_GIT_SHA      "${BUILD_GIT_SHA}"
+#define BUILD_GIT_BRANCH   "${BUILD_GIT_BRANCH}"
+#define BUILD_UTC_TIME     "${BUILD_UTC_TIME}"
+#define BUILD_CORE_GIT_SHA "${CORE_GIT_SHA}"
 #endif // BUILD_ID_H
 EOF
 )"
