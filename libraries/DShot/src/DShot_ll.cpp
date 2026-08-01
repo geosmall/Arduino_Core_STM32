@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 George Small
+// See the LICENSE file in this library's root directory.
+
 #include <Arduino.h>
 #include "DShot_ll.h"
 #include "PeripheralPins.h"

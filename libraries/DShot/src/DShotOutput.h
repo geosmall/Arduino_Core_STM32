@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 George Small
+// See the LICENSE file in this library's root directory.
+
 #ifndef DSHOT_OUTPUT_H
 #define DSHOT_OUTPUT_H
 

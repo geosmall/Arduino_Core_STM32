@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025-2026 George Small
+// See the LICENSE file in this library's root directory.
+
 /*
  * SerialRx - Arduino library for serial RC protocols
  *

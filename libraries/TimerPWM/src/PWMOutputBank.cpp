@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025-2026 George Small
+// See the LICENSE file in this library's root directory.
+
 /**
  * PWMOutputBank.cpp - Hardware timer-based PWM library for STM32 Arduino
  */
