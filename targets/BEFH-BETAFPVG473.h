@@ -14,6 +14,16 @@
 #define BOARD_FLASH_CONFIG_SIZE   (16 * 1024)
 #define BOARD_FLASH_CONFIG_ALIGN  8
 
+// Application blob-storage flash region (xcos2c diagram blobs): the 16 KB
+// between the config region above and the app slot (0x08010000, bootuf2
+// ports/stm32g4/boards.h BOARD_FLASH_APP_START) — G473 pages 24-31, bank 1.
+// The bootloader neither reads nor erases it; a bootloader install's
+// mass-erase clears it. Application-owned: record format and per-family
+// erase/program live with the application, as for the config region.
+#define BOARD_FLASH_BLOB_START  0x0800C000UL
+#define BOARD_FLASH_BLOB_SIZE   (16 * 1024)
+#define BOARD_FLASH_BLOB_ALIGN  8
+
 // Board: BETAFPVG473
 // Manufacturer: BEFH
 // MCU: STM32G47X
