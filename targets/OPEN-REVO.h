@@ -6,6 +6,30 @@
  *   - Signal: PA10 (USART1 RX)
  *   - Inverter: PC0 (GPIO output, HIGH=SBUS inverted, LOW=iBus non-inverted)
  *   - Validated: ~27k transitions/sec with SBUS @ 100kbaud
+ *
+ * HAND-MAINTAINED — DO NOT OVERWRITE WITH CONVERTER OUTPUT WITHOUT A CONFIRMATION
+ *
+ * This file started as betaflight_converter output from bf_configs/REVO/ and has
+ * since been edited by hand. Re-running the converter emits to
+ * extras/betaflight_converter/output/OPEN-REVO.h and does not touch this file;
+ * copying that output over this one silently drops everything below, none of
+ * which the converter can derive from the Betaflight config:
+ *
+ *   - Output split: 4 motors + 2 servos. The Betaflight config declares
+ *     MOTOR1..MOTOR6_PIN and no servos; the split is an airframe decision.
+ *     TIM5 carries the servos at 50 Hz, TIM2/TIM3 the motors at 2000 Hz —
+ *     PWM frequency is per-timer, so the two rates cannot share a timer.
+ *   - SBUS at 100k baud plus rc_inverter_pin (PC0). The converter emits
+ *     115200 with no inverter, having no SERIALRX_UART in the source config.
+ *   - BOARD_FLASH_CONFIG_* region, which must match bootuf2 stm32f4 boards.h.
+ *   - IMU alignment provenance.
+ *
+ * Also note the converter emits an explicit trailing peripheral instance on the
+ * SPI/I2C/UART configs (e.g. `..., SPI3`) that this file omits, leaving those
+ * to auto-resolve.
+ *
+ * To pick up genuine upstream target changes, regenerate into output/, diff
+ * against this file, and port individual changes across by hand.
  */
 
 #pragma once
@@ -58,12 +82,20 @@ namespace BoardConfig {
   static constexpr RCReceiverConfig rc_receiver{PA10, PA9, 100000, 1000, 300};  // SBUS: 100k baud
   static constexpr Pin rc_inverter_pin = PC0;  // HIGH=SBUS (inverted), LOW=iBus (non-inverted)
 
-  // Servo outputs - none configured
+  // Servo outputs - 50 Hz PWM on the M5/M6 output pads
+  //
+  // The board's 6 output pads are split 4 motors + 2 servos. PWM frequency is a
+  // per-timer property, so motors and servos cannot share a timer: TIM5 drives
+  // only servos at 50 Hz, while TIM3 and TIM2 drive only motors at 2000 Hz.
   namespace Servo {
     static constexpr uint32_t frequency_hz = 50;
 
-    static constexpr ServoConfig servos[] = {};
-    static constexpr int num_servos = 0;
+    static constexpr ServoConfig servos[] = {
+      {TIM5, PA1, 2, 1000, 2000},  // Servo 1: TIM5_CH2 (M5 pad)
+      {TIM5, PA0, 1, 1000, 2000},  // Servo 2: TIM5_CH1 (M6 pad)
+    };
+
+    static constexpr int num_servos = sizeof(servos) / sizeof(servos[0]);
   };
   // Motors: ONESHOT125 protocol (125-250 µs)
   namespace Motor {
@@ -76,8 +108,6 @@ namespace BoardConfig {
       {TIM3, PB1, 4, 125, 250},  // Motor 2: TIM3_CH4
       {TIM2, PA3, 4, 125, 250},  // Motor 3: TIM2_CH4
       {TIM2, PA2, 3, 125, 250},  // Motor 4: TIM2_CH3
-      {TIM5, PA1, 2, 125, 250},  // Motor 5: TIM5_CH2
-      {TIM5, PA0, 1, 125, 250},  // Motor 6: TIM5_CH1
     };
 
     static constexpr int num_motors = sizeof(motors) / sizeof(motors[0]);
