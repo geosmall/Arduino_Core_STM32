@@ -29,14 +29,6 @@
  * Channel value range: 1000-2000 us typical (0x3E8-0x7D0)
  */
 
-/**
- * @brief IBus frame structure (14 channels max)
- */
-struct IBusFrame {
-    uint16_t channels[14];
-    uint16_t checksum;
-};
-
 // Length of IBus data frame minus checksum
 constexpr size_t IBUS_FRAME_LEN_MINUS_CHECKSUM = 30;
 

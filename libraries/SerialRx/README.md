@@ -10,7 +10,19 @@ Arduino library for parsing serial RC receiver protocols commonly used in UAV fl
 | **SBUS** (FrSky/Futaba) | 100000 | 25 bytes | 14 (of 16) | Header/footer | Yes |
 | **CRSF** (Crossfire / ELRS) | 420000 | Variable | 14 (of 16) | CRC8-DVB-S2 | Yes |
 
-All protocols deliver 14 channels via `RCMessage::channels[]`. SBUS and CRSF transmit 16 channels in 22 bytes of 11-bit packed data; only the first 14 are unpacked.
+All protocols deliver the same 14 channels via `RCMessage::channels[]`.
+
+14 is the lowest common denominator across the supported protocols, chosen so every
+receiver is equally supported: read `channels[0..13]` without knowing which protocol is
+configured, and every slot is populated from wire data in all three cases. IBus tops out
+at 14 proportional channels; SBUS and CRSF each carry 16 proportional channels in 22 bytes
+of 11-bit packed data, and their CH15/CH16 are deliberately discarded to preserve that
+uniformity.
+
+SBUS additionally carries two *digital* channels, CH17 and CH18, in its flags byte. These
+are distinct from CH15/CH16 and are not exposed through `RCMessage` — they have no IBus or
+CRSF counterpart, so surfacing them would reintroduce the per-protocol asymmetry this
+design avoids. The parser reads the flags byte for frame-lost and failsafe detection only.
 
 ## Quick Start
 

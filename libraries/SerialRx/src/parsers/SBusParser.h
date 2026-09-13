@@ -42,20 +42,16 @@
  *   Bit 3: Failsafe active
  */
 
-/**
- * @brief SBUS frame structure (16 channels + flags)
- */
-struct SBusFrame {
-    uint16_t channels[16];
-    uint8_t flags;
-};
-
 // SBUS frame constants
 constexpr uint8_t SBUS_HEADER = 0x0F;
 constexpr uint8_t SBUS_FOOTER = 0x00;
 constexpr size_t SBUS_CHANNEL_DATA_LEN = 22;
 
-// SBUS flags bit masks
+// SBUS flags bit masks.
+// CH17/CH18 are the protocol's two digital channels. They are defined here to
+// complete the flags-byte definition but are not currently read: RCMessage
+// exposes only the RC_NUM_CHANNELS proportional channels common to every
+// supported protocol, and CH17/CH18 have no IBus or CRSF counterpart.
 constexpr uint8_t SBUS_FLAG_CH17        = 0x01;
 constexpr uint8_t SBUS_FLAG_CH18        = 0x02;
 constexpr uint8_t SBUS_FLAG_FRAME_LOST  = 0x04;

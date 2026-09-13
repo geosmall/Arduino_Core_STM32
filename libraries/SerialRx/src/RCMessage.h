@@ -13,7 +13,19 @@
 #include <stdint.h>
 #include <stddef.h>
 
-// Number of channels in the parsed message
+// Number of channels in the parsed message.
+//
+// 14 is the lowest common denominator across every supported protocol, chosen
+// so all receivers are equally supported: a consumer may read channels[0..13]
+// without knowing which protocol is configured, and every slot is populated
+// from wire data for all of them.
+//
+//   IBus  14 proportional  -> all 14 delivered (protocol maximum)
+//   SBUS  16 proportional  -> first 14 delivered, CH15/CH16 truncated
+//   CRSF  16 proportional  -> first 14 delivered, CH15/CH16 truncated
+//
+// Raising this to 16 would leave the last two slots unsourced for IBus, making
+// the array's meaning protocol-dependent. Truncating instead keeps it uniform.
 constexpr size_t RC_NUM_CHANNELS = 14;
 
 /**

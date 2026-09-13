@@ -90,10 +90,13 @@ void SBusParser::ResetParser() {
 }
 
 void SBusParser::UnpackChannels() {
-    // Unpack first 14 analog channels from 22 bytes of packed 11-bit data
-    // SBUS protocol has 16 channels but channels 15-16 are digital (CH17/CH18)
-    // and already captured in the flags byte — no need to store in channels[]
-    // SBUS uses little-endian bit packing
+    // Unpack the first 14 of SBUS's 16 proportional channels from the 22-byte
+    // packed 11-bit payload. SBUS uses little-endian bit packing.
+    //
+    // All 16 channels here are proportional and all 16 are carried in these 22
+    // bytes; the 2 digital channels (CH17/CH18) are a separate pair living in
+    // the flags byte and are not part of this payload. CH15/CH16 are therefore
+    // real proportional data that is deliberately discarded — see below.
 
     msg_.channels[0]  = (raw_data_[0]    | raw_data_[1]<<8)                     & 0x07FF;
     msg_.channels[1]  = (raw_data_[1]>>3 | raw_data_[2]<<5)                     & 0x07FF;
@@ -109,6 +112,9 @@ void SBusParser::UnpackChannels() {
     msg_.channels[11] = (raw_data_[15]>>1| raw_data_[16]<<7)                    & 0x07FF;
     msg_.channels[12] = (raw_data_[16]>>4| raw_data_[17]<<4)                    & 0x07FF;
     msg_.channels[13] = (raw_data_[17]>>7| raw_data_[18]<<1 | raw_data_[19]<<9) & 0x07FF;
-    // Channels 15-16 (SBUS CH15/CH16) intentionally not unpacked —
-    // RCMessage has 14 slots; digital CH17/CH18 are in flags byte
+    // CH15/CH16 (raw_data_[20..21]) intentionally not unpacked. RCMessage is
+    // sized to RC_NUM_CHANNELS = 14, the lowest common denominator across all
+    // supported protocols, so that a consumer sees the same populated channel
+    // range regardless of receiver. Unpacking them here would make SBUS deliver
+    // more channels than IBus can. See RCMessage.h for the rationale.
 }

@@ -121,11 +121,14 @@ bool CRSFParser::processFrame() {
 }
 
 void CRSFParser::unpackChannels() {
-    // Unpack first 14 channels from 22 bytes of packed 11-bit data
-    // CRSF protocol has 16 channels but RCMessage stores 14 (RC_NUM_CHANNELS)
-    // Channels 15-16 intentionally not unpacked — same approach as SBusParser
-    // Bit packing is identical to SBUS (11-bit little-endian)
-    // Payload starts at frame_data_[1] (after type byte)
+    // Unpack the first 14 of CRSF's 16 channels from 22 bytes of packed 11-bit
+    // data. Bit packing is identical to SBUS (11-bit little-endian).
+    // Payload starts at frame_data_[1] (after type byte).
+    //
+    // CH15/CH16 (raw[20..21]) intentionally not unpacked: RCMessage is sized to
+    // RC_NUM_CHANNELS = 14, the lowest common denominator across all supported
+    // protocols, so every receiver populates the same channel range. See
+    // RCMessage.h for the rationale.
     const uint8_t* raw = &frame_data_[1];
 
     msg_.channels[0]  = (raw[0]     | raw[1]<<8)                    & 0x07FF;
