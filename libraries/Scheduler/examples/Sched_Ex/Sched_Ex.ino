@@ -274,7 +274,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     // TASK_SYSTEM: Required system task (always first)
     [TASK_SYSTEM] = SCHEDULER_TASK_SYSTEM_INIT,
 
-    // TASK_GYRO: IMU sampling at 1 kHz (REALTIME - guaranteed timing)
+    // TASK_GYRO: IMU sampling at 1 kHz (REALTIME - selected first once overdue)
     [TASK_GYRO] = {
         .taskName = "GYRO",
         .checkFunc = NULL,

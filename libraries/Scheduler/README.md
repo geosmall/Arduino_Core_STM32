@@ -5,33 +5,75 @@ Priority-based cooperative task scheduler ported from the INav flight controller
 ## Why This Scheduler?
 
 This library is ported from the **INav flight controller** (which evolved from
-Cleanflight/Betaflight). It's designed for applications requiring guaranteed
-timing for critical tasks.
+Cleanflight/Betaflight). It is built for applications with a hard periodic
+control loop, where an overdue loop must be the next thing that runs.
+
+It is **cooperative**: a task runs to completion and nothing preempts it. Read
+"What REALTIME does and does not do" below before giving any task a long or
+blocking step — that section is the one thing that determines whether your
+control loop holds its period.
 
 ### Comparison with Other Schedulers
 
 | Feature | Arduino Scheduler | TaskScheduler | **INav Scheduler** |
 |---------|-------------------|---------------|---------------------|
 | Architecture | Pseudo-threading | Cooperative | Priority-based |
-| REALTIME guarantee | No | No | **Yes** |
+| Overdue-task catch-up | No | No | **Yes** (see limits below) |
 | Priority levels | None | Basic | 6 levels |
 | Starvation prevention | No | No | **Dynamic aging** |
 | Target use case | General | General | **Real-time control** |
 | Max loop rate | ~100 Hz | ~1 kHz | **100 kHz** |
 | System load monitoring | No | No | **Yes** |
 
-### Key Feature: Forced REALTIME Execution
+### What REALTIME does and does not do
 
-Other schedulers are cooperative - if a task takes too long, other tasks wait.
+**What it does.** Once a REALTIME task is overdue — its period has elapsed
+since it last ran — it is selected ahead of every other ready task, whatever
+their dynamic priority (`src/scheduler.c:295-302`). A REALTIME task therefore
+never loses a turn to a busy lower-priority task, and never starves.
 
-This scheduler **guarantees** REALTIME priority tasks execute on schedule.
-When a REALTIME task becomes overdue, it immediately runs regardless of other
-task priorities. This is critical for:
+**What it does not do.** This scheduler is cooperative and has no fit check:
+
+- **No preemption.** The selected task is called and runs to completion
+  (`src/scheduler.c:332`). Nothing interrupts it.
+- **No admission test.** Per-task execution times *are* measured
+  (`averageExecutionTime`, `maxExecutionTime`), but they are recorded after a
+  task returns and are never consulted before dispatch. A task is never held
+  back because it would not fit before the next REALTIME deadline.
+- **So "overdue" is detected, not prevented.** A lower-priority task selected
+  just before the REALTIME deadline delays that task by its own full duration.
+  REALTIME means *catch up next*, not *run on time*.
+
+**What that means for your tasks.** REALTIME jitter is bounded by the longest
+single execution of any other task, not by priority. So:
+
+- Never put a blocking wait, a long transfer, or an erase in a lower-priority
+  task while a REALTIME loop is running — its whole duration lands in your
+  loop period.
+- Break long work into steps short enough to fit the slack in your loop
+  period, and return. If a step must be bounded tightly, do it inside the
+  REALTIME task after its outputs, one small non-blocking piece per call —
+  this is how INav logs at 2 kHz on this scheduler.
+- Size your loop from measured worst case: `schedulerGetTaskInfo()` reports
+  `maxExecutionTime` per task. The sum of your REALTIME task and the worst
+  other task must fit the period.
+
+> Betaflight's scheduler *does* have the admission test this one lacks: it
+> learns each task's execution time and runs a task only if it fits before the
+> next gyro tick. Task designs copied from Betaflight that rely on that test
+> are not safe here.
+
+**A note on the source comment.** `src/scheduler.c:296` reads "realtime tasks
+take absolute priority". That is upstream INav's own wording, kept verbatim so
+this library stays syncable (see "Major Changes from INav Scheduler"); it
+describes selection order, not a timing guarantee. Prefer this section.
+
+Suited to:
 
 - Flight control loops (1-2 kHz)
 - Motor control
 - Hard real-time sensor fusion
-- Any application where timing jitter is unacceptable
+- Any application where an overdue control loop must run next
 
 ## Major Changes from INav Scheduler
 
@@ -207,7 +249,7 @@ Guidelines based on INav flight controller patterns:
 | IDLE | Background/cosmetic tasks | Telemetry, LED effects, logging | 1-500 Hz |
 
 **Design principles:**
-- Use REALTIME sparingly (1-2 tasks max) - only for control loops where jitter is unacceptable
+- Use REALTIME sparingly (1-2 tasks max) - only for control loops that must run as soon as they are due. Note REALTIME does not bound jitter on its own; the longest execution of any other task does (see above)
 - HIGH priority for anything that feeds the control loop (RC input, sensor fusion)
 - MEDIUM for sensors that update navigation state
 - LOW/IDLE for telemetry and display - these can be delayed without affecting flight

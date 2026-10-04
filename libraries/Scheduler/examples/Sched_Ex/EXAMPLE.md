@@ -22,10 +22,15 @@ This example demonstrates the INav-based Scheduler with multiple tasks:
 ```
 
 **Key insights:**
-- REALTIME priority guarantees the gyro task runs on schedule
+- REALTIME priority means the gyro task is selected first once it is overdue,
+  so it never loses a turn to a busy lower-priority task. It does **not** mean
+  the task cannot be delayed: the scheduler is cooperative with no fit check,
+  so whatever task is already running finishes first. See "What REALTIME does
+  and does not do" in the [library README](../../README.md).
 - RC uses `checkFunc` for event-driven scheduling (only runs when frame ready)
 - Flight control runs after gyro/RC have updated their data
-- Lower priority tasks (SERIAL) run in remaining time
+- Lower priority tasks (SERIAL) run in remaining time — and the longest single
+  execution among them is what bounds gyro jitter, so keep their steps short
 
 ## Hardware Requirements
 
@@ -48,7 +53,7 @@ This example demonstrates the INav-based Scheduler with multiple tasks:
 
 | Task | Priority | Rate | Description |
 |------|----------|------|-------------|
-| `TASK_GYRO` | REALTIME | 1 kHz | MPU-6000 IMU sampling - guaranteed timing |
+| `TASK_GYRO` | REALTIME | 1 kHz | MPU-6000 IMU sampling - runs first once overdue |
 | `TASK_RX` | HIGH | event-driven | RC receiver with checkFunc |
 | `TASK_FLIGHT` | HIGH | 500 Hz | Flight control processing |
 | `TASK_SERIAL` | LOW | 10 Hz | Debug output |
