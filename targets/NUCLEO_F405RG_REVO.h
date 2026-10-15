@@ -2,11 +2,12 @@
 #include "config/ConfigTypes.h"
 
 // Custom NUCLEO-F405RG: OPEN-REVO surrogate and SWO rig
-//   Board: NUCLEO-F411RE PCB, STM32F411RE replaced by an STM32F405RG,
-//          8 MHz HSE crystal added (variant NUCLEO_F405RG, 168 MHz)
-//   Probe: on-board ST-LINK V2.1 reflashed to J-Link, S/N 777055835.
-//          Virtual COM port dark since the rework: no CLI, no MSP; read the
-//          sketch over SWD (memory reads, RTT).
+//   Board: Nucleo-64 PCB whose STM32F103RB (identified 2026-10-15; earlier
+//          notes said F411RE) was replaced by an STM32F405RG, 8 MHz HSE
+//          crystal added (variant NUCLEO_F405RG, 168 MHz)
+//   Probe: on-board ST-LINK V2.1, ST firmware V2J46M32 (J-Link firmware
+//          until 2026-10-14). Its virtual COM port is jumpered to USART6
+//          (PC6/PC7), which the variant makes Serial: CLI and MSP over USB.
 //   No bootloader: the application is written at 0x08000000 over SWD.
 //
 // Wired as OPEN-REVO.h, with these differences:
@@ -19,9 +20,11 @@
 //    nothing without clocks on SPI3.
 //
 // 2. Motors 3 and 4 on TIM4 CH1/CH2 (PB6, PB7) instead of TIM2 CH4/CH3
-//    (PA3, PA2). On a Nucleo-64 PA2/PA3 are USART2, the Arduino Serial the
-//    sketch's CLI opens. TIM2 CH4's only other pin is PB11, which on this PCB
-//    sits where the F411RE has VCAP_1 (to check on the board before use).
+//    (PA3, PA2). On a stock Nucleo-64 PA2/PA3 are USART2, the Arduino Serial;
+//    this board's Serial is USART6 (above), so PA2/PA3 are free but unused.
+//    TIM2 CH4's only other pin is PB11; the earlier caveat that it sits on
+//    the F411RE's VCAP_1 pad assumed the wrong original part: on an F103RB
+//    board pin 30 is PB11 (unchecked on this board).
 //    TIM4 is a general-purpose timer on APB1 as TIM2 is, 16-bit where TIM2 is
 //    32-bit; at 2000 Hz the period fits 16 bits. A motor update is the same
 //    compare-register write either way.

@@ -1,10 +1,13 @@
 /*
  * variant_NUCLEO_F405RG.h — Custom Nucleo-64 F405RG board definition
  *
- * Hardware: NUCLEO-F411RE PCB modified — STM32F411RE replaced with
+ * Hardware: Nucleo-64 PCB modified — the original MCU (an STM32F103RB,
+ * identified 2026-10-15; earlier notes said F411RE) replaced with an
  * STM32F405RG and an 8 MHz HSE crystal added (so HSE is the real
- * crystal, not the ST-Link MCO bypass that the stock F411RE uses).
- * ST-Link v2.1 reflashed with J-Link firmware.
+ * crystal, not the ST-Link MCO bypass the stock board uses).
+ * On-board ST-Link V2.1 on ST firmware V2J46M32 (J-Link firmware until
+ * 2026-10-14). Its virtual COM port is jumpered to PC6/PC7 (USART6),
+ * not to PA2/PA3: the stock PA2/PA3 route carries nothing on this board.
  *
  * NOTE: This header is included from the HAL conf chain (before HAL
  * modules are loaded), so it CANNOT include Pin.h. Pin constants like
@@ -42,19 +45,20 @@
   #define PIN_SPI_SCK               PA5
 #endif
 
-// UART Definitions — USART2 connected to ST-Link VCOM
+// UART Definitions — USART6 jumpered to the ST-Link VCOM (ST-Link TX to
+// PC7, ST-Link RX from PC6), not the stock Nucleo USART2 on PA2/PA3
 #ifndef SERIAL_UART_INSTANCE
-  #define SERIAL_UART_INSTANCE    2
+  #define SERIAL_UART_INSTANCE    6
 #endif
 
 // Default pin used for generic 'Serial' instance
-// Pin-style names (PA2 not PA_2) — debug UART is now registered at runtime
+// Pin-style names (PC6 not PC_6) — debug UART is now registered at runtime
 // via uart_set_debug(), so uart.c no longer needs these at compile time
 #ifndef PIN_SERIAL_RX
-  #define PIN_SERIAL_RX           PA3
+  #define PIN_SERIAL_RX           PC7
 #endif
 #ifndef PIN_SERIAL_TX
-  #define PIN_SERIAL_TX           PA2
+  #define PIN_SERIAL_TX           PC6
 #endif
 
 // I2C Definitions — I2C1 on Arduino connector D14/D15
