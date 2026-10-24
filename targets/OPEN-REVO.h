@@ -22,6 +22,7 @@
  *   - SBUS at 100k baud plus rc_inverter_pin (PC0). The converter emits
  *     115200 with no inverter, having no SERIALRX_UART in the source config.
  *   - BOARD_FLASH_CONFIG_* region, which must match bootuf2 stm32f4 boards.h.
+ *   - BOARD_FLASH_BLOB_* region (F405 sector 3), as on BEFH-BETAFPVF405.h.
  *   - IMU alignment provenance.
  *
  * Also note the converter emits an explicit trailing peripheral instance on the
@@ -41,6 +42,16 @@
 #define BOARD_FLASH_CONFIG_START  0x08008000UL
 #define BOARD_FLASH_CONFIG_SIZE   (16 * 1024)
 #define BOARD_FLASH_CONFIG_ALIGN  4
+
+// Application blob-storage flash region (xcos2c diagram blobs): the 16 KB
+// between the config region above and the app slot (0x08010000, bootuf2
+// ports/stm32f4/boards.h BOARD_FLASH_APP_START) — F405 sector 3, one erase
+// unit. The bootloader neither reads nor erases it; a bootloader install's
+// mass-erase clears it. Application-owned: record format and per-family
+// erase/program live with the application, as for the config region.
+#define BOARD_FLASH_BLOB_START  0x0800C000UL
+#define BOARD_FLASH_BLOB_SIZE   (16 * 1024)
+#define BOARD_FLASH_BLOB_ALIGN  8
 
 // Board: REVO
 // Manufacturer: OPEN
