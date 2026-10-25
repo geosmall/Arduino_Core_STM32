@@ -73,9 +73,13 @@ J-Link/ST-Link. Uses the `.bin`.
 
 | Method | How | When to Use |
 |--------|-----|-------------|
-| **Button hold** | Hold KEY/BOOT0 while pressing RESET | Primary method, works without app |
 | **CLI command** | Type `bl` in Serial Monitor | When app is running |
+| **Double-tap reset** | Press RESET twice quickly | Boards with a reset button |
 | **No valid app** | Automatic | Flash is empty or corrupted |
+
+Flight controllers without a working app are recovered through ST ROM DFU instead:
+hold the board's boot button (BOOT0) while powering on, then write only the regions
+that need it with `dfu-util`, keeping the config and blob regions if wanted.
 
 ## Using the Bootloader
 
