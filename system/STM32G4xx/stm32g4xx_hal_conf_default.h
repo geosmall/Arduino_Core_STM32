@@ -246,7 +246,7 @@ The real value may vary depending on the variations in voltage and temperature.*
 #define  USE_RTOS                     0U
 #endif
 #if !defined (PREFETCH_ENABLE)
-#define  PREFETCH_ENABLE              0U
+#define  PREFETCH_ENABLE              1U
 #endif
 #if !defined (INSTRUCTION_CACHE_ENABLE)
 #define  INSTRUCTION_CACHE_ENABLE     1U
