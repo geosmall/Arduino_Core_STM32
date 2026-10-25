@@ -44,6 +44,9 @@
 #define MPU6000_REV_D9          0x59
 #define MPU6000_REV_D10         0x5A
 
+// Max SPI frequency for sensor-data reads: 20 MHz (from Betaflight)
+#define MPU6000_MAX_SPI_CLK_HZ  20000000
+
 // ============================================================================
 // MPU6000 Implementation
 // ============================================================================
@@ -53,6 +56,10 @@ MPU6000::MPU6000(DeviceBus* bus, uint8_t whoAmI)
 {
     whoAmI_ = whoAmI;
     // Device was already reset during detection
+
+    // Registers at 1 MHz; sensor-data reads (read()) at 20 MHz
+    bus_->setFreq(MPU_MAX_SPI_REG_CLK_HZ);
+    bus_->setDataFreq(MPU6000_MAX_SPI_CLK_HZ);
 
     // Clock Source PPL with Z axis gyro reference
     bus_->writeReg(MPU_RA_PWR_MGMT_1, MPU_CLK_SEL_PLLGYROZ);
@@ -150,7 +157,7 @@ void MPU6000::read(int16_t* accgyr)
 {
     // Read 14 bytes: AX_H, AX_L, AY_H, AY_L, AZ_H, AZ_L, TEMP_H, TEMP_L, GX_H, GX_L, GY_H, GY_L, GZ_H, GZ_L
     uint8_t buf[14];
-    bus_->readRegs(MPU_RA_ACCEL_XOUT_H, buf, 14);
+    bus_->readData(MPU_RA_ACCEL_XOUT_H, buf, 14);
 
     // Parse big-endian data
     accgyr[0] = (int16_t)((buf[0] << 8) | buf[1]);   // Accel X

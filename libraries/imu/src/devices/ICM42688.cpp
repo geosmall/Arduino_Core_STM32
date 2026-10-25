@@ -237,8 +237,7 @@ const char* ICM42688::typeName() const {
 
 // Factory method: Detect and initialize IMU
 ICM42688* ICM42688::detect(DeviceBus* bus) {
-    bus->setFreq(ICM426XX_MAX_SPI_CLK_HZ);
-
+    // Runs at the caller's detection clock; init raises it once the chip is known
     uint8_t attemptsRemaining = 20;
     do {
         const uint8_t whoAmI = bus->readReg(MPU_RA_WHO_AM_I);
@@ -250,7 +249,7 @@ ICM42688* ICM42688::detect(DeviceBus* bus) {
             return icm;
         }
         }
-        delay(150);
+        delay(1);
     } while (attemptsRemaining--);
 
     return nullptr;

@@ -11,12 +11,23 @@ IMU::IMU()
     us_ticks_ = SystemCoreClock / 1000000;
 }
 
+// Time from power-up before the IMU's SPI bus is accessed (from Betaflight)
+static constexpr uint32_t IMU_SPI_STARTUP_MS = 100;
+
+// Detection clock when the caller gives none
+static constexpr uint32_t IMU_DEFAULT_SETUP_FREQ_HZ = 1000000;
+
 IMU::Result IMU::Init(SPIClass& spi, Pin cs_pin, uint32_t spi_freq_hz)
+{
+    (void)spi_freq_hz;
+    return Init(spi, cs_pin, IMU_DEFAULT_SETUP_FREQ_HZ, 0);
+}
+
+IMU::Result IMU::Init(SPIClass& spi, Pin cs_pin, uint32_t setup_freq_hz, uint32_t max_freq_hz)
 {
     // Store SPI reference and configuration
     p_spi_ = &spi;
     cs_pin_ = cs_pin;
-    spi_freq_hz_ = spi_freq_hz;
     cs_pin_name_ = cs_pin.toPinName();
 
     // Initialize CS pin
@@ -31,7 +42,14 @@ IMU::Result IMU::Init(SPIClass& spi, Pin cs_pin, uint32_t spi_freq_hz)
     if (!device_bus_) {
         return Result::ERR;
     }
-    device_bus_->setFreq(spi_freq_hz);
+    device_bus_->setMaxFreq(max_freq_hz);
+
+    // Detect at a clock every supported chip accepts; the detected driver
+    // then sets its own clocks
+    device_bus_->setFreq(setup_freq_hz ? setup_freq_hz : IMU_DEFAULT_SETUP_FREQ_HZ);
+
+    while (millis() < IMU_SPI_STARTUP_MS) {
+    }
 
     // Try detecting each supported IMU in order of preference
     // ICM42688 first (most capable), then MPU6000, MPU9250, ICM206xx

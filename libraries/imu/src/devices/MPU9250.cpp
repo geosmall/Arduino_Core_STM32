@@ -33,7 +33,7 @@
 // MPU9250-Specific Definitions
 // ============================================================================
 
-// Max SPI frequency: 20 MHz (from Betaflight)
+// Max SPI frequency for sensor-data reads: 20 MHz (from Betaflight)
 #define MPU9250_MAX_SPI_CLK_HZ 20000000
 
 // DLPF (Digital Low Pass Filter) configuration register
@@ -57,6 +57,10 @@ MPU9250::MPU9250(DeviceBus* bus, uint8_t whoAmI)
     , mag_scale_factor_z_(1.0f)
 {
     whoAmI_ = whoAmI;
+
+    // Registers at 1 MHz; sensor-data reads (read(), magnetometer) at 20 MHz
+    bus_->setFreq(MPU_MAX_SPI_REG_CLK_HZ);
+    bus_->setDataFreq(MPU9250_MAX_SPI_CLK_HZ);
 
     // Power management - use PLL with Z-axis gyro reference
     bus_->writeReg(MPU_RA_PWR_MGMT_1, INV_CLK_PLL);
@@ -130,7 +134,7 @@ void MPU9250::read(int16_t* accgyr)
 {
     // Read 14 bytes: AX_H, AX_L, AY_H, AY_L, AZ_H, AZ_L, TEMP_H, TEMP_L, GX_H, GX_L, GY_H, GY_L, GZ_H, GZ_L
     uint8_t buf[14];
-    bus_->readRegs(MPU_RA_ACCEL_XOUT_H, buf, 14);
+    bus_->readData(MPU_RA_ACCEL_XOUT_H, buf, 14);
 
     // Parse big-endian data
     accgyr[0] = (int16_t)((buf[0] << 8) | buf[1]);   // Accel X
@@ -476,9 +480,7 @@ bool MPU9250::readMagnetometer(float* mag)
     // The MPU9250 I2C master automatically populates these at the gyro sample rate
     // (7 bytes: HXL, HXH, HYL, HYH, HZL, HZH, ST2)
     uint8_t mag_data[7];
-    for (uint8_t i = 0; i < 7; i++) {
-        mag_data[i] = bus_->readReg(MPU_RA_EXT_SENS_DATA_00 + i);
-    }
+    bus_->readData(MPU_RA_EXT_SENS_DATA_00, mag_data, 7);
 
     // Check ST2 status register for overflow
     if (mag_data[6] & AK8963_ST2_HOFL) {
@@ -515,9 +517,7 @@ bool MPU9250::readMagnetometerRaw(int16_t* mag)
     // The MPU9250 I2C master automatically populates these at the gyro sample rate
     // (7 bytes: HXL, HXH, HYL, HYH, HZL, HZH, ST2)
     uint8_t mag_data[7];
-    for (uint8_t i = 0; i < 7; i++) {
-        mag_data[i] = bus_->readReg(MPU_RA_EXT_SENS_DATA_00 + i);
-    }
+    bus_->readData(MPU_RA_EXT_SENS_DATA_00, mag_data, 7);
 
     // Check ST2 status register for overflow
     if (mag_data[6] & AK8963_ST2_HOFL) {

@@ -23,6 +23,16 @@ public:
     virtual void setFreq(uint32_t freq) = 0;
 
     /**
+     * @brief Set the clock for sensor-data reads (readData())
+     * @param freq Frequency in Hz; 0 = use the setFreq() clock
+     *
+     * For chips whose register access is slower than their data reads
+     * (MPU-6000/MPU-9250: 1 MHz for all registers, 20 MHz for the sensor
+     * and interrupt registers). Default: no separate data clock.
+     */
+    virtual void setDataFreq(uint32_t freq) { (void)freq; }
+
+    /**
      * @brief Write multiple bytes to consecutive registers
      * @param reg Starting register address
      * @param data Pointer to data buffer
@@ -38,6 +48,16 @@ public:
      * @param n Number of bytes to read
      */
     virtual void readRegs(uint8_t reg, uint8_t *data, uint16_t n) = 0;
+
+    /**
+     * @brief Read sensor-data registers at the data clock (setDataFreq())
+     * @param reg Starting register address
+     * @param data Pointer to buffer for received data
+     * @param n Number of bytes to read
+     */
+    virtual void readData(uint8_t reg, uint8_t *data, uint16_t n) {
+        readRegs(reg, data, n);
+    }
 
     /**
      * @brief Check if this is an SPI bus

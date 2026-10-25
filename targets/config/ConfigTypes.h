@@ -107,18 +107,22 @@ namespace BoardConfig {
   struct IMUConfig {
     constexpr IMUConfig(const SPIConfig& spi_config, Pin interrupt_pin = NC_PIN,
                        uint32_t setup_freq_hz = 0,
-                       IMUAlignment chip_alignment = IMUAlignment::CW0_DEG)
+                       IMUAlignment chip_alignment = IMUAlignment::CW0_DEG,
+                       uint32_t max_freq_hz = 0)
       : spi(spi_config), int_pin(interrupt_pin), setup_freq_hz(setup_freq_hz),
-        alignment(chip_alignment) {}
+        alignment(chip_alignment), max_freq_hz(max_freq_hz) {}
 
+    // The IMU library does not use spi.freq_hz: it detects at the setup
+    // clock, then each driver sets its chip's own clocks (see IMU::Init()).
     const SPIConfig spi;
     const Pin int_pin;             // NC_PIN = no interrupt
-    const uint32_t setup_freq_hz;  // 0 = use spi.freq_hz for setup (slow initialization)
+    const uint32_t setup_freq_hz;  // Chip-detection clock; 0 = 1 MHz
     const IMUAlignment alignment;  // Chip-to-board rotation (Betaflight GYRO_x_ALIGN)
+    const uint32_t max_freq_hz;    // Cap on every IMU SPI clock (wiring limit); 0 = no cap
 
-    // Helper: Get effective setup frequency (slow initialization)
+    // Helper: Get effective setup frequency (chip detection)
     constexpr uint32_t get_setup_freq() const {
-      return (setup_freq_hz > 0) ? setup_freq_hz : spi.freq_hz;
+      return (setup_freq_hz > 0) ? setup_freq_hz : 1000000;
     }
 
     // Helper: Get effective runtime frequency (normal operation)

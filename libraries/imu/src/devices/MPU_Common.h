@@ -26,6 +26,14 @@
 #define ICM20689_WHO_AM_I_CONST             (0x98)
 
 // ============================================================================
+// SPI Clock Limits
+// ============================================================================
+
+// MPU-6000/MPU-9250: 1 MHz for all register access; up to 20 MHz only for
+// reading the sensor and interrupt registers (datasheet SPI specification)
+#define MPU_MAX_SPI_REG_CLK_HZ              1000000
+
+// ============================================================================
 // Register Addresses (RA = Register Address)
 // ============================================================================
 

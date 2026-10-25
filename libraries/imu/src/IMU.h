@@ -112,7 +112,37 @@ public:
      * @brief Initialize the IMU hardware and driver with Arduino SPI.
      * @param spi Reference to Arduino SPIClass instance
      * @param cs_pin Chip select pin number
-     * @param spi_freq_hz SPI frequency in Hz
+     * @param setup_freq_hz SPI clock for chip detection, which every supported
+     *        chip must accept (1 MHz unless the board needs slower)
+     * @param max_freq_hz Cap on every IMU SPI clock for the board's wiring;
+     *        0 = no cap
+     * @return IMU::Result::OK on success, IMU::Result::ERR on failure.
+     *
+     * Once the chip is known its driver sets its own clocks: ICM-42688-P
+     * 24 MHz; MPU-6000/MPU-9250 1 MHz for registers and 20 MHz for sensor
+     * data; ICM-206xx 8 MHz. Each is limited to max_freq_hz when set.
+     */
+    Result Init(SPIClass& spi, Pin cs_pin, uint32_t setup_freq_hz, uint32_t max_freq_hz);
+
+    /**
+     * @brief Initialize from a board's IMU config (e.g. BoardConfig::imu).
+     * @param spi Reference to Arduino SPIClass instance
+     * @param cfg IMU config: CS pin, setup clock and optional clock cap
+     * @return IMU::Result::OK on success, IMU::Result::ERR on failure.
+     */
+    template <typename Config>
+    Result Init(SPIClass& spi, const Config& cfg)
+    {
+        return Init(spi, cfg.spi.cs_pin, cfg.get_setup_freq(), cfg.max_freq_hz);
+    }
+
+    /**
+     * @brief Initialize with a 1 MHz setup clock and no clock cap.
+     * @param spi Reference to Arduino SPIClass instance
+     * @param cs_pin Chip select pin number
+     * @param spi_freq_hz Unused: the drivers set their own clocks. Kept so
+     *        existing callers compile; use Init(spi, BoardConfig::imu) to
+     *        apply a board's setup clock and clock cap.
      * @return IMU::Result::OK on success, IMU::Result::ERR on failure.
      */
     Result Init(SPIClass& spi, Pin cs_pin, uint32_t spi_freq_hz);
@@ -366,11 +396,6 @@ private:
      * Initialized to null, to be bound in Init()
      */
     SPIClass* p_spi_ = nullptr;
-
-    /**
-     * @brief SPI frequency in Hz
-     */
-    uint32_t spi_freq_hz_ = 0;
 
     bool initialized_ = false;
 
