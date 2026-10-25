@@ -31,7 +31,7 @@ struct spi_s {
   PinName pin_sclk;
   PinName pin_ssel;
 #if defined(SPI_IFCR_EOTC)
-  // Delay before disabling SPI.
+  // Delay before disabling SPI, in nanoseconds.
   // See https://github.com/stm32duino/Arduino_Core_STM32/issues/1294
   uint32_t disable_delay;
 #endif

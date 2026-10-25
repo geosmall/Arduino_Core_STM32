@@ -157,20 +157,18 @@ uint32_t spi_getClkFreq(spi_t *obj)
 /**
   * @brief  Compute delay before disabling SPI
   *         See https://github.com/stm32duino/Arduino_Core_STM32/issues/1294
-  *         Computed delay is half SPI clock
+  *         Computed delay is one SPI clock period, rounded up
   * @param  obj : pointer to spi_t structure
-  * @retval Disable delay in microsecondes
+  * @retval Disable delay in nanoseconds
   */
 static uint32_t compute_disable_delay(spi_t *obj)
 {
   uint32_t spi_freq = spi_getClkFreqInst(obj->spi);
-  uint32_t disable_delay;
   uint32_t prescaler;
   SPI_HandleTypeDef *handle = &(obj->handle);
 
   prescaler = 1 << ((handle->Init.BaudRatePrescaler >> SPI_CFG1_MBR_Pos) + 1);
-  disable_delay = (((prescaler * 1000000) / spi_freq) / 2) + 1;
-  return disable_delay;
+  return (uint32_t)(((uint64_t)prescaler * 1000000000U + spi_freq - 1) / spi_freq);
 }
 #endif
 
@@ -485,8 +483,12 @@ spi_status_e spi_transfer(spi_t *obj, const uint8_t *tx_buffer, uint8_t *rx_buff
 #if defined(SPI_IFCR_EOTC)
     // Add a delay before disabling SPI otherwise last-bit/last-clock may be truncated
     // See https://github.com/stm32duino/Arduino_Core_STM32/issues/1294
-    // Computed delay is half SPI clock
-    delayMicroseconds(obj->disable_delay);
+    // Computed delay is one SPI clock period
+#if defined(DWT_BASE) && !defined(DWT_DELAY_DISABLED)
+    delayNanos(obj->disable_delay);
+#else
+    delayMicroseconds(obj->disable_delay / 1000 + 1);
+#endif
 
     /* Close transfer */
     /* Clear flags */
