@@ -517,6 +517,7 @@ FlightCtr.menu.pnum.OPEN_REVO.build.variant=STM32F4xx/F405RGT_F415RGT
 FlightCtr.menu.pnum.OPEN_REVO.build.variant_h=variant_OPEN_REVO.h
 FlightCtr.menu.pnum.OPEN_REVO.build.uf2_family=0x57755a57
 FlightCtr.menu.pnum.OPEN_REVO.build.uf2_flash_offset=0x10000
+FlightCtr.menu.pnum.OPEN_REVO.build.bootloader_bin=bootuf2-revo_f405-v2.0.2.bin
 
 # BetaFPV F405 (BEFH) flight controller — Pavo Pico II
 FlightCtr.menu.pnum.BEFH_BETAFPVF405=BetaFPV F405 (BEFH)
