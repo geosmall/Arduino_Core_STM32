@@ -12,7 +12,7 @@
 // UF2 bootloader config flash region (must match bootuf2 ports/stm32f4/boards.h)
 #define BOARD_FLASH_CONFIG_START  0x08008000UL
 #define BOARD_FLASH_CONFIG_SIZE   (16 * 1024)
-#define BOARD_FLASH_CONFIG_ALIGN  8
+#define BOARD_FLASH_CONFIG_ALIGN  4
 
 // Application blob-storage flash region (xcos2c diagram blobs): the 16 KB
 // between the config region above and the app slot (0x08010000, bootuf2
