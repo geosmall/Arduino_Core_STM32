@@ -120,13 +120,46 @@ uint32_t board_flash_ini_read(uint8_t *buf, uint32_t buf_size) {
   return copy_size;
 }
 
+/* Locate the last (most recent) INI entry payload in memory-mapped flash.
+ * Returns the payload address and sets *size to its length, without copying.
+ * Returns NULL with *size = 0 if no valid entry exists or the entry's payload
+ * runs past the end of the config region. */
+const uint8_t *board_flash_ini_payload(uint32_t *size) {
+  *size = 0;
+  bool found;
+  uint32_t last_off = ini_find_last_entry(&found);
+  if (!found) return NULL;
+
+  INI_CACHE_SYNC(BOARD_FLASH_CONFIG_START + last_off, sizeof(IniEntryHeader));
+  const IniEntryHeader *hdr =
+      (const IniEntryHeader *)(BOARD_FLASH_CONFIG_START + last_off);
+  uint32_t payload_off = last_off + INI_HDR_SIZE;
+  if (payload_off > BOARD_FLASH_CONFIG_SIZE ||
+      hdr->size > BOARD_FLASH_CONFIG_SIZE - payload_off) return NULL;
+
+  uint32_t payload_addr = BOARD_FLASH_CONFIG_START + payload_off;
+  INI_CACHE_SYNC(payload_addr, hdr->size);
+  *size = hdr->size;
+  return (const uint8_t *)payload_addr;
+}
+
+/* Multi-block write state. Flash words are programmed once each: a block
+ * tail that does not fill a flash word is carried into the next block, so a
+ * word that straddles a UF2 block boundary is never reprogrammed (H7 and G4
+ * flash ECC fault or refuse a second program of the same word). */
+static uint8_t  ini_carry[INI_FLASH_ALIGN];
+static uint32_t ini_carry_len;     /* bytes held in ini_carry */
+static uint32_t ini_next_word;     /* payload offset of the next flash word */
+static uint32_t ini_payload_base;  /* payload address of the entry in progress */
+static bool     ini_write_active;
+
 /* Write one block of INI data to config flash.
- * Called per UF2 file container block; handles multi-block reassembly. */
+ * Called per UF2 file container block; blocks must arrive in order.
+ * Returns false (and drops the block) if it is out of order or no
+ * entry is in progress. */
 bool board_flash_ini_write_block(const uint8_t *data, uint32_t len,
                                   uint32_t offset, uint32_t file_size,
                                   uint32_t block_no, uint32_t num_blocks) {
-  (void)num_blocks;
-
   if (block_no == 0) {
     /* First block: find free slot, maybe erase, write header */
     uint32_t free_off = ini_find_free_offset();
@@ -143,38 +176,57 @@ bool board_flash_ini_write_block(const uint8_t *data, uint32_t len,
     IniEntryHeader hdr = { .magic = INI_ENTRY_MAGIC, .size = file_size };
     memcpy(hdr_buf, &hdr, sizeof(hdr));
     ini_program(BOARD_FLASH_CONFIG_START + free_off, hdr_buf, INI_HDR_SIZE);
+
+    ini_payload_base = BOARD_FLASH_CONFIG_START + free_off + INI_HDR_SIZE;
+    ini_next_word = 0;
+    ini_carry_len = 0;
+    ini_write_active = true;
   }
 
-  /* Find the current (last valid) entry to write payload into */
-  bool found;
-  uint32_t last_off = ini_find_last_entry(&found);
-  uint32_t payload_base = BOARD_FLASH_CONFIG_START + last_off + INI_HDR_SIZE;
+  if (!ini_write_active || offset != ini_next_word + ini_carry_len) {
+    ini_write_active = false;
+    return false;
+  }
 
-#if INI_FLASH_ALIGN > 8
-  /* Large flash-word alignment (H7: 32 bytes).
-   * UF2 file container block boundaries may not be 32-byte aligned,
-   * so pad offset and length to flash-word boundaries. */
-  {
-    uint32_t align_mask = INI_FLASH_ALIGN - 1;
-    uint32_t aligned_offset = offset & ~align_mask;
-    uint32_t write_addr = payload_base + aligned_offset;
-
-    if ((offset & align_mask) == 0 && (len & align_mask) == 0) {
-      ini_program(write_addr, data, len);
-    } else {
-      uint8_t align_buf[512];
-      uint32_t total = INI_PAD(offset + len) - aligned_offset;
-      if (total > sizeof(align_buf)) total = sizeof(align_buf);
-      memset(align_buf, 0xFF, total);
-      memcpy(align_buf + (offset - aligned_offset), data, len);
-      ini_program(write_addr, align_buf, total);
+  /* Complete the carried flash word first */
+  if (ini_carry_len) {
+    uint32_t take = INI_FLASH_ALIGN - ini_carry_len;
+    if (take > len) take = len;
+    memcpy(ini_carry + ini_carry_len, data, take);
+    ini_carry_len += take;
+    data += take;
+    len -= take;
+    if (ini_carry_len == INI_FLASH_ALIGN) {
+      ini_program(ini_payload_base + ini_next_word, ini_carry, INI_FLASH_ALIGN);
+      ini_next_word += INI_FLASH_ALIGN;
+      ini_carry_len = 0;
     }
   }
-#else
-  /* Small flash-word alignment (F4/F7: 4 bytes, G4: 8 bytes).
-   * ini_program() handles trailing-byte padding internally. */
-  ini_program(payload_base + offset, data, len);
-#endif
+
+  /* Whole flash words straight from the block */
+  uint32_t whole = len & ~(uint32_t)(INI_FLASH_ALIGN - 1);
+  if (whole) {
+    ini_program(ini_payload_base + ini_next_word, data, whole);
+    ini_next_word += whole;
+    data += whole;
+    len -= whole;
+  }
+
+  /* Carry the tail (ini_carry is empty here whenever len > 0) */
+  if (len) {
+    memcpy(ini_carry, data, len);
+    ini_carry_len = len;
+  }
+
+  /* Last block: flush the carry, padded with erased bytes */
+  if (block_no + 1 >= num_blocks) {
+    if (ini_carry_len) {
+      memset(ini_carry + ini_carry_len, 0xFF, INI_FLASH_ALIGN - ini_carry_len);
+      ini_program(ini_payload_base + ini_next_word, ini_carry, INI_FLASH_ALIGN);
+      ini_carry_len = 0;
+    }
+    ini_write_active = false;
+  }
 
   return true;
 }
