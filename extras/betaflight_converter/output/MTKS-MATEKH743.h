@@ -15,7 +15,7 @@
 // Gyro: MPU6000, MPU6500, ICM42605, ICM42688P
 namespace BoardConfig {
   // IMU: MPU6000, MPU6500, ICM42605, ICM42688P on SPI1
-  static constexpr SPIConfig imu_spi{PD7, PA6, PA5, PC15, 8000000, SPI1};
+  static constexpr SPIConfig imu_spi{PD7, PA6, PA5, PC15, 8000000, CS_Mode::SOFTWARE, SPI1};
   static constexpr IMUConfig imu{imu_spi, PB2, 1000000, IMUAlignment::CW0_DEG_FLIP};
 
   // I2C1: Airspeed sensor, external compass

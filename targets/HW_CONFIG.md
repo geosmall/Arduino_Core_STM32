@@ -67,22 +67,23 @@ enum class StorageBackend {
 };
 
 namespace BoardConfig {
+  // Aggregate: no constructor, so a CMSIS instance (`SPI1`) is accepted in
+  // `static constexpr` initialization. The instance stays the last member;
+  // see ConfigTypes.h for why.
   struct SPIConfig {
-    constexpr SPIConfig(uint32_t mosi, uint32_t miso, uint32_t sclk, uint32_t cs,
-                       uint32_t frequency_hz = 1000000,
-                       CS_Mode mode = CS_Mode::SOFTWARE)
-      : mosi_pin(mosi), miso_pin(miso), sclk_pin(sclk), cs_pin(cs),
-        freq_hz(frequency_hz), cs_mode(mode) {}
-
-    const uint32_t mosi_pin, miso_pin, sclk_pin, cs_pin;
-    const uint32_t freq_hz;
-    const CS_Mode cs_mode;
+    Pin mosi_pin;
+    Pin miso_pin;
+    Pin sclk_pin;
+    Pin cs_pin;
+    uint32_t freq_hz = 1000000;
+    CS_Mode cs_mode = CS_Mode::SOFTWARE;
+    SPI_TypeDef* instance = nullptr;   // nullptr: first matching SPI for the pins
 
     // Helper: Get SSEL pin for SPIClass constructor
-    // SW mode: returns PNUM_NOT_DEFINED (disables hardware SSEL)
+    // SW mode: returns NC_PIN (disables hardware SSEL)
     // HW mode: returns cs_pin (STM32 SPI peripheral controls CS)
-    constexpr uint32_t get_ssel_pin() const {
-      return (cs_mode == CS_Mode::HARDWARE) ? cs_pin : PNUM_NOT_DEFINED;
+    constexpr Pin get_ssel_pin() const {
+      return (cs_mode == CS_Mode::HARDWARE) ? cs_pin : NC_PIN;
     }
   };
 
@@ -163,10 +164,10 @@ namespace BoardConfig {
 namespace BoardConfig {
   // Storage: No storage hardware attached by default on base Nucleo
   // Use NUCLEO_F411RE_HIL001.h or NUCLEO_F411RE_SDFS.h for storage testing
-  static constexpr StorageConfig storage{StorageBackend::NONE, 0, 0, 0, 0, 0, 0};
+  static constexpr StorageConfig storage{StorageBackend::NONE, NC_PIN, NC_PIN, NC_PIN, NC_PIN, 0};
 
   // IMU: SPI connections via jumpers (reduced speed for reliability)
-  static constexpr SPIConfig imu{PA7, PA6, PA5, PA4, 1000000, 2000000};
+  static constexpr SPIConfig imu{PA7, PA6, PA5, PA4, 1000000};
 
   // GPS: UART communication
   static constexpr UARTConfig gps{PA9, PA10, 115200};
@@ -187,10 +188,10 @@ namespace BoardConfig {
 // NUCLEO F411RE with LittleFS SPI flash storage for testing
 namespace BoardConfig {
   // Storage: SPI flash via breakout board
-  static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PA7, PA6, PA5, PA4, 1000000, 8000000};
+  static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PA7, PA6, PA5, PA4, 8000000};
 
   // IMU: Alternative SPI pins (when storage uses primary SPI)
-  static constexpr SPIConfig imu{PC12, PC11, PC10, PD2, 1000000, 2000000};
+  static constexpr SPIConfig imu{PC12, PC11, PC10, PD2, 2000000};
 
   // GPS: UART communication
   static constexpr UARTConfig gps{PA9, PA10, 115200};
@@ -214,10 +215,10 @@ namespace BoardConfig {
 // Compact development board with USB-C connector
 namespace BoardConfig {
   // Storage: SPI flash or SD card via breakout board
-  static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PA7, PA6, PA5, PA4, 1000000, 8000000};
+  static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PA7, PA6, PA5, PA4, 8000000};
 
   // IMU: SPI connections (optimized speeds for hardwired connections)
-  static constexpr SPIConfig imu{PB15, PB14, PB13, PB12, 1000000, 8000000};
+  static constexpr SPIConfig imu{PB15, PB14, PB13, PB12, 8000000};
 
   // GPS: UART communication
   static constexpr UARTConfig gps{PA9, PA10, 115200};
@@ -237,10 +238,10 @@ namespace BoardConfig {
 // NOXE V3 flight controller production configuration
 namespace BoardConfig {
   // Storage: High-speed SD card for data logging
-  static constexpr StorageConfig storage{StorageBackend::SDFS, PB15, PB14, PB13, PB12, 1000000, 8000000};
+  static constexpr StorageConfig storage{StorageBackend::SDFS, PB15, PB14, PB13, PB12, 8000000};
 
   // IMU: High-performance IMU for flight control
-  static constexpr SPIConfig imu{PA7, PA6, PA5, PA4, 1000000, 8000000};
+  static constexpr SPIConfig imu{PA7, PA6, PA5, PA4, 8000000, CS_Mode::SOFTWARE, SPI1};
 
   // GPS: High-precision GPS module
   static constexpr UARTConfig gps{PC6, PC7, 115200};

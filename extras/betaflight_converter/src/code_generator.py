@@ -206,7 +206,7 @@ class BoardConfigGenerator:
 
         lines = [
             f"  // IMU: {chip_comment} on {spi_bus.bus_name}",
-            f"  static constexpr SPIConfig imu_spi{{{spi_bus.mosi}, {spi_bus.miso}, {spi_bus.sclk}, {cs_pin}, 8000000, {spi_bus.bus_name}}};",
+            f"  static constexpr SPIConfig imu_spi{{{spi_bus.mosi}, {spi_bus.miso}, {spi_bus.sclk}, {cs_pin}, 8000000, CS_Mode::SOFTWARE, {spi_bus.bus_name}}};",
         ]
         if align_comment:
             lines.append(align_comment)

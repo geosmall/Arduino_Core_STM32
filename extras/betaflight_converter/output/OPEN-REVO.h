@@ -18,7 +18,7 @@ namespace BoardConfig {
   static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PC12, PC11, PC10, PB3, 8000000, SPI3};
 
   // IMU: MPU6500, MPU6000 on SPI1
-  static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 8000000, SPI1};
+  static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 8000000, CS_Mode::SOFTWARE, SPI1};
   static constexpr IMUConfig imu{imu_spi, PC4, 1000000, IMUAlignment::CW270_DEG};
 
   // I2C1: Environmental sensors

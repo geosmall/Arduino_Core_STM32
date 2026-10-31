@@ -117,8 +117,10 @@ class TestCodeGenerator(unittest.TestCase):
         # Should have interrupt pin (PB3)
         self.assertIn("PB3", code)
 
-        # IMU SPIConfig must carry the SPI instance literal as the final field.
-        match = re.search(r"SPIConfig imu_spi\{[^}]+,\s*(SPI\d+)\s*\}", code)
+        # IMU SPIConfig must carry the SPI instance literal as the final field,
+        # with cs_mode written before it (ConfigTypes.h: nothing defaulted may
+        # follow the instance pointer).
+        match = re.search(r"SPIConfig imu_spi\{[^}]+,\s*CS_Mode::SOFTWARE,\s*(SPI\d+)\s*\}", code)
         self.assertIsNotNone(match, "SPIConfig imu_spi must emit SPI_TypeDef* instance literal")
         self.assertEqual(match.group(1), "SPI1")
 

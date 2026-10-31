@@ -50,6 +50,14 @@ namespace BoardConfig {
   // value rejects compile-time initialization. Aggregate brace-init does
   // not, matching the precedent set by MotorConfig + `TIM1`.
   //
+  // The peripheral instance must be the LAST member of every config struct.
+  // GCC 12 also rejects the pointer when a member after it is left to an
+  // enum-typed default member initializer (CS_Mode, Pin, any enum):
+  // `{..., SPI1}` with a defaulted enum after `instance` fails as "not a
+  // constant expression". Integer/bool defaults after it do not trigger this,
+  // but keep the pointer last regardless. Setting an instance here therefore
+  // means writing cs_mode too: `{mosi, miso, sclk, cs, freq, CS_Mode::SOFTWARE, SPI1}`.
+  //
   // `instance` disambiguates multi-mapping pins (e.g. G473 PB3/4/5, which
   // carry both SPI1+AF5 and SPI3+AF6 entries in PinMap_SPI_*). nullptr
   // preserves legacy first-match resolution — kept as a default member
@@ -61,8 +69,8 @@ namespace BoardConfig {
     Pin sclk_pin;
     Pin cs_pin;
     uint32_t freq_hz = 1000000;
-    SPI_TypeDef* instance = nullptr;
     CS_Mode cs_mode = CS_Mode::SOFTWARE;
+    SPI_TypeDef* instance = nullptr;
 
     // Helper: Get SSEL pin for SPIClass constructor
     // SW mode: returns NC_PIN (disables hardware SSEL)
