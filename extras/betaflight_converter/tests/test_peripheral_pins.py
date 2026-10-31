@@ -234,6 +234,31 @@ class TestPeripheralPinMap(unittest.TestCase):
         pin = self.pinmap.get_pin_for_spi_bus("PA7", "MOSI", "SPI99")
         self.assertIsNone(pin)
 
+    def test_get_pin_for_timer_returns_bare_pin(self):
+        """get_pin_for_timer must never emit an _ALT suffix.
+
+        Motor/servo pins go into MotorConfig/ServoConfig next to a
+        TIM_TypeDef* instance, which selects the mapping; the Pin type has
+        no ALT bits (Arduino_Core_STM32/doc/PIN_USE.md).
+
+        F411 PB0: PB_0 → TIM1_CH2N on AF1, PB_0_ALT1 → TIM3_CH3 on AF2.
+        Both resolve to the bare "PB0".
+        """
+        # Single-mapping case: pin returned unchanged.
+        self.assertEqual(self.pinmap.get_pin_for_timer("PB4", "TIM3", 2), "PB4")
+
+        # Multi-mapping case, first entry (PB_0 → TIM1, AF1): bare pin.
+        pin = self.pinmap.get_pin_for_timer("PB0", "TIM1", 1)
+        self.assertEqual(pin, "PB0")
+
+        # Multi-mapping case, alternate entry (PB_0_ALT1 → TIM3, AF2): still
+        # bare pin, never "PB0_ALT1".
+        pin = self.pinmap.get_pin_for_timer("PB0", "TIM3", 2)
+        self.assertEqual(pin, "PB0")
+
+        # Non-existent mapping: returns None.
+        self.assertIsNone(self.pinmap.get_pin_for_timer("PB0", "TIM3", 1))
+
 
 if __name__ == '__main__':
     unittest.main()

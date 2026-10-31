@@ -42,9 +42,16 @@ class Patterns:
     GYRO_EXTI_PIN = re.compile(r'#define\s+GYRO_(\d+)_EXTI_PIN\s+(P\w+)')
 
     # Timer pin mapping
+    # The pin argument is a literal pin (PC9) or a macro naming one
+    # (MOTOR1_PIN); see BetaflightConfig._resolve_pin_token.
     TIMER_PIN_MAP = re.compile(
-        r'TIMER_PIN_MAP\(\s*(\d+)\s*,\s*(P\w+)\s*,\s*(\d+)\s*,\s*(-?\d+)\s*\)'
+        r'TIMER_PIN_MAP\(\s*(\d+)\s*,\s*(\w+)\s*,\s*(\d+)\s*,\s*(-?\d+)\s*\)'
     )
+    PIN_NAME = re.compile(r'P[A-K]\d{1,2}')
+    # Object-like single-token define: "#define NAME VALUE", optionally
+    # followed by a // or /* */ comment
+    SIMPLE_DEFINE = re.compile(
+        r'#define\s+(\w+)\s+(\w+)\s*(?://.*|/\*.*\*/\s*)?$')
 
     # SPI instance assignments
     SPI_INSTANCE = re.compile(r'#define\s+(\w+)_SPI_INSTANCE\s+SPI(\d+)')
@@ -284,11 +291,42 @@ class BetaflightConfig:
             self._add_resource('BEEPER', 1, match.group(1))
             return
 
+    def _collect_simple_defines(self, content: str) -> Dict[str, str]:
+        """Map every object-like single-token #define NAME VALUE in the file."""
+        simple = {}
+        for line in content.splitlines():
+            match = Patterns.SIMPLE_DEFINE.match(line.strip())
+            if match:
+                simple[match.group(1)] = match.group(2)
+        return simple
+
+    def _resolve_pin_token(self, token: str, simple_defines: Dict[str, str]) -> str:
+        """Resolve a TIMER_PIN_MAP pin argument to a literal pin name.
+
+        Betaflight configs give either the pin (PC9) or a macro that names it
+        (MOTOR1_PIN, itself #define'd to PC9); the C preprocessor expands the
+        argument before TIMER_PIN_MAP sees it. Follow the same #define chain.
+
+        Raises:
+            ValueError: if the token does not resolve to a pin name.
+        """
+        seen = []
+        while not Patterns.PIN_NAME.fullmatch(token):
+            if token in seen or token not in simple_defines:
+                chain = ' -> '.join(seen + [token])
+                raise ValueError(
+                    f"{self.filepath}: TIMER_PIN_MAP pin argument '{chain}' "
+                    f"does not resolve to a pin")
+            seen.append(token)
+            token = simple_defines[token]
+        return token
+
     def _parse_timer_pin_mapping(self, content: str):
         """Parse TIMER_PIN_MAPPING macro (may span multiple lines)."""
+        simple_defines = self._collect_simple_defines(content)
         for match in Patterns.TIMER_PIN_MAP.finditer(content):
             index = int(match.group(1))
-            pin = match.group(2)
+            pin = self._resolve_pin_token(match.group(2), simple_defines)
             occurrence = int(match.group(3))
             dma_opt = int(match.group(4))
 

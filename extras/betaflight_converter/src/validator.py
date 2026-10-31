@@ -24,7 +24,7 @@ class ValidatedMotor:
     """Validated motor configuration."""
     index: int
     pin_bf: str      # Betaflight pin: "PB4"
-    pin_arduino: str # Arduino format with ALT if needed: "PB0_ALT1"
+    pin_arduino: str # Arduino format, bare pin: "PB0"
     timer: str       # e.g., "TIM3"
     channel: int     # Timer channel (1-4)
     af: int          # Alternate function
@@ -130,7 +130,7 @@ class ConfigValidator:
                     pin=pin_bf
                 ))
 
-            # Get correct pin format with ALT suffix if needed
+            # Confirm pin reaches the timer on this AF; bare pin, instance selects
             correct_pin = self.pinmap.get_pin_for_timer(pin_arduino, timer_assignment.timer, timer_assignment.af)
             if not correct_pin:
                 correct_pin = pin_arduino  # Fallback to base pin
@@ -191,7 +191,7 @@ class ConfigValidator:
                     pin=pin_bf
                 ))
 
-            # Get correct pin format with ALT suffix if needed
+            # Confirm pin reaches the timer on this AF; bare pin, instance selects
             correct_pin = self.pinmap.get_pin_for_timer(pin_arduino, timer_assignment.timer, timer_assignment.af)
             if not correct_pin:
                 correct_pin = pin_arduino  # Fallback to base pin

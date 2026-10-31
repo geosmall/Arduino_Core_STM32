@@ -177,24 +177,27 @@ StorageConfig storage{StorageBackend::LITTLEFS, PB15, PB14, PB13, PB2, 8000000};
 StorageConfig storage{StorageBackend::LITTLEFS, PB_15, PB_14, PB_13, PB_2, 8000000};
 ```
 
-### ALT Pin Variants for Peripheral Selection
+### Pins With More Than One Peripheral Mapping
 
-Some pins support multiple peripheral instances. ALT variants select the correct one:
+Some pins appear in PeripheralPins.c under more than one peripheral instance.
+The generated config always emits the bare pin; the peripheral instance next
+to it selects the mapping (see `Arduino_Core_STM32/doc/PIN_USE.md`).
 
 **Timer/Motor Example - Motor 4 on JHEF411:**
 
 ```cpp
 // PeripheralPins.c shows PB_0 has TWO timer mappings:
-{PB_0,      TIM1, ..._AF1_TIM1, 2, 1}    // Default: TIM1_CH2N (AF1)
-{PB_0_ALT1, TIM3, ..._AF2_TIM3, 3, 0}    // ALT1: TIM3_CH3 (AF2)
+{PB_0,      TIM1, ..._AF1_TIM1, 2, 1}    // TIM1_CH2N (AF1)
+{PB_0_ALT1, TIM3, ..._AF2_TIM3, 3, 0}    // TIM3_CH3 (AF2)
 
 // TIMER_PIN_MAP specifies occurrence=2 for PB0 -> selects TIM3_CH3
-// Generated config uses ALT variant:
-{TIM3, PB0_ALT1, 3, 125, 250}  // Correct (TIM3_CH3)
+// Generated config: bare pin, TIM3 selects the mapping
+{TIM3, PB0, 3, 125, 250}
 ```
 
-The converter automatically handles ALT pin selection by cross-referencing
-`TIMER_PIN_MAP` occurrences against PeripheralPins.c entries.
+The converter resolves the timer and channel by cross-referencing
+`TIMER_PIN_MAP` occurrences against PeripheralPins.c entries. SPI, I2C and
+UART configs likewise carry a `SPI<n>` / `I2C<n>` / `USART<n>` instance literal.
 
 ---
 
@@ -296,8 +299,8 @@ namespace BoardConfig {
 
     namespace TIM3_Bank {
       static inline TIM_TypeDef* const timer = TIM3;
-      static constexpr Channel motor1 = {PB0_ALT1, 3, 125, 250};  // TIM3_CH3
-      static constexpr Channel motor2 = {PB1_ALT1, 4, 125, 250};  // TIM3_CH4
+      static constexpr Channel motor1 = {PB0, 3, 125, 250};  // TIM3_CH3
+      static constexpr Channel motor2 = {PB1, 4, 125, 250};  // TIM3_CH4
     };
   };
 }

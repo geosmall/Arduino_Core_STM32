@@ -1,6 +1,6 @@
 /*
  * Auto-generated BoardConfig from Betaflight target config
- * Generated: 2026-05-26 05:20:01
+ * Generated: 2026-10-31 14:54:17
  * Generator: betaflight_target_converter.py
  */
 
@@ -71,12 +71,12 @@ namespace BoardConfig {
 
     // Motor array - hardware timer assignments from Betaflight config
     static constexpr MotorConfig motors[] = {
-      {TIM3, PB0_ALT1, 3, 125, 250, DMA1, 0, 0},  // Motor 1: TIM3_CH3, DMA1 S0
-      {TIM3, PB1_ALT1, 4, 125, 250, DMA1, 1, 0},  // Motor 2: TIM3_CH4, DMA1 S1
-      {TIM5, PA0_ALT1, 1, 125, 250, DMA1, 2, 0},  // Motor 3: TIM5_CH1, DMA1 S2
-      {TIM5, PA1_ALT1, 2, 125, 250, DMA1, 3, 0},  // Motor 4: TIM5_CH2, DMA1 S3
-      {TIM5, PA2_ALT1, 3, 125, 250, DMA1, 4, 0},  // Motor 5: TIM5_CH3, DMA1 S4
-      {TIM5, PA3_ALT1, 4, 125, 250, DMA1, 5, 0},  // Motor 6: TIM5_CH4, DMA1 S5
+      {TIM3, PB0, 3, 125, 250, DMA1, 0, 0},  // Motor 1: TIM3_CH3, DMA1 S0
+      {TIM3, PB1, 4, 125, 250, DMA1, 1, 0},  // Motor 2: TIM3_CH4, DMA1 S1
+      {TIM5, PA0, 1, 125, 250, DMA1, 2, 0},  // Motor 3: TIM5_CH1, DMA1 S2
+      {TIM5, PA1, 2, 125, 250, DMA1, 3, 0},  // Motor 4: TIM5_CH2, DMA1 S3
+      {TIM5, PA2, 3, 125, 250, DMA1, 4, 0},  // Motor 5: TIM5_CH3, DMA1 S4
+      {TIM5, PA3, 4, 125, 250, DMA1, 5, 0},  // Motor 6: TIM5_CH4, DMA1 S5
       {TIM4, PD12, 1, 125, 250, DMA1, 6, 0},  // Motor 7: TIM4_CH1, DMA1 S6
       {TIM4, PD13, 2, 125, 250, DMA1, 7, 0},  // Motor 8: TIM4_CH2, DMA1 S7
     };

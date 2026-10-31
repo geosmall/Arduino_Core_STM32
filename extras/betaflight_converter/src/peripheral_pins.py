@@ -259,20 +259,28 @@ class PeripheralPinMap:
 
     def get_pin_for_timer(self, base_pin: str, timer: str, af: int) -> Optional[str]:
         """
-        Get correct pin format (with ALT suffix if needed) for timer/AF combination.
+        Verify base_pin reaches timer on the given AF, returning the bare base pin.
 
         Args:
-            base_pin: Base pin name without ALT (e.g., "PB0")
+            base_pin: Base pin name without ALT suffix (e.g., "PB0")
             timer: Timer name (e.g., "TIM3")
             af: Alternate function number
 
         Returns:
-            Pin with ALT suffix if needed (e.g., "PB0_ALT1"), or None if invalid
+            base_pin if a mapping to timer/af exists (under any AF/ALT variant),
+            else None.
+
+        The timer instance in the emitted MotorConfig/ServoConfig selects the
+        mapping (see get_pin_for_spi_bus). The Pin type has no ALT bits, so
+        emitting "PB0_ALT1" here would produce uncompilable code.
+
+        Example:
+            get_pin_for_timer("PB0", "TIM3", 2) → "PB0"   (PB_0_ALT1 entry)
+            get_pin_for_timer("PB0", "TIM1", 1) → "PB0"   (PB_0 entry)
         """
-        # Find matching timer pin
         for tp in self.timer_pins:
             if tp.pin == base_pin and tp.timer == timer and tp.af == af:
-                return base_pin + tp.alt_variant
+                return base_pin
 
         return None
 

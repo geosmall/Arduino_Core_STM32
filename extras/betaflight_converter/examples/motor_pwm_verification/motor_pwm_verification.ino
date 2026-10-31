@@ -118,7 +118,7 @@ void setup() {
   CI_LOGF("Motor1 (TIM1): CH%lu @ %lu Hz\n\n", motor1.channel, MOTOR_FREQ);
 
   // ========== Configure TIM3 Motor Bank (using generated config) ==========
-  // Motor 4: motors[3] = {TIM3, PB0_ALT1, 3, ...}
+  // Motor 4: motors[3] = {TIM3, PB0, 3, ...}
   auto& motor4 = BoardConfig::Motor::motors[3];
   CI_LOGF("Initializing Motor TIM3 Bank @ %lu Hz...\n", MOTOR_FREQ);
   if (!motor_tim3.Init(motor4.timer, MOTOR_FREQ)) {

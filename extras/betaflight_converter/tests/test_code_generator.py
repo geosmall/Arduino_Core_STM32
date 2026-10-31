@@ -217,7 +217,7 @@ class TestCodeGenerator(unittest.TestCase):
         self.assertIn("{TIM1, PA10, 3,", motors_code)  # Motor 3
 
         # TIM3 motors (motors 4-5 in JHEF411 config)
-        self.assertIn("{TIM3, PB0_ALT1, 3,", motors_code)  # Motor 4
+        self.assertIn("{TIM3, PB0, 3,", motors_code)       # Motor 4 (PB_0_ALT1 row)
         self.assertIn("{TIM3, PB4, 1,", motors_code)       # Motor 5
 
     def test_protocol_detection(self):
@@ -239,23 +239,18 @@ class TestCodeGenerator(unittest.TestCase):
         self.assertIsNotNone(match, "RCReceiverConfig must emit USART_TypeDef* instance literal")
         self.assertEqual(match.group(1), "USART1")
 
-    def test_no_alt_in_spi_i2c_uart_emissions(self):
-        """SPI/Storage/I2C/UART/RC receiver lines must not carry _ALT suffixes.
+    def test_no_alt_in_emissions(self):
+        """No emitted line may carry an _ALT suffix.
 
-        Pin disambiguation now flows through the *_TypeDef* instance literal.
-        Emitted lines like 'StorageConfig{..., PB5_ALT1, ...}' would not compile
-        against the Pin type (Arduino_Core_STM32/doc/PIN_USE.md). Motor lines
-        keep their _ALT pin syntax — that's TimerPWM's already-migrated
-        peripheral-aware path, not in PR 1's scope.
+        Pin disambiguation flows through the *_TypeDef* instance literal
+        (SPI/I2C/UART) or the TIM_TypeDef* field (motors/servos). The Pin
+        type has no ALT bits (Arduino_Core_STM32/doc/PIN_USE.md), so a
+        line like '{TIM3, PB0_ALT1, 3, ...}' would not compile.
         """
         code = self.generator.generate()
         for line in code.split('\n'):
-            if any(tag in line for tag in (
-                'StorageConfig', 'SPIConfig', 'I2CConfig',
-                'UARTConfig', 'RCReceiverConfig',
-            )):
-                self.assertNotIn('_ALT', line,
-                                 f"Found _ALT suffix in non-motor emission: {line}")
+            self.assertNotIn('_ALT', line,
+                             f"Found _ALT suffix in emission: {line}")
 
     def test_valid_cpp_syntax(self):
         """Test generated code has valid C++ syntax."""

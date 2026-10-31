@@ -2,6 +2,7 @@
 Tests for Betaflight config.h parser.
 """
 
+import tempfile
 import unittest
 from pathlib import Path
 import sys
@@ -248,6 +249,61 @@ class TestTimerResolution(unittest.TestCase):
         for motor in motors:
             self.assertIn(motor.pin, self.config.timers,
                          f"Motor {motor.index} pin {motor.pin} has no timer assignment")
+
+
+class TestSymbolicTimerPinMap(unittest.TestCase):
+    """TIMER_PIN_MAP pin arguments given as macros (MOTOR1_PIN) resolve to pins.
+
+    Betaflight configs such as MATEKF405TE_SD write
+    TIMER_PIN_MAP(0, MOTOR1_PIN, 2, 0); the C preprocessor expands MOTOR1_PIN
+    to its #define'd pin before TIMER_PIN_MAP sees it.
+    """
+
+    def _load(self, body: str) -> BetaflightConfig:
+        tmpdir = tempfile.TemporaryDirectory()
+        self.addCleanup(tmpdir.cleanup)
+        path = Path(tmpdir.name) / 'config.h'
+        path.write_text(body)
+        return BetaflightConfig(path)
+
+    def test_macro_and_literal_arguments(self):
+        config = self._load(
+            "#define FC_TARGET_MCU     STM32F405\n"
+            "#define MOTOR1_PIN           PC9        // TIM8_CH4\n"
+            "#define LED_STRIP_PIN        PB1  /* TIM3_CH4 */\n"
+            "#define TIMER_PIN_MAPPING \\\n"
+            "    TIMER_PIN_MAP( 0, MOTOR1_PIN, 2,  0) \\\n"
+            "    TIMER_PIN_MAP( 1, PA8 , 1,  1) \\\n"
+            "    TIMER_PIN_MAP( 2, LED_STRIP_PIN, 2,  0)\n"
+        )
+        self.assertEqual(sorted(config.timer_pin_map), ['PA8', 'PB1', 'PC9'])
+        entry = config.timer_pin_map['PC9']
+        self.assertEqual((entry.index, entry.occurrence, entry.dma_opt), (0, 2, 0))
+        self.assertEqual(config.timer_pin_map['PA8'].occurrence, 1)
+
+    def test_chained_alias(self):
+        config = self._load(
+            "#define SERVO1_PIN           PB14\n"
+            "#define TAIL_SERVO           SERVO1_PIN\n"
+            "#define TIMER_PIN_MAPPING \\\n"
+            "    TIMER_PIN_MAP( 0, TAIL_SERVO, 3, -1)\n"
+        )
+        self.assertIn('PB14', config.timer_pin_map)
+
+    def test_unresolved_argument_fails(self):
+        with self.assertRaisesRegex(ValueError, 'MOTOR9_PIN'):
+            self._load(
+                "#define TIMER_PIN_MAPPING \\\n"
+                "    TIMER_PIN_MAP( 0, MOTOR9_PIN, 1, 0)\n"
+            )
+
+    def test_self_referencing_alias_fails(self):
+        with self.assertRaisesRegex(ValueError, 'does not resolve'):
+            self._load(
+                "#define LOOP_PIN             LOOP_PIN\n"
+                "#define TIMER_PIN_MAPPING \\\n"
+                "    TIMER_PIN_MAP( 0, LOOP_PIN, 1, 0)\n"
+            )
 
 
 class TestMultipleTargets(unittest.TestCase):

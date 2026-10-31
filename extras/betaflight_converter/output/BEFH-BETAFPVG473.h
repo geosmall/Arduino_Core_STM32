@@ -1,6 +1,6 @@
 /*
  * Auto-generated BoardConfig from Betaflight target config
- * Generated: 2026-05-26 05:20:01
+ * Generated: 2026-10-31 14:54:17
  * Generator: betaflight_target_converter.py
  */
 
@@ -60,8 +60,8 @@ namespace BoardConfig {
     static constexpr MotorConfig motors[] = {
       {TIM1, PB0, 2, 125, 250, DMA1, 2, 0},  // Motor 1: TIM1_CH2, DMA1 S2
       {TIM1, PB1, 3, 125, 250, DMA1, 3, 0},  // Motor 2: TIM1_CH3, DMA1 S3
-      {TIM16, PB6_ALT2, 1, 125, 250, DMA1, 4, 0},  // Motor 3: TIM16_CH1, DMA1 S4
-      {TIM8, PC13_ALT1, 4, 125, 250, DMA1, 5, 0},  // Motor 4: TIM8_CH4, DMA1 S5
+      {TIM16, PB6, 1, 125, 250, DMA1, 4, 0},  // Motor 3: TIM16_CH1, DMA1 S4
+      {TIM8, PC13, 4, 125, 250, DMA1, 5, 0},  // Motor 4: TIM8_CH4, DMA1 S5
     };
 
     static constexpr int num_motors = sizeof(motors) / sizeof(motors[0]);

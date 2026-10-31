@@ -1,6 +1,6 @@
 /*
  * Auto-generated BoardConfig from Betaflight target config
- * Generated: 2026-05-26 05:20:01
+ * Generated: 2026-10-31 14:54:17
  * Generator: betaflight_target_converter.py
  */
 
@@ -59,8 +59,8 @@ namespace BoardConfig {
     static constexpr MotorConfig motors[] = {
       {TIM3, PB4, 1, 125, 250, DMA1, 4, 5},  // Motor 1: TIM3_CH1, DMA1 S4
       {TIM3, PB5, 2, 125, 250, DMA1, 5, 5},  // Motor 2: TIM3_CH2, DMA1 S5
-      {TIM3, PB0_ALT1, 3, 125, 250, DMA1, 7, 5},  // Motor 3: TIM3_CH3, DMA1 S7
-      {TIM3, PB1_ALT1, 4, 125, 250, DMA1, 2, 5},  // Motor 4: TIM3_CH4, DMA1 S2
+      {TIM3, PB0, 3, 125, 250, DMA1, 7, 5},  // Motor 3: TIM3_CH3, DMA1 S7
+      {TIM3, PB1, 4, 125, 250, DMA1, 2, 5},  // Motor 4: TIM3_CH4, DMA1 S2
       {TIM4, PB6, 1, 125, 250, DMA1, 0, 2},  // Motor 5: TIM4_CH1, DMA1 S0
       {TIM4, PB7, 2, 125, 250, DMA1, 3, 2},  // Motor 6: TIM4_CH2, DMA1 S3
     };

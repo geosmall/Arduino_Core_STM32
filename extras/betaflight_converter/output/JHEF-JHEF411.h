@@ -1,6 +1,6 @@
 /*
  * Auto-generated BoardConfig from Betaflight target config
- * Generated: 2026-05-26 05:20:01
+ * Generated: 2026-10-31 14:54:17
  * Generator: betaflight_target_converter.py
  */
 
@@ -55,7 +55,7 @@ namespace BoardConfig {
       {TIM1, PA8, 1, 125, 250, DMA2, 1, 6},  // Motor 1: TIM1_CH1, DMA2 S1
       {TIM1, PA9, 2, 125, 250, DMA2, 2, 6},  // Motor 2: TIM1_CH2, DMA2 S2
       {TIM1, PA10, 3, 125, 250, DMA2, 6, 6},  // Motor 3: TIM1_CH3, DMA2 S6
-      {TIM3, PB0_ALT1, 3, 125, 250, DMA1, 7, 5},  // Motor 4: TIM3_CH3, DMA1 S7
+      {TIM3, PB0, 3, 125, 250, DMA1, 7, 5},  // Motor 4: TIM3_CH3, DMA1 S7
       {TIM3, PB4, 1, 125, 250, DMA1, 4, 5},  // Motor 5: TIM3_CH1, DMA1 S4
     };
 
