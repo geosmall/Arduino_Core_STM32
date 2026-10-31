@@ -764,9 +764,12 @@ GenH7.menu.xusb.HS.build.usb_speed=-DUSE_USB_HS
 GenH7.menu.xusb.HSFS=High Speed in Full Speed mode
 GenH7.menu.xusb.HSFS.build.usb_speed=-DUSE_USB_HS -DUSE_USB_HS_IN_FS
 
-FlightCtr.menu.usb.none=None
+# CDCgen is listed first so it is the default: USB CDC is the only comms path on
+# an assembled flight controller, and a build without it (usb=none) cannot reach
+# the CLI 'bl' bootloader exit. UART-captured HIL runs pass usb=none explicitly.
 FlightCtr.menu.usb.CDCgen=CDC (generic 'Serial' supersede U(S)ART)
 FlightCtr.menu.usb.CDCgen.build.enable_usb={build.usb_flags} -DUSBD_USE_CDC
+FlightCtr.menu.usb.none=None
 FlightCtr.menu.usb.CDC=CDC (no generic 'Serial')
 FlightCtr.menu.usb.CDC.build.enable_usb={build.usb_flags} -DUSBD_USE_CDC -DDISABLE_GENERIC_SERIALUSB
 FlightCtr.menu.usb.HID=HID (keyboard and mouse)
