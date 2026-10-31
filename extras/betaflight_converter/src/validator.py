@@ -28,6 +28,12 @@ class ValidatedMotor:
     timer: str       # e.g., "TIM3"
     channel: int     # Timer channel (1-4)
     af: int          # Alternate function
+    complementary: bool = False  # Pin is the CHxN output of the channel
+
+    @property
+    def channel_label(self) -> str:
+        """Channel name as in the reference manual: TIM1_CH3N, TIM8_CH4."""
+        return f"{self.timer}_CH{self.channel}{'N' if self.complementary else ''}"
 
 
 @dataclass
@@ -141,7 +147,9 @@ class ConfigValidator:
                 pin_arduino=correct_pin,
                 timer=timer_assignment.timer,
                 channel=channel,
-                af=timer_assignment.af
+                af=timer_assignment.af,
+                complementary=self.pinmap.is_complementary(
+                    pin_arduino, timer_assignment.timer, timer_assignment.af)
             ))
 
         return validated_motors
@@ -202,7 +210,9 @@ class ConfigValidator:
                 pin_arduino=correct_pin,
                 timer=timer_assignment.timer,
                 channel=channel,
-                af=timer_assignment.af
+                af=timer_assignment.af,
+                complementary=self.pinmap.is_complementary(
+                    pin_arduino, timer_assignment.timer, timer_assignment.af)
             ))
 
         return validated_servos
@@ -330,19 +340,22 @@ class ConfigValidator:
                 for signal, pin in pins_bf.items()
             }
 
-            # Betaflight UART numbers don't always match hardware UART numbers
-            # We need to find which UART these pins connect to
-            # Try to get UART name from TX pin first
-            first_uart = self.pinmap.get_uart(pins_arduino_base['TX'], 'TX')
+            # Betaflight's UART number is the hardware instance number
+            # (UART3_TX_PIN -> USART3 or UART3, whichever this chip has).
+            # The instance comes from the number, never from the pin: a pin
+            # such as F4 PC10 reaches both USART3 and UART4.
+            first_uart = self.pinmap.get_uart_instance(uart_num)
             if not first_uart:
-                self.errors.append(ValidationError(
-                    severity="error",
-                    message=f"UART{uart_num} TX pin {pins_arduino_base['TX']} not found in pinmap",
+                # Betaflight drops UARTn_*_PIN when the MCU has no UARTn
+                # (serial_post.h); skip it the same way
+                self.warnings.append(ValidationError(
+                    severity="warning",
+                    message=f"UART{uart_num}: this MCU has no USART{uart_num}/UART{uart_num}; skipped",
                     resource=f"UART{uart_num}"
                 ))
                 continue
 
-            # Get correct pin format (with ALT if needed) for target UART
+            # Confirm each pin reaches that instance
             pins_with_alt = {}
 
             for signal, base_pin in pins_arduino_base.items():

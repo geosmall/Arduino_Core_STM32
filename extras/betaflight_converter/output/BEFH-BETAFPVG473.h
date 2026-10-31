@@ -1,6 +1,6 @@
 /*
  * Auto-generated BoardConfig from Betaflight target config
- * Generated: 2026-10-31 14:54:17
+ * Generated: 2026-10-31 16:57:15
  * Generator: betaflight_target_converter.py
  */
 
@@ -27,8 +27,8 @@ namespace BoardConfig {
   // USART1: Serial port
   static constexpr UARTConfig uart1{PA9, PA10, 115200, USART1};
 
-  // LPUART1: Serial port
-  static constexpr UARTConfig uart2{PA2, PA3, 115200, LPUART1};
+  // USART2: Serial port
+  static constexpr UARTConfig uart2{PA2, PA3, 115200, USART2};
 
   // USART3: Serial port
   static constexpr UARTConfig uart3{PB10, PB11, 115200, USART3};
@@ -58,10 +58,10 @@ namespace BoardConfig {
 
     // Motor array - hardware timer assignments from Betaflight config
     static constexpr MotorConfig motors[] = {
-      {TIM1, PB0, 2, 125, 250, DMA1, 2, 0},  // Motor 1: TIM1_CH2, DMA1 S2
-      {TIM1, PB1, 3, 125, 250, DMA1, 3, 0},  // Motor 2: TIM1_CH3, DMA1 S3
-      {TIM16, PB6, 1, 125, 250, DMA1, 4, 0},  // Motor 3: TIM16_CH1, DMA1 S4
-      {TIM8, PC13, 4, 125, 250, DMA1, 5, 0},  // Motor 4: TIM8_CH4, DMA1 S5
+      {TIM1, PB0, 2, 125, 250, DMA1, 2, 0},  // Motor 1: TIM1_CH2N, DMA1 S2
+      {TIM1, PB1, 3, 125, 250, DMA1, 3, 0},  // Motor 2: TIM1_CH3N, DMA1 S3
+      {TIM16, PB6, 1, 125, 250, DMA1, 4, 0},  // Motor 3: TIM16_CH1N, DMA1 S4
+      {TIM8, PC13, 4, 125, 250, DMA1, 5, 0},  // Motor 4: TIM8_CH4N, DMA1 S5
     };
 
     static constexpr int num_motors = sizeof(motors) / sizeof(motors[0]);

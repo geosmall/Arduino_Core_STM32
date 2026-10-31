@@ -257,6 +257,11 @@ class PeripheralPinMap:
 
         return None
 
+    def is_complementary(self, pin: str, timer: str, af: int) -> bool:
+        """True if pin is the CHxN (complementary) output of timer on af."""
+        return any(tp.pin == pin and tp.timer == timer and tp.af == af
+                   and tp.is_complementary for tp in self.timer_pins)
+
     def get_pin_for_timer(self, base_pin: str, timer: str, af: int) -> Optional[str]:
         """
         Verify base_pin reaches timer on the given AF, returning the bare base pin.
@@ -361,11 +366,16 @@ class PeripheralPinMap:
                 return ip.bus
         return None
 
-    def get_uart(self, pin: str, signal: str) -> Optional[str]:
-        """Get UART for a given pin and signal type."""
-        for up in self.uart_pins:
-            if up.pin == pin and up.signal == signal:
-                return up.uart
+    def get_uart_instance(self, uart_num: int) -> Optional[str]:
+        """Return the instance name for hardware UART number uart_num.
+
+        A chip has either USARTn or UARTn for a given n, not both; the name
+        is looked up in this pinmap rather than assumed per family.
+        """
+        names = {up.uart for up in self.uart_pins}
+        for name in (f"USART{uart_num}", f"UART{uart_num}"):
+            if name in names:
+                return name
         return None
 
     def get_pin_for_spi_bus(self, base_pin: str, signal: str, target_bus: str) -> Optional[str]:

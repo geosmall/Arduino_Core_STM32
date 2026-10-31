@@ -3,6 +3,7 @@ Tests for configuration validator.
 """
 
 import unittest
+import tempfile
 from pathlib import Path
 import sys
 
@@ -161,6 +162,77 @@ class TestConfigValidator(unittest.TestCase):
 
         self.assertIn("Validation Summary", summary)
         self.assertIn("Errors: 0", summary)
+
+
+
+class TestF405Instances(unittest.TestCase):
+    """Synthetic F405 configs: UART instance from its number; CHxN outputs."""
+
+    @classmethod
+    def setUpClass(cls):
+        arduino_root = Path(__file__).parents[3]
+        cls.pinmap = PeripheralPinMap(
+            arduino_root / "variants/STM32F4xx/F405RGT_F415RGT/PeripheralPins.c")
+
+    def _validator(self, body: str) -> ConfigValidator:
+        tmpdir = tempfile.TemporaryDirectory()
+        self.addCleanup(tmpdir.cleanup)
+        path = Path(tmpdir.name) / 'config.h'
+        path.write_text("#define FC_TARGET_MCU     STM32F405\n" + body)
+        config = BetaflightConfig(path)
+        config.resolve_timers(self.pinmap)
+        return ConfigValidator(config, self.pinmap)
+
+    def test_uart_instance_follows_uart_number(self):
+        # PC10/PC11 reach both USART3 and UART4; UART3_* means USART3
+        validator = self._validator(
+            "#define UART3_TX_PIN         PC10\n"
+            "#define UART3_RX_PIN         PC11\n"
+            "#define UART4_TX_PIN         PA0\n"
+            "#define UART4_RX_PIN         PA1\n"
+        )
+        uarts = {u.uart_num: u for u in validator.validate_uarts()}
+        self.assertEqual(validator.errors, [])
+        self.assertEqual(uarts[3].uart_name, 'USART3')
+        self.assertEqual((uarts[3].tx, uarts[3].rx), ('PC10', 'PC11'))
+        self.assertEqual(uarts[4].uart_name, 'UART4')
+
+    def test_uart_pin_not_on_numbered_instance_is_an_error(self):
+        # PA0 is a UART4 pin; it cannot serve as UART3 TX
+        validator = self._validator(
+            "#define UART3_TX_PIN         PA0\n"
+            "#define UART3_RX_PIN         PC11\n"
+        )
+        self.assertEqual(validator.validate_uarts(), [])
+        self.assertTrue(any('cannot reach USART3' in e.message for e in validator.errors))
+
+    def test_uart_absent_on_mcu_is_skipped(self):
+        # F405 has no UART9; Betaflight drops its pins, so does the converter
+        validator = self._validator(
+            "#define UART1_TX_PIN         PA9\n"
+            "#define UART1_RX_PIN         PA10\n"
+            "#define UART9_TX_PIN         PA2\n"
+            "#define UART9_RX_PIN         PA3\n"
+        )
+        uarts = validator.validate_uarts()
+        self.assertEqual([u.uart_num for u in uarts], [1])
+        self.assertEqual(validator.errors, [])
+        self.assertTrue(any('UART9' in w.message for w in validator.warnings))
+
+    def test_complementary_motor_output(self):
+        validator = self._validator(
+            "#define MOTOR1_PIN           PB15\n"
+            "#define MOTOR2_PIN           PA8\n"
+            "#define TIMER_PIN_MAPPING \\\n"
+            "    TIMER_PIN_MAP( 0, MOTOR1_PIN, 1, 0) \\\n"
+            "    TIMER_PIN_MAP( 1, MOTOR2_PIN, 1, 1)\n"
+        )
+        motors = {m.index: m for m in validator.validate_motors()}
+        self.assertEqual(motors[1].timer, 'TIM1')
+        self.assertTrue(motors[1].complementary)
+        self.assertEqual(motors[1].channel_label, 'TIM1_CH3N')
+        self.assertFalse(motors[2].complementary)
+        self.assertEqual(motors[2].channel_label, 'TIM1_CH1')
 
 
 if __name__ == '__main__':

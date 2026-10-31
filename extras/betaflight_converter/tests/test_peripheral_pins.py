@@ -151,16 +151,12 @@ class TestPeripheralPinMap(unittest.TestCase):
         bus = self.pinmap.get_i2c_bus("PX_99", "SCL")
         self.assertIsNone(bus, "Invalid pin should return None")
 
-    def test_get_uart(self):
-        """Test UART lookup."""
-        uart = self.pinmap.get_uart("PB6", "TX")
-        self.assertEqual(uart, "USART1", "PB6 TX should be USART1")
-
-        uart = self.pinmap.get_uart("PA2", "TX")
-        self.assertEqual(uart, "USART2", "PA2 TX should be USART2")
-
-        uart = self.pinmap.get_uart("PX_99", "TX")
-        self.assertIsNone(uart, "Invalid pin should return None")
+    def test_get_uart_instance(self):
+        """UART number maps to the instance name this chip uses."""
+        self.assertEqual(self.pinmap.get_uart_instance(1), "USART1")
+        self.assertEqual(self.pinmap.get_uart_instance(2), "USART2")
+        self.assertEqual(self.pinmap.get_uart_instance(6), "USART6")
+        self.assertIsNone(self.pinmap.get_uart_instance(3), "F411 has no USART3")
 
     def test_jhef411_motor_validation(self):
         """Test motor pins from JHEF411 config."""
@@ -258,6 +254,27 @@ class TestPeripheralPinMap(unittest.TestCase):
 
         # Non-existent mapping: returns None.
         self.assertIsNone(self.pinmap.get_pin_for_timer("PB0", "TIM3", 1))
+
+
+
+class TestF405PinMap(unittest.TestCase):
+    """F405RG pinmap: pins that reach more than one UART or a CHxN output."""
+
+    @classmethod
+    def setUpClass(cls):
+        arduino_root = Path(__file__).parents[3]
+        cls.pinmap = PeripheralPinMap(
+            arduino_root / "variants/STM32F4xx/F405RGT_F415RGT/PeripheralPins.c")
+
+    def test_uart_instance_names(self):
+        self.assertEqual(self.pinmap.get_uart_instance(3), "USART3")
+        self.assertEqual(self.pinmap.get_uart_instance(4), "UART4")
+        self.assertEqual(self.pinmap.get_uart_instance(5), "UART5")
+        self.assertIsNone(self.pinmap.get_uart_instance(7))
+
+    def test_complementary_timer_output(self):
+        self.assertTrue(self.pinmap.is_complementary("PB15", "TIM1", 1))
+        self.assertFalse(self.pinmap.is_complementary("PA8", "TIM1", 1))
 
 
 if __name__ == '__main__':

@@ -198,6 +198,11 @@ to it selects the mapping (see `Arduino_Core_STM32/doc/PIN_USE.md`).
 The converter resolves the timer and channel by cross-referencing
 `TIMER_PIN_MAP` occurrences against PeripheralPins.c entries. SPI, I2C and
 UART configs likewise carry a `SPI<n>` / `I2C<n>` / `USART<n>` instance literal.
+The instance number is Betaflight's port number (`UART3_TX_PIN` gives
+`USART3` or `UART3`, whichever the MCU has), never inferred from a pin: F4
+PC10 reaches both USART3 and UART4. A UART the MCU lacks is skipped with a
+warning, as Betaflight drops it. Motor and servo comments name complementary
+outputs as such (`TIM1_CH3N`).
 
 ---
 

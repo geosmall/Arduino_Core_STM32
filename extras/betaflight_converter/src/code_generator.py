@@ -368,7 +368,7 @@ class BoardConfigGenerator:
         lines.append("    static constexpr ServoConfig servos[] = {")
 
         for servo in sorted(servos, key=lambda s: s.index):
-            lines.append(f"      {{{servo.timer}, {servo.pin_arduino}, {servo.channel}, {min_us}, {max_us}}},  // Servo {servo.index}: {servo.timer}_CH{servo.channel}")
+            lines.append(f"      {{{servo.timer}, {servo.pin_arduino}, {servo.channel}, {min_us}, {max_us}}},  // Servo {servo.index}: {servo.channel_label}")
 
         lines.append("    };")
         lines.append("")
@@ -419,14 +419,14 @@ class BoardConfigGenerator:
                     f"      {{{motor.timer}, {motor.pin_arduino}, {motor.channel}, "
                     f"{min_us}, {max_us}, DMA{dma.controller}, {dma.stream}, "
                     f"{dma.channel_sel}}},  // Motor {motor.index}: "
-                    f"{motor.timer}_CH{motor.channel}, "
+                    f"{motor.channel_label}, "
                     f"DMA{dma.controller} S{dma.stream}"
                 )
             else:
                 lines.append(
                     f"      {{{motor.timer}, {motor.pin_arduino}, {motor.channel}, "
                     f"{min_us}, {max_us}}},  // Motor {motor.index}: "
-                    f"{motor.timer}_CH{motor.channel}"
+                    f"{motor.channel_label}"
                 )
 
         lines.append("    };")

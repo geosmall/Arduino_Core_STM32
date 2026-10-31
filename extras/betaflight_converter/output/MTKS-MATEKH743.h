@@ -1,6 +1,6 @@
 /*
  * Auto-generated BoardConfig from Betaflight target config
- * Generated: 2026-10-31 14:54:17
+ * Generated: 2026-10-31 16:57:15
  * Generator: betaflight_target_converter.py
  */
 
@@ -24,8 +24,8 @@ namespace BoardConfig {
   // I2C2: Barometer, compass
   static constexpr I2CConfig baro{PB11, PB10, 400000, I2C2};
 
-  // LPUART1: Serial port
-  static constexpr UARTConfig uart1{PA9, PA10, 115200, LPUART1};
+  // USART1: Serial port
+  static constexpr UARTConfig uart1{PA9, PA10, 115200, USART1};
 
   // USART2: Serial port
   static constexpr UARTConfig uart2{PD5, PD6, 115200, USART2};
