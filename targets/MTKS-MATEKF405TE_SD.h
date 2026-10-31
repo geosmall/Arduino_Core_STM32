@@ -78,9 +78,10 @@ namespace BoardConfig {
   // marked "3m0" (3 mOhm, mis-fitted at SMT) need scale 2500 (13.2 A range).
   static constexpr ADCConfig battery{PC4, PC5, 210, 250};
 
-  // Status LEDs (PA14 blue, PA13 green). These are the SWD pins; the WMO has
-  // no SWD header, so they are free for GPIO.
-  static constexpr LEDConfig status_leds{PA14, PA13};
+  // Status LEDs (PA14 blue, PA13 green), active-low (PA14 confirmed on
+  // hardware). These are the SWD pins; the WMO has no SWD header, so they are
+  // free for GPIO.
+  static constexpr LEDConfig status_leds{PA14, PA13, true};
 
   // RC Receiver: USART2 at SBUS baud. The SBUS pad is RX2 behind an onboard
   // hardware inverter, so no GPIO inverter control and no USART RX inversion.

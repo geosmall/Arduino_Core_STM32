@@ -152,11 +152,12 @@ namespace BoardConfig {
   };
 
   struct LEDConfig {
-    constexpr LEDConfig(Pin pin1, Pin pin2 = NC_PIN)
-      : led1_pin(pin1), led2_pin(pin2) {}
+    constexpr LEDConfig(Pin pin1, Pin pin2 = NC_PIN, bool active_low = false)
+      : led1_pin(pin1), led2_pin(pin2), active_low(active_low) {}
 
     const Pin led1_pin;   // Primary status LED
     const Pin led2_pin;   // Secondary status LED (NC_PIN = not present)
+    const bool active_low;  // true = LED lights when the pin is LOW (both LEDs)
   };
 
   // Aggregate (no user-defined ctor) — see SPIConfig / UARTConfig for the

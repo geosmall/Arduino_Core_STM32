@@ -164,6 +164,22 @@ IMU::ChipType IMU::GetChipType()
     }
 }
 
+uint8_t IMU::GetWhoAmI() const
+{
+    if (!initialized_ || !driver_) {
+        return 0;
+    }
+    return driver_->whoAmI_;
+}
+
+const char* IMU::GetChipName() const
+{
+    if (!initialized_ || !driver_) {
+        return "none";
+    }
+    return driver_->typeName();
+}
+
 int IMU::EnableDataReadyInt()
 {
     if (!initialized_ || !driver_) return -1;

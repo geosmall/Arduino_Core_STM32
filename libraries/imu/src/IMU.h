@@ -177,6 +177,20 @@ public:
     ChipType GetChipType();
 
     /**
+     * @brief Get the raw WHO_AM_I value read at Init().
+     * @return WHO_AM_I register value, or 0 before a successful Init().
+     *         Unlike GetChipType(), codes with no ChipType entry (e.g. 0x42
+     *         ICM-42605) are returned as read.
+     */
+    uint8_t GetWhoAmI() const;
+
+    /**
+     * @brief Get the detected chip's name from its driver (e.g. "ICM42688P").
+     * @return Chip name, or "none" before a successful Init().
+     */
+    const char* GetChipName() const;
+
+    /**
      * @brief Enable the data ready interrupt on INT pin.
      * @return 0 on success, negative error code on failure.
      */
