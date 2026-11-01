@@ -229,6 +229,7 @@ class TestCodeGenerator(unittest.TestCase):
         # Always use OneShot125 @ 2kHz (DSHOT not implemented)
         self.assertIn("frequency_hz = 2000", code)
         self.assertIn("ONESHOT125 protocol", code)
+        self.assertIn("static constexpr Protocol protocol = Protocol::ONESHOT125;", code)
         self.assertIn("125, 250", code)  # OneShot125 pulse range
 
     def test_rc_receiver_carries_uart_instance(self):

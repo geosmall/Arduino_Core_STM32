@@ -1,6 +1,6 @@
 /*
  * Auto-generated BoardConfig from Betaflight target config
- * Generated: 2026-10-31 16:57:15
+ * Generated: 2026-11-01 08:05:26
  * Generator: betaflight_target_converter.py
  */
 
@@ -52,6 +52,7 @@ namespace BoardConfig {
   // Motors: ONESHOT125 protocol (125-250 µs)
   namespace Motor {
     static constexpr uint32_t frequency_hz = 2000;
+    static constexpr Protocol protocol = Protocol::ONESHOT125;
 
     // Motor array - hardware timer assignments from Betaflight config
     static constexpr MotorConfig motors[] = {

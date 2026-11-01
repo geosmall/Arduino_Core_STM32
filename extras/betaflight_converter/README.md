@@ -73,7 +73,7 @@ Successfully generated: output/JHEF-JHEF411.h
 ```bash
 # Run tests with unittest
 python3 -m unittest discover -s tests -v
-# Expected: 62 tests passing
+# Expected: 79 tests passing
 
 # Or with pytest (if installed)
 pytest -v
@@ -82,11 +82,11 @@ pytest -v
 ## Implementation Status
 
 **Completed**: Full converter with validation
-- Betaflight config.h parser (26 tests)
-- PeripheralPins.c parser (15 tests)
-- Configuration validator (8 tests)
-- C++ code generator (13 tests)
-- **Total: 62 tests, 100% passing**
+- Betaflight config.h parser (32 tests)
+- PeripheralPins.c parser (19 tests)
+- Configuration validator (12 tests)
+- C++ code generator (16 tests)
+- **Total: 79 tests, 100% passing**
 
 ---
 

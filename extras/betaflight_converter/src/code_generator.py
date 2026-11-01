@@ -383,10 +383,10 @@ class BoardConfigGenerator:
         if not motors:
             return None
 
-        # Get protocol from config, but always use OneShot125 (DSHOT not implemented)
-        bf_protocol = self.bf_config.settings.get('motor_pwm_protocol', 'ONESHOT125')
-
-        # Force OneShot125 - DSHOT is not implemented in this core
+        # Betaflight config.h does not fix the motor protocol (it is a runtime
+        # setting, default DShot600), so the generated target picks OneShot125:
+        # analog PWM that any OneShot-capable ESC accepts. A target validated on
+        # DShot600 (which this core supports) is switched by hand.
         # 2 kHz is a practical rate that works with most ESCs (max theoretical is 4 kHz)
         protocol = 'ONESHOT125'
         frequency_hz = 2000
@@ -396,6 +396,7 @@ class BoardConfigGenerator:
             f"  // Motors: {protocol} protocol (125-250 µs)",
             "  namespace Motor {",
             f"    static constexpr uint32_t frequency_hz = {frequency_hz};",
+            f"    static constexpr Protocol protocol = Protocol::{protocol};",
             ""
         ]
 

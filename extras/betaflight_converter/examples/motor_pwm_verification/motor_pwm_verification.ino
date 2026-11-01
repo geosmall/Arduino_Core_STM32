@@ -23,7 +23,7 @@
 
 #include <PWMOutputBank.h>
 #include <ci_log.h>
-#include "../../output/JHEF-JHEF411.h"
+#include "targets/JHEF-JHEF411.h"
 
 // PWM Output Banks
 PWMOutputBank motor_tim1;
