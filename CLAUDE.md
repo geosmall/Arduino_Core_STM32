@@ -164,6 +164,7 @@ BoardConfig::rc_receiver.baud_rate
 - `BKMN-NERO.h` - NERO F7 flight controller
 - `BEFH-BETAFPVG473.h` - BetaFPV G473 flight controller
 - `MTKS-MATEKH743.h` - MATEK H743-WLITE
+- `MTKS-MATEKF405TE_SD.h` - MATEK F405-WMO (F405-TE family, SD card variant)
 
 ## Library Documentation
 
