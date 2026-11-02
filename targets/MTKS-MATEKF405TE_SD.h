@@ -15,8 +15,7 @@
  *   - Current scale 250 (Matek's INAV value; Betaflight's config.h has 150).
  *   - RC receiver at SBUS baud on USART2.
  *   - MAX7456 OSD chip select (shares SPI1 with the IMU) exposed as osd_cs_pin.
- *   - Motor::protocol declared explicitly (the converter only emits it as a
- *     comment for OneShot125).
+ *   - Motors on DSHOT600 (the converter's generated default is OneShot125).
  * Do not regenerate over this file without re-applying these edits.
  */
 
@@ -103,10 +102,10 @@ namespace BoardConfig {
 
     static constexpr int num_servos = sizeof(servos) / sizeof(servos[0]);
   };
-  // Motors: ONESHOT125 protocol (125-250 µs)
+  // Motors: DSHOT600 (CHx + CHxN auto-detected by DShot lib)
   namespace Motor {
     static constexpr uint32_t frequency_hz = 2000;
-    static constexpr Protocol protocol = Protocol::ONESHOT125;
+    static constexpr Protocol protocol = Protocol::DSHOT600;
 
     // Motor array - hardware timer assignments from Betaflight config.
     // S1-S4 only (TIM8 + TIM1): quad, or the lift motors of a quad VTOL.
