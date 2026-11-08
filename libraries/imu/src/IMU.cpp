@@ -441,9 +441,12 @@ void IMU::GetMagCalibration(float& bias_x, float& bias_y, float& bias_z,
 
 void IMU::DelayNs(uint32_t delay_ns)
 {
+    dwt_ensureRunning();
     const uint32_t start = DWT->CYCCNT;
     const uint32_t ticks = (delay_ns * us_ticks_) / 1000;
-    while ((DWT->CYCCNT - start) < ticks) {}
+    do {
+        dwt_ensureRunning();
+    } while ((DWT->CYCCNT - start) < ticks);
 }
 
 void IMU::SelectDevice()

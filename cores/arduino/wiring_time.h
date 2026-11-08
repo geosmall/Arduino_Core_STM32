@@ -75,10 +75,13 @@ static inline void delayMicroseconds(uint32_t) __attribute__((always_inline, unu
 static inline void delayMicroseconds(uint32_t us)
 {
 #if defined(DWT_BASE) && !defined(DWT_DELAY_DISABLED)
+  dwt_ensureRunning();
   int32_t start  = dwt_getCycles();
   int32_t cycles = us * (SystemCoreClock / 1000000);
 
-  while ((int32_t)dwt_getCycles() - start < cycles);
+  do {
+    dwt_ensureRunning();
+  } while ((int32_t)dwt_getCycles() - start < cycles);
 #else
   __IO uint32_t currentTicks = SysTick->VAL;
   /* Number of ticks per millisecond */

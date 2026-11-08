@@ -43,6 +43,25 @@ static inline uint32_t dwt_getCycles(void)
   return (DWT->CYCCNT);
 }
 
+/**
+ * @brief  Restart the DWT cycle counter if something has stopped it
+ * @note   dwt_init() enables the counter once at boot. A J-Link debug session
+ *         clears DEMCR.TRCENA when it closes, which stops CYCCNT under running
+ *         firmware; while it is stopped, CYCCNT reads do not return a usable
+ *         count. Busy-waits on CYCCNT call this before reading the start
+ *         count and on every spin, so they keep timing after a debug session.
+ *         The count is not reset, so a measurement in progress is not disturbed.
+ */
+static inline void dwt_ensureRunning(void)
+{
+  if (!(CoreDebug->DEMCR & CoreDebug_DEMCR_TRCENA_Msk)) {
+    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+  }
+  if (!(DWT->CTRL & DWT_CTRL_CYCCNTENA_Msk)) {
+    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+  }
+}
+
 /*
  * Maximum delay times before 32-bit cycle counter overflow.
  * Use these to validate delay parameters won't cause incorrect behavior.
