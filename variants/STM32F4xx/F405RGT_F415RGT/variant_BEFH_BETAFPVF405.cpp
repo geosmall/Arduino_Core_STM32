@@ -4,7 +4,7 @@
  * No digitalPin[] or analogInputPin[] arrays — those are eliminated
  * by the Pin refactor. Only SystemClock_Config remains.
  */
-#if defined(ARDUINO_BEFH_BETAFPVF405)
+#if defined(ARDUINO_BEFH_BETAFPVF405) || defined(ARDUINO_BEFH_BETAFPVF405_MICRO)
 
 #include "pins_arduino.h"
 
@@ -68,4 +68,4 @@ WEAK void SystemClock_Config(void)
 }
 #endif
 
-#endif /* ARDUINO_BEFH_BETAFPVF405 */
+#endif /* ARDUINO_BEFH_BETAFPVF405 || ARDUINO_BEFH_BETAFPVF405_MICRO */
