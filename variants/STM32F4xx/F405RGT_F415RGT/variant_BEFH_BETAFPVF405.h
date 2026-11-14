@@ -1,8 +1,9 @@
 /*
  * variant_BEFH_BETAFPVF405.h — BetaFPV F405 flight controller (Pavo Pico II)
  *
- * STM32F405RG with 8 MHz HSE, 168 MHz SYSCLK, ICM42688P on SPI1,
- * W25Q128FV on SPI2. CRSF/ELRS RX on USART3; Serial (debug) on USART1.
+ * STM32F405RG with 8 MHz HSE, 168 MHz SYSCLK, IMU on SPI1, 16 MB SPI NOR flash
+ * on SPI2; both parts identified at run time (the micro tailsitter's unit reads
+ * ICM-42605 and Puya PY25Q128HA). CRSF/ELRS RX on USART3; Serial (debug) on USART1.
  *
  * NOTE: This header is included from the HAL conf chain (before HAL modules
  * are loaded), so it CANNOT include Pin.h. Pin constants like PA5 are used

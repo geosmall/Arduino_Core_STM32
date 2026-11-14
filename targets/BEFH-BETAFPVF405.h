@@ -27,12 +27,13 @@
 // Board: BETAFPVF405
 // Manufacturer: BEFH
 // MCU: STM32F405
-// Gyro: MPU6000, ICM42688P
+// Gyro: identified at run time by WHO_AM_I (the micro tailsitter's unit reads ICM-42605)
 namespace BoardConfig {
-  // Storage: W25Q128FV SPI flash on SPI2
+  // Storage: 16 MB SPI NOR flash on SPI2, part identified at run time by JEDEC id
+  // (the micro tailsitter's unit reads Puya PY25Q128HA, 0x852018)
   static constexpr StorageConfig storage{StorageBackend::LITTLEFS, PB15, PB14, PB13, PB12, 8000000, SPI2};
 
-  // IMU: MPU6000, ICM42688P on SPI1
+  // IMU on SPI1, chip identified at run time
   static constexpr SPIConfig imu_spi{PA7, PA6, PA5, PA4, 8000000};
   static constexpr IMUConfig imu{imu_spi, PC4, 1000000, IMUAlignment::CW270_DEG};
 
