@@ -78,6 +78,13 @@ SPIFlash::Result SPIFlash::xfer(const uint8_t *tx, uint8_t *rx, uint32_t n)
   if (rx == nullptr) {
     // Transmit only: load the next byte as soon as TXE is set, so SCK runs
     // back to back. Received bytes are discarded and cleared at the end.
+    //
+    // End of transfer: BSY can still read 0 just after the last DR write,
+    // before the peripheral starts shifting, so a 1-byte transfer must not
+    // trust BSY alone. Waiting for RXNE first (the first byte has fully
+    // shifted) makes the BSY check valid for any length: with n > 1 the
+    // remaining bytes shift back to back, so BSY stays set until the last
+    // one ends. RXNE starts clear because every transfer leaves it drained.
     while (n--) {
       uint32_t spin = SPIN_LIMIT;
       while (!(s->SR & SPI_SR_TXE)) {
@@ -88,6 +95,12 @@ SPIFlash::Result SPIFlash::xfer(const uint8_t *tx, uint8_t *rx, uint32_t n)
       *dr = tx ? *tx++ : 0xFF;
     }
     uint32_t spin = SPIN_LIMIT;
+    while (!(s->SR & SPI_SR_RXNE)) {
+      if (--spin == 0) {
+        return Result::Timeout;
+      }
+    }
+    spin = SPIN_LIMIT;
     while (!(s->SR & SPI_SR_TXE)) {
       if (--spin == 0) {
         return Result::Timeout;
@@ -129,6 +142,14 @@ SPIFlash::Result SPIFlash::xfer(const uint8_t *tx, uint8_t *rx, uint32_t n)
     }
     *rx++ = *dr;
   }
+  // The reference manual's end-of-transfer sequence for a full-duplex
+  // master: RXNE, TXE, then BSY = 0 before chip select is raised.
+  uint32_t spin = SPIN_LIMIT;
+  while (s->SR & SPI_SR_BSY) {
+    if (--spin == 0) {
+      return Result::Timeout;
+    }
+  }
   return Result::Ok;
 }
 
@@ -139,9 +160,13 @@ SPIFlash::Result SPIFlash::begin(uint32_t clock_hz, const SPIFlashPart *table,
   _jedec = 0;
   _clock_hz = 0;
 
-  _cs_port = get_GPIO_Port(_cs.port);
+  // Chip select high before the pin becomes an output. The port clock must be
+  // on first: digitalWrite() does not enable it, and a write to an unclocked
+  // port is lost, leaving the pin low once pinMode() enables the clock, so
+  // SPI.begin()'s pin setup would clock stray edges into a selected chip.
+  _cs_port = set_GPIO_Port_Clock(_cs.port);
   _cs_mask = 1u << _cs.pin;
-  digitalWrite(_cs, HIGH);
+  _cs_port->BSRR = _cs_mask;
   pinMode(_cs, OUTPUT);
 
   _spi.begin();
