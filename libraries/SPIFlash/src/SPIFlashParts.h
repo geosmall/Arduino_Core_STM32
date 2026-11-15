@@ -28,10 +28,11 @@ struct SPIFlashPart {
 // 200 s max. No program/erase fail bit in its status registers.
 // The W25Q128JV reports the same JEDEC id (0xEF4018), so 9Fh cannot tell the
 // two apart; this entry carries the FV's figures for both.
-// Puya PY25Q128HA — datasheet v1.6 (2023-12-04), Table 5-3-1 AC Parameters
-// (Grade I, 2.7-3.6 V): fC 133 MHz, fR (READ) 80 MHz; tPP 0.5 ms typ / 2.4 ms
-// max (up to 256 B); tBE2 0.3 s typ / 1.2 s max; tCE 50 s typ / 120 s max.
-// EP_FAIL is status bit S10 (read with 35h).
+// Puya PY25Q128HA — datasheet V1.9 (2024-02-02; figures unchanged since
+// v1.6), Table 5-3-1 AC Parameters (Grade I, 2.7-3.6 V): fC 133 MHz,
+// fR (READ) 80 MHz; tPP 0.5 ms typ / 2.4 ms max (up to 256 B); tBE2 0.3 s typ
+// / 1.2 s max; tCE 50 s typ / 120 s max. EP_FAIL is status bit S10 (read
+// with 35h).
 static constexpr SPIFlashPart SPIFLASH_PARTS[] = {
   {0xEF4018, "W25Q128",    16u * 1024u * 1024u, 50000000u, 3000u, 2000u, 200000u, false},
   {0x852018, "PY25Q128HA", 16u * 1024u * 1024u, 80000000u, 2400u, 1200u, 120000u, true},
