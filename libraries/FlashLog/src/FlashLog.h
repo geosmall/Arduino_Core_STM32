@@ -44,6 +44,9 @@
  *        over the line's data bytes
  *   "E <len hex> <crc32 hex8>\n"                  CRC-32 (as above) over all
  *   On a read error: "X <addr hex6>\n" and the dump ends.
+ *   Each line is written whole: a short write() (USB CDC returns short when
+ *   the host stalls a packet) is retried with the unsent remainder. With no
+ *   progress for DUMP_STALL_MS, the dump stops and returns Timeout.
  *
  * Static allocation only: the RAM ring is supplied by the caller (see
  * FlashLogStatic<N>).
@@ -67,6 +70,9 @@ public:
   };
 
   static constexpr uint32_t START_BLOCK_SIZE = 32;
+  // dump(): longest wait for a write() to make progress (Betaflight's USB VCP
+  // write uses 50 ms).
+  static constexpr uint32_t DUMP_STALL_MS = 50;
   static constexpr uint32_t MAGIC = 0x474F4C46;   // "FLOG"
   static constexpr uint16_t FORMAT_VERSION = 1;
 

@@ -359,6 +359,24 @@ FlashLog::Result FlashLog::read(uint32_t offset, uint8_t *dst, uint32_t n)
              : Result::FlashError;
 }
 
+// Writes all n bytes, retrying the unsent remainder after a short write();
+// false after DUMP_STALL_MS with no progress.
+static bool writeAll(Print &out, const char *buf, size_t n)
+{
+  uint32_t last = millis();
+  while (n > 0) {
+    const size_t w = out.write(reinterpret_cast<const uint8_t *>(buf), n);
+    if (w > 0) {
+      buf += w;
+      n -= w;
+      last = millis();
+    } else if (millis() - last > FlashLog::DUMP_STALL_MS) {
+      return false;
+    }
+  }
+  return true;
+}
+
 FlashLog::Result FlashLog::dump(Print &out, uint32_t start, uint32_t len)
 {
   if (!_ready) {
@@ -375,7 +393,9 @@ FlashLog::Result FlashLog::dump(Print &out, uint32_t start, uint32_t len)
   *p++ = ' ';
   p = putHex(p, len, 6);
   *p++ = '\n';
-  out.write(reinterpret_cast<const uint8_t *>(line), p - line);
+  if (!writeAll(out, line, p - line)) {
+    return Result::Timeout;
+  }
 
   uint8_t data[32];
   uint32_t crc = 0;
@@ -388,7 +408,7 @@ FlashLog::Result FlashLog::dump(Print &out, uint32_t start, uint32_t len)
       *p++ = ' ';
       p = putHex(p, addr, 6);
       *p++ = '\n';
-      out.write(reinterpret_cast<const uint8_t *>(line), p - line);
+      writeAll(out, line, p - line);
       return Result::FlashError;
     }
     crc = crc32(data, n, crc);
@@ -403,7 +423,9 @@ FlashLog::Result FlashLog::dump(Print &out, uint32_t start, uint32_t len)
     *p++ = ' ';
     p = putHex(p, crc16(data, n), 4);
     *p++ = '\n';
-    out.write(reinterpret_cast<const uint8_t *>(line), p - line);
+    if (!writeAll(out, line, p - line)) {
+      return Result::Timeout;
+    }
     done += n;
   }
   p = line;
@@ -413,7 +435,9 @@ FlashLog::Result FlashLog::dump(Print &out, uint32_t start, uint32_t len)
   *p++ = ' ';
   p = putHex(p, crc, 8);
   *p++ = '\n';
-  out.write(reinterpret_cast<const uint8_t *>(line), p - line);
+  if (!writeAll(out, line, p - line)) {
+    return Result::Timeout;
+  }
   return Result::Ok;
 }
 
