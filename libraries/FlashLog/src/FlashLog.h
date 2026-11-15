@@ -125,6 +125,8 @@ public:
   uint32_t regionSize() const { return _region_size; }
   uint32_t queued() const { return _count; }
   uint32_t ringFree() const { return _ring_size - _count; }
+  // A page program was issued and has not yet been seen to complete.
+  bool programOutstanding() const { return _program_outstanding; }
 
   static uint32_t crc32(const uint8_t *p, uint32_t n, uint32_t crc = 0);
   static uint16_t crc16(const uint8_t *p, uint32_t n);
