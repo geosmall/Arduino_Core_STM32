@@ -9,7 +9,7 @@ import datetime
 
 from betaflight_config import BetaflightConfig
 from validator import ConfigValidator, ValidatedMotor
-from dma_mapping import resolve_dma
+from dma_mapping import resolve_dma, _get_family
 
 
 class BoardConfigGenerator:
@@ -416,12 +416,19 @@ class BoardConfigGenerator:
                               motor.channel, dma_opt)
 
             if dma:
+                # G4 DMA is channel-based: dma.stream holds the LL value,
+                # 0-7 for channels 1-8. F4/F7/H7 streams are numbered 0-7.
+                if _get_family(self.bf_config.mcu_type) == 'G4':
+                    dma_label = (f"DMA{dma.controller} Ch{dma.stream + 1} "
+                                 f"(LL value {dma.stream})")
+                else:
+                    dma_label = f"DMA{dma.controller} S{dma.stream}"
                 lines.append(
                     f"      {{{motor.timer}, {motor.pin_arduino}, {motor.channel}, "
                     f"{min_us}, {max_us}, DMA{dma.controller}, {dma.stream}, "
                     f"{dma.channel_sel}}},  // Motor {motor.index}: "
                     f"{motor.channel_label}, "
-                    f"DMA{dma.controller} S{dma.stream}"
+                    f"{dma_label}"
                 )
             else:
                 lines.append(
