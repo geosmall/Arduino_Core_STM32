@@ -12,6 +12,7 @@ below. File headers govern where they differ from this summary.
 | STM32 HAL/LL drivers | `system/Drivers/STM32*_HAL_Driver/` | BSD-3-Clause (STMicroelectronics; see each driver's `LICENSE.md`) |
 | STM32 CMSIS device files | `system/Drivers/CMSIS/Device/` | STMicroelectronics terms per file headers |
 | Fork-authored libraries | `libraries/SerialRx/`, `libraries/DShot/`, `libraries/BoardAlignment/`, `libraries/TimerPWM/` | MIT (see each library's `LICENSE`) |
+| Betaflight blackbox log encoder | `libraries/BlackboxBBL/` | GPL-3.0-or-later (derived from Betaflight's blackbox encoder, Cleanflight lineage; see its `LICENSE` and file headers) |
 | UF2 bootloader binaries | `bootloaders/` | MIT (BootUF2, TinyUF2/TinyUSB lineage; see `bootloaders/README.md`) |
 | Bundled third-party libraries | `libraries/` (e.g. `Scheduler`, `EmbeddedCLI`, `libPrintf`, `minIniStorage`, `LittleFS`, `AUnit-1.7.1`) | Per-library terms — see each library's license file or file headers. Note `Scheduler` is GPL (INav/Cleanflight lineage); sketches that link it are subject to its terms. |
 | Board variants and target configuration headers | `variants/`, `targets/` | Part of the core (see file headers where present) |
