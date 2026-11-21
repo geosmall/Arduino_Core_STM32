@@ -159,12 +159,14 @@ static void initOC(TIM_TypeDef *timer, uint32_t ll_channel)
 // F4/F7: Fixed stream-peripheral mapping from reference manuals
 // Table: {timer, channel_index, DMA, stream, channel_select}
 //
-// F411 DMA streams shared with UART RX (claimed by uart.c via dma_set_handler):
-//   DMA1_Stream5 — USART2_RX (also TIM3_CH2, but DShot skips via claim check)
+// F411 DMA streams that UART RX DMA would share with timer requests:
+//   DMA1_Stream5 — USART2_RX (also TIM3_CH2, in table)
 //   DMA2_Stream1 — USART6_RX (also TIM1_CH1 alt, not in table)
 //   DMA2_Stream2 — USART1_RX (also TIM1_CH2 alt, not in table)
-// These streams are NOT excluded from the table. Instead, dma_is_claimed()
-// detects conflicts at init time and auto-upgrades to DMAR burst if needed.
+// uart.c is interrupt-driven and claims no DMA stream today. These streams
+// are NOT excluded from the table: if a future consumer reserves one with
+// dma_set_handler(), dma_is_claimed() detects the conflict at init time and
+// DShot auto-upgrades the motor's group to DMAR burst.
 // See initAllDMA() in DShotOutput.cpp for the resolve -> decide -> claim flow.
 struct DMAMapping {
   TIM_TypeDef *timer;

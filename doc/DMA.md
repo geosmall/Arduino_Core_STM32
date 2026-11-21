@@ -103,39 +103,73 @@ contention at runtime.
 
 ## F411 DMA stream map
 
-Hardware reference for STM32F411xC/E, replicated from RM0383
-Tables 27 / 28. The "DShot occupant" column shows the entries
-that this core's `dma_map[]` / `tim_up_map[]` claim today; a
-stream not listed here is free for future DMA consumers.
+Hardware reference for STM32F411xC/E, checked against RM0383
+Tables 27 / 28. The "DShot occupant" column lists every entry
+in this core's `dma_map[]` / `tim_up_map[]`
+(`libraries/DShot/src/DShot_ll.cpp`) that resolves to the
+stream, with its channel select in parentheses. A stream serves
+one request at a time, so entries sharing a stream are
+alternatives; which one is claimed depends on the board's motor
+timers. A stream not listed here is free for future DMA
+consumers.
 
 **DMA1 — channels 0–7, streams 0–7**
 
-| Stream | DShot occupant | Channel select |
-|---|---|---|
-| 0 | TIM4_CH1 | 2 |
-| 2 | TIM3_UP, TIM3_CH4 | 5 |
-| 3 | TIM4_CH2 | 2 |
-| 4 | TIM3_CH1 | 5 |
-| 5 | TIM3_CH2 | 5 |
-| 6 | TIM4_UP | 2 |
-| 7 | TIM3_CH3 *or* TIM4_CH3 | 5 / 2 |
+| Stream | DShot occupant (channel select) |
+|---|---|
+| 0 | TIM4_CH1 (2); TIM5_CH3, TIM5_UP (6) |
+| 1 | TIM5_CH4 (6) |
+| 2 | TIM3_CH4, TIM3_UP (5); TIM5_CH1 (6) |
+| 3 | TIM4_CH2 (2) |
+| 4 | TIM3_CH1 (5); TIM5_CH2 (6) |
+| 5 | TIM3_CH2 (5) |
+| 6 | TIM4_UP (2) |
+| 7 | TIM2_UP (3); TIM4_CH3 (2); TIM3_CH3 (5) |
 
 **DMA2 — channels 0–7, streams 0–7**
 
-| Stream | DShot occupant | Channel select |
-|---|---|---|
-| 1 | TIM1_CH1 | 6 |
-| 2 | TIM1_CH2 | 6 |
-| 4 | TIM1_CH4 | 6 |
-| 5 | TIM1_UP | 6 |
-| 6 | TIM1_CH3 | 6 |
+| Stream | DShot occupant (channel select) |
+|---|---|
+| 4 | TIM1_CH4 (6) |
+| 5 | TIM1_UP (6) |
+| 6 | TIM1_CH1, TIM1_CH2 (0); TIM1_CH3 (6) |
 
 Note that TIM1 CH1/CH2/CH3 all resolve to DMA2 Stream 6 in the
-per-channel `dma_map[]` — this is a silicon constraint, not a
-choice. A 3-motor TIM1 group on F411 needs DMAR burst to avoid
-stream contention. F722 has the same TIM1 layout. See
-[`DSHOT.md`](DSHOT.md) "Burst trigger rules" for how this is
-handled.
+per-channel `dma_map[]`. TIM1_CH3 has no other stream, and the
+alternatives for CH1 (stream 1 or 3, channel 6) and CH2
+(stream 2, channel 6) are not in the table: streams 1 and 2 also
+carry USART6_RX and USART1_RX. A multi-motor TIM1 group on F411
+needs DMAR burst to avoid stream contention. F722 has the same
+TIM1 layout. See [`DSHOT.md`](DSHOT.md) "Burst trigger rules"
+for how this is handled.
+
+## F405 DMA stream map
+
+Hardware reference for STM32F405/407, checked against RM0090
+Tables 43 / 44. The tables are built from the same `dma_map[]` /
+`tim_up_map[]` and use the same conventions as the F411 map
+above.
+
+**DMA1** is identical to the F411 DMA1 table: for TIM2–TIM5,
+RM0090 and RM0383 map these requests to the same streams and
+channels.
+
+**DMA2** adds TIM8, which the F411 lacks:
+
+| Stream | DShot occupant (channel select) |
+|---|---|
+| 1 | TIM8_UP (7) |
+| 2 | TIM8_CH1 (7) |
+| 3 | TIM8_CH2 (7) |
+| 4 | TIM1_CH4 (6); TIM8_CH3 (7) |
+| 5 | TIM1_UP (6) |
+| 6 | TIM1_CH1, TIM1_CH2 (0); TIM1_CH3 (6) |
+| 7 | TIM8_CH4 (7) |
+
+On F405, DMA2 streams 1 and 2 also carry USART6_RX and
+USART1_RX. They are TIM8_UP and TIM8_CH1 in the table, so a
+future UART RX DMA consumer on either stream conflicts with
+TIM8 motors.
 
 For F722, G4, H7 stream maps consult RM0431 (F722) Tables 26 /
 27, RM0440 (G4) and RM0433 (H7) DMAMUX request tables. With
