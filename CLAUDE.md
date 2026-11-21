@@ -159,12 +159,17 @@ BoardConfig::rc_receiver.baud_rate
 ```
 
 ### Available Targets
+Every target header is hand-maintained. Some were seeded from the Betaflight converter's
+output (`extras/betaflight_converter/output/`) and still carry its "Auto-generated" banner;
+the banner records the seed only. Edit `targets/*.h` directly and never regenerate over one.
+Fix the converter as well when the error is in what it emits.
+
 - `NUCLEO_F411RE_HIL001.h` - Nucleo F411RE with SPI flash
 - `BLACKPILL_F411CE.h` - BlackPill F411CE
 - `BKMN-NERO.h` - NERO F7 flight controller
 - `BEFH-BETAFPVG473.h` - BetaFPV G473 flight controller
 - `BEFH-BETAFPVF405.h` - BetaFPV F405 AIO flight controller (Pavo Pico II)
-- `BEFH-BETAFPVF405_MICRO.h` - BetaFPV F405 AIO, micro tailsitter wiring (T6/R6 pads as TIM8 servo outputs; maintained by hand)
+- `BEFH-BETAFPVF405_MICRO.h` - BetaFPV F405 AIO, micro tailsitter wiring (T6/R6 pads as TIM8 servo outputs; written by hand, not seeded from the converter)
 - `MTKS-MATEKH743.h` - MATEK H743-WLITE
 - `MTKS-MATEKF405TE_SD.h` - MATEK F405-WMO (F405-TE family, SD card variant)
 
