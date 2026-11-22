@@ -46,8 +46,14 @@
  *  - TAG8_4S16 carries 16-bit residuals and NEG_14BIT 14-bit values; larger
  *    values are truncated, as in Betaflight.
  *
- * Static allocation only: history is three rows of int32 per field, owned by
- * BlackboxBBLStatic<N> or passed in.
+ * Cost. The constructor turns the table into a plan: per frame type, a list
+ * of steps (one encoding over a run of fields) and per field a predictor
+ * kind with constant predictors resolved, so a frame is a walk of the steps.
+ * A buffer that holds maxMainFrameBytes() is written without a per-byte
+ * bound check.
+ *
+ * Static allocation only: history (three rows of int32 per field) and the
+ * plan are owned by BlackboxBBLStatic<N> or passed in.
  */
 
 #include <stddef.h>
@@ -122,9 +128,11 @@ public:
   void putInt(int32_t v);
   const uint8_t *data() const { return _data; }
   size_t size() const { return _len; }
+  size_t capacity() const { return _cap; }
   bool overflow() const { return _overflow; }
 
 private:
+  friend class Encoder;
   uint8_t *_data;
   size_t _cap;
   size_t _len = 0;
@@ -135,20 +143,41 @@ private:
 void headerLine(Buffer &out, const char *name, const char *value);
 void headerLineInt(Buffer &out, const char *name, int32_t value);
 
+// The value encodings, as Betaflight's blackbox_encoding.h exports them, for
+// a caller that writes a frame by hand. Tag2_3S32 takes 3 values, Tag8_4S16
+// 4, Tag8_8SVB 1..8.
+void writeUnsignedVB(Buffer &out, uint32_t value);
+void writeSignedVB(Buffer &out, int32_t value);
+void writeTag2_3S32(Buffer &out, const int32_t *values);
+void writeTag8_4S16(Buffer &out, const int32_t *values);
+void writeTag8_8SVB(Buffer &out, const int32_t *values, int count);
+
 class Encoder {
 public:
   static constexpr uint8_t MAX_FIELDS = 126;  // decoder limit 128, minus loopIteration and time
 
-  // history: 3 * (n + 2) int32 values. slow may be null with ns == 0.
-  Encoder(const MainField *fields, uint8_t n, int32_t *history,
-          const SlowField *slow = nullptr, uint8_t ns = 0);
+  // One encoding over a run of fields, as the decoder reads them.
+  struct Step {
+    uint8_t first;
+    uint8_t count;
+    uint8_t enc;
+    uint8_t reserved;
+  };
+
+  // Storage, each sized for w = n + 2 (the table plus loopIteration and
+  // time): history 3 * w int32; steps 2 * w; pred_const 2 * w int32;
+  // pred_kind 2 * w bytes. BlackboxBBLStatic<N> owns all of it. slow may be
+  // null with ns == 0.
+  Encoder(const MainField *fields, uint8_t n, int32_t *history, Step *steps,
+          int32_t *pred_const, uint8_t *pred_kind, const SlowField *slow = nullptr,
+          uint8_t ns = 0);
 
   // Table check against the rules in the file comment. Encoding with an
   // invalid table writes nothing.
   bool valid() const { return _valid; }
 
   void setIInterval(uint16_t frames) { _i_interval = frames ? frames : 1; }
-  void setConstants(const Constants &c) { _k = c; }
+  void setConstants(const Constants &c);
 
   // Header: headerLineCount() lines, each written by headerLine(k, out);
   // write them in order, then any caller lines (firmware type, looptime ...)
@@ -161,7 +190,8 @@ public:
 
   // Encodes one main frame of n values (in table order) into out, which is
   // cleared first. Returns false if the table is invalid or out overflowed.
-  // Follow with commit() or drop().
+  // Follow with commit() or drop(). A buffer of maxMainFrameBytes() or more
+  // is written without a per-byte bound check; a smaller one is checked.
   bool mainFrame(uint32_t time_us, const int32_t *values, Buffer &out);
   void commit();
   void drop();
@@ -180,15 +210,34 @@ public:
   uint32_t iteration() const { return _iteration; }
 
 private:
+  enum : uint8_t {
+    KIND_CONST = 0,        // prediction is pred_const[f]
+    KIND_MOTOR0,
+    KIND_PREVIOUS,
+    KIND_STRAIGHT_LINE,
+    KIND_AVERAGE_2,
+  };
+
   bool checkTable() const;
-  int32_t predict(uint8_t f, Predictor p, const int32_t *cur, bool intra) const;
-  void encodeRow(const int32_t *cur, bool intra, Buffer &out) const;
+  void buildPlan();
+  void fieldCoding(uint8_t i, bool intra, Predictor *p, Encoding *e) const;
+  void resolveConstants();
+  size_t planMaxBytes() const;
+  int32_t constPrediction(Predictor p) const;
+  template <class Out>
+  void encodeRow(const int32_t *cur, bool intra, Out &out) const;
   int32_t *row(uint8_t slot) const { return _hist + uint32_t(slot) * _width; }
 
   const MainField *_fields;
   uint8_t _n;
   uint8_t _width;          // n + 2
   int32_t *_hist;
+  Step *_steps;            // I frame steps at [0], P frame steps at [_width]
+  int32_t *_pred_const;    // same split
+  uint8_t *_pred_kind;     // same split
+  uint8_t _nsteps_i = 0;
+  uint8_t _nsteps_p = 0;
+  size_t _max_frame = 0;
   const SlowField *_slow;
   uint8_t _ns;
   Constants _k;
@@ -210,10 +259,13 @@ class BlackboxBBLStatic : public Encoder {
 public:
   explicit BlackboxBBLStatic(const MainField *fields, const SlowField *slow = nullptr,
                              uint8_t ns = 0)
-    : Encoder(fields, N, &_h[0][0], slow, ns) {}
+    : Encoder(fields, N, &_h[0][0], _steps_mem, _const_mem, _kind_mem, slow, ns) {}
 
 private:
   int32_t _h[3][N + 2];
+  Step _steps_mem[2 * (N + 2)];
+  int32_t _const_mem[2 * (N + 2)];
+  uint8_t _kind_mem[2 * (N + 2)];
 };
 
 }  // namespace bbl
