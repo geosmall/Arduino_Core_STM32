@@ -129,6 +129,7 @@ Board-specific configurations are defined through the variant system, allowing t
 - `LittleFS` - SPI flash filesystem with wear leveling
 - `SDBlock` - SD card block device with bounded, poll-driven write steps (polled SPI)
 - `SDFS` - SD card filesystem (FatFs) over an SDBlock card
+- `SDLog` - SD card log writer: contiguous FAT log files written in flight as bounded raw block streams
 - `Storage` - Generic storage abstraction for LittleFS and SDFS
 - `minIniStorage` - INI configuration management with automatic storage backend selection
 - `imu` - High-level C++ IMU wrapper with chip detection, multi-instance support, and 9-DOF magnetometer support
