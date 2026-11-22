@@ -34,6 +34,16 @@
  *    flight-mode event it loses main frames up to the next I frame, as it
  *    does on Betaflight's own logs.
  *
+ * Caller header lines. Write them after the encoder's own lines, Firmware
+ * type and Firmware revision first. Blackbox Explorer (blackbox-log-viewer,
+ * flightlog_parser.js) also reads "gyro_scale" (a float as hex bits, e.g.
+ * "0x3f800000" for gyroADC in deg/s): without it the viewer scales gyroADC
+ * by a placeholder default and shows nonsense, though blackbox_decode is
+ * unaffected. It applies the scale only if the firmware type is already
+ * known, so write it after the firmware lines. "Firmware revision" text
+ * matching e.g. "Betaflight 4.5.0" or "INAV 8.0.1" selects that firmware's
+ * field handling in the viewer; other text is treated as legacy (0.0.0).
+ *
  * Table rules, checked by valid():
  *  - Grouped encodings take whole groups, exactly as the decoder reads them:
  *    TAG8_4S16 four consecutive fields, TAG2_3S32 three; TAG8_8SVB groups up
