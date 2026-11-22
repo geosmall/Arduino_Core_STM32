@@ -93,6 +93,9 @@ public:
   // The last command sent and its R1 (0xFF: none), for diagnosing a failure.
   uint8_t lastCommand() const { return _last_cmd; }
   uint8_t lastR1() const { return _last_r1; }
+  // CMD0 attempts the last begin() made (1-4; the third is preceded by a
+  // block's worth of 0xFF and a stop token).
+  uint8_t beginAttempts() const { return _begin_attempts; }
 
   // --- Waiting calls (disarmed) --------------------------------------------
 
@@ -167,6 +170,7 @@ private:
   uint32_t _clock_hz = 0;
   uint8_t _last_cmd = 0;
   uint8_t _last_r1 = 0xFF;
+  uint8_t _begin_attempts = 0;
 
   State _state = State::Idle;
   bool _submitted = false;

@@ -299,6 +299,7 @@ SDBlockSPI::Result SDBlockSPI::begin(uint32_t clock_hz)
   _blocks = 0;
   _blocks_written = 0;
   _busy_max_us = 0;
+  _begin_attempts = 0;
 
   // Chip select high before the pin becomes an output (the port clock first:
   // a write to an unclocked port is lost). See SPIFlash::begin().
@@ -334,6 +335,7 @@ SDBlockSPI::Result SDBlockSPI::begin(uint32_t clock_hz)
     }
     const uint8_t r = command(0, 0);
     deselect();
+    _begin_attempts = uint8_t(attempt + 1);
     if (r == R1_IDLE) {
       break;
     }
