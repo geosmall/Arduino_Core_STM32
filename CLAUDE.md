@@ -127,7 +127,8 @@ Board-specific configurations are defined through the variant system, allowing t
 - `STM32RTC` - Real-time clock functionality
 - `SerialRx` - RC receiver protocol parser (IBus, SBUS) with BoardConfig integration
 - `LittleFS` - SPI flash filesystem with wear leveling
-- `SDFS` - SD card filesystem via SPI with FatFs backend
+- `SDBlock` - SD card block device with bounded, poll-driven write steps (polled SPI)
+- `SDFS` - SD card filesystem (FatFs) over an SDBlock card
 - `Storage` - Generic storage abstraction for LittleFS and SDFS
 - `minIniStorage` - INI configuration management with automatic storage backend selection
 - `imu` - High-level C++ IMU wrapper with chip detection, multi-instance support, and 9-DOF magnetometer support
@@ -185,11 +186,14 @@ fs.begin(CS_PIN);
 File f = fs.open("/data.txt", FILE_WRITE);
 ```
 
-**SDFS**: SD card filesystem via SPI
+**SDFS**: SD card filesystem (FatFs) over an `SDBlockSPI` card
 ```cpp
 #include <SDFS.h>
-SDFS_SPI sdfs;
-sdfs.begin(CS_PIN);
+static SDBlockSPI card(BoardConfig::storage.instance, BoardConfig::storage.mosi_pin,
+                       BoardConfig::storage.miso_pin, BoardConfig::storage.sclk_pin,
+                       BoardConfig::storage.cs_pin);
+static SDFS_SPI sdfs;
+sdfs.begin(card, BoardConfig::storage.freq_hz);
 File f = sdfs.open("/log.txt", FILE_WRITE);
 ```
 

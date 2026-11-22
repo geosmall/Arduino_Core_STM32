@@ -1,6 +1,6 @@
 #include "SDFS.h"
 #include "SDFSConfig.h"
-#include "sd_spi_diskio.h"
+#include "sdfs_diskio.h"
 #include <string.h>
 
 
@@ -157,7 +157,7 @@ bool SDFSFile::isDirectory()
     return dir != nullptr;
 }
 
-File SDFSFile::openNextFile(uint8_t mode)
+File SDFSFile::openNextFile(uint8_t /*mode*/)
 {
     if (!dir) return File();
     
@@ -229,13 +229,13 @@ bool SDFSFile::getModifyTime(DateTimeFields &tm)
     return true;
 }
 
-bool SDFSFile::setCreateTime(const DateTimeFields &tm)
+bool SDFSFile::setCreateTime(const DateTimeFields & /*tm*/)
 {
     // FatFs doesn't support setting creation time
     return false;
 }
 
-bool SDFSFile::setModifyTime(const DateTimeFields &tm)
+bool SDFSFile::setModifyTime(const DateTimeFields & /*tm*/)
 {
     // FatFs doesn't support setting modify time after file creation
     return false;
@@ -423,19 +423,26 @@ uint64_t SDFS::totalSize()
 
 bool SDFS::format()
 {
-    if (!configured) return false;
-    
+    static uint8_t work_area[512];
+    return format(work_area, sizeof(work_area));
+}
+
+bool SDFS::format(void *work, uint32_t work_len, uint8_t fmt)
+{
+    if (!configured || work == nullptr || work_len < 512) return false;
+
     unmountFilesystem();
-    
-    // Format the drive
-    static uint8_t work_area[512]; // Work area buffer
-    MKFS_PARM opt = {FM_ANY, 0, 0, 0, 0}; // Format options
-    FRESULT fr = f_mkfs(drive_path, &opt, work_area, sizeof(work_area));
+
+    // One MBR partition, two FATs (as PC formatters write them), the data
+    // area aligned to the card's erase block (disk_ioctl GET_BLOCK_SIZE).
+    // FatFs writes the FAT work_len bytes at a time, so a larger buffer
+    // formats a large card faster.
+    MKFS_PARM opt = {fmt, 2, 0, 0, 0};
+    FRESULT fr = f_mkfs(drive_path, &opt, work, work_len);
     if (fr != FR_OK) {
         return false;
     }
-    
-    // Remount after format
+
     return (mountFilesystem() == FR_OK);
 }
 
@@ -512,7 +519,7 @@ const char* SDFS::fresultToString(FRESULT fr)
 // SDFS_SPI Implementation  
 // ============================================================================
 
-bool SDFS_SPI::begin(Pin cspin, SPIClass &spiport)
+bool SDFS_SPI::begin(SDBlockSPI &card, uint32_t clock_hz)
 {
     // Guard rail: Prevent multiple begin() calls
     if (mounted) {
@@ -520,21 +527,14 @@ bool SDFS_SPI::begin(Pin cspin, SPIClass &spiport)
         return true; // Already successfully mounted
     }
 
-    pin = cspin;
-    port = &spiport;
-
-    // Initialize custom SPI disk I/O
-    if (!initializeSDCard()) {
+    if (!card.ready() && card.begin(clock_hz) != SDBlockSPI::Result::Ok) {
         last_error = SDFS_CARD_INIT_FAILED;
-        #ifdef DEBUG
-        Serial.printf("SDFS Error: %s\n", errorToString(last_error));
-        #endif
         return false;
     }
-
+    _card = &card;
+    sdfs_diskio_attach(&card);
     configured = true;
 
-    // Attempt to mount the filesystem
     FRESULT fr = mountFilesystem();
     if (fr != FR_OK) {
         last_error = SDFS_MOUNT_FAILED;
@@ -551,21 +551,4 @@ bool SDFS_SPI::begin(Pin cspin, SPIClass &spiport)
 const char* SDFS_SPI::getMediaName()
 {
     return "SD Card (SPI)";
-}
-
-void SDFS_SPI::setSPISpeed(uint32_t speed_hz)
-{
-    sd_spi_set_speed(speed_hz);
-}
-
-uint32_t SDFS_SPI::getSPISpeed()
-{
-    return sd_spi_get_speed();
-}
-
-bool SDFS_SPI::initializeSDCard()
-{
-    // Initialize the SPI SD card interface
-    // This will be implemented in the custom disk I/O file
-    return sd_spi_initialize(pin, port);
 }

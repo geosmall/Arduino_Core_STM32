@@ -12,14 +12,14 @@ target_include_directories(SDFS_usage INTERFACE
 
 target_link_libraries(SDFS_usage INTERFACE
   base_config
-  SPI
+  SDBlock
 )
 
 target_link_libraries(SDFS INTERFACE SDFS_usage)
 
 add_library(SDFS_bin OBJECT EXCLUDE_FROM_ALL
   src/SDFS.cpp
-  src/sd_spi_diskio.cpp
+  src/sdfs_diskio.cpp
   src/fatfs/ff.c
 )
 target_link_libraries(SDFS_bin PUBLIC SDFS_usage)

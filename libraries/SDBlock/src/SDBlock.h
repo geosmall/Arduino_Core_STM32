@@ -9,7 +9,8 @@
  *
  * TWO KINDS OF CALL.
  * - Waiting calls, for use while disarmed: begin(), readBlocks(),
- *   writeBlocks(), sync(). Each wait is bounded by a timeout.
+ *   writeBlocks(), sync(). Each wait is bounded by a timeout, and each
+ *   block read or written calls yield() (a sketch may feed a watchdog there).
  * - Stream calls, for use in flight: streamOpen(), submit(), step(),
  *   streamClose(). None of them waits on the card. Each makes bounded
  *   progress and returns Busy when the card holds busy.
@@ -84,6 +85,8 @@ public:
 
   bool ready() const { return _ready; }
   uint32_t blockCount() const { return _blocks; }
+  // Allocation unit from the SD status (ACMD13), in blocks; 0 if not read.
+  uint32_t auBlocks() const { return _au_blocks; }
   uint32_t clockHz() const { return _clock_hz; }
   uint32_t pieceBytes() const { return PIECE_BYTES; }
   Result fault() const { return _fault; }
@@ -96,7 +99,8 @@ public:
   // Reads n blocks from lba (CMD17 per block).
   Result readBlocks(uint32_t lba, uint8_t *dst, uint32_t n);
 
-  // Writes n blocks at lba (CMD24 per block), each followed by its busy wait.
+  // Writes n blocks at lba: CMD24 for one, ACMD23 + CMD25 for more; each
+  // block's busy waited out.
   Result writeBlocks(uint32_t lba, const uint8_t *src, uint32_t n);
 
   // Waits until the card is not busy, up to timeout_us.
@@ -159,6 +163,7 @@ private:
   bool _spi_fault = false;
   Result _fault = Result::Ok;
   uint32_t _blocks = 0;
+  uint32_t _au_blocks = 0;
   uint32_t _clock_hz = 0;
   uint8_t _last_cmd = 0;
   uint8_t _last_r1 = 0xFF;

@@ -26,17 +26,12 @@ extern "C" void putchar_(char c) {
 #include "targets/NUCLEO_F411RE_SDFS.h"
 #endif
 
-// Hardware configuration - BoardConfig integration
-#define CS_PIN BoardConfig::storage.cs_pin
-
-// Dedicated peripheral-aware SPI bus for the SD card. Naming the
-// instance avoids the silent first-match contention the legacy
-// SPI.setMOSI/setMISO/setSCLK path was vulnerable to on multi-mapping
-// pins. Passed to sdfs.begin() below.
-SPIClass spi_sd(BoardConfig::storage.instance,
+// The card: SDBlock on the board's storage SPI block and pins.
+SDBlockSPI card(BoardConfig::storage.instance,
                 BoardConfig::storage.mosi_pin,
                 BoardConfig::storage.miso_pin,
-                BoardConfig::storage.sclk_pin);
+                BoardConfig::storage.sclk_pin,
+                BoardConfig::storage.cs_pin);
 
 // Create SDFS instance
 SDFS_SPI sdfs;
@@ -50,9 +45,8 @@ void setup() {
   Serial.println("=========================");
   Serial.println("Mode: Arduino IDE (manual)");
 
-  // Initialize SDFS on the dedicated peripheral-aware SPI bus.
   Serial.print("Initializing SD card...");
-  if (sdfs.begin(CS_PIN, spi_sd)) {
+  if (sdfs.begin(card, BoardConfig::storage.freq_hz)) {
     Serial.println(" SUCCESS");
 
     // Display card information
@@ -83,7 +77,7 @@ void testFileOperations() {
   Serial.println("\nTesting file operations:");
 
   // Debug: Check if filesystem is mounted
-  bool mount_result = sdfs.begin(CS_PIN);
+  bool mount_result = sdfs.isMounted();
   printf_("Filesystem mounted: %s\n", mount_result ? "YES" : "NO");
 
   // Test direct root directory access after mount failure

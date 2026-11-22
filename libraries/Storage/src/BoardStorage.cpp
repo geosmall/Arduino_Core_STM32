@@ -1,5 +1,6 @@
 #include "BoardStorage.h"
 #include "targets/config/ConfigTypes.h"
+#include <SDBlock.h>
 
 // No board configuration auto-detection - configuration is passed from sketch
 
@@ -27,11 +28,25 @@ namespace BoardStorage {
         // Store the backend type
         currentBackend = config.backend_type;
 
-        // Create custom SPI instance with specific pins (like working LittleFS examples)
-        if (customSPI) {
-            delete customSPI;
+        if (config.backend_type == StorageBackend::SDFS) {
+            if (config.instance == nullptr) {
+                lastError = "StorageConfig for SDFS needs its SPI instance";
+                return false;
+            }
+            // Constructed on the first call; one card per program.
+            static SDBlockSPI card(config.instance, config.mosi_pin, config.miso_pin,
+                                   config.sclk_pin, config.cs_pin);
+            const bool ok = boardStorage.beginSD(card, config.freq_hz);
+            initialized = ok;
+            lastError = ok ? nullptr : boardStorage.getLastError();
+            return ok;
         }
-        customSPI = new SPIClass(config.mosi_pin, config.miso_pin, config.sclk_pin);
+
+        // SPI bus for the LittleFS backend, constructed on the first call. A
+        // config without an instance lets spi_init derive it from the pins.
+        static SPIClass spi(config.instance, config.mosi_pin, config.miso_pin,
+                            config.sclk_pin);
+        customSPI = &spi;
         customSPI->begin();
 
         // Initialize CS pin (like working LittleFS examples)
@@ -85,10 +100,7 @@ namespace BoardStorage {
 
     // Cleanup function (not exposed in header for simplicity)
     void cleanup() {
-        if (customSPI) {
-            delete customSPI;
-            customSPI = nullptr;
-        }
+        customSPI = nullptr;
         initialized = false;
         lastError = nullptr;
         currentBackend = StorageBackend::NONE;

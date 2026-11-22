@@ -399,6 +399,24 @@ SDBlockSPI::Result SDBlockSPI::begin(uint32_t clock_hz)
   }
   const uint32_t c_size = (uint32_t(csd[7] & 0x3F) << 16) | (uint32_t(csd[8]) << 8) | csd[9];
   _blocks = (c_size + 1) * 1024;
+
+  // ACMD13: SD status (R2, then 64 bytes). AU_SIZE (bits 431:428) gives the
+  // allocation unit; a card that does not answer leaves it unknown (0).
+  _au_blocks = 0;
+  if (waitReady(READY_TIMEOUT_US) && appCommand(13, 0) == 0) {
+    (void)xchg(0xFF);  // R2 second byte
+    uint8_t ssr[64];
+    if (readData(ssr, sizeof(ssr)) == Result::Ok) {
+      const uint8_t au = ssr[10] >> 4;
+      static const uint8_t AU_MB[6] = {8, 12, 16, 24, 32, 64};  // codes 0xA..0xF
+      if (au >= 1 && au <= 9) {
+        _au_blocks = 32u << (au - 1);  // 16 KB << (code - 1)
+      } else if (au >= 0xA) {
+        _au_blocks = uint32_t(AU_MB[au - 0xA]) * 2048u;
+      }
+    }
+  }
+  deselect();
   if (_spi_fault) {
     return Result::Timeout;
   }
@@ -433,6 +451,7 @@ SDBlockSPI::Result SDBlockSPI::readBlocks(uint32_t lba, uint8_t *dst, uint32_t n
     if (r != Result::Ok) {
       return r;
     }
+    yield();
   }
   return _spi_fault ? setFault(Result::Timeout) : Result::Ok;
 }
@@ -447,32 +466,48 @@ SDBlockSPI::Result SDBlockSPI::writeBlocks(uint32_t lba, const uint8_t *src, uin
     return Result::BadArgument;
   }
   static const uint8_t crc[2] = {0xFF, 0xFF};
-  for (uint32_t i = 0; i < n; i++) {
-    if (!waitReady(READY_TIMEOUT_US)) {
-      deselect();
-      return Result::Timeout;
-    }
-    _card_busy = false;
-    if (command(24, lba + i) != 0) {
-      deselect();
-      return Result::CommandError;
-    }
-    const uint8_t pre[2] = {0xFF, TOKEN_SINGLE};
+  if (!waitReady(READY_TIMEOUT_US)) {
+    deselect();
+    return Result::Timeout;
+  }
+  _card_busy = false;
+  // One block: CMD24. More: ACMD23 (pre-erase count) + CMD25, stop token.
+  const bool multi = n > 1;
+  uint8_t r1 = multi ? appCommand(23, n < ACMD23_MAX ? n : ACMD23_MAX) : 0;
+  if (r1 == 0) {
+    r1 = command(multi ? 25 : 24, lba);
+  }
+  if (r1 != 0) {
+    deselect();
+    return Result::CommandError;
+  }
+  r = Result::Ok;
+  for (uint32_t i = 0; i < n && r == Result::Ok; i++) {
+    const uint8_t pre[2] = {0xFF, multi ? TOKEN_MULTI : TOKEN_SINGLE};
     txOnly(pre, sizeof(pre));
     txOnly(src + i * BLOCK_SIZE, BLOCK_SIZE);
     txOnly(crc, sizeof(crc));
     const uint8_t resp = xchg(0xFF);
     if ((resp & 0x1F) != DATA_ACCEPTED) {
-      deselect();
-      return Result::WriteError;
+      r = Result::WriteError;
+    } else if (!waitReady(BUSY_TIMEOUT_US)) {
+      r = Result::Timeout;
     }
-    const bool done = waitReady(BUSY_TIMEOUT_US);
-    deselect();
-    if (!done) {
-      return Result::Timeout;
+    yield();
+  }
+  if (multi) {
+    const uint8_t stop = TOKEN_STOP;
+    txOnly(&stop, 1);
+    xchg(0xFF);  // one byte before the card signals busy
+    if (!waitReady(BUSY_TIMEOUT_US) && r == Result::Ok) {
+      r = Result::Timeout;
     }
   }
-  return _spi_fault ? setFault(Result::Timeout) : Result::Ok;
+  deselect();
+  if (_spi_fault) {
+    return setFault(Result::Timeout);
+  }
+  return r;
 }
 
 SDBlockSPI::Result SDBlockSPI::sync(uint32_t timeout_us)

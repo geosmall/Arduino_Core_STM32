@@ -7,8 +7,8 @@
 // Uses Arduino pin macros for compatibility with existing code
 namespace BoardConfig {
   // Storage: SD Card for SDFS (SPI module/breakout)
-  static constexpr StorageConfig storage{StorageBackend::SDFS, PC12, PC11, PC10, PD2, 1000000};
-  //                                     Backend        MOSI  MISO  SCLK  CS   Freq
+  static constexpr StorageConfig storage{StorageBackend::SDFS, PC12, PC11, PC10, PD2, 1000000, SPI3};
+  //                                     Backend        MOSI  MISO  SCLK  CS   Freq     Instance
 
   // IMU: Available SPI pins for sensors (if needed)
   // Chip alignment: CW0_DEG (bench breadboard, flat mount).

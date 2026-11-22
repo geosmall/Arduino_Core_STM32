@@ -1,7 +1,7 @@
 #pragma once
 #include <Arduino.h>
-#include <SPI.h>
 #include <FS.h>
+#include <SDBlock.h>
 #include "SDFSConfig.h"
 #include "fatfs/ff.h"
 
@@ -103,6 +103,9 @@ public:
 
     // Additional SDFS-specific methods for improved error handling
     bool isMounted() const { return mounted; }
+    // format() with the caller's work buffer (at least 512 B) and FatFs
+    // format bits (FM_FAT, FM_FAT32, FM_ANY).
+    bool format(void *work, uint32_t work_len, uint8_t fmt = FM_ANY);
     SDFSERR getLastError() const { return last_error; }
     const char* errorToString(SDFSERR err);
 
@@ -119,22 +122,21 @@ protected:
     const char* fresultToString(FRESULT fr);
 };
 
-// SPI-specific SD card implementation
+// SD card file system over an SDBlockSPI card. The card object is the
+// caller's (static allocation), so another SDBlock user, such as an SD log
+// writer, can share it; FatFs and that user must not run at the same time.
 class SDFS_SPI : public SDFS
 {
 public:
     constexpr SDFS_SPI() {}
-    
-    // Initialize with SPI settings - matches LittleFS_SPIFlash interface
-    bool begin(Pin cspin, SPIClass &spiport = SPI);
+
+    // Starts the card (if it has not completed begin()) at clock_hz, makes
+    // it FatFs drive 0 and mounts the volume.
+    bool begin(SDBlockSPI &card, uint32_t clock_hz = SDBlockSPI::MAX_CLOCK_HZ);
     const char* getMediaName();
-    
-    // SPI speed configuration (call before begin())
-    void setSPISpeed(uint32_t speed_hz);
-    uint32_t getSPISpeed();
+
+    SDBlockSPI *card() const { return _card; }
 
 private:
-    SPIClass *port = nullptr;
-    Pin pin;
-    bool initializeSDCard();
+    SDBlockSPI *_card = nullptr;
 };

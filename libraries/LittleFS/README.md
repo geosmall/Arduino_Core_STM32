@@ -300,22 +300,19 @@ Enable verbose debugging during development:
 
 ## Integration with SDFS
 
-LittleFS provides identical API compatibility with the SDFS library, enabling seamless switching between SPI flash and SD card storage:
+LittleFS and SDFS share the `FS.h` interface, so code past `begin()` is the
+same for both; only `begin()` differs. The `Storage` library hides that
+difference: `BoardStorage::begin(BoardConfig::storage)` starts whichever
+backend the board's `StorageConfig` names.
 
 ```cpp
-// Identical code works with both libraries
-#ifdef USE_LITTLEFS
-  #include <LittleFS.h>
-  LittleFS_SPIFlash storage;
-#else
-  #include <SDFS.h>
-  SDFS_SPI storage;
-#endif
+#include <BoardStorage.h>
+#include "targets/NUCLEO_F411RE_HIL001.h"  // the board's StorageConfig
 
 void setup() {
-  // Same initialization for both
-  storage.begin(CS_PIN, SPIbus);
-  File config = storage.open("/config.json", FILE_READ);
+  if (BoardStorage::begin(BoardConfig::storage)) {
+    File config = BOARD_STORAGE.open("/config.json", FILE_READ);
+  }
 }
 ```
 

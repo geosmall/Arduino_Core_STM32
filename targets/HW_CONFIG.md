@@ -104,14 +104,13 @@ namespace BoardConfig {
   };
 
   struct StorageConfig {
-    constexpr StorageConfig(StorageBackend backend, uint32_t mosi, uint32_t miso,
-                           uint32_t sclk, uint32_t cs, uint32_t frequency_hz = 1000000)
-      : backend_type(backend), mosi_pin(mosi), miso_pin(miso), sclk_pin(sclk),
-        cs_pin(cs), freq_hz(frequency_hz) {}
-
-    const StorageBackend backend_type;
-    const uint32_t mosi_pin, miso_pin, sclk_pin, cs_pin;
-    const uint32_t freq_hz;
+    StorageBackend backend_type;
+    Pin mosi_pin;
+    Pin miso_pin;
+    Pin sclk_pin;
+    Pin cs_pin;
+    uint32_t freq_hz = 1000000;
+    SPI_TypeDef* instance = nullptr;  // required for SDFS (SDBlock names the SPI block)
   };
 
   struct ADCConfig {
@@ -239,7 +238,7 @@ namespace BoardConfig {
 // NOXE V3 flight controller production configuration
 namespace BoardConfig {
   // Storage: High-speed SD card for data logging
-  static constexpr StorageConfig storage{StorageBackend::SDFS, PB15, PB14, PB13, PB12, 8000000};
+  static constexpr StorageConfig storage{StorageBackend::SDFS, PB15, PB14, PB13, PB12, 8000000, SPI2};
 
   // IMU: High-performance IMU for flight control
   static constexpr SPIConfig imu{PA7, PA6, PA5, PA4, 8000000, CS_Mode::SOFTWARE, SPI1};

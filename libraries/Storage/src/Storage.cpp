@@ -16,6 +16,24 @@
 // Global storage instance
 Storage storage;
 
+// The SDFS backend: one card and one FatFs volume per program.
+static SDFS_SPI s_sdfs;
+
+bool Storage::beginSD(SDBlockSPI &card, uint32_t clock_hz) {
+    if (initialized) {
+        cleanup();
+    }
+    currentBackend = StorageBackend::SDFS;
+    if (!s_sdfs.begin(card, clock_hz)) {
+        setError("SDFS initialization failed");
+        return false;
+    }
+    sdfs = &s_sdfs;
+    initialized = true;
+    lastError = nullptr;
+    return true;
+}
+
 Storage::Storage()
     : currentBackend(StorageBackend::LITTLEFS)
     , initialized(false)
@@ -54,17 +72,7 @@ bool Storage::begin(StorageBackend backend, Pin csPin, uint32_t spiSpeed, SPICla
             setError("Failed to allocate LittleFS instance");
         }
     } else if (backend == StorageBackend::SDFS) {
-        sdfs = new SDFS_SPI();
-        if (sdfs) {
-            success = sdfs->begin(csPin, spiPort);
-            if (!success) {
-                setError("SDFS initialization failed");
-                delete sdfs;
-                sdfs = nullptr;
-            }
-        } else {
-            setError("Failed to allocate SDFS instance");
-        }
+        setError("SDFS backend: use beginSD() or BoardStorage::begin(config)");
     } else {
         setError("Invalid storage backend");
     }
@@ -222,10 +230,7 @@ void Storage::cleanup() {
         delete littlefs;
         littlefs = nullptr;
     }
-    if (sdfs) {
-        delete sdfs;
-        sdfs = nullptr;
-    }
+    sdfs = nullptr;  // s_sdfs is static; its volume stays mounted
     initialized = false;
     lastError = nullptr;
 }
