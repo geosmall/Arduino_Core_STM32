@@ -710,8 +710,8 @@ void SDLog::service()
   }
   case State::DirFill: {
     // The end of the segment about to be written (Betaflight's "physical
-    // size"): a power cut keeps every block written, plus at most one
-    // segment of stale data at the end.
+    // size"): after a power cut the file covers every block the card kept,
+    // followed by stale data up to the segment's end.
     put32(_dir + _dir_off + DIR_FILESIZE, (_blocks + segLen()) * BLOCK);
     memcpy(_card->block(), _dir, BLOCK);
     const CR r = _card->submit();

@@ -42,12 +42,15 @@
  * counted.
  *
  * POWER CUT. The file's size on the card is the end of the segment being
- * written (as Betaflight's asyncfatfs records the allocated size), so a cut
- * keeps every block written, followed by at most one segment of stale data
- * (whatever the card held there): a decoder of the log must tolerate that
- * tail. begin() then cuts a log whose cluster chain is longer than its size
- * to that size, and deletes a file whose first block is zero (prepared and
- * never written).
+ * written (as Betaflight's asyncfatfs records the allocated size), so the
+ * file covers everything the card kept, followed by stale data up to the
+ * segment's end (whatever the card held there): a decoder of the log must
+ * tolerate that tail. The card keeps what it has committed to its flash; a
+ * card may hold blocks it accepted in a buffer until then, and a power cut
+ * loses them (one card measured: up to 32 KiB, kept up to the last 32 KiB
+ * boundary or the start of the stream being written). begin() then cuts a
+ * log whose cluster chain is longer than its size to that size, and deletes
+ * a file whose first block is zero (prepared and never written).
  *
  * AFTER DISARM. endLog(), then finish() (waiting): the ring drained, the last
  * block padded with zeros, the stream stopped, the file cut to the bytes
