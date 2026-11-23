@@ -512,12 +512,47 @@ void SDLog::fail(CR r)
   _state = State::Failed;
 }
 
+// Copies in 32-bit words when source, destination and length allow it: the
+// library memcpy (newlib-nano, built for size) copies byte by byte, ~15 us
+// for a block on an F405 at 168 MHz, inside service()'s budget.
+// The attribute keeps GCC from turning the word loop back into a memcpy call.
+__attribute__((optimize("no-tree-loop-distribute-patterns")))
+static void copyBytes(uint8_t *dst, const uint8_t *src, uint32_t n)
+{
+  if (((uintptr_t(dst) | uintptr_t(src) | n) & 3u) == 0) {
+    uint32_t *d = reinterpret_cast<uint32_t *>(dst);
+    const uint32_t *s = reinterpret_cast<const uint32_t *>(src);
+    uint32_t w = n / 4;
+    // Eight words per pass, so the compiler can use multi-register loads
+    // and stores (LDM/STM).
+    for (; w >= 8; w -= 8, s += 8, d += 8) {
+      const uint32_t a0 = s[0], a1 = s[1], a2 = s[2], a3 = s[3];
+      const uint32_t a4 = s[4], a5 = s[5], a6 = s[6], a7 = s[7];
+      d[0] = a0;
+      d[1] = a1;
+      d[2] = a2;
+      d[3] = a3;
+      d[4] = a4;
+      d[5] = a5;
+      d[6] = a6;
+      d[7] = a7;
+    }
+    while (w--) {
+      *d++ = *s++;
+    }
+  } else {
+    memcpy(dst, src, n);
+  }
+}
+
 // Copies n bytes (n <= BLOCK) from the ring and pads the block with zeros.
+// Whole blocks leave the ring, so with a 4-byte-aligned ring whose size is a
+// multiple of 4 the copies are word copies.
 void SDLog::fillBlock(uint8_t *dst, uint32_t n)
 {
   const uint32_t first = (n < _ring_size - _tail) ? n : _ring_size - _tail;
-  memcpy(dst, _ring + _tail, first);
-  memcpy(dst + first, _ring, n - first);
+  copyBytes(dst, _ring + _tail, first);
+  copyBytes(dst + first, _ring, n - first);
   if (n < BLOCK) {
     memset(dst + n, 0, BLOCK - n);
   }
@@ -533,57 +568,68 @@ uint32_t SDLog::segLen() const
   return seg < left ? seg : left;
 }
 
+// A call either sends one piece of the block in transfer, or (buffer free)
+// makes the card's busy check and fills the next block, whose first piece
+// goes on the next call: a piece and a block copy never share a call.
 void SDLog::streamStep()
 {
-  if (_card->blockFree()) {
-    if (_blocks == _seg_end) {
-      // The segment's last block is out (its data response read).
-      if (_blocks >= _reserved_blocks && (_count || _logging)) {
-        // Reservation used up: what is queued or still to come is lost.
-        _full = true;
-        _logging = false;
-        if (_count) {
-          _dropped++;
-        }
-        _head = _tail = _count = 0;
-      }
-      const CR r = _card->streamClose();
-      if (r != CR::Ok) {
-        fail(r);
-        return;
-      }
-      _switch_t0 = micros();
-      _state = (_count == 0 && !_logging) ? State::FinalClosing : State::SegClosing;
-      return;
+  if (!_card->blockFree()) {
+    const CR r = _card->step();
+    if (r != CR::Ok && r != CR::Busy) {
+      fail(r);
     }
-    uint32_t n = 0;
-    if (_count >= BLOCK) {
-      n = BLOCK;
-    } else if (_count > 0 && !_logging) {
-      n = _count;   // the last, partial block
-    } else if (_count == 0 && !_logging) {
-      const CR r = _card->streamClose();
-      if (r != CR::Ok) {
-        fail(r);
-        return;
-      }
-      _state = State::FinalClosing;
-      return;
-    }
-    if (n) {
-      fillBlock(_card->block(), n);
-      const CR r = _card->submit();
-      if (r != CR::Ok) {
-        fail(r);
-        return;
-      }
-      _blocks++;
-      _stored_bytes += n;
-    }
+    return;
   }
+  if (_blocks == _seg_end) {
+    // The segment's last block is out (its data response read).
+    if (_blocks >= _reserved_blocks && (_count || _logging)) {
+      // Reservation used up: what is queued or still to come is lost.
+      _full = true;
+      _logging = false;
+      if (_count) {
+        _dropped++;
+      }
+      _head = _tail = _count = 0;
+    }
+    const CR r = _card->streamClose();
+    if (r != CR::Ok) {
+      fail(r);
+      return;
+    }
+    _switch_t0 = micros();
+    _state = (_count == 0 && !_logging) ? State::FinalClosing : State::SegClosing;
+    return;
+  }
+  uint32_t n = 0;
+  if (_count >= BLOCK) {
+    n = BLOCK;
+  } else if (_count > 0 && !_logging) {
+    n = _count;   // the last, partial block
+  } else if (_count == 0 && !_logging) {
+    const CR r = _card->streamClose();
+    if (r != CR::Ok) {
+      fail(r);
+      return;
+    }
+    _state = State::FinalClosing;
+    return;
+  }
+  // The busy check left by the previous block (one byte); the copy needs no
+  // card, so it is made while the card may still be busy.
   const CR r = _card->step();
   if (r != CR::Ok && r != CR::Busy) {
     fail(r);
+    return;
+  }
+  if (n) {
+    fillBlock(_card->block(), n);
+    const CR rs = _card->submit();
+    if (rs != CR::Ok) {
+      fail(rs);
+      return;
+    }
+    _blocks++;
+    _stored_bytes += n;
   }
 }
 

@@ -30,10 +30,10 @@
  *
  * IN FLIGHT. startLog() only sets state; service() opens the stream. Call
  * service() once per frame, after the outputs. Each call makes one bounded
- * action: in the data phase, at most one 512 B copy from the ring into the
- * card's block buffer plus one SDBlockSPI::step() (a one-byte busy check,
- * then at most one 48 B piece); in a segment switch, one command phase or
- * one step(). Data is written in segments, each opened with ACMD23(count) +
+ * action: in the data phase, either one SDBlockSPI::step() that sends a 48 B
+ * piece of the block in transfer, or (block buffer free) the card's one-byte
+ * busy check and one 512 B copy from the ring into the card's block buffer;
+ * in a segment switch, one command phase or one step(). Data is written in segments, each opened with ACMD23(count) +
  * CMD25: first_segment_blocks, then segment_blocks each. At a segment's end
  * the stream is stopped; before each segment (the first included) the
  * cached directory sector is written as a one-block stream with the entry's
@@ -242,12 +242,13 @@ private:
   alignas(4) uint8_t _dir[BLOCK];   // cached directory sector (scratch while disarmed)
 };
 
-// SDLog with its ring as a member: static SDLogStatic<5632> sdlog;
+// SDLog with its ring as a member: static SDLogStatic<5632> sdlog; (a size that
+// is a multiple of 512 keeps each block's copy out of the ring in one piece).
 template <uint32_t N>
 class SDLogStatic : public SDLog {
 public:
   SDLogStatic() : SDLog(_buf, N) {}
 
 private:
-  uint8_t _buf[N];
+  alignas(4) uint8_t _buf[N];
 };

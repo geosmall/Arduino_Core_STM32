@@ -93,8 +93,8 @@ public:
   // The last command sent and its R1 (0xFF: none), for diagnosing a failure.
   uint8_t lastCommand() const { return _last_cmd; }
   uint8_t lastR1() const { return _last_r1; }
-  // CMD0 attempts the last begin() made (1-4; the third is preceded by a
-  // block's worth of 0xFF and a stop token).
+  // CMD0 attempts the last begin() made (1-7; the third is preceded by a
+  // block's worth of 0xFF and a stop token, the fourth to seventh by 1 ms).
   uint8_t beginAttempts() const { return _begin_attempts; }
 
   // --- Waiting calls (disarmed) --------------------------------------------

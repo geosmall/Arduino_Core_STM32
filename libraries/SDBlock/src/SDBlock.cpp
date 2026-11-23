@@ -27,6 +27,10 @@ constexpr uint32_t READY_TIMEOUT_US = 500000;      // before a command
 constexpr uint32_t READ_TOKEN_TIMEOUT_US = 300000;
 constexpr uint32_t INIT_TIMEOUT_MS = 1000;         // ACMD41 loop
 
+// begin(): CMD0 attempts in all, and the one preceded by the stream drain.
+constexpr int BEGIN_ATTEMPTS = 7;
+constexpr int DRAIN_ATTEMPT = 2;
+
 // ACMD23's block count field is 23 bits.
 constexpr uint32_t ACMD23_MAX = 0x7FFFFF;
 
@@ -316,9 +320,14 @@ SDBlockSPI::Result SDBlockSPI::begin(uint32_t clock_hz)
   // with the card powered) takes command bytes as block data. 514 bytes of
   // 0xFF end any block in progress (data and CRC); once its busy is over the
   // stop token closes the stream. The block in progress, inside the stream's
-  // range, is written with 0xFF.
-  for (int attempt = 0; attempt < 4; attempt++) {
-    if (attempt == 2 || (attempt == 0 && was_streaming)) {
+  // range, is written with 0xFF. After the drain some cards answer only a
+  // later CMD0 (a SanDisk SR64G reset with a block just received: the second
+  // one after the drain), so a few more are tried, 1 ms apart.
+  for (int attempt = 0; attempt < BEGIN_ATTEMPTS; attempt++) {
+    if (attempt > DRAIN_ATTEMPT) {
+      delay(1);
+    }
+    if (attempt == DRAIN_ATTEMPT || (attempt == 0 && was_streaming)) {
       select();
       for (uint32_t i = 0; i < BLOCK_SIZE + 2; i++) {
         xchg(0xFF);
@@ -339,7 +348,7 @@ SDBlockSPI::Result SDBlockSPI::begin(uint32_t clock_hz)
     if (r == R1_IDLE) {
       break;
     }
-    if (attempt == 3 || _spi_fault) {
+    if (attempt == BEGIN_ATTEMPTS - 1 || _spi_fault) {
       return _spi_fault ? Result::Timeout : Result::NoCard;
     }
   }
