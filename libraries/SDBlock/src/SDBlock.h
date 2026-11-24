@@ -34,6 +34,11 @@
  * partly sent or submitted and not sent; the caller pads its last block.
  * Waiting calls are refused (StreamOpen) while a stream is open.
  *
+ * CLOCK. A request up to MAX_CLOCK_HZ (25 MHz) stays in the card's default
+ * speed. A higher one asks the card for its high-speed mode (CMD6) in
+ * begin(), and runs at up to HIGH_SPEED_CLOCK_HZ if the card accepts; if it
+ * does not, the clock stays at 25 MHz or below (highSpeed() false).
+ *
  * The bus is assumed dedicated to the card (chip select stays low through a
  * stream). Static allocation only.
  *
@@ -53,11 +58,12 @@ public:
   static constexpr uint32_t PIECE_BYTES = 48;
   static constexpr uint32_t MIN_PIECE_BYTES = 8;
   static constexpr uint32_t INIT_CLOCK_HZ = 400000;
+  static constexpr uint32_t HIGH_SPEED_CLOCK_HZ = 50000000;
 
   SDBlockSPI(SPI_TypeDef *instance, Pin mosi, Pin miso, Pin sclk, Pin cs);
 
-  // Card initialisation at INIT_CLOCK_HZ, then the clock set to
-  // min(clock_hz, MAX_CLOCK_HZ) and the CSD read for the block count.
+  // Card initialisation at INIT_CLOCK_HZ, then the clock set (see CLOCK) and
+  // the CSD read for the block count.
   // Clears a fault. A card this object left inside a stream is first given
   // the rest of its block (0xFF) and the stop token, then reset by CMD0; the
   // same is tried for any card that does not answer CMD0.
@@ -68,6 +74,8 @@ public:
   // Allocation unit from the SD status (ACMD13), in blocks; 0 if not read.
   uint32_t auBlocks() const override { return _au_blocks; }
   uint32_t clockHz() const override { return _clock_hz; }
+  // The card is in high-speed mode (CMD6).
+  bool highSpeed() const { return _high_speed; }
   uint32_t pieceBytes() const { return _piece; }
   // Piece size, MIN_PIECE_BYTES to PIECE_BYTES: a smaller piece shortens
   // step() on a slow SPI clock and lowers the stream's rate (one piece per
@@ -136,6 +144,7 @@ private:
   bool readyNow();
   bool waitReady(uint32_t timeout_us);
   Result readData(uint8_t *dst, uint32_t n);
+  bool switchHighSpeed();
   Result checkUsable(bool allow_stream) const;
   Result setFault(Result r);
   Result pollBusy();
@@ -152,6 +161,7 @@ private:
   uint32_t _blocks = 0;
   uint32_t _au_blocks = 0;
   uint32_t _clock_hz = 0;
+  bool _high_speed = false;
   uint8_t _last_cmd = 0;
   uint8_t _last_r1 = 0xFF;
   uint8_t _begin_attempts = 0;

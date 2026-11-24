@@ -20,7 +20,7 @@
 // Gyro: ICM20602
 namespace BoardConfig {
   // Storage: SD card on SPI3
-  static constexpr StorageConfig storage{StorageBackend::SDFS, PC12, PC11, PC10, PA15, 8000000, SPI3};
+  static constexpr StorageConfig storage{StorageBackend::SDFS, PC12, PC11, PC10, PA15, 27000000, SPI3};  // above 25 MHz: high-speed mode (CMD6)
 
   // IMU: ICM20602 on SPI1
   // Chip alignment: CW0_DEG (NERO bf_config doesn't declare

@@ -302,6 +302,7 @@ SDBlockSPI::Result SDBlockSPI::begin(uint32_t clock_hz)
   _blocks_written = 0;
   _busy_max_us = 0;
   _begin_attempts = 0;
+  _high_speed = false;
 
   // Chip select high before the pin becomes an output (the port clock first:
   // a write to an unclocked port is lost). See SPIFlash::begin().
@@ -429,8 +430,48 @@ SDBlockSPI::Result SDBlockSPI::begin(uint32_t clock_hz)
   if (_spi_fault) {
     return Result::Timeout;
   }
+  if (clock_hz > MAX_CLOCK_HZ && switchHighSpeed()) {
+    _high_speed = true;
+    setClock(clock_hz < HIGH_SPEED_CLOCK_HZ ? clock_hz : HIGH_SPEED_CLOCK_HZ);
+    if (_clock_hz > HIGH_SPEED_CLOCK_HZ) {
+      return Result::BadArgument;
+    }
+  }
+  if (_spi_fault) {
+    return Result::Timeout;
+  }
   _ready = true;
   return Result::Ok;
+}
+
+// CMD6, function group 1 (access mode) to function 1 (high speed), the other
+// groups unchanged: asked first (mode 0), then switched (mode 1). The card
+// answers with a 64-byte status block; bits 379:376 (low half of byte 16) are
+// the function it will use, or used. A card without CMD6 rejects the command.
+bool SDBlockSPI::switchHighSpeed()
+{
+  static const uint32_t ARGS[2] = {0x00FFFFF1u, 0x80FFFFF1u};
+  for (uint32_t arg : ARGS) {
+    if (!waitReady(READY_TIMEOUT_US)) {
+      deselect();
+      return false;
+    }
+    if (command(6, arg) != 0) {
+      deselect();
+      return false;
+    }
+    uint8_t st[64];
+    const Result r = readData(st, sizeof(st));
+    deselect();
+    if (r != Result::Ok || (st[16] & 0x0F) != 1) {
+      return false;
+    }
+  }
+  // The new mode holds 8 clocks after the status block.
+  for (int i = 0; i < 2; i++) {
+    xchg(0xFF);
+  }
+  return !_spi_fault;
 }
 
 // ---------------------------------------------------------------------------
