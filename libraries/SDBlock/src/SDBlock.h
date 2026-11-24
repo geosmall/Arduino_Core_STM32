@@ -16,8 +16,8 @@
  * submit(). Each step() makes one write step:
  *   1. if the card was left busy, a one-byte busy check; still busy: Busy;
  *   2. otherwise, if a block is submitted, at most one piece of it
- *      (pieceBytes() bytes, 48 on this back end; the last piece of a block
- *      is shorter). A block's first piece carries the start token, its last
+ *      (pieceBytes() bytes, 48 unless setPieceBytes() changed it; the last
+ *      piece of a block is shorter). A block's first piece carries the start token, its last
  *      the CRC and the data response read, after which the card is busy and
  *      the buffer is free for the next block;
  *   3. otherwise, if streamClose() was called, the stop token; the card is
@@ -51,6 +51,7 @@
 class SDBlockSPI final : public SDBlockDevice {
 public:
   static constexpr uint32_t PIECE_BYTES = 48;
+  static constexpr uint32_t MIN_PIECE_BYTES = 8;
   static constexpr uint32_t INIT_CLOCK_HZ = 400000;
 
   SDBlockSPI(SPI_TypeDef *instance, Pin mosi, Pin miso, Pin sclk, Pin cs);
@@ -67,7 +68,11 @@ public:
   // Allocation unit from the SD status (ACMD13), in blocks; 0 if not read.
   uint32_t auBlocks() const override { return _au_blocks; }
   uint32_t clockHz() const override { return _clock_hz; }
-  uint32_t pieceBytes() const { return PIECE_BYTES; }
+  uint32_t pieceBytes() const { return _piece; }
+  // Piece size, MIN_PIECE_BYTES to PIECE_BYTES: a smaller piece shortens
+  // step() on a slow SPI clock and lowers the stream's rate (one piece per
+  // step()). BadState in a stream, BadArgument out of range.
+  Result setPieceBytes(uint32_t bytes);
   Result fault() const override { return _fault; }
   // The last command sent and its R1 (0xFF: none), for diagnosing a failure.
   uint8_t lastCommand() const { return _last_cmd; }
@@ -156,6 +161,7 @@ private:
   bool _card_busy = false;
   bool _in_stream = false;      // the card may be inside CMD25 (survives a fault)
   uint32_t _busy_t0 = 0;
+  uint32_t _piece = PIECE_BYTES;
   uint32_t _off = 0;            // bytes of the submitted block sent
   uint32_t _blocks_written = 0;
   uint32_t _busy_max_us = 0;

@@ -540,6 +540,18 @@ SDBlockSPI::Result SDBlockSPI::sync(uint32_t timeout_us)
 // ---------------------------------------------------------------------------
 // Stream calls
 
+SDBlockSPI::Result SDBlockSPI::setPieceBytes(uint32_t bytes)
+{
+  if (bytes < MIN_PIECE_BYTES || bytes > PIECE_BYTES) {
+    return Result::BadArgument;
+  }
+  if (_state != State::Idle) {
+    return Result::BadState;
+  }
+  _piece = bytes;
+  return Result::Ok;
+}
+
 SDBlockSPI::Result SDBlockSPI::streamOpen(uint32_t lba, uint32_t count)
 {
   Result r = checkUsable(false);
@@ -623,7 +635,7 @@ SDBlockSPI::Result SDBlockSPI::step()
       const uint8_t token = TOKEN_MULTI;
       txOnly(&token, 1);
     }
-    const uint32_t n = (BLOCK_SIZE - _off < PIECE_BYTES) ? BLOCK_SIZE - _off : PIECE_BYTES;
+    const uint32_t n = (BLOCK_SIZE - _off < _piece) ? BLOCK_SIZE - _off : _piece;
     txOnly(_buf + _off, n);
     _off += n;
     if (_off == BLOCK_SIZE) {
