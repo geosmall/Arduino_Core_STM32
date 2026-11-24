@@ -122,21 +122,25 @@ protected:
     const char* fresultToString(FRESULT fr);
 };
 
-// SD card file system over an SDBlockSPI card. The card object is the
-// caller's (static allocation), so another SDBlock user, such as an SD log
-// writer, can share it; FatFs and that user must not run at the same time.
-class SDFS_SPI : public SDFS
+// SD card file system over an SDBlock card (SPI or SDMMC back end). The card
+// object is the caller's (static allocation), so another SDBlock user, such
+// as an SD log writer, can share it; FatFs and that user must not run at the
+// same time.
+class SDFS_Card : public SDFS
 {
 public:
-    constexpr SDFS_SPI() {}
+    constexpr SDFS_Card() {}
 
     // Starts the card (if it has not completed begin()) at clock_hz, makes
     // it FatFs drive 0 and mounts the volume.
-    bool begin(SDBlockSPI &card, uint32_t clock_hz = SDBlockSPI::MAX_CLOCK_HZ);
+    bool begin(SDBlockDevice &card, uint32_t clock_hz = SDBlockDevice::MAX_CLOCK_HZ);
     const char* getMediaName();
 
-    SDBlockSPI *card() const { return _card; }
+    SDBlockDevice *card() const { return _card; }
 
 private:
-    SDBlockSPI *_card = nullptr;
+    SDBlockDevice *_card = nullptr;
 };
+
+// The class's earlier name.
+using SDFS_SPI = SDFS_Card;

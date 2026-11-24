@@ -120,7 +120,7 @@ class BoardConfigGenerator:
         sdcard_cs = self.bf_config.get_resources('SDCARD_CS')
 
         if not flash_cs and not sdcard_cs:
-            return None
+            return self._generate_sdio_storage()
 
         # Get SPI bus for storage
         blackbox_device = self.bf_config.settings.get('blackbox_device')
@@ -158,6 +158,35 @@ class BoardConfigGenerator:
         lines = [
             f"  // Storage: {comment} on {spi_bus.bus_name}",
             f"  static constexpr StorageConfig storage{{{backend}, {spi_bus.mosi}, {spi_bus.miso}, {spi_bus.sclk}, {cs_pin}, 8000000, {spi_bus.bus_name}}};",
+            ""
+        ]
+
+        return "\n".join(lines)
+
+    # SDMMC1 pins supported by StorageBackend::SDFS_SDMMC (fixed in the library)
+    SDMMC1_PINS = {'CK': 'PC12', 'CMD': 'PD2', 'D0': 'PC8',
+                   'D1': 'PC9', 'D2': 'PC10', 'D3': 'PC11'}
+
+    def _generate_sdio_storage(self) -> Optional[str]:
+        """Generate StorageConfig for an SD card on SDMMC1, 4-bit."""
+        pins = {}
+        for signal in self.SDMMC1_PINS:
+            resources = self.bf_config.get_resources(f'SDIO_{signal}')
+            if resources:
+                pins[signal] = self.bf_config.convert_pin_format(resources[0].pin)
+        if not pins:
+            return None
+
+        if (pins != self.SDMMC1_PINS
+                or self.bf_config.settings.get('sdio_device') != '1'
+                or self.bf_config.settings.get('sdio_use_4bit') != '1'
+                or not self.bf_config.mcu_type.startswith('STM32H7')):
+            return "  // ERROR: SDIO storage is supported on STM32H7 SDMMC1, 4-bit, only\n"
+
+        lines = [
+            "  // Storage: SD card on SDMMC1, 4-bit (CK PC12, CMD PD2, D0-D3 PC8-PC11)",
+            "  static constexpr StorageConfig storage{StorageBackend::SDFS_SDMMC, "
+            "NC_PIN, NC_PIN, NC_PIN, NC_PIN, 25000000};",
             ""
         ]
 

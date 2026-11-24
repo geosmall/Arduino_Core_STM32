@@ -4,7 +4,7 @@
 
 #include "SDLog.h"
 
-using CR = SDBlockSPI::Result;
+using CR = SDBlockDevice::Result;
 
 namespace {
 
@@ -150,7 +150,7 @@ void SDLog::resetLog()
   _log_bytes = _stored_bytes = _blocks = _seg_end = _committed = 0;
 }
 
-SDLog::Result SDLog::begin(SDFS_SPI &fs, const SDLogConfig &cfg)
+SDLog::Result SDLog::begin(SDFS_Card &fs, const SDLogConfig &cfg)
 {
   _ready = _prepared = _full = false;
   resetLog();

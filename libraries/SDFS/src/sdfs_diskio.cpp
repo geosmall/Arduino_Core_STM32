@@ -1,5 +1,5 @@
 /*
- * sdfs_diskio.cpp — FatFs disk I/O over an SDBlockSPI card (drive 0).
+ * sdfs_diskio.cpp — FatFs disk I/O over an SDBlock card (drive 0).
  * Uses the card's waiting calls only; FatFs runs while disarmed.
  */
 
@@ -7,14 +7,14 @@
 #include "fatfs/ff.h"
 #include "fatfs/diskio.h"
 
-static SDBlockSPI *s_card = nullptr;
+static SDBlockDevice *s_card = nullptr;
 
-void sdfs_diskio_attach(SDBlockSPI *card)
+void sdfs_diskio_attach(SDBlockDevice *card)
 {
   s_card = card;
 }
 
-SDBlockSPI *sdfs_diskio_card()
+SDBlockDevice *sdfs_diskio_card()
 {
   return s_card;
 }
@@ -41,7 +41,7 @@ DRESULT disk_read(BYTE pdrv, BYTE *buff, LBA_t sector, UINT count)
   if (!usable(pdrv)) {
     return RES_NOTRDY;
   }
-  return s_card->readBlocks(sector, buff, count) == SDBlockSPI::Result::Ok ? RES_OK : RES_ERROR;
+  return s_card->readBlocks(sector, buff, count) == SDBlockDevice::Result::Ok ? RES_OK : RES_ERROR;
 }
 
 DRESULT disk_write(BYTE pdrv, const BYTE *buff, LBA_t sector, UINT count)
@@ -49,7 +49,7 @@ DRESULT disk_write(BYTE pdrv, const BYTE *buff, LBA_t sector, UINT count)
   if (!usable(pdrv)) {
     return RES_NOTRDY;
   }
-  return s_card->writeBlocks(sector, buff, count) == SDBlockSPI::Result::Ok ? RES_OK : RES_ERROR;
+  return s_card->writeBlocks(sector, buff, count) == SDBlockDevice::Result::Ok ? RES_OK : RES_ERROR;
 }
 
 DRESULT disk_ioctl(BYTE pdrv, BYTE cmd, void *buff)
@@ -59,12 +59,12 @@ DRESULT disk_ioctl(BYTE pdrv, BYTE cmd, void *buff)
   }
   switch (cmd) {
     case CTRL_SYNC:
-      return s_card->sync(SDBlockSPI::BUSY_TIMEOUT_US) == SDBlockSPI::Result::Ok ? RES_OK : RES_ERROR;
+      return s_card->sync(SDBlockDevice::BUSY_TIMEOUT_US) == SDBlockDevice::Result::Ok ? RES_OK : RES_ERROR;
     case GET_SECTOR_COUNT:
       *(LBA_t *)buff = s_card->blockCount();
       return RES_OK;
     case GET_SECTOR_SIZE:
-      *(WORD *)buff = SDBlockSPI::BLOCK_SIZE;
+      *(WORD *)buff = SDBlockDevice::BLOCK_SIZE;
       return RES_OK;
     case GET_BLOCK_SIZE:
       // Erase block size in sectors: the card's allocation unit, or 1

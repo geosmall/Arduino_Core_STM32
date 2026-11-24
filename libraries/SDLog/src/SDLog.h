@@ -30,11 +30,12 @@
  *
  * IN FLIGHT. startLog() only sets state; service() opens the stream. Call
  * service() once per frame, after the outputs. Each call makes one bounded
- * action: in the data phase, either one SDBlockSPI::step() that sends a 48 B
- * piece of the block in transfer, or (block buffer free) the card's one-byte
- * busy check and one 512 B copy from the ring into the card's block buffer;
- * in a segment switch, one command phase or one step(). Data is written in segments, each opened with ACMD23(count) +
- * CMD25: first_segment_blocks, then segment_blocks each. At a segment's end
+ * action: in the data phase, either one SDBlockDevice::step() (on SPI a 48 B
+ * piece of the block in transfer, on SDMMC one phase of a chunk), or (block
+ * buffer free) the card's busy check and one 512 B copy from the ring into
+ * the card's block buffer; in a segment switch, one command phase or one
+ * step(). Data is written in segments, each one stream of the card:
+ * first_segment_blocks, then segment_blocks each. At a segment's end
  * the stream is stopped; before each segment (the first included) the
  * cached directory sector is written as a one-block stream with the entry's
  * size set to that segment's end, then the segment is opened. The ring
@@ -48,7 +49,8 @@
  * tolerate that tail. The card keeps what it has committed to its flash; a
  * card may hold blocks it accepted in a buffer until then, and a power cut
  * loses them (one card measured: up to 32 KiB, kept up to the last 32 KiB
- * boundary or the start of the stream being written). begin() then cuts a
+ * boundary or the start of the stream being written). The SDMMC back end
+ * also holds up to one chunk of submitted blocks in RAM, lost with the power. begin() then cuts a
  * log whose cluster chain is longer than its size to that size, and deletes
  * a file whose first block is zero (prepared and never written).
  *
@@ -94,11 +96,11 @@ public:
     BadArgument,
     NotFound,
     Timeout,
-    CardError,    // the card faulted (SDBlockSPI result in cardResult())
+    CardError,    // the card faulted (SDBlockDevice result in cardResult())
     FsError,      // FatFs returned an error (in fsResult())
   };
 
-  static constexpr uint32_t BLOCK = SDBlockSPI::BLOCK_SIZE;
+  static constexpr uint32_t BLOCK = SDBlockDevice::BLOCK_SIZE;
   static constexpr uint32_t DUMP_STALL_MS = 50;
   static constexpr uint32_t MAX_NUMBER = 99999;
 
@@ -108,7 +110,7 @@ public:
   // cut short, finds the next number and prepares the next file. May be
   // called again (state is reset; a stream this object left open is
   // abandoned to the card's begin()).
-  Result begin(SDFS_SPI &fs, const SDLogConfig &cfg = SDLogConfig());
+  Result begin(SDFS_Card &fs, const SDLogConfig &cfg = SDLogConfig());
 
   // Opens the prepared log: header (may be null) goes into the ring first.
   // No card I/O. Busy if a log is open or unfinished.
@@ -161,7 +163,7 @@ public:
   // Longest segment switch (stop to reopen), in microseconds.
   uint32_t switchMaxUs() const { return _switch_max_us; }
   uint32_t recovered() const { return _recovered; }
-  SDBlockSPI::Result cardResult() const { return _card_result; }
+  SDBlockDevice::Result cardResult() const { return _card_result; }
   FRESULT fsResult() const { return _fs_result; }
 
   static uint32_t crc32(const uint8_t *p, uint32_t n, uint32_t crc = 0);
@@ -193,13 +195,13 @@ private:
   uint32_t segLen() const;
   void streamStep();
   void closingStep();
-  void fail(SDBlockSPI::Result r);
+  void fail(SDBlockDevice::Result r);
   void fillBlock(uint8_t *dst, uint32_t n);
   void ringWrite(const uint8_t *src, uint32_t n);
   void resetLog();
 
-  SDFS_SPI *_fs = nullptr;
-  SDBlockSPI *_card = nullptr;
+  SDFS_Card *_fs = nullptr;
+  SDBlockDevice *_card = nullptr;
   SDLogConfig _cfg;
   char _ext[4] = "BBL";
 
@@ -238,7 +240,7 @@ private:
   uint32_t _dir_updates = 0;
   uint32_t _switch_max_us = 0;
   uint32_t _recovered = 0;
-  SDBlockSPI::Result _card_result = SDBlockSPI::Result::Ok;
+  SDBlockDevice::Result _card_result = SDBlockDevice::Result::Ok;
   FRESULT _fs_result = FR_OK;
 
   FIL _fil = {};

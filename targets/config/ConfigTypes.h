@@ -10,7 +10,9 @@
 enum class StorageBackend {
     NONE,      // No storage hardware attached
     LITTLEFS,  // SPI flash storage
-    SDFS       // SD card storage
+    SDFS,      // SD card storage over SPI
+    SDFS_SDMMC // SD card storage on SDMMC1, 4-bit (fixed pins: CK PC12, CMD PD2,
+               // D0-D3 PC8-PC11; the config's pins are unused)
 };
 
 

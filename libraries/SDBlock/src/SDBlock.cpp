@@ -4,9 +4,7 @@
 
 #include "SDBlock.h"
 
-#if defined(SPI_SR_TXP)
-#error "SDBlock: H7-class SPI (TXP/RXP/EOT) is not supported"
-#endif
+#if !defined(SPI_SR_TXP)
 
 namespace {
 
@@ -654,3 +652,5 @@ SDBlockSPI::Result SDBlockSPI::step()
   }
   return _spi_fault ? setFault(Result::Timeout) : Result::Ok;
 }
+
+#endif  // !SPI_SR_TXP

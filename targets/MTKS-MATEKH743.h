@@ -19,8 +19,8 @@
 // MCU: STM32H743
 // Gyro: MPU6500, MPU6000, ICM42688P, ICM42605
 namespace BoardConfig {
-  // Storage: No onboard SPI flash or SD card
-  static constexpr StorageConfig storage{StorageBackend::NONE, NC_PIN, NC_PIN, NC_PIN, NC_PIN};
+  // Storage: SD card on SDMMC1, 4-bit (CK PC12, CMD PD2, D0-D3 PC8-PC11)
+  static constexpr StorageConfig storage{StorageBackend::SDFS_SDMMC, NC_PIN, NC_PIN, NC_PIN, NC_PIN, 25000000};
 
   // IMU: MPU6500, MPU6000, ICM42688P, ICM42605 on SPI1
   // Chip alignment from Betaflight GYRO_1_ALIGN CW0_DEG_FLIP

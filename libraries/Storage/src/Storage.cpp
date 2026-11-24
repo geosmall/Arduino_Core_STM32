@@ -17,9 +17,9 @@
 Storage storage;
 
 // The SDFS backend: one card and one FatFs volume per program.
-static SDFS_SPI s_sdfs;
+static SDFS_Card s_sdfs;
 
-bool Storage::beginSD(SDBlockSPI &card, uint32_t clock_hz) {
+bool Storage::beginSD(SDBlockDevice &card, uint32_t clock_hz) {
     if (initialized) {
         cleanup();
     }

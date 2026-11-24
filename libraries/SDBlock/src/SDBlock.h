@@ -7,13 +7,8 @@
  * Cards: SDHC/SDXC (CSD version 2, block addressed) in SPI mode. A
  * byte-addressed SDSC card is refused at begin() (UnsupportedCard).
  *
- * TWO KINDS OF CALL.
- * - Waiting calls, for use while disarmed: begin(), readBlocks(),
- *   writeBlocks(), sync(). Each wait is bounded by a timeout, and each
- *   block read or written calls yield() (a sketch may feed a watchdog there).
- * - Stream calls, for use in flight: streamOpen(), submit(), step(),
- *   streamClose(). None of them waits on the card. Each makes bounded
- *   progress and returns Busy when the card holds busy.
+ * The calls and their rules are SDBlockDevice's (SDBlockDevice.h); this file
+ * is the SPI back end, and includes the SDMMC one (SDBlockSDMMC.h).
  *
  * STREAM. streamOpen(lba, count) sends ACMD23 (pre-erase count) and CMD25.
  * Blocks then go through the back end's own block buffer, one at a time:
@@ -42,37 +37,21 @@
  * The bus is assumed dedicated to the card (chip select stays low through a
  * stream). Static allocation only.
  *
- * Supported SPI blocks: STM32F4, F7, G4 (TXE/RXNE flags). H7-class SPI is
- * not supported.
+ * Supported SPI blocks: STM32F4, F7, G4 (TXE/RXNE flags). On a part with the
+ * H7-class SPI (TXP/RXP/EOT) this back end is not built.
  */
 
 #include <Arduino.h>
+#include "SDBlockDevice.h"
+#include "SDBlockSDMMC.h"
+
+#if !defined(SPI_SR_TXP)
 #include <SPI.h>
 
-class SDBlockSPI {
+class SDBlockSPI final : public SDBlockDevice {
 public:
-  enum class Result : uint8_t {
-    Ok,
-    Busy,            // the card holds busy; try again on a later call
-    NotReady,        // begin() not completed
-    NoCard,          // no response to CMD0
-    UnsupportedCard, // not an SDv2 card, or SDSC (byte addressed)
-    BadArgument,     // range outside the card, or a zero count
-    BadState,        // call not valid in the stream's current state
-    StreamOpen,      // a waiting call while a stream is open
-    CommandError,    // R1 error, or no R1 within the response window
-    ReadError,       // no data token, or an error token
-    WriteError,      // data response other than "accepted"
-    Timeout,         // a bounded wait expired (card busy or SPI flag)
-  };
-
-  static constexpr uint32_t BLOCK_SIZE = 512;
   static constexpr uint32_t PIECE_BYTES = 48;
-  // Default-speed SD bus limit in SPI mode.
-  static constexpr uint32_t MAX_CLOCK_HZ = 25000000;
   static constexpr uint32_t INIT_CLOCK_HZ = 400000;
-  // Longest card busy accepted after a block or the stop token.
-  static constexpr uint32_t BUSY_TIMEOUT_US = 500000;
 
   SDBlockSPI(SPI_TypeDef *instance, Pin mosi, Pin miso, Pin sclk, Pin cs);
 
@@ -81,15 +60,15 @@ public:
   // Clears a fault. A card this object left inside a stream is first given
   // the rest of its block (0xFF) and the stop token, then reset by CMD0; the
   // same is tried for any card that does not answer CMD0.
-  Result begin(uint32_t clock_hz);
+  Result begin(uint32_t clock_hz) override;
 
-  bool ready() const { return _ready; }
-  uint32_t blockCount() const { return _blocks; }
+  bool ready() const override { return _ready; }
+  uint32_t blockCount() const override { return _blocks; }
   // Allocation unit from the SD status (ACMD13), in blocks; 0 if not read.
-  uint32_t auBlocks() const { return _au_blocks; }
-  uint32_t clockHz() const { return _clock_hz; }
+  uint32_t auBlocks() const override { return _au_blocks; }
+  uint32_t clockHz() const override { return _clock_hz; }
   uint32_t pieceBytes() const { return PIECE_BYTES; }
-  Result fault() const { return _fault; }
+  Result fault() const override { return _fault; }
   // The last command sent and its R1 (0xFF: none), for diagnosing a failure.
   uint8_t lastCommand() const { return _last_cmd; }
   uint8_t lastR1() const { return _last_r1; }
@@ -100,43 +79,43 @@ public:
   // --- Waiting calls (disarmed) --------------------------------------------
 
   // Reads n blocks from lba (CMD17 per block).
-  Result readBlocks(uint32_t lba, uint8_t *dst, uint32_t n);
+  Result readBlocks(uint32_t lba, uint8_t *dst, uint32_t n) override;
 
   // Writes n blocks at lba: CMD24 for one, ACMD23 + CMD25 for more; each
   // block's busy waited out.
-  Result writeBlocks(uint32_t lba, const uint8_t *src, uint32_t n);
+  Result writeBlocks(uint32_t lba, const uint8_t *src, uint32_t n) override;
 
   // Waits until the card is not busy, up to timeout_us.
-  Result sync(uint32_t timeout_us);
+  Result sync(uint32_t timeout_us) override;
 
   // --- Stream calls (in flight; none waits on the card) --------------------
 
   // ACMD23(count) + CMD25(lba). Busy if the card is busy; the caller tries
   // again. count is the pre-erase count: fewer blocks may be written.
-  Result streamOpen(uint32_t lba, uint32_t count);
+  Result streamOpen(uint32_t lba, uint32_t count) override;
 
   // The back end's block buffer. Fill it only while blockFree().
-  uint8_t *block() { return _buf; }
-  bool blockFree() const { return !_submitted; }
+  uint8_t *block() override { return _buf; }
+  bool blockFree() const override { return !_submitted; }
 
   // Marks block() as holding the next block of the stream.
-  Result submit();
+  Result submit() override;
 
   // One write step; see STREAM. Ok when it made progress or had nothing to
   // do, Busy while the card holds busy, or the fault.
-  Result step();
+  Result step() override;
 
   // Requests the stop token, sent by a later step() once the last block is
   // out and the card is ready. BadState with a block submitted or part sent.
-  Result streamClose();
+  Result streamClose() override;
 
-  bool streaming() const { return _state != State::Idle; }
+  bool streaming() const override { return _state != State::Idle; }
   // No stream open and the card seen ready after the last write.
-  bool idle() const { return _state == State::Idle && !_card_busy; }
-  uint32_t blocksWritten() const { return _blocks_written; }
+  bool idle() const override { return _state == State::Idle && !_card_busy; }
+  uint32_t blocksWritten() const override { return _blocks_written; }
   // Longest busy seen by step() since begin() or resetBusyMax().
-  uint32_t busyMaxUs() const { return _busy_max_us; }
-  void resetBusyMax() { _busy_max_us = 0; }
+  uint32_t busyMaxUs() const override { return _busy_max_us; }
+  void resetBusyMax() override { _busy_max_us = 0; }
 
 private:
   enum class State : uint8_t { Idle, Streaming, Closing };
@@ -184,3 +163,5 @@ private:
   // Placed by the back end; any CPU-reachable RAM suits polled SPI.
   alignas(4) uint8_t _buf[BLOCK_SIZE];
 };
+
+#endif  // !SPI_SR_TXP

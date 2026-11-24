@@ -18,6 +18,7 @@ target_link_libraries(SDBlock INTERFACE SDBlock_usage)
 
 add_library(SDBlock_bin OBJECT EXCLUDE_FROM_ALL
   src/SDBlock.cpp
+  src/SDBlockSDMMC.cpp
 )
 target_link_libraries(SDBlock_bin PUBLIC SDBlock_usage)
 

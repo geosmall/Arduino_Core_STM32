@@ -516,10 +516,10 @@ const char* SDFS::fresultToString(FRESULT fr)
 }
 
 // ============================================================================
-// SDFS_SPI Implementation  
+// SDFS_Card Implementation
 // ============================================================================
 
-bool SDFS_SPI::begin(SDBlockSPI &card, uint32_t clock_hz)
+bool SDFS_Card::begin(SDBlockDevice &card, uint32_t clock_hz)
 {
     // Guard rail: Prevent multiple begin() calls
     if (mounted) {
@@ -527,7 +527,7 @@ bool SDFS_SPI::begin(SDBlockSPI &card, uint32_t clock_hz)
         return true; // Already successfully mounted
     }
 
-    if (!card.ready() && card.begin(clock_hz) != SDBlockSPI::Result::Ok) {
+    if (!card.ready() && card.begin(clock_hz) != SDBlockDevice::Result::Ok) {
         last_error = SDFS_CARD_INIT_FAILED;
         return false;
     }
@@ -548,7 +548,7 @@ bool SDFS_SPI::begin(SDBlockSPI &card, uint32_t clock_hz)
     return true;
 }
 
-const char* SDFS_SPI::getMediaName()
+const char* SDFS_Card::getMediaName()
 {
-    return "SD Card (SPI)";
+    return "SD Card";
 }

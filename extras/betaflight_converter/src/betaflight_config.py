@@ -35,6 +35,9 @@ class Patterns:
     ADC_CURR_PIN = re.compile(r'#define\s+ADC_CURR_PIN\s+(P\w+)')
     FLASH_CS_PIN = re.compile(r'#define\s+FLASH_CS_PIN\s+(P\w+)')
     SDCARD_SPI_CS_PIN = re.compile(r'#define\s+SDCARD_SPI_CS_PIN\s+(P\w+)')
+    SDIO_PIN = re.compile(r'#define\s+SDIO_(CK|CMD|D[0-3])_PIN\s+(P\w+)')
+    SDIO_DEVICE = re.compile(r'#define\s+SDIO_DEVICE\s+SDIODEV_(\d)')
+    SDIO_USE_4BIT = re.compile(r'#define\s+SDIO_USE_4BIT\s+(\d+)')
     BEEPER_PIN = re.compile(r'#define\s+BEEPER_PIN\s+(P\w+)')
 
     # Pin definitions — gyro (indexed)
@@ -274,6 +277,12 @@ class BetaflightConfig:
             self._add_resource('SDCARD_CS', 1, match.group(1))
             return
 
+        # SD card on SDIO/SDMMC
+        match = Patterns.SDIO_PIN.match(line)
+        if match:
+            self._add_resource(f'SDIO_{match.group(1)}', 1, match.group(2))
+            return
+
         # Gyro CS and EXTI (indexed)
         match = Patterns.GYRO_CS_PIN.match(line)
         if match:
@@ -369,6 +378,17 @@ class BetaflightConfig:
         match = Patterns.DEFAULT_VOLTAGE_METER_SCALE.match(line)
         if match:
             self.settings['vbat_scale'] = match.group(1)
+            return
+
+        # SDIO/SDMMC instance and bus width
+        match = Patterns.SDIO_DEVICE.match(line)
+        if match:
+            self.settings['sdio_device'] = match.group(1)
+            return
+
+        match = Patterns.SDIO_USE_4BIT.match(line)
+        if match:
+            self.settings['sdio_use_4bit'] = match.group(1)
             return
 
         # Blackbox device

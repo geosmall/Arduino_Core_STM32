@@ -29,6 +29,7 @@ namespace BoardStorage {
         currentBackend = config.backend_type;
 
         if (config.backend_type == StorageBackend::SDFS) {
+#if !defined(SPI_SR_TXP)
             if (config.instance == nullptr) {
                 lastError = "StorageConfig for SDFS needs its SPI instance";
                 return false;
@@ -40,6 +41,23 @@ namespace BoardStorage {
             initialized = ok;
             lastError = ok ? nullptr : boardStorage.getLastError();
             return ok;
+#else
+            lastError = "SDFS over SPI is not supported on this SPI block";
+            return false;
+#endif
+        }
+
+        if (config.backend_type == StorageBackend::SDFS_SDMMC) {
+#if defined(SDBLOCK_HAS_SDMMC)
+            static SDBlockSDMMC card;
+            const bool ok = boardStorage.beginSD(card, config.freq_hz);
+            initialized = ok;
+            lastError = ok ? nullptr : boardStorage.getLastError();
+            return ok;
+#else
+            lastError = "SDFS over SDMMC is not supported on this MCU";
+            return false;
+#endif
         }
 
         // SPI bus for the LittleFS backend, constructed on the first call. A

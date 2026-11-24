@@ -9,8 +9,8 @@ enum class StorageBackend;
 
 // Forward declarations
 class LittleFS_SPIFlash;
-class SDFS_SPI;
-class SDBlockSPI;
+class SDFS_Card;
+class SDBlockDevice;
 
 // Generic storage interface that abstracts SDFS and LittleFS
 class Storage : public FS {
@@ -22,9 +22,9 @@ public:
     // LittleFS only: an SDFS backend refuses this call (use beginSD()).
     bool begin(StorageBackend backend, Pin csPin, uint32_t spiSpeed = 2000000, SPIClass &spiPort = SPI);
 
-    // SDFS backend on the caller's SDBlockSPI card (started at clock_hz if
+    // SDFS backend on the caller's SDBlock card (started at clock_hz if
     // it has not completed begin()).
-    bool beginSD(SDBlockSPI &card, uint32_t clock_hz);
+    bool beginSD(SDBlockDevice &card, uint32_t clock_hz);
 
     // FS interface implementation (delegates to active backend)
     virtual File open(const char *filepath, uint8_t mode = FILE_READ) override;
@@ -53,7 +53,7 @@ private:
 
     // Backend instances (only one will be active)
     LittleFS_SPIFlash* littlefs;
-    SDFS_SPI* sdfs;
+    SDFS_Card* sdfs;
 
     // Helper methods
     void setError(const char* error);

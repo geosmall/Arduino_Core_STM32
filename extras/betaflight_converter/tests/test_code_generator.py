@@ -326,5 +326,35 @@ class TestCodeGenerator(unittest.TestCase):
         output_path.unlink()
 
 
+
+class TestSdioStorage(unittest.TestCase):
+    """SD card on SDMMC1 (MATEKH743)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.bf_config = BetaflightConfig(
+            Path(__file__).parent.parent / "bf_configs/MATEKH743")
+        variant = ("variants/STM32H7xx/H742V(G-I)(H-T)_H743V(G-I)(H-T)_H750VBT_H753VI(H-T)")
+        cls.pinmap = PeripheralPinMap(
+            Path(__file__).parents[3] / variant / "PeripheralPins.c")
+        cls.bf_config.resolve_timers(cls.pinmap)
+        cls.validator = ConfigValidator(cls.bf_config, cls.pinmap)
+
+    def test_sdmmc_storage_line(self):
+        code = BoardConfigGenerator(self.bf_config, self.validator)._generate_storage()
+        self.assertIn("StorageBackend::SDFS_SDMMC", code)
+        self.assertIn("25000000", code)
+
+    def test_other_sdio_wiring_is_an_error(self):
+        saved = self.bf_config.settings['sdio_use_4bit']
+        self.bf_config.settings['sdio_use_4bit'] = '0'
+        try:
+            code = BoardConfigGenerator(self.bf_config, self.validator)._generate_storage()
+        finally:
+            self.bf_config.settings['sdio_use_4bit'] = saved
+        self.assertIn("ERROR", code)
+        self.assertNotIn("StorageConfig storage", code)
+
+
 if __name__ == '__main__':
     unittest.main()

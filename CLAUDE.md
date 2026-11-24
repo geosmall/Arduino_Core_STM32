@@ -127,7 +127,7 @@ Board-specific configurations are defined through the variant system, allowing t
 - `STM32RTC` - Real-time clock functionality
 - `SerialRx` - RC receiver protocol parser (IBus, SBUS) with BoardConfig integration
 - `LittleFS` - SPI flash filesystem with wear leveling
-- `SDBlock` - SD card block device with bounded, poll-driven write steps (polled SPI)
+- `SDBlock` - SD card block device with bounded, poll-driven write steps (polled SPI; SDMMC1 4-bit on H7)
 - `SDFS` - SD card filesystem (FatFs) over an SDBlock card
 - `SDLog` - SD card log writer: contiguous FAT log files written in flight as bounded raw block streams
 - `Storage` - Generic storage abstraction for LittleFS and SDFS
