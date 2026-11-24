@@ -51,7 +51,7 @@ extern "C" {
 /*
  * Reset-based entry to the STM32 factory system-memory DFU bootloader (USB 0483:df11) —
  * e.g. to revert a board to stock firmware without the BOOT0 pad. Works across F4/F7/G4/H7:
- * requestSystemBootloader() writes a reset-surviving marker and resets; systemDFU_checkAndJump()
+ * requestSystemBootloader() writes a marker in an RTC backup register (DR8) and resets; systemDFU_checkAndJump()
  * (called first thing in premain(), before clocks/peripherals are configured) jumps to the ROM
  * bootloader from the clean post-reset state. A direct from-running-app jump only brings up USB
  * DFU on the HSI48 families (G4/H7); the reset-based entry is required for F4/F7. See bootloader.c.

@@ -43,10 +43,58 @@ void dtr_togglingHook(uint8_t *buf, uint32_t *len)
 /* Marker magic, distinct from bootuf2's double-tap magic (0xf01669ef). */
 #define SYSTEM_DFU_MAGIC  0xDF11B007UL
 
-/* Reset-surviving marker: the .noinit section (system/ldscript.ld, NOLOAD, INSERT AFTER
-   .bss) is not zeroed by startup and survives a warm reset (NVIC_SystemReset retains SRAM),
-   so requestSystemBootloader()'s value is readable from the early premain() hook. */
-__attribute__((section(".noinit"))) static volatile uint32_t s_sysdfu_marker;
+/* The request is kept in an RTC backup register: it survives a reset and whatever the
+   reset passes through (a UF2 bootloader in front of the app uses the same RAM as the
+   app and may clear the reset flags), and reads 0 after a cold power-on (with a battery
+   on VBAT, what was last written), so no reset-flag gate is needed. Not used by STM32RTC
+   (DR1, DR6, DR7) or the HID bootloader (DR4, DR10). */
+#define SYSDFU_BKP_INDEX  LL_RTC_BKP_DR8
+
+/* Register access only: the check runs before HAL_Init(). */
+static void sysdfu_rtcClockOn(void)
+{
+#if defined(RCC_APB4ENR_RTCAPBEN)      /* H7 */
+  RCC->APB4ENR |= RCC_APB4ENR_RTCAPBEN;
+  (void)RCC->APB4ENR;
+#elif defined(RCC_APB1ENR1_RTCAPBEN)   /* G4 */
+  RCC->APB1ENR1 |= RCC_APB1ENR1_RTCAPBEN;
+  (void)RCC->APB1ENR1;
+#endif
+}
+
+/* Opens the backup domain for writing. Returns 0 if it does not open. */
+static int sysdfu_backupOpen(void)
+{
+#if defined(STM32F4xx)
+  volatile uint32_t *const cr = &PWR->CR;
+  const uint32_t dbp = PWR_CR_DBP;
+#else
+  volatile uint32_t *const cr = &PWR->CR1;
+  const uint32_t dbp = PWR_CR1_DBP;
+#endif
+#if defined(__HAL_RCC_PWR_CLK_ENABLE)
+  __HAL_RCC_PWR_CLK_ENABLE();
+#endif
+  *cr |= dbp;
+  for (uint32_t spin = 0; spin < 100000; spin++) {
+    if (*cr & dbp) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+/* Writes the register and reads it back. Returns 0 if it did not take. */
+static int sysdfu_writeMarker(uint32_t value)
+{
+  sysdfu_rtcClockOn();
+  if (!sysdfu_backupOpen()) {
+    return 0;
+  }
+  setBackupRegister(SYSDFU_BKP_INDEX, value);
+  __DSB();
+  return getBackupRegister(SYSDFU_BKP_INDEX) == value;
+}
 
 /* Per-family system-memory base (MSP at [0], reset vector at [1]); matches AN2606. */
 #if defined(STM32F4xx)
@@ -63,31 +111,21 @@ __attribute__((section(".noinit"))) static volatile uint32_t s_sysdfu_marker;
 
 void requestSystemBootloader(void)
 {
-  s_sysdfu_marker = SYSTEM_DFU_MAGIC;
-  __DSB();
+  (void)sysdfu_writeMarker(SYSTEM_DFU_MAGIC);
   NVIC_SystemReset();
   while (1) { } /* unreachable */
 }
 
 void systemDFU_checkAndJump(void)
 {
-  /* Honor the request only on a software reset (what NVIC_SystemReset, and thus
-     requestSystemBootloader(), produces). A cold power-on leaves the .noinit marker
-     indeterminate, but POR clears the software-reset flag (sets PORRSTF instead), so a
-     random marker match cannot trigger a spurious DFU entry. */
-#if defined(STM32H7xx)
-  const uint32_t softReset = RCC->RSR & RCC_RSR_SFTRSTF;
-#else
-  const uint32_t softReset = RCC->CSR & RCC_CSR_SFTRSTF;
-#endif
-  const uint32_t requested = (s_sysdfu_marker == SYSTEM_DFU_MAGIC);
+  sysdfu_rtcClockOn();
+  if (getBackupRegister(SYSDFU_BKP_INDEX) != SYSTEM_DFU_MAGIC) {
+    return;
+  }
 
-  /* Clear unconditionally: one-shot, and ensures an indeterminate cold-boot value
-     can't persist and fire on a later software reset. */
-  s_sysdfu_marker = 0;
-  __DSB();
-
-  if (!softReset || !requested) {
+  /* One-shot. A marker that cannot be cleared is not honored: it would send every boot
+     to the ROM. */
+  if (!sysdfu_writeMarker(0)) {
     return;
   }
 
