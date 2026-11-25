@@ -24,18 +24,18 @@
  *  - mainFrame(): an I frame every `I interval` frames and after any frame
  *    the caller did not keep, a P frame otherwise. Every call is one logged
  *    iteration ("P interval" 1/1); log at a lower rate by calling less often.
- *  - The caller keeps or drops each encoded main frame: commit() after the
- *    bytes were stored, drop() if they were not (the next frame is then an I
- *    frame, since the decoder's history no longer matches the encoder's):
- *      if (enc.mainFrame(t, values, buf) && log.push(buf.data(), buf.size()))
- *        enc.commit();
- *      else
- *        enc.drop();
- *    commit() on a frame that was not stored corrupts the frames up to the
- *    next I frame, and the decoder need not notice.
+ *  - The caller reports whether the log kept each main frame, by passing on
+ *    the result of the push:
+ *      enc.frameKept(enc.mainFrame(t, values, buf) &&
+ *                    log.push(buf.data(), buf.size()));
+ *    "Kept" means the log took the bytes (into its ring), not that they are
+ *    on the card. After a frame that was not kept the next one is an I frame,
+ *    since the decoder's history no longer matches the encoder's.
+ *    frameKept(true) for a frame that was not kept corrupts the frames up to
+ *    the next I frame, and the decoder need not notice.
  *  - Long gaps: blackbox_decode (57c7695) rejects a main frame 5,000
  *    iterations or 10 s past the last one it accepted, and then every later
- *    one. When frames were dropped, or mainFrame() not called, for that
+ *    one. When frames were not kept, or mainFrame() not called, for that
  *    long, store a loggingResume(iteration(), time_us) event right before
  *    the next main frame.
  *  - slowFrame(): an S frame from a second table (no history).
@@ -211,11 +211,13 @@ public:
 
   // Encodes one main frame of n values (in table order) into out, which is
   // cleared first. Returns false if the table is invalid or out overflowed.
-  // Follow with commit() or drop(). A buffer of maxMainFrameBytes() or more
+  // Follow with frameKept(). A buffer of maxMainFrameBytes() or more
   // is written without a per-byte bound check; a smaller one is checked.
   bool mainFrame(uint32_t time_us, const int32_t *values, Buffer &out);
-  void commit();
-  void drop();
+
+  // Whether the log kept the last main frame. A main frame never reported on
+  // counts as not kept.
+  void frameKept(bool kept);
 
   // Largest main frame this table can produce, for sizing the buffer.
   size_t maxMainFrameBytes() const;

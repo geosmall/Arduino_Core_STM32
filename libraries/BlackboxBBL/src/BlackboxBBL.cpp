@@ -734,7 +734,7 @@ bool Encoder::mainFrame(uint32_t time_us, const int32_t *values, Buffer &out)
     return false;
   }
   if (_pending) {
-    drop();  // the caller neither kept nor dropped the last frame
+    frameKept(false);  // the caller did not report on the last frame
   }
   int32_t *cur = row(_cur);
   cur[ROW_ITERATION] = (int32_t)_iteration;
@@ -754,19 +754,24 @@ bool Encoder::mainFrame(uint32_t time_us, const int32_t *values, Buffer &out)
   return !out.overflow();
 }
 
-void Encoder::commit()
+void Encoder::frameKept(bool kept)
 {
   if (!_pending) {
     return;
   }
   _pending = false;
-  const uint8_t kept = _cur;
+  _iteration++;
+  if (!kept) {
+    _force_intra = true;
+    return;
+  }
+  const uint8_t newest = _cur;
   if (_pending_intra) {
-    _prev1 = kept;
-    _prev2 = kept;
+    _prev1 = newest;
+    _prev2 = newest;
   } else {
     _prev2 = _prev1;
-    _prev1 = kept;
+    _prev1 = newest;
   }
   // The next row goes in a slot that is neither history row.
   for (uint8_t s = 0; s < 3; s++) {
@@ -775,18 +780,7 @@ void Encoder::commit()
       break;
     }
   }
-  _iteration++;
   _force_intra = false;
-}
-
-void Encoder::drop()
-{
-  if (!_pending) {
-    return;
-  }
-  _pending = false;
-  _iteration++;
-  _force_intra = true;
 }
 
 size_t Encoder::maxMainFrameBytes() const
