@@ -26,7 +26,18 @@
  *    iteration ("P interval" 1/1); log at a lower rate by calling less often.
  *  - The caller keeps or drops each encoded main frame: commit() after the
  *    bytes were stored, drop() if they were not (the next frame is then an I
- *    frame, since the decoder's history no longer matches the encoder's).
+ *    frame, since the decoder's history no longer matches the encoder's):
+ *      if (enc.mainFrame(t, values, buf) && log.push(buf.data(), buf.size()))
+ *        enc.commit();
+ *      else
+ *        enc.drop();
+ *    commit() on a frame that was not stored corrupts the frames up to the
+ *    next I frame, and the decoder need not notice.
+ *  - Long gaps: blackbox_decode (57c7695) rejects a main frame 5,000
+ *    iterations or 10 s past the last one it accepted, and then every later
+ *    one. When frames were dropped, or mainFrame() not called, for that
+ *    long, store a loggingResume(iteration(), time_us) event right before
+ *    the next main frame.
  *  - slowFrame(): an S frame from a second table (no history).
  *  - Events: sync beep, disarm, flight mode, logging resume, log end, laid
  *    out as Betaflight writes them. blackbox_decode (57c7695) parses only
